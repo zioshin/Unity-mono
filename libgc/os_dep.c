@@ -511,7 +511,8 @@ void GC_enable_signals(void)
 #  if !defined(PCR) && !defined(AMIGA) && !defined(MSWIN32) \
       && !defined(MSWINCE) \
       && !defined(MACOS) && !defined(DJGPP) && !defined(DOS4GW) \
-      && !defined(NOSYS) && !defined(ECOS) && !defined(SN_TARGET_PS3)
+      && !defined(NOSYS) && !defined(ECOS) && !defined(SN_TARGET_PS3) \
+	  && !defined(_XBOX)
 
 #   if defined(sigmask) && !defined(UTS4) && !defined(HURD)
 	/* Use the traditional BSD interface */
@@ -1028,8 +1029,8 @@ ptr_t GC_get_stack_base()
 #   if defined(HEURISTIC1) || defined(HEURISTIC2) || \
        defined(LINUX_STACKBOTTOM) || defined(FREEBSD_STACKBOTTOM)
     word dummy;
-    ptr_t result;
 #   endif
+	ptr_t result=0;
 
 #   define STACKBOTTOM_ALIGNMENT_M1 ((word)STACK_GRAN - 1)
 
@@ -1555,7 +1556,7 @@ word bytes;
     return((ptr_t)result);
 }
 
-#else  /* Not RS6000 */
+#elif !defined(_XBOX) /* Not RS6000 */
 
 #if defined(USE_MMAP) || defined(USE_MUNMAP) || defined(FALLBACK_TO_MMAP)
 

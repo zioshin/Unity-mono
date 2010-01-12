@@ -101,10 +101,13 @@ static MonitorArray *monitor_allocated;
 static int array_size = 16;
 
 #ifdef HAVE_KW_THREAD
+#	ifdef _XBOX
+#		define __thread __declspec(thread)
+#	endif
 static __thread gsize tls_pthread_self MONO_TLS_FAST;
 #endif
 
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 #ifdef HAVE_KW_THREAD
 #define GetCurrentThreadId() tls_pthread_self
 #else
@@ -145,7 +148,7 @@ mono_monitor_cleanup (void)
 void
 mono_monitor_init_tls (void)
 {
-#if !defined(HOST_WIN32) && defined(HAVE_KW_THREAD)
+#if !defined(HOST_WIN32) && !defined(_XBOX) && defined(HAVE_KW_THREAD)
 	tls_pthread_self = pthread_self ();
 #endif
 }

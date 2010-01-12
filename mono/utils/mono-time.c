@@ -10,7 +10,7 @@
 
 #define MTICKS_PER_SEC 10000000
 
-#ifdef HOST_WIN32
+#if defined(HOST_WIN32) || defined(_XBOX)
 #include <windows.h>
 
 guint32

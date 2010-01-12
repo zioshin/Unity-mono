@@ -25,11 +25,13 @@ struct _WapiCriticalSection
 	mono_mutex_t mutex;
 };
 
+#ifndef _XBOX
 extern void InitializeCriticalSection(WapiCriticalSection *section);
 extern gboolean InitializeCriticalSectionAndSpinCount(WapiCriticalSection *section, guint32 spincount);
 extern void DeleteCriticalSection(WapiCriticalSection *section);
 extern guint32 SetCriticalSectionSpinCount(WapiCriticalSection *section, guint32 spincount);
 extern gboolean TryEnterCriticalSection(WapiCriticalSection *section);
+#endif
 
 /* These two are perf critical so avoid the wrapper function */
 

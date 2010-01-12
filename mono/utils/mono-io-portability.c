@@ -6,13 +6,6 @@
 #endif
 #include <errno.h>
 #include <mono/utils/mono-io-portability.h>
-#include <mono/metadata/metadata.h>
-#include <mono/metadata/class.h>
-#include <mono/metadata/class-internals.h>
-#include <mono/metadata/object.h>
-#include <mono/metadata/gc-internal.h>
-#include <mono/metadata/profiler.h>
-#include <mono/metadata/profiler-private.h>
 
 #ifdef DISABLE_PORTABILITY
 int __mono_io_portability_helpers = PORTABILITY_NONE;
@@ -30,6 +23,15 @@ mono_portability_find_file (const gchar *pathname, gboolean last_exists)
 }
 
 #else
+
+#include <mono/metadata/metadata.h>
+#include <mono/metadata/class.h>
+#include <mono/metadata/class-internals.h>
+#include <mono/metadata/object.h>
+#include <mono/utils/mono-hash.h>
+#include <mono/metadata/gc-internal.h>
+#include <mono/metadata/profiler.h>
+#include <mono/metadata/profiler-private.h>
 
 #include <dirent.h>
 

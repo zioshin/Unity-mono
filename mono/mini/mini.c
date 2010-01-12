@@ -91,6 +91,10 @@ static gboolean default_opt_set = FALSE;
 
 guint32 mono_jit_tls_id = -1;
 
+#if defined(HAVE_KW_THREAD) && defined(_XBOX)
+#	define __thread __declspec( thread )
+#endif
+
 #ifdef HAVE_KW_THREAD
 static __thread gpointer mono_jit_tls MONO_TLS_FAST;
 #endif
@@ -5779,8 +5783,10 @@ mini_free_jit_domain_info (MonoDomain *domain)
 	g_hash_table_destroy (info->seq_points);
 	g_hash_table_destroy (info->arch_seq_points);
 
+#ifndef _XBOX
 	if (info->agent_info)
 		mono_debugger_agent_free_domain_info (domain);
+#endif
 
 	g_free (domain->runtime_info);
 	domain->runtime_info = NULL;
@@ -5881,7 +5887,9 @@ mini_init (const char *filename, const char *runtime_version)
 	if (default_opt & MONO_OPT_AOT)
 		mono_aot_init ();
 
+#ifndef _XBOX
 	mono_debugger_agent_init ();
+#endif
 
 #ifdef MONO_ARCH_GSHARED_SUPPORTED
 	mono_set_generic_sharing_supported (TRUE);
@@ -6300,7 +6308,9 @@ mini_cleanup (MonoDomain *domain)
 
 	mono_domain_free (domain, TRUE);
 
+#ifndef _XBOX
 	mono_debugger_cleanup ();
+#endif
 
 #ifdef ENABLE_LLVM
 	if (mono_use_llvm)

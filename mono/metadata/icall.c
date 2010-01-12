@@ -5854,7 +5854,7 @@ ves_icall_System_Delegate_SetMulticastInvoke (MonoDelegate *this)
  */
 #define FILETIME_ADJUST ((guint64)504911232000000000LL)
 
-#ifdef HOST_WIN32
+#if defined(HOST_WIN32) || defined(_XBOX)
 /* convert a SYSTEMTIME which is of the form "last thursday in october" to a real date */
 static void
 convert_to_absolute_date(SYSTEMTIME *date)
@@ -5884,7 +5884,7 @@ convert_to_absolute_date(SYSTEMTIME *date)
 }
 #endif
 
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 /*
  * Return's the offset from GMT of a local time.
  * 
@@ -5924,7 +5924,7 @@ gmt_offset(struct tm *tm, time_t t)
 static guint32
 ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData (guint32 year, MonoArray **data, MonoArray **names)
 {
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 	MonoDomain *domain = mono_domain_get ();
 	struct tm start, tt;
 	time_t t;
@@ -6382,6 +6382,8 @@ ves_icall_System_Environment_GetEnvironmentVariableNames (void)
 
 	return names;
 
+#elif defined(_XBOX)
+	return NULL;
 #else
 	MonoArray *names;
 	MonoDomain *domain;
@@ -7467,6 +7469,7 @@ ves_icall_Mono_Runtime_GetDisplayName (void)
 	return display_name;
 }
 
+
 static MonoString*
 ves_icall_System_ComponentModel_Win32Exception_W32ErrorMessage (guint32 code)
 {
@@ -7474,15 +7477,19 @@ ves_icall_System_ComponentModel_Win32Exception_W32ErrorMessage (guint32 code)
 	guint32 ret;
 	gunichar2 buf[256];
 	
+#ifdef _XBOX
+	ret = 1;
+	sprintf(buf, "Win32Exception: 0x%08x", code);
+#else
 	ret = FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM |
 			     FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, 0,
 			     buf, 255, NULL);
+#endif
 	if (ret == 0) {
 		message = mono_string_new (mono_domain_get (), "Error looking up error string");
 	} else {
 		message = mono_string_new_utf16 (mono_domain_get (), buf, ret);
 	}
-	
 	return message;
 }
 
@@ -8037,7 +8044,7 @@ mono_create_icall_signature (const char *sigstr)
 	res = mono_metadata_signature_alloc (mono_defaults.corlib, len - 1);
 	res->pinvoke = 1;
 
-#ifdef HOST_WIN32
+#if defined(HOST_WIN32) || defined(_XBOX)
 	/* 
 	 * Under windows, the default pinvoke calling convention is STDCALL but
 	 * we need CDECL.

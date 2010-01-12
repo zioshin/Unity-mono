@@ -19,7 +19,9 @@
 #include "mono/metadata/object-internals.h"
 #include "mono/utils/mono-logger-internal.h"
 
-#if defined(TARGET_PS3)
+#if defined(_XBOX)
+#define CONFIG_OS "xenon"
+#elif defined(TARGET_PS3)
 #define CONFIG_OS "CellOS"
 #elif defined(__linux__)
 #define CONFIG_OS "linux"

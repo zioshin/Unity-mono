@@ -805,6 +805,25 @@ mono_arch_flush_icache (guint8 *code, gint size)
 		sync
 		isync
 	}
+#elif defined(_XBOX)
+	
+	if (cpu_hw_caps & PPC_SMP_CAPABLE) {
+		for (p = start; p < endp; p += cachelineinc) {
+			__dcbf(0, p);
+		}
+	} else {
+		for (p = start; p < endp; p += cachelineinc) {
+			__dcbst(0, p);
+		}
+	}
+	__sync();
+	p = code;
+	for (p = start; p < endp; p += cachelineinc) {
+		//__icbi(0, p);	// mircea@TODO: couldn't find I$ related functions
+		__sync();
+	}
+	__sync();
+	//__isync();
 #else
 	/* For POWER5/6 with ICACHE_SNOOPing only one icbi in the range is required.
 	 * The sync is required to insure that the store queue is completely empty.
@@ -5704,7 +5723,7 @@ setup_tls_access (void)
 		}
 #endif
 	}
-#ifndef TARGET_PS3
+#if !defined(TARGET_PS3) && !defined(_XBOX)
 	if (tls_mode == TLS_MODE_DETECT)
 		tls_mode = TLS_MODE_FAILED;
 	if (tls_mode == TLS_MODE_FAILED)

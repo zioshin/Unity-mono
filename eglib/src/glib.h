@@ -135,6 +135,11 @@ static inline gpointer g_malloc0 (gsize x) {if (x) return calloc(1,x); else retu
 
 #define g_memmove(dest,src,len) memmove (dest, src, len)
 #define g_renew(struct_type, mem, n_structs) g_realloc (mem, sizeof (struct_type) * n_structs)
+
+#ifdef _XBOX
+#define alloca	_alloca
+#endif
+
 #define g_alloca(size)		alloca (size)
 
 gpointer g_memdup (gconstpointer mem, guint byte_size);

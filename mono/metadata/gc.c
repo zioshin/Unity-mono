@@ -29,7 +29,7 @@
 #include <mono/metadata/attach.h>
 #include <mono/utils/mono-semaphore.h>
 
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 #include <pthread.h>
 #endif
 

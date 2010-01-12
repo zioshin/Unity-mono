@@ -627,7 +627,7 @@ static inline gint32 InterlockedExchange(register volatile gint32 *dest, registe
 	return tmp;
 }
 #define InterlockedExchangePointer(dest,exch) (void*)InterlockedExchange((volatile gint32 *)(dest), (gint32)(exch))
-#else
+#elif !defined(_XBOX)
 
 #if defined(__mono_ppc64__) && !defined(__mono_ilp32__)
 #define LDREGX "ldarx"
