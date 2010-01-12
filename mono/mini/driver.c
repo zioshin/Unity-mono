@@ -1274,6 +1274,7 @@ mono_jit_parse_options (int argc, char * argv[])
 	for (i = 0; i < argc; ++i) {
 		if (argv [i] [0] != '-')
 			break;
+#ifndef _XBOX
  		if (strncmp (argv [i], "--debugger-agent=", 17) == 0) {
 			MonoDebugOptions *opt = mini_get_debug_options ();
 
@@ -1284,6 +1285,7 @@ mono_jit_parse_options (int argc, char * argv[])
 			fprintf (stderr, "Unsupported command line option: '%s'\n", argv [i]);
 			exit (1);
 		}
+#endif
 	}
 }
 
@@ -1569,13 +1571,17 @@ mono_main (int argc, char* argv[])
 			enable_debugging = TRUE;
 			if (!parse_debug_options (argv [i] + 8))
 				return 1;
- 		} else if (strncmp (argv [i], "--debugger-agent=", 17) == 0) {
+		} 
+#ifndef _XBOX
+		else if (strncmp (argv [i], "--debugger-agent=", 17) == 0) {
 			MonoDebugOptions *opt = mini_get_debug_options ();
 
  			mono_debugger_agent_parse_options (argv [i] + 17);
 			opt->mdb_optimizations = TRUE;
 			enable_debugging = TRUE;
-		} else if (strcmp (argv [i], "--security") == 0) {
+		} 
+#endif
+		else if (strcmp (argv [i], "--security") == 0) {
 			mono_verifier_set_mode (MONO_VERIFIER_MODE_VERIFIABLE);
 			mono_security_set_mode (MONO_SECURITY_MODE_CAS);
 			mono_activate_security_manager ();

@@ -15,6 +15,28 @@
 #include <mono/metadata/console-io.h>
 #include <mono/metadata/exception.h>
 
+#ifdef _XBOX
+
+#define FILE_ATTRIBUTE_ENCRYPTED		0x00000040
+#define REPLACEFILE_WRITE_THROUGH       0x00000001
+#define REPLACEFILE_IGNORE_MERGE_ERRORS 0x00000002
+
+#define INVALID_FILE_ATTRIBUTES ((guint32)-1)
+
+#define STD_INPUT_HANDLE    ((DWORD)-10)
+#define STD_OUTPUT_HANDLE   ((DWORD)-11)
+#define STD_ERROR_HANDLE    ((DWORD)-12)
+
+typedef enum {
+	FILE_TYPE_UNKNOWN=0x0000,
+	FILE_TYPE_DISK=0x0001,
+	FILE_TYPE_CHAR=0x0002,
+	FILE_TYPE_PIPE=0x0003,
+	FILE_TYPE_REMOTE=0x8000
+} WapiFileType;
+
+#endif
+
 void
 mono_console_init (void)
 {

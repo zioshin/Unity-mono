@@ -407,7 +407,7 @@
 #   define mach_type_known
 # else
 #   if (defined(_MSDOS) || defined(_MSC_VER)) && (_M_IX86 >= 300) \
-        || defined(_WIN32) && !defined(__CYGWIN32__) && !defined(__CYGWIN__)
+        || defined(_WIN32) && !defined(__CYGWIN32__) && !defined(__CYGWIN__) && !defined(_XBOX)
 #     if defined(__LP64__) || defined(_WIN64)
 #	define X86_64
 #     else
@@ -887,6 +887,7 @@
 #     define DATASTART GC_data_start
 #     define DYNAMIC_LOADING
 #   endif
+
 #   ifdef SN_TARGET_PS3
 #       define NO_GETENV
 #       define CPP_WORDSZ 32
@@ -898,6 +899,22 @@
 #       define DATAEND (_end)
 #       define DATASTART (__bss_start)
 #       define STACKBOTTOM ((ptr_t) ps3_get_stack_bottom ())
+#       define USE_GENERIC_PUSHREGS
+#   endif
+
+#   ifdef _XBOX
+#       define NO_GETENV
+#       define CPP_WORDSZ 32
+#       define ALIGNMENT 4
+
+		extern int _end [];
+		//       extern int _dso_handle[];
+		extern int __bss_start;
+
+//mircea@XBOX this maps into physical 64kb range
+#       define DATASTART (0xA0000000)
+#       define DATAEND (DATASTART)
+
 #       define USE_GENERIC_PUSHREGS
 #   endif
 
@@ -2411,6 +2428,9 @@
 #           if defined(SN_TARGET_PS3)
 	           extern void *ps3_get_mem (size_t size);
 #              define GET_MEM(bytes) (struct hblk*) ps3_get_mem (bytes)
+#         elif defined(_XBOX)
+				extern void *xenon_get_mem (size_t size);
+#               define GET_MEM(bytes) (struct hblk*) xenon_get_mem (bytes)
 #           else
 		extern ptr_t GC_unix_get_mem();
 #               define GET_MEM(bytes) (struct hblk *)GC_unix_get_mem(bytes)

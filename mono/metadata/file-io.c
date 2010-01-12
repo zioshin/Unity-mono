@@ -34,6 +34,28 @@
 
 #undef DEBUG
 
+#ifdef _XBOX
+
+#define FILE_ATTRIBUTE_ENCRYPTED		0x00000040
+#define REPLACEFILE_WRITE_THROUGH       0x00000001
+#define REPLACEFILE_IGNORE_MERGE_ERRORS 0x00000002
+
+#define INVALID_FILE_ATTRIBUTES ((guint32)-1)
+
+#define STD_INPUT_HANDLE    ((DWORD)-10)
+#define STD_OUTPUT_HANDLE   ((DWORD)-11)
+#define STD_ERROR_HANDLE    ((DWORD)-12)
+
+typedef enum {
+	FILE_TYPE_UNKNOWN=0x0000,
+	FILE_TYPE_DISK=0x0001,
+	FILE_TYPE_CHAR=0x0002,
+	FILE_TYPE_PIPE=0x0003,
+	FILE_TYPE_REMOTE=0x8000
+} WapiFileType;
+
+#endif
+
 /* conversion functions */
 
 static guint32 convert_mode(MonoFileMode mono_mode)
@@ -1035,6 +1057,9 @@ MonoBoolean
 ves_icall_System_IO_MonoIO_CreatePipe (HANDLE *read_handle,
 				       HANDLE *write_handle)
 {
+#ifdef _XBOX
+	return FALSE;
+#else
 	SECURITY_ATTRIBUTES attr;
 	gboolean ret;
 	
@@ -1051,6 +1076,7 @@ ves_icall_System_IO_MonoIO_CreatePipe (HANDLE *read_handle,
 	}
 	
 	return(TRUE);
+#endif
 }
 
 MonoBoolean ves_icall_System_IO_MonoIO_DuplicateHandle (HANDLE source_process_handle, 

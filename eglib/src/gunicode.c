@@ -297,7 +297,7 @@ g_filename_from_utf8 (const gchar *utf8string, gssize len, gsize *bytes_read, gs
 gboolean
 g_get_charset (G_CONST_RETURN char **charset)
 {
-#ifdef G_OS_WIN32
+#if defined(G_OS_WIN32) && !defined(_XBOX)
 	static char buf[14];
 	sprintf (buf, "CP%u", GetACP ());
 	*charset = buf;

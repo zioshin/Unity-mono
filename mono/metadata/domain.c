@@ -55,6 +55,10 @@ static guint32 appdomain_thread_id = -1;
  
 #ifdef HAVE_KW_THREAD
 
+#	ifdef _XBOX
+#		define __thread __declspec(thread)
+#	endif
+
 static __thread MonoDomain * tls_appdomain MONO_TLS_FAST;
 
 #define GET_APPDOMAIN() tls_appdomain

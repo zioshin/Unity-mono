@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if !HOST_WIN32
+#if !HOST_WIN32 && !defined(_XBOX)
 #include <mono/io-layer/atomic.h>
 #endif
 #include <mono/metadata/image.h>

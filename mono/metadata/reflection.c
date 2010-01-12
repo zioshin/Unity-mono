@@ -167,6 +167,9 @@ static gpointer resolve_object (MonoImage *image, MonoObject *obj, MonoClass **h
 static guint32 mono_image_get_methodref_token_for_methodbuilder (MonoDynamicImage *assembly, MonoReflectionMethodBuilder *method);
 static guint32 encode_generic_method_sig (MonoDynamicImage *assembly, MonoGenericContext *context);
 static gpointer register_assembly (MonoDomain *domain, MonoReflectionAssembly *res, MonoAssembly *assembly);
+
+static gboolean is_sre_type_builder (MonoClass *class);
+
 static void reflection_methodbuilder_from_method_builder (ReflectionMethodBuilder *rmb, MonoReflectionMethodBuilder *mb);
 static void reflection_methodbuilder_from_ctor_builder (ReflectionMethodBuilder *rmb, MonoReflectionCtorBuilder *mb);
 static guint32 create_generic_typespec (MonoDynamicImage *assembly, MonoReflectionTypeBuilder *tb);
@@ -186,7 +189,6 @@ static MonoReflectionType* mono_reflection_type_resolve_user_types (MonoReflecti
 static gboolean is_sre_array (MonoClass *class);
 static gboolean is_sre_byref (MonoClass *class);
 static gboolean is_sre_pointer (MonoClass *class);
-static gboolean is_sre_type_builder (MonoClass *class);
 static gboolean is_sre_method_builder (MonoClass *class);
 static gboolean is_sre_ctor_builder (MonoClass *class);
 static gboolean is_sre_field_builder (MonoClass *class);

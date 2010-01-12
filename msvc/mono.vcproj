@@ -21,7 +21,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\..\builds\win32\bin"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -101,7 +101,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\..\builds\win64\bin"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -180,7 +180,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\..\builds\win32\bin"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -258,7 +258,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\..\builds\win64\bin"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -335,7 +335,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug_eglib|Win32"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\..\builds\win32\bin"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -415,7 +415,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug_eglib|x64"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\..\builds\win64\bin"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -493,7 +493,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release_eglib|Win32"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\..\builds\win32\bin"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"

@@ -1081,7 +1081,7 @@ GC_warn_proc GC_current_warn_proc = GC_default_warn_proc;
 void GC_abort(msg)
 GC_CONST char * msg;
 {
-#   if defined(MSWIN32)
+#   if defined(MSWIN32) && !defined(_XBOX)
       (void) MessageBoxA(NULL, msg, "Fatal error in gc", MB_ICONERROR|MB_OK);
 #   else
       GC_err_printf1("%s\n", msg);

@@ -274,6 +274,13 @@ typedef struct {
 		MONO_CONTEXT_SET_IP ((ctx), (start_func));	\
 	} while (0)
 
+#elif defined(_XBOX)
+#define MONO_INIT_CONTEXT_FROM_FUNC(ctx,start_func) do {	\
+	register gpointer r1_var;					\
+	__asm { mr r1_var, r1 };	\
+	MONO_CONTEXT_SET_BP ((ctx), r1_var);		\
+	MONO_CONTEXT_SET_IP ((ctx), (start_func));	\
+} while (0)
 #else
 #define MONO_INIT_CONTEXT_FROM_FUNC(ctx,start_func) do {	\
 		gpointer r1;					\

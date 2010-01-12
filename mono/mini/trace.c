@@ -25,6 +25,10 @@
 
 static MonoTraceSpec trace_spec;
 
+#if defined(HAVE_KW_THREAD) && defined(_XBOX)
+#	define __thread __declspec( thread )
+#endif
+
 gboolean
 mono_trace_eval_exception (MonoClass *klass)
 {
