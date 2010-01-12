@@ -231,6 +231,7 @@ void mono_nacl_fix_patches(const guint8 *code, MonoJumpInfo *ji)
 gboolean
 mono_running_on_valgrind (void)
 {
+#ifdef HAVE_VALGRIND_MEMCHECK_H
 	if (RUNNING_ON_VALGRIND){
 #ifdef VALGRIND_JIT_REGISTER_MAP
 		valgrind_register = TRUE;
@@ -238,6 +239,9 @@ mono_running_on_valgrind (void)
 		return TRUE;
 	} else
 		return FALSE;
+#else
+	return FALSE;
+#endif
 }
 
 typedef struct {

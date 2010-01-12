@@ -459,7 +459,7 @@ encode_sleb128 (gint32 value, guint8 *buf, guint8 **endbuf)
 
 /* ARCHITECTURE SPECIFIC CODE */
 
-#if defined(TARGET_X86) || defined(TARGET_AMD64) || defined(TARGET_ARM) || defined(TARGET_POWERPC)
+#if defined(TARGET_X86) || defined(TARGET_AMD64) || defined(TARGET_ARM) || (defined(TARGET_POWERPC) && ! defined(MONO_AOT_EMIT_XBOX_ASM))
 #define EMIT_DWARF_INFO 1
 #endif
 
@@ -590,9 +590,14 @@ arch_emit_got_offset (MonoAotCompile *acfg, guint8 *code, int *code_size)
 	 * unsupported relocations. So we store the got address into the .Lgot_addr
 	 * symbol which is in the text segment, compute its address, and load it.
 	 */
-	fprintf (acfg->fp, ".L%d:\n", acfg->label_generator);
-	fprintf (acfg->fp, "lis 0, (.Lgot_addr + 4 - .L%d)@h\n", acfg->label_generator);
-	fprintf (acfg->fp, "ori 0, 0, (.Lgot_addr + 4 - .L%d)@l\n", acfg->label_generator);
+	fprintf (acfg->fp, "%s%d:\n", LOCAL_LABEL_PREFIX, acfg->label_generator);
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 0, (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+	fprintf (acfg->fp, "addi r0, r0, (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+#else
+	fprintf (acfg->fp, "lis 0, (%sgot_addr + 4 - %s%d)@h\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+	fprintf (acfg->fp, "ori 0, 0, (%sgot_addr + 4 - %s%d)@l\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+#endif
 	fprintf (acfg->fp, "add 30, 30, 0\n");
 	fprintf (acfg->fp, "%s 30, 0(30)\n", PPC_LD_OP);
 	acfg->label_generator ++;
@@ -737,8 +742,13 @@ arch_emit_plt_entry (MonoAotCompile *acfg, int index)
 		/* The GOT address is guaranteed to be in r30 by OP_LOAD_GOTADDR */
 		g_assert (!acfg->use_bin_writer);
 		img_writer_emit_unset_mode (acfg->w);
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+		fprintf (acfg->fp, "lis 11, %d\n", offset);
+		fprintf (acfg->fp, "addi r11, r11, %d\n", offset);
+#else
 		fprintf (acfg->fp, "lis 11, %d@h\n", offset);
 		fprintf (acfg->fp, "ori 11, 11, %d@l\n", offset);
+#endif
 		fprintf (acfg->fp, "add 11, 11, 30\n");
 		fprintf (acfg->fp, "%s 11, 0(11)\n", PPC_LD_OP);
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
@@ -829,8 +839,13 @@ arch_emit_specific_trampoline (MonoAotCompile *acfg, int offset, int *tramp_size
 	/* Load mscorlib got address */
 	fprintf (acfg->fp, "%s 0, %d(30)\n", PPC_LD_OP, (int)sizeof (gpointer));
 	/* Load generic trampoline address */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, %d\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)(offset * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)(offset * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)(offset * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s 11, 11, 0\n", PPC_LDX_OP);
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
 	fprintf (acfg->fp, "%s 11, 0(11)\n", PPC_LD_OP);
@@ -838,8 +853,13 @@ arch_emit_specific_trampoline (MonoAotCompile *acfg, int offset, int *tramp_size
 	fprintf (acfg->fp, "mtctr 11\n");
 	/* Load trampoline argument */
 	/* On ppc, we pass it normally to the generic trampoline */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)((offset + 1) * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)((offset + 1) * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s 0, 11, 0\n", PPC_LDX_OP);
 	/* Branch to generic trampoline */
 	fprintf (acfg->fp, "bctr\n");
@@ -1024,12 +1044,22 @@ arch_emit_static_rgctx_trampoline (MonoAotCompile *acfg, int offset, int *tramp_
 	/* Load mscorlib got address */
 	fprintf (acfg->fp, "%s 0, %d(30)\n", PPC_LD_OP, (int)sizeof (gpointer));
 	/* Load rgctx */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, %d\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)(offset * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)(offset * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)(offset * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s %d, 11, 0\n", PPC_LDX_OP, MONO_ARCH_RGCTX_REG);
 	/* Load target address */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)((offset + 1) * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)((offset + 1) * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s 11, 11, 0\n", PPC_LDX_OP);
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
 	fprintf (acfg->fp, "%s 2, %d(11)\n", PPC_LD_OP, (int)sizeof (gpointer));
@@ -1352,16 +1382,21 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 			 "std 31,120(1)\n"
 			 "std 0,144(1)\n"
 
-			 ".Lautoreg:\n"
-			 "lis 3, .Lglobals@h\n"
-			 "ori 3, 3, .Lglobals@l\n"
+			 "%sautoreg:\n"
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+			 "lis 3, %sglobals\n"
+			 "addi r3, r3, %sglobals\n"
+#else
+			 "lis 3, %sglobals@h\n"
+			 "ori 3, 3, %sglobals@l\n"
+#endif
 			 "bl .mono_aot_register_module\n"
 			 "ld 11,0(1)\n"
 			 "ld 0,16(11)\n"
 			 "mtlr 0\n"
 			 "ld 31,-8(11)\n"
 			 "mr 1,11\n"
-			 "blr\n"
+			 "blr\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX
 			 );
 #if defined(_MSC_VER) || defined(MONO_CROSS_COMPILE) 
 		fprintf (acfg->fp,
@@ -3786,7 +3821,7 @@ emit_plt (MonoAotCompile *acfg)
 			 */
 			if (ji && is_direct_callable (acfg, NULL, ji) && !acfg->use_bin_writer) {
 				MonoCompile *callee_cfg = g_hash_table_lookup (acfg->method_to_cfg, ji->data.method);
-				fprintf (acfg->fp, "\n.set %s, %s\n", label, callee_cfg->asm_symbol);
+				fprintf (acfg->fp, "\n.set %s, %sm_%x\n", label, LOCAL_LABEL_PREFIX, get_method_index (acfg, callee_cfg->orig_method));
 				continue;
 			}
 		}
@@ -4705,7 +4740,7 @@ mono_aot_get_plt_symbol (MonoJumpInfoType type, gconstpointer data)
 
 	plt_entry = get_plt_entry (llvm_acfg, ji);
 
-	return g_strdup_printf (plt_entry->symbol);
+	return g_strdup_printf ("%sp_%d", LOCAL_LABEL_PREFIX, offset);
 }
 
 MonoJumpInfo*
@@ -4822,7 +4857,7 @@ emit_code (MonoAotCompile *acfg)
 	GList *l;
 
 #if defined(TARGET_POWERPC64)
-	sprintf (symbol, ".Lgot_addr");
+	sprintf (symbol, "%sgot_addr", LOCAL_LABEL_PREFIX);
 	emit_section_change (acfg, ".text", 0);
 	emit_alignment (acfg, 8);
 	emit_label (acfg, symbol);
@@ -5668,7 +5703,7 @@ emit_globals_table (MonoAotCompile *acfg)
 	}
 
 	/* Emit the table */
-	sprintf (symbol, ".Lglobals_hash");
+	sprintf (symbol, "%sglobals_hash", LOCAL_LABEL_PREFIX);
 	emit_section_change (acfg, RODATA_SECT, 0);
 	emit_alignment (acfg, 8);
 	emit_label (acfg, symbol);
@@ -5702,7 +5737,7 @@ emit_globals_table (MonoAotCompile *acfg)
 	}
 
 	/* Emit the globals table */
-	sprintf (symbol, ".Lglobals");
+	sprintf (symbol, "%sglobals", LOCAL_LABEL_PREFIX);
 	emit_section_change (acfg, ".data", 0);
 	/* This is not a global, since it is accessed by the init function */
 	emit_alignment (acfg, 8);
