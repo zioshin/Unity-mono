@@ -12,8 +12,6 @@
 #ifndef __MONO_IMAGE_WRITER_H__
 #define __MONO_IMAGE_WRITER_H__
 
-#define MONO_AOT_EMIT_XBOX_ASM
-
 #ifdef MONO_AOT_EMIT_XBOX_ASM
 #define LOCAL_LABEL_PREFIX "local_"
 #else
