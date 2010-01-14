@@ -6454,19 +6454,25 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 			return 1;
 		}
 
-		acfg->w = img_writer_create (acfg->fp, TRUE);
+		acfg->w = img_writer_create (acfg->fp, TRUE, NULL);
 		acfg->use_bin_writer = TRUE;
 	} else {
+		char *def_file_name = NULL;
+
 		if (acfg->llvm) {
 			/* Append to the .s file created by llvm */
 			/* FIXME: Use multiple files instead */
 			acfg->fp = fopen (acfg->tmpfname, "a+");
 		} else {
 			if (acfg->aot_opts.asm_only) {
-				if (acfg->aot_opts.outfile)
+				if (acfg->aot_opts.outfile) {
 					acfg->tmpfname = g_strdup_printf ("%s", acfg->aot_opts.outfile);
-				else
+				} else {
 					acfg->tmpfname = g_strdup_printf ("%s.s", acfg->image->name);
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+					def_file_name = g_strdup_printf ("%s.def", acfg->image->name);
+#endif
+				}
 				acfg->fp = fopen (acfg->tmpfname, "w+");
 			} else {
 				int i = g_file_open_tmp ("mono_aot_XXXXXX", &acfg->tmpfname, NULL);
@@ -6474,7 +6480,10 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 			}
 			g_assert (acfg->fp);
 		}
-		acfg->w = img_writer_create (acfg->fp, FALSE);
+		acfg->w = img_writer_create (acfg->fp, FALSE, def_file_name);
+		if (def_file_name != NULL) {
+			g_free (def_file_name);
+		}
 		
 		tmp_outfile_name = NULL;
 		outfile_name = NULL;

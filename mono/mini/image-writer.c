@@ -185,6 +185,8 @@ struct _MonoImageWriter {
 	int label_gen;
 #ifdef MONO_AOT_EMIT_XBOX_ASM
 	char current_section_name [256];
+	FILE *def_fp;
+	int symbol_index;
 #endif
 };
 
@@ -1624,6 +1626,10 @@ asm_writer_emit_global (MonoImageWriter *acfg, const char *name, gboolean func)
 #else
 #ifdef MONO_AOT_EMIT_XBOX_ASM
 	fprintf (acfg->fp, "\tPUBLIC %s\n", name);
+	if (acfg->def_fp != NULL) {
+		acfg->symbol_index ++;
+		fprintf (acfg->def_fp, "\t%s\t@%d\n", name, acfg->symbol_index);
+	}
 #else
 	fprintf (acfg->fp, "\t.globl %s\n", name);
 #endif
@@ -2203,7 +2209,7 @@ bin_writer_supported (void)
  * img_writer_get_output ().
  */
 MonoImageWriter*
-img_writer_create (FILE *fp, gboolean use_bin_writer)
+img_writer_create (FILE *fp, gboolean use_bin_writer, const char *def_file_name)
 {
 	MonoImageWriter *w = g_new0 (MonoImageWriter, 1);
 	
@@ -2219,7 +2225,16 @@ img_writer_create (FILE *fp, gboolean use_bin_writer)
 	w->mempool = mono_mempool_new ();
 
 #ifdef MONO_AOT_EMIT_XBOX_ASM
+	if (def_file_name != NULL) {
+		w->def_fp = fopen (def_file_name, "w");
+		g_assert (w->def_fp != NULL);
+		fprintf (w->def_fp, "EXPORTS\n");
+	} else {
+		w->def_fp  = NULL;
+	}
+
 	w->current_section_name [0] = '\0';
+	w->symbol_index = 0;
 #endif
 
 	return w;
@@ -2228,6 +2243,12 @@ img_writer_create (FILE *fp, gboolean use_bin_writer)
 void
 img_writer_destroy (MonoImageWriter *w)
 {
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	if (w->def_fp != NULL) {
+		fclose (w->def_fp);
+		w->def_fp = NULL;
+	}
+#endif
 	// FIXME: Free all the stuff
 	mono_mempool_destroy (w->mempool);
 	g_free (w);
