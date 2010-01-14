@@ -183,6 +183,8 @@ mono_arch_patch_plt_entry (guint8 *code, gpointer *got, mgreg_t *regs, guint8 *a
 {
 	guint32 ins1, ins2, offset;
 
+	//mircea@FIXME: this will need to be reworked for XBOX because there we're using lis + add
+	
 	/* Patch the jump table entry used by the plt entry */
 
 	/* Should be a lis+ori */
