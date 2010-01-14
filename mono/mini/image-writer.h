@@ -34,7 +34,7 @@ typedef struct _MonoImageWriter MonoImageWriter;
 
 gboolean bin_writer_supported (void) MONO_INTERNAL;
 
-MonoImageWriter* img_writer_create (FILE *fp, gboolean use_bin_writer) MONO_INTERNAL;
+MonoImageWriter* img_writer_create (FILE *fp, gboolean use_bin_writer, const char *def_file_name) MONO_INTERNAL;
 
 void img_writer_destroy (MonoImageWriter *w) MONO_INTERNAL;
 
