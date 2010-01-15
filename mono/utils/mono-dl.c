@@ -89,6 +89,16 @@ void *_LL_SO_SYMBOL (void *handle, const char *symbol);
 char *LL_SO_ERROR();
 #define LL_SO_TRFLAGS(flags)      0
 
+#elif _XBOX
+
+#define SO_HANDLE_TYPE void*
+#define LL_SO_OPEN(file,flags) xenon_dlopen ((file), (flags))
+#define LL_SO_CLOSE(module) xenon_dlclose ((module)->handle)
+#define LL_SO_SYMBOL(module, name) xenon_dlsym ((module)->handle, (name))
+#define LL_SO_TRFLAGS(flags) (flags)
+#define LL_SO_ERROR() xenon_so_error ()
+
+
 #else
 /* no dynamic loader supported */
 #define SO_HANDLE_TYPE void*
