@@ -1349,6 +1349,13 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 
 	fprintf (acfg->fp,
 #if defined(_MSC_VER) || defined(MONO_CROSS_COMPILE) 
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+			"EXTERN	mono_aot_register_module : NEAR PROC\n"
+			"_text	SEGMENT PARA 'text'\n"
+			"PUBLIC %s\n"
+			"ALIGN 2\n"
+			"%s:\n", symbol, symbol);
+#else
 			 ".section	.ctors,\"aw\",@progbits\n"
 			 ".align 2\n"
 			 ".globl	%s\n"
@@ -1362,6 +1369,7 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 			 ".type	.%s,@function\n"
 			 ".align 2\n"
 			 ".%s:\n", symbol, symbol, symbol, symbol, symbol, symbol, symbol, symbol);
+#endif
 #else
 			 ".section	.ctors,\"aw\",@progbits\n"
 			 ".align 2\n"
@@ -1389,11 +1397,12 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 #ifdef MONO_AOT_EMIT_XBOX_ASM
 			 "lis 3, %sglobals\n"
 			 "addi r3, r3, %sglobals\n"
+			 "bl mono_aot_register_module\n"
 #else
 			 "lis 3, %sglobals@h\n"
 			 "ori 3, 3, %sglobals@l\n"
-#endif
 			 "bl .mono_aot_register_module\n"
+#endif
 			 "ld 11,0(1)\n"
 			 "ld 0,16(11)\n"
 			 "mtlr 0\n"
@@ -1402,8 +1411,12 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 			 "blr\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX
 			 );
 #if defined(_MSC_VER) || defined(MONO_CROSS_COMPILE) 
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+		fprintf (acfg->fp, "_text	ENDS\n");
+#else
 		fprintf (acfg->fp,
 			 ".size	.%s,.-.%s\n", symbol, symbol);
+#endif
 #else
 	fprintf (acfg->fp,
 			 ".size	.%1$s,.-.%1$s\n", symbol);
