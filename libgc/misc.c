@@ -871,10 +871,10 @@ out:
 }
 
 
-#if defined(MSWIN32) || defined(MSWINCE)
+#if defined(MSWIN32) || defined(MSWINCE) 
 # define LOG_FILE _T("gc.log")
 
-  HANDLE GC_stdout = 0;
+HANDLE GC_stdout = 0;
 
   void GC_deinit()
   {

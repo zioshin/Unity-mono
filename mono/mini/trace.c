@@ -364,7 +364,7 @@ string_to_utf8 (MonoString *s)
  * helper macro tries to keep down the mess of all the pointer
  * calculations.
  */
-#if (G_BYTE_ORDER == G_LITTLE_ENDIAN)
+#if (((G_BYTE_ORDER == G_LITTLE_ENDIAN)))
 #define arg_in_stack_slot(cpos, type) ((type *)(cpos))
 #else
 #define arg_in_stack_slot(cpos, type) ((type *)((sizeof(type) < SIZEOF_REGISTER) ? (((gssize)(cpos)) + SIZEOF_REGISTER - sizeof(type)) : (gssize)(cpos)))

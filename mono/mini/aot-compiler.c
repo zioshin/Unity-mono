@@ -3155,7 +3155,8 @@ get_debug_sym (MonoMethod *method, const char *prefix, GHashTable *cache)
 
 #ifdef MONO_AOT_EMIT_XBOX_ASM
 	/* This assembler has a length limitation on symbols of about 240 chars... */
-#define MAX_XBOX_ASM_SYMBOL_LENGTH 240
+#define MAX_XBOX_ASM_SYMBOL_LENGTH 220
+	len = strlen(name2);
 	if (len > MAX_XBOX_ASM_SYMBOL_LENGTH) {
 		char *short_name = malloc (MAX_XBOX_ASM_SYMBOL_LENGTH + 1);
 		int source_length = strlen (name2);

@@ -7874,7 +7874,7 @@ mono_lookup_internal_call (MonoMethod *method)
 {
 	char *sigstart;
 	char *tmpsig;
-	char mname [2048];
+	char mname [2048] = {0};
 	int typelen = 0, mlen, siglen;
 	gpointer res;
 	const IcallTypeDesc *imap;

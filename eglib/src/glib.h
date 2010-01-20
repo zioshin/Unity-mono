@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <limits.h>
 
+#ifndef _XBOX
 #ifdef _MSC_VER
 #pragma include_alias(<eglib-config.h>, <eglib-config.hw>)
 #else
@@ -16,6 +17,7 @@
 /* For pid_t */
 #ifndef WIN32
 #include <unistd.h>
+#endif
 #endif
 #endif
 
@@ -891,7 +893,7 @@ glong     g_utf8_strlen        (const gchar *str, gssize max);
 
 				  
  
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 #   define GUINT32_TO_LE(x) (x)
 #   define GUINT64_TO_LE(x) (x)
 #   define GUINT16_TO_LE(x) (x)
