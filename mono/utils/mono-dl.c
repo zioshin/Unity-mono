@@ -38,7 +38,7 @@ static const char suffixes [][1] = {
 #define SOPREFIX "lib"
 static const char suffixes [][4] = {
 	".so"
-};
+}; 
 #endif
 
 #ifdef TARGET_WIN32
@@ -80,16 +80,7 @@ convert_flags (int flags)
 	return lflags;
 }
 
-#elif EMBEDDED_PINVOKE
-#define SO_HANDLE_TYPE void*
-void *LL_SO_OPEN   (const char *file, int flags);
-int   LL_SO_CLOSE  (void *handle);
-#define LL_SO_SYMBOL(module,symbol) _LL_SO_SYMBOL((module)->handle, (symbol))
-void *_LL_SO_SYMBOL (void *handle, const char *symbol);
-char *LL_SO_ERROR();
-#define LL_SO_TRFLAGS(flags)      0
-
-#elif _XBOX
+#elif defined(_XBOX)
 
 #define SO_HANDLE_TYPE void*
 #define LL_SO_OPEN(file,flags) xenon_dlopen ((file), (flags))
@@ -98,6 +89,14 @@ char *LL_SO_ERROR();
 #define LL_SO_TRFLAGS(flags) (flags)
 #define LL_SO_ERROR() xenon_so_error ()
 
+#elif EMBEDDED_PINVOKE
+#define SO_HANDLE_TYPE void*
+void *LL_SO_OPEN   (const char *file, int flags);
+int   LL_SO_CLOSE  (void *handle);
+#define LL_SO_SYMBOL(module,symbol) _LL_SO_SYMBOL((module)->handle, (symbol))
+void *_LL_SO_SYMBOL (void *handle, const char *symbol);
+char *LL_SO_ERROR();
+#define LL_SO_TRFLAGS(flags)      0
 
 #else
 /* no dynamic loader supported */
@@ -495,7 +494,7 @@ mono_dl_build_path (const char *directory, const char *name, void **iter)
 	return res;
 }
 
-#if EMBEDDED_PINVOKE
+#if EMBEDDED_PINVOKE && !defined(_XBOX)
 static GHashTable *mono_dls;
 static char *ll_last_error = "";
 
