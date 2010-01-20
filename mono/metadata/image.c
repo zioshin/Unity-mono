@@ -996,7 +996,8 @@ do_mono_image_open (const char *fname, MonoImageOpenStatus *status,
 	MonoImage *image;
 	MonoFileMap *filed;
 
-	if ((filed = mono_file_map_open (fname)) == NULL){
+	char *absfname = mono_path_canonicalize (fname);
+	if ((filed = mono_file_map_open (absfname)) == NULL){
 		if (IS_PORTABILITY_SET) {
 			gchar *ffname = mono_portability_find_file (fname, TRUE);
 			if (ffname) {
@@ -1011,6 +1012,7 @@ do_mono_image_open (const char *fname, MonoImageOpenStatus *status,
 			return NULL;
 		}
 	}
+	g_free(absfname);
 
 	image = g_new0 (MonoImage, 1);
 	image->raw_buffer_used = TRUE;
