@@ -94,7 +94,7 @@ typedef gint64 mgreg_t;
 #define NOT_IMPLEMENTED do { g_assert_not_reached (); } while (0)
 
 /* for 32 bit systems */
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 #define MINI_LS_WORD_IDX 0
 #define MINI_MS_WORD_IDX 1
 #else
@@ -624,7 +624,7 @@ struct MonoInst {
 			MonoInst *src;
 			MonoMethodVar *var;
 			mgreg_t const_val;
-#if (SIZEOF_REGISTER > SIZEOF_VOID_P) && (G_BYTE_ORDER == G_BIG_ENDIAN)
+#if (SIZEOF_REGISTER > SIZEOF_VOID_P) && (((G_BYTE_ORDER == G_BIG_ENDIAN)))
 			struct {
 				gpointer p[SIZEOF_REGISTER/SIZEOF_VOID_P];
 			} pdata;
@@ -734,7 +734,7 @@ enum {
 #define inst_c1 data.op[1].const_val
 #define inst_i0 data.op[0].src
 #define inst_i1 data.op[1].src
-#if (SIZEOF_REGISTER > SIZEOF_VOID_P) && (G_BYTE_ORDER == G_BIG_ENDIAN)
+#if (SIZEOF_REGISTER > SIZEOF_VOID_P) && (((G_BYTE_ORDER == G_BIG_ENDIAN)))
 #define inst_p0 data.op[0].pdata.p[SIZEOF_REGISTER/SIZEOF_VOID_P - 1]
 #define inst_p1 data.op[1].pdata.p[SIZEOF_REGISTER/SIZEOF_VOID_P - 1]
 #else

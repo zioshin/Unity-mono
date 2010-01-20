@@ -13,10 +13,10 @@
 #include <mono/metadata/exception.h>
 
 #ifndef NAN
-# if G_BYTE_ORDER == G_BIG_ENDIAN
+# if ((G_BYTE_ORDER == G_BIG_ENDIAN))
 #  define __nan_bytes           { 0x7f, 0xc0, 0, 0 }
 # endif
-# if G_BYTE_ORDER == G_LITTLE_ENDIAN
+# if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 #  define __nan_bytes           { 0, 0, 0xc0, 0x7f }
 # endif
 
@@ -26,10 +26,10 @@ static union { unsigned char __c[4]; float __d; } __nan_union = { __nan_bytes };
 
 #ifndef HUGE_VAL
 #define __huge_val_t   union { unsigned char __c[8]; double __d; }
-# if G_BYTE_ORDER == G_BIG_ENDIAN
+# if ((G_BYTE_ORDER == G_BIG_ENDIAN))
 #  define __HUGE_VAL_bytes       { 0x7f, 0xf0, 0, 0, 0, 0, 0, 0 }
 # endif
-# if G_BYTE_ORDER == G_LITTLE_ENDIAN
+# if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 #  define __HUGE_VAL_bytes       { 0, 0, 0, 0, 0, 0, 0xf0, 0x7f }
 # endif
 static __huge_val_t __huge_val = { __HUGE_VAL_bytes };

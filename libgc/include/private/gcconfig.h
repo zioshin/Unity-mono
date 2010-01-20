@@ -913,7 +913,7 @@
 
 //mircea@XBOX this maps into physical 64kb range
 #       define DATASTART (0xA0000000)
-#       define DATAEND (DATASTART)
+#       define DATAEND (DATASTART + (1024*1024*4))	// reserve 4 megs
 
 #       define USE_GENERIC_PUSHREGS
 #   endif

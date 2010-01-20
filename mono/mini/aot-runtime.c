@@ -65,6 +65,8 @@
 #define SHARED_EXT ".dll"
 #elif ((defined(__ppc__) || defined(__powerpc__) || defined(__ppc64__)) || defined(__MACH__)) && !defined(__linux__)
 #define SHARED_EXT ".dylib"
+#elif defined(_XBOX)
+#define SHARED_EXT ".xex"
 #else
 #define SHARED_EXT ".so"
 #endif

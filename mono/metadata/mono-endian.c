@@ -31,7 +31,7 @@ guint16
 mono_read16 (const unsigned char *x)
 {
 	mono_rint16 r;
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 	r.c [0] = x [0];
 	r.c [1] = x [1];
 #else
@@ -45,7 +45,7 @@ guint32
 mono_read32 (const unsigned char *x)
 {
 	mono_rint32 r;
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 	r.c [0] = x [0];
 	r.c [1] = x [1];
 	r.c [2] = x [2];
@@ -63,7 +63,7 @@ guint64
 mono_read64 (const unsigned char *x)
 {
 	mono_rint64 r;
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 	r.c [0] = x [0];
 	r.c [1] = x [1];
 	r.c [2] = x [2];

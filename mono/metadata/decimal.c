@@ -1579,7 +1579,7 @@ DECINLINE static void buildIEEE754Double(double* pd, int sign, int texp, guint64
     PRECONDITION(sign == 0 || sign == 1);
     *p = (((guint64)sign) << 63) | (((guint64)((1023+texp)&0x7ff)) << 52) | mantisse;
 #ifdef ARM_FPU_FPA
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
     {
 	    guint32 temp;
 	    guint32 *t = (guint32*)p;
