@@ -591,9 +591,9 @@ arch_emit_got_offset (MonoAotCompile *acfg, guint8 *code, int *code_size)
 	 * symbol which is in the text segment, compute its address, and load it.
 	 */
 	fprintf (acfg->fp, "%s%d:\n", LOCAL_LABEL_PREFIX, acfg->label_generator);
-#ifdef MONO_AOT_EMIT_XBOX_ASM
-	fprintf (acfg->fp, "lis 0, (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
-	fprintf (acfg->fp, "addi r0, r0, (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+#ifdef MONO_AOT_EMIT_XBOX_ASM 
+	fprintf (acfg->fp, "lis 0, HIGHWORD (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+	fprintf (acfg->fp, "ori 0, 0, LOWWORD (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
 #else
 	fprintf (acfg->fp, "lis 0, (%sgot_addr + 4 - %s%d)@h\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
 	fprintf (acfg->fp, "ori 0, 0, (%sgot_addr + 4 - %s%d)@l\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
@@ -743,8 +743,8 @@ arch_emit_plt_entry (MonoAotCompile *acfg, int index)
 		g_assert (!acfg->use_bin_writer);
 		img_writer_emit_unset_mode (acfg->w);
 #ifdef MONO_AOT_EMIT_XBOX_ASM
-		fprintf (acfg->fp, "lis 11, %d\n", offset);
-		fprintf (acfg->fp, "addi r11, r11, %d\n", offset);
+		fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", offset);
+		fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", offset);
 #else
 		fprintf (acfg->fp, "lis 11, %d@h\n", offset);
 		fprintf (acfg->fp, "ori 11, 11, %d@l\n", offset);
@@ -840,8 +840,8 @@ arch_emit_specific_trampoline (MonoAotCompile *acfg, int offset, int *tramp_size
 	fprintf (acfg->fp, "%s 0, %d(30)\n", PPC_LD_OP, (int)sizeof (gpointer));
 	/* Load generic trampoline address */
 #ifdef MONO_AOT_EMIT_XBOX_ASM
-	fprintf (acfg->fp, "lis 11, %d\n", (int)(offset * sizeof (gpointer)));
-	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)(offset * sizeof (gpointer)));
 #else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)(offset * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)(offset * sizeof (gpointer)));
@@ -854,8 +854,8 @@ arch_emit_specific_trampoline (MonoAotCompile *acfg, int offset, int *tramp_size
 	/* Load trampoline argument */
 	/* On ppc, we pass it normally to the generic trampoline */
 #ifdef MONO_AOT_EMIT_XBOX_ASM
-	fprintf (acfg->fp, "lis 11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
-	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
 #else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)((offset + 1) * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)((offset + 1) * sizeof (gpointer)));
@@ -1045,8 +1045,8 @@ arch_emit_static_rgctx_trampoline (MonoAotCompile *acfg, int offset, int *tramp_
 	fprintf (acfg->fp, "%s 0, %d(30)\n", PPC_LD_OP, (int)sizeof (gpointer));
 	/* Load rgctx */
 #ifdef MONO_AOT_EMIT_XBOX_ASM
-	fprintf (acfg->fp, "lis 11, %d\n", (int)(offset * sizeof (gpointer)));
-	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)(offset * sizeof (gpointer)));
 #else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)(offset * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)(offset * sizeof (gpointer)));
@@ -1054,8 +1054,8 @@ arch_emit_static_rgctx_trampoline (MonoAotCompile *acfg, int offset, int *tramp_
 	fprintf (acfg->fp, "%s %d, 11, 0\n", PPC_LDX_OP, MONO_ARCH_RGCTX_REG);
 	/* Load target address */
 #ifdef MONO_AOT_EMIT_XBOX_ASM
-	fprintf (acfg->fp, "lis 11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
-	fprintf (acfg->fp, "addi r11, r11, %d\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
 #else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)((offset + 1) * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)((offset + 1) * sizeof (gpointer)));
@@ -1390,8 +1390,8 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 
 			 "%sautoreg:\n"
 #ifdef MONO_AOT_EMIT_XBOX_ASM
-			 "lis 3, %sglobals\n"
-			 "addi r3, r3, %sglobals\n"
+			 "lis 3, HIGHWORD (%sglobals)\n"
+			 "ori r3, r3, LOWWORD (%sglobals)\n"
 			 "bl mono_aot_register_module\n"
 #else
 			 "lis 3, %sglobals@h\n"
