@@ -2954,6 +2954,7 @@ emit_get_rgctx_method (MonoCompile *cfg, int context_used,
 
 		return emit_rgctx_fetch (cfg, rgctx, entry);
 	}
+	return NULL;
 }
 
 static MonoInst*

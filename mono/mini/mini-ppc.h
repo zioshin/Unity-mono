@@ -89,7 +89,10 @@ typedef struct MonoCompileArch {
 #define MONO_ARCH_NO_EMULATE_LONG_SHIFT_OPS
 #define MONO_ARCH_NO_EMULATE_LONG_MUL_OPTS
 #define MONO_ARCH_HAVE_ATOMIC_ADD 1
-#define PPC_USES_FUNCTION_DESCRIPTOR
+
+#if !defined(MONO_AOT_XENON_CPU)
+#	define PPC_USES_FUNCTION_DESCRIPTOR
+#endif
 
 #ifndef __mono_ilp32__
 #define MONO_ARCH_HAVE_TLS_GET 1

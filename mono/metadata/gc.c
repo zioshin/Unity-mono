@@ -274,8 +274,11 @@ object_register_finalizer (MonoObject *obj, void (*callback)(void *, void*))
 	domain = obj->vtable->domain;
 
 #ifndef GC_DEBUG
+#ifndef _XBOX
+//mircea@FIXME
 	/* This assertion is not valid when GC_DEBUG is defined */
 	g_assert (GC_base (obj) == (char*)obj - offset);
+#endif
 #endif
 
 	if (mono_domain_is_unloading (domain) && (callback != NULL))

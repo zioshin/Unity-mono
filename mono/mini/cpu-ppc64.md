@@ -380,8 +380,8 @@ vcall2_membase: src1:b len:16 clob:c
 
 jump_table: dest:i len:20
 
-atomic_add_new_i4: src1:b src2:i dest:i len:20
-atomic_add_new_i8: src1:b src2:i dest:i len:20
+atomic_add_new_i4: src1:b src2:i dest:i len:32
+atomic_add_new_i8: src1:b src2:i dest:i len:32
 
-atomic_cas_i4: src1:b src2:i src3:i dest:i len:30
-atomic_cas_i8: src1:b src2:i src3:i dest:i len:30
+atomic_cas_i4: src1:b src2:i src3:i dest:i len:42
+atomic_cas_i8: src1:b src2:i src3:i dest:i len:42

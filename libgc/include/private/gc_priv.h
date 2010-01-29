@@ -160,10 +160,8 @@ typedef char * ptr_t;	/* A generic pointer to which we can add	*/
 		    /* This is now really controlled at startup,	*/
 		    /* through GC_all_interior_pointers.		*/
 		    
-#ifndef _XBOX
 #define PRINTSTATS  /* Print garbage collection statistics          	*/
 		    /* For less verbose output, undefine in reclaim.c 	*/
-#endif
 
 #define PRINTTIMES  /* Print the amount of time consumed by each garbage   */
 		    /* collection.                                         */

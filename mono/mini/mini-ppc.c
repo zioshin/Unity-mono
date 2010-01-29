@@ -4599,6 +4599,12 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 		case OP_ATOMIC_ADD_NEW_I8: {
 			guint8 *loop = code, *branch;
 			g_assert (ins->inst_offset == 0);
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mfmsr( code, ins->dreg);
+			ppc_mtmsree( code, ppc_r13 );
+#endif
+
 			if (ins->opcode == OP_ATOMIC_ADD_NEW_I4)
 				ppc_lwarx (code, ppc_r0, 0, ins->inst_basereg);
 			else
@@ -4608,6 +4614,11 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				ppc_stwcxd (code, ppc_r0, 0, ins->inst_basereg);
 			else
 				ppc_stdcxd (code, ppc_r0, 0, ins->inst_basereg);
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mtmsree( code, ins->dreg );
+#endif
+
 			branch = code;
 			ppc_bc (code, PPC_BR_FALSE, PPC_BR_EQ, 0);
 			ppc_patch (branch, loop);
@@ -4637,6 +4648,12 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			guint8 *start, *not_equal, *lost_reservation;
 
 			start = code;
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mfmsr( code, ins->dreg);
+			ppc_mtmsree( code, ppc_r13 );
+#endif
+
 			if (ins->opcode == OP_ATOMIC_CAS_I4)
 				ppc_lwarx (code, ppc_r0, 0, location);
 #ifdef __mono_ppc64__
@@ -4652,6 +4669,10 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 #ifdef __mono_ppc64__
 			else
 				ppc_stdcxd (code, value, 0, location);
+#endif
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mtmsree( code, ins->dreg );
 #endif
 
 			lost_reservation = code;
