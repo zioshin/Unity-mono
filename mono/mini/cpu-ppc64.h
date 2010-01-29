@@ -308,11 +308,11 @@ const char ppc64_cpu_desc [] = {
 	"\x0" "\x0" "\x0" "\x0" "\x0" "\x0" ""	/* dummy_store */
 	"\x0" "\x0" "\x0" "\x0" "\x0" "\x0" ""	/* not_reached */
 	"\x0" "i\x0" "\x0" "\x0" "\x0" ""	/* not_null */
-	"ibi\x0" "\x14" "\x0" ""	/* atomic_add_new_i4 */
-	"ibi\x0" "\x14" "\x0" ""	/* atomic_add_new_i8 */
+	"ibi\x0" "\x20" "\x0" ""	/* atomic_add_new_i4 */
+	"ibi\x0" "\x20" "\x0" ""	/* atomic_add_new_i8 */
 	"\x0" "\x0" "\x0" "\x0" "\x4" "\x0" ""	/* memory_barrier */
-	"ibii\x1e" "\x0" ""	/* atomic_cas_i4 */
-	"ibii\x1e" "\x0" ""	/* atomic_cas_i8 */
+	"ibii\x2a" "\x0" ""	/* atomic_cas_i4 */
+	"ibii\x2a" "\x0" ""	/* atomic_cas_i8 */
 	"ii\x0" "\x0" "\x4" "\x0" ""	/* ppc_subfic */
 	"ii\x0" "\x0" "\x4" "\x0" ""	/* ppc_subfze */
 	"\x0" "i\x0" "\x0" "\x10" "\x0" ""	/* ppc_check_finite */

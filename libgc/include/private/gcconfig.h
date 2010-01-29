@@ -902,20 +902,14 @@
 #       define USE_GENERIC_PUSHREGS
 #   endif
 
+
 #   ifdef _XBOX
 #       define NO_GETENV
 #       define CPP_WORDSZ 32
 #       define ALIGNMENT 4
-
-		extern int _end [];
-		//       extern int _dso_handle[];
-		extern int __bss_start;
-
-//mircea@XBOX this maps into physical 64kb range
-#       define DATASTART (0xA0000000)
+#       define DATASTART (0xa000000)				// mircea@ this one... not so much
 #       define DATAEND (DATASTART + (1024*1024*4))	// reserve 4 megs
-
-#       define USE_GENERIC_PUSHREGS
+#       //define USE_GENERIC_PUSHREGS
 #   endif
 
 #   ifdef NOSYS
@@ -2290,8 +2284,8 @@
 #	define USE_GENERIC_PUSH_REGS
 # endif
 
-# if defined(MSWINCE)
-#   define NO_GETENV
+# if defined(MSWINCE) || defined(_XBOX)
+#   define NO_GETENV 
 # endif
 
 # if defined(SPARC)

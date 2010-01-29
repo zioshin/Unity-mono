@@ -1003,7 +1003,11 @@ long a, b, c, d, e, f;
     buf[1024] = 0x15;
     (void) sprintf(buf, format, a, b, c, d, e, f);
     if (buf[1024] != 0x15) ABORT("GC_printf clobbered stack");
-    if (WRITE(GC_stdout, buf, strlen(buf)) < 0) ABORT("write to stdout failed");
+#ifdef _XBOX
+	printf(buf);
+#else
+	if (WRITE(GC_stdout, buf, strlen(buf)) < 0) ABORT("write to stdout failed");
+#endif
 }
 
 void GC_err_printf(format, a, b, c, d, e, f)
