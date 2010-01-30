@@ -904,11 +904,13 @@
 
 
 #   ifdef _XBOX
+		extern int __mono_mem_start;
+		extern int __mono_mem_end;
 #       define NO_GETENV
 #       define CPP_WORDSZ 32
 #       define ALIGNMENT 4
-#       define DATASTART (0xa000000)				// mircea@ this one... not so much
-#       define DATAEND (DATASTART + (1024*1024*4))	// reserve 4 megs
+#       define DATASTART (__mono_mem_start)				// mircea@ this one... not so much
+#       define DATAEND (__mono_mem_end)	// reserve 4 megs
 #       //define USE_GENERIC_PUSHREGS
 #   endif
 
