@@ -691,6 +691,15 @@ mono_set_rootdir (void)
 }
 
 /**
+*	Explicitly sets assemblies path (similar to check_path_env).
+*/
+void
+mono_set_assembly_paths (const char** path)
+{
+	assemblies_path = path;
+}
+
+/**
  * mono_assemblies_init:
  *
  *  Initialize global variables used by this module.
