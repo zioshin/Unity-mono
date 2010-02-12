@@ -1855,6 +1855,9 @@ GC_API void GC_printf GC_PROTO((GC_CONST char * format, long, long, long, long, 
 			/* 1K total output length.			*/
 			/* (We use sprintf.  Hopefully that doesn't	*/
 			/* allocate for long arguments.)  		*/
+
+#if 0
+
 # define GC_printf0(f) GC_printf(f, 0l, 0l, 0l, 0l, 0l, 0l)
 # define GC_printf1(f,a) GC_printf(f, (long)a, 0l, 0l, 0l, 0l, 0l)
 # define GC_printf2(f,a,b) GC_printf(f, (long)a, (long)b, 0l, 0l, 0l, 0l)
@@ -1865,6 +1868,20 @@ GC_API void GC_printf GC_PROTO((GC_CONST char * format, long, long, long, long, 
 					      (long)d, (long)e, 0l)
 # define GC_printf6(f,a,b,c,d,e,g) GC_printf(f, (long)a, (long)b, (long)c, \
 						(long)d, (long)e, (long)g)
+
+#else
+
+# define GC_printf0(f) 
+# define GC_printf1(f,a) 
+# define GC_printf2(f,a,b) 
+# define GC_printf3(f,a,b,c) 
+# define GC_printf4(f,a,b,c,d) 
+# define GC_printf5(f,a,b,c,d,e) 
+# define GC_printf6(f,a,b,c,d,e,g) 
+
+
+#endif
+
 
 GC_API void GC_err_printf GC_PROTO((GC_CONST char * format, long, long, long, long, long, long));
 # define GC_err_printf0(f) GC_err_puts(f)
