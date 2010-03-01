@@ -4037,6 +4037,8 @@ get_runtime_invoke_type (MonoType *t, gboolean ret)
 	if (t->byref)
 		/* Can't share this with 'I' as that needs another indirection */
 		return t;
+		//else
+		//	return &mono_defaults.int_class->byval_arg;
 
 	if (MONO_TYPE_IS_REFERENCE (t))
 		return &mono_defaults.object_class->byval_arg;
