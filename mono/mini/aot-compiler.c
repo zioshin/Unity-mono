@@ -112,8 +112,9 @@ typedef struct MonoAotOptions {
 	char *tool_prefix;
 	gboolean autoreg;
 #if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
-       gboolean ficall;                                                                                                                                                                           
+	gboolean ficall;
 #endif 
+	gboolean fail_if_methods_are_skipped;
 } MonoAotOptions;
 
 typedef struct MonoAotStats {
@@ -4273,6 +4274,8 @@ mono_aot_parse_options (const char *aot_options, MonoAotOptions *opts)
 			opts->print_skipped_methods = TRUE;
 		} else if (str_begins_with (arg, "stats")) {
 			opts->stats = TRUE;
+		} else if (str_begins_with (arg, "fail-if-methods-are-skipped")) {
+			opts->fail_if_methods_are_skipped = TRUE;
 		} else {
 			fprintf (stderr, "AOT : Unknown argument '%s'.\n", arg);
 			exit (1);
@@ -4471,6 +4474,8 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 	}
 	if (cfg->exception_type != MONO_EXCEPTION_NONE) {
 		/* Let the exception happen at runtime */
+		if (acfg->aot_opts.print_skipped_methods)
+			printf ("Skip (cfg->exception_type != MONO_EXCEPTION_NONE): %s (exception type %d)\n", mono_method_full_name (method, TRUE), cfg->exception_type);
 		return;
 	}
 
@@ -6329,7 +6334,7 @@ int
 mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 {
 	MonoImage *image = ass->image;
-	int i, res;
+	int i, res, return_code;
 	MonoAotCompile *acfg;
 	char *outfile_name, *tmp_outfile_name, *p;
 	TV_DECLARE (atv);
@@ -6648,9 +6653,22 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 
 	printf ("JIT time: %d ms, Generation time: %d ms, Assembly+Link time: %d ms.\n", acfg->stats.jit_time / 1000, acfg->stats.gen_time / 1000, acfg->stats.link_time / 1000);
 
+	if (acfg->aot_opts.fail_if_methods_are_skipped) {
+		if (acfg->stats.ccount < acfg->stats.mcount) {
+			printf ("Compilation failed: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
+			return_code = 0;
+		} else {
+			return_code = 0;
+			printf ("Compilation ok: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
+		}
+	} else {
+		return_code = 0;
+		//printf ("Compilation did not care: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
+	}
+
 	acfg_free (acfg);
-	
-	return 0;
+
+	return return_code;
 }
 
 #if defined(PLATFORM_ANDROID)
