@@ -2743,6 +2743,29 @@ find_extra_method (MonoMethod *method, MonoAotModule **out_amodule)
 	return index;
 }
 
+gboolean
+mono_method_needs_wrapperless_icall (MonoMethod *method) {
+	MonoCustomAttrInfo* ainfo = mono_custom_attrs_from_method (method);
+
+	if (ainfo == NULL) {
+		return FALSE;
+	} else {
+		gboolean result = FALSE;
+		int i;
+		MonoClass *klass;
+
+		for (i = 0; i < ainfo->num_attrs; ++i) {
+			klass = ainfo->attrs [i].ctor->klass;
+			if (! strcmp (klass->name, "WrapperlessIcall")) {
+				result = TRUE;
+				break;
+			}
+		}
+		mono_custom_attrs_free (ainfo);
+		return result;
+	}
+}
+
 /*
  * mono_aot_get_method:
  *
@@ -2778,6 +2801,16 @@ mono_aot_get_method (MonoDomain *domain, MonoMethod *method)
 		(method->iflags & METHOD_IMPL_ATTRIBUTE_RUNTIME) ||
 		(method->flags & METHOD_ATTRIBUTE_ABSTRACT))
 		return NULL;
+
+	if (method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) {
+		MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);
+		if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) && mono_method_needs_wrapperless_icall (wrapped)) {
+#if defined (PLATFORM_IPHONE)
+			if (wrapped->signature->ret->type != MONO_TYPE_R4)
+#endif
+				return mono_lookup_internal_call (wrapped);
+		}
+	}
 
 	/*
 	 * Use the original method instead of its invoke-with-check wrapper.
