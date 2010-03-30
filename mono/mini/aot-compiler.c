@@ -118,7 +118,7 @@ typedef struct MonoAotOptions {
 } MonoAotOptions;
 
 typedef struct MonoAotStats {
-	int ccount, mcount, lmfcount, abscount, gcount, ocount, genericcount;
+	int ccount, mcount, lmfcount, abscount, gcount, ocount, genericcount, wrapper_runtime_invoke_skipped;
 	int code_size, info_size, ex_info_size, unwind_info_size, got_size, class_info_size, got_info_size;
 	int methods_without_got_slots, direct_calls, all_calls, llvm_count;
 	int got_slots, offsets_size;
@@ -4483,6 +4483,8 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 		if (acfg->aot_opts.print_skipped_methods)
 			printf ("Skip (disabled): %s\n", mono_method_full_name (method, TRUE));
 		InterlockedIncrement (&acfg->stats.ocount);
+		if (cfg->method->wrapper_type == MONO_WRAPPER_RUNTIME_INVOKE)
+			InterlockedIncrement (&acfg->stats.wrapper_runtime_invoke_skipped);
 		mono_destroy_compile (cfg);
 		return;
 	}
@@ -6654,16 +6656,15 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 	printf ("JIT time: %d ms, Generation time: %d ms, Assembly+Link time: %d ms.\n", acfg->stats.jit_time / 1000, acfg->stats.gen_time / 1000, acfg->stats.link_time / 1000);
 
 	if (acfg->aot_opts.fail_if_methods_are_skipped) {
-		if (acfg->stats.ccount < acfg->stats.mcount) {
+		if (acfg->stats.ccount + acfg->stats.wrapper_runtime_invoke_skipped < acfg->stats.mcount) {
 			printf ("Compilation failed: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
-			return_code = 0;
+			return_code = 1;
 		} else {
 			return_code = 0;
 			printf ("Compilation ok: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
 		}
 	} else {
 		return_code = 0;
-		//printf ("Compilation did not care: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
 	}
 
 	acfg_free (acfg);
