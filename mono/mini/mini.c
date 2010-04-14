@@ -5470,6 +5470,7 @@ SIG_HANDLER_SIGNATURE (mono_sigsegv_signal_handler)
 #endif
 
 #if !defined(HOST_WIN32) && defined(HAVE_SIG_INFO)
+#if (!(defined (HOST_WIN32)) || defined (_XBOX) || defined (SN_TARGET_PS3)) && defined(HAVE_SIG_INFO)
 	if (mono_aot_is_pagefault (info->si_addr)) {
 		mono_aot_handle_pagefault (info->si_addr);
 		return;
