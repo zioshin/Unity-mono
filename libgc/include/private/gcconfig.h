@@ -888,6 +888,7 @@
 #     define DYNAMIC_LOADING
 #   endif
 
+/* 
 #   ifdef SN_TARGET_PS3
 #       define NO_GETENV
 #       define CPP_WORDSZ 32
@@ -901,9 +902,9 @@
 #       define STACKBOTTOM ((ptr_t) ps3_get_stack_bottom ())
 #       define USE_GENERIC_PUSHREGS
 #   endif
+*/
 
-
-#   ifdef _XBOX
+#   if defined(_XBOX) || defined(SN_TARGET_PS3)
 		extern int __mono_mem_start;
 		extern int __mono_mem_end;
 #       define NO_GETENV
