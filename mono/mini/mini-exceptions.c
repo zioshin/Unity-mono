@@ -1220,7 +1220,6 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gpointer origina
 		if (!mono_handle_exception_internal (&ctx_cp, obj, original_ip, TRUE, FALSE, &first_filter_idx, out_ji)) {
 			if (mono_break_on_exc)
 				G_BREAKPOINT ();
-#ifndef _XBOX
 			mono_debugger_agent_handle_exception (obj, ctx, NULL);
 			// FIXME: This runs managed code so it might cause another stack overflow when
 			// we are handling a stack overflow
