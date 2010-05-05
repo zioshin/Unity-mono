@@ -800,10 +800,33 @@ ves_icall_System_IO_MonoIO_Open (MonoString *filename, gint32 mode,
 			attributes |= FILE_FLAG_BACKUP_SEMANTICS;
 		}
 	}
-	
+
+#ifdef _XBOX
+	{
+		gchar* filePath;
+		gchar* utf8_path = g_utf16_to_utf8(chars, mono_string_length(filename), 0,0,0);
+		if(g_path_is_absolute(utf8_path))
+		{
+			filePath = utf8_path;	
+		}
+		else
+		{
+			filePath = g_strconcat("game:\\Media\\", utf8_path, NULL);
+		}
+
+		ret=CreateFile (filePath, convert_access (access_mode),
+			convert_share (share), NULL, convert_mode (mode),
+			attributes, NULL);
+
+		g_free(utf8_path);
+		g_free(filePath);
+	}
+#else
 	ret=CreateFile (chars, convert_access (access_mode),
 			convert_share (share), NULL, convert_mode (mode),
 			attributes, NULL);
+#endif
+
 	if(ret==INVALID_HANDLE_VALUE) {
 		*error=GetLastError ();
 	} 
@@ -1100,7 +1123,7 @@ MonoBoolean ves_icall_System_IO_MonoIO_DuplicateHandle (HANDLE source_process_ha
 gunichar2 
 ves_icall_System_IO_MonoIO_get_VolumeSeparatorChar ()
 {
-#if defined (TARGET_WIN32)
+#if defined (TARGET_WIN32) || defined(_XBOX)
 	return (gunichar2) ':';	/* colon */
 #else
 	return (gunichar2) '/';	/* forward slash */
@@ -1110,7 +1133,7 @@ ves_icall_System_IO_MonoIO_get_VolumeSeparatorChar ()
 gunichar2 
 ves_icall_System_IO_MonoIO_get_DirectorySeparatorChar ()
 {
-#if defined (TARGET_WIN32)
+#if defined (TARGET_WIN32) || defined(_XBOX)
 	return (gunichar2) '\\';	/* backslash */
 #else
 	return (gunichar2) '/';	/* forward slash */
@@ -1120,7 +1143,7 @@ ves_icall_System_IO_MonoIO_get_DirectorySeparatorChar ()
 gunichar2 
 ves_icall_System_IO_MonoIO_get_AltDirectorySeparatorChar ()
 {
-#if defined (TARGET_WIN32)
+#if defined (TARGET_WIN32) || defined(_XBOX)
 	return (gunichar2) '/';	/* forward slash */
 #else
 	return (gunichar2) '/';	/* slash, same as DirectorySeparatorChar */
@@ -1130,7 +1153,7 @@ ves_icall_System_IO_MonoIO_get_AltDirectorySeparatorChar ()
 gunichar2 
 ves_icall_System_IO_MonoIO_get_PathSeparator ()
 {
-#if defined (TARGET_WIN32)
+#if defined (TARGET_WIN32) || defined(_XBOX)
 	return (gunichar2) ';';	/* semicolon */
 #else
 	return (gunichar2) ':';	/* colon */
@@ -1139,7 +1162,7 @@ ves_icall_System_IO_MonoIO_get_PathSeparator ()
 
 static const gunichar2
 invalid_path_chars [] = {
-#if defined (TARGET_WIN32)
+#if defined (TARGET_WIN32) || defined(_XBOX)
 	0x0022,				/* double quote, which seems allowed in MS.NET but should be rejected */
 	0x003c,				/* less than */
 	0x003e,				/* greater than */
