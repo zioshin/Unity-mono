@@ -5043,7 +5043,21 @@ mono_jit_compile_method_with_opt (MonoMethod *method, guint32 opt, MonoException
 	if (!code)
 		return NULL;
 
+
+#if defined (SN_TARGET_PS3)
+	if (method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) {
+		MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);
+		if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) && mono_method_needs_wrapperless_icall (wrapped)) {
+			p = code;
+		}
+		else
+			p = mono_create_ftnptr (target_domain, code);
+	}
+	else
+		p = mono_create_ftnptr (target_domain, code);
+#else
 	p = mono_create_ftnptr (target_domain, code);
+#endif
 
 	if (callinfo) {
 		mono_jit_lock ();
