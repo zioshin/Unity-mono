@@ -7,6 +7,8 @@
 	* Mono.Linker.Steps/MarkStep.cs: properly mark types used
 	with typeof in custom attributes
 
+	* Mono.Linker/LinkContext.cs: remove dead code.
+
 	* monolinker.exe.sources: add TypeParser.cs
 
 2010-03-02  Jb Evain  <jbevain@novell.com>
