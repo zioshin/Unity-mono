@@ -230,9 +230,13 @@ register int k;
     }
 }   
 
-
+#if  defined(_XBOX) // clear stack fails miserably on xbox.
+#define GENERAL_MALLOC(lb,k) \
+	(GC_PTR)GC_generic_malloc((word)lb, k)
+#else
 #define GENERAL_MALLOC(lb,k) \
     (GC_PTR)GC_clear_stack(GC_generic_malloc((word)lb, k))
+#endif
 /* We make the GC_clear_stack_call a tail call, hoping to get more of	*/
 /* the stack.								*/
 
