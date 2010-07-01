@@ -685,6 +685,18 @@ mono_arch_exceptions_init (void)
 	signal_exception_trampoline = mono_x86_get_signal_exception_trampoline (NULL, FALSE);
 }
 
+void
+mono_arch_exceptions_init (void)
+{
+	if (mono_aot_only) {
+		signal_exception_trampoline = mono_aot_get_named_code ("x86_signal_exception_trampoline");
+		return;
+	}
+
+	signal_exception_trampoline = mono_x86_get_signal_exception_trampoline (NULL, FALSE);
+}
+
+
 /*
  * mono_arch_find_jit_info_ext:
  *
@@ -1006,6 +1018,73 @@ mono_x86_get_signal_exception_trampoline (MonoTrampInfo **info, gboolean aot)
 	x86_call_reg (code, X86_EDX);
 
 	g_assert ((code - start) < 128);
+
+	if (info)
+		*info = mono_tramp_info_create (g_strdup ("x86_signal_exception_trampoline"), start, code - start, ji, unwind_ops);
+
+	return start;
+}
+
+/*
+ * handle_exception:
+ *
+ *   Called by resuming from a signal handler.
+ */
+static void
+handle_signal_exception (gpointer obj)
+{
+	MonoJitTlsData *jit_tls = TlsGetValue (mono_jit_tls_id);
+	MonoContext ctx;
+	static void (*restore_context) (MonoContext *);
+
+	if (!restore_context)
+		restore_context = mono_get_restore_context ();
+
+	memcpy (&ctx, &jit_tls->ex_ctx, sizeof (MonoContext));
+
+	if (mono_debugger_handle_exception (&ctx, (MonoObject *)obj))
+		return;
+
+	mono_handle_exception (&ctx, obj, MONO_CONTEXT_GET_IP (&ctx), FALSE);
+
+	restore_context (&ctx);
+}
+
+/*
+ * mono_x86_get_signal_exception_trampoline:
+ *
+ *   This x86 specific trampoline is used to call handle_signal_exception.
+ */
+gpointer
+mono_x86_get_signal_exception_trampoline (MonoTrampInfo **info, gboolean aot)
+{
+	guint8 *start, *code;
+	MonoJumpInfo *ji = NULL;
+	GSList *unwind_ops = NULL;
+	int stack_size;
+
+	start = code = mono_global_codeman_reserve (128);
+
+	/* Caller ip */
+	x86_push_reg (code, X86_ECX);
+
+	mono_add_unwind_op_def_cfa (unwind_ops, (guint8*)NULL, (guint8*)NULL, X86_ESP, 4);
+	mono_add_unwind_op_offset (unwind_ops, (guint8*)NULL, (guint8*)NULL, X86_NREG, -4);
+
+	/* Fix the alignment to be what apple expects */
+	stack_size = 12;
+
+	x86_alu_reg_imm (code, X86_SUB, X86_ESP, stack_size);
+	mono_add_unwind_op_def_cfa_offset (unwind_ops, code, start, stack_size + 4);
+
+	/* Arg1 */
+	x86_mov_membase_reg (code, X86_ESP, 0, X86_EAX, 4);
+	/* Branch to target */
+	x86_call_reg (code, X86_EDX);
+
+	g_assert ((code - start) < 128);
+
+	mono_save_trampoline_xdebug_info ("x86_signal_exception_trampoline", start, code - start, unwind_ops);
 
 	if (info)
 		*info = mono_tramp_info_create (g_strdup ("x86_signal_exception_trampoline"), start, code - start, ji, unwind_ops);
