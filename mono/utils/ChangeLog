@@ -1,5 +1,13 @@
 2010-07-27  Geoff Norton  <gnorton@novell.com>
 
+	Backport r157195:
+
+	2010-05-12  Zoltan Varga  <vargaz@gmail.com>
+
+		* mono-sigcontext.h: Define UCONTEXT_REG_ constants for amd64 even if the gregs
+		  array is available.
+
+
 	* mono-sigcontext.h: Extend the macro's for darwin and linux
 	to expose r8-r11 as well.
 
