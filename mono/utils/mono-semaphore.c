@@ -9,6 +9,7 @@
 
 #include <config.h>
 #include <errno.h>
+#include <glib.h>
 #include "utils/mono-semaphore.h"
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>

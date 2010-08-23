@@ -14,6 +14,7 @@ const char ppc64_cpu_desc [] = {
 	"\x0" "ii\x0" "\xc" "\x0" ""	/* setlret */
 	"ii\x0" "\x0" "\x3c" "\x0" ""	/* localloc */
 	"\x0" "b\x0" "\x0" "\x4" "\x0" ""	/* checkthis */
+
 	"\x0" "\x0" "\x0" "\x0" "\x24" "c"	/* voidcall */
 	"\x0" "i\x0" "\x0" "\x10" "c"	/* voidcall_reg */
 	"\x0" "b\x0" "\x0" "\xc" "c"	/* voidcall_membase */
