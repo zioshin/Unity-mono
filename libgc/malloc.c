@@ -230,7 +230,7 @@ register int k;
     }
 }   
 
-#if  defined(_XBOX) // clear stack fails miserably on xbox.
+#if  defined(_XBOX) || defined(SN_TARGET_PS3) // clear stack fails miserably on xbox.
 #define GENERAL_MALLOC(lb,k) \
 	(GC_PTR)GC_generic_malloc((word)lb, k)
 #else
