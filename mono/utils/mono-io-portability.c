@@ -18,6 +18,10 @@ mono_portability_helpers_init (void)
 gchar *
 mono_portability_find_file (const gchar *pathname, gboolean last_exists)
 {
+#ifdef SN_TARGET_PS3
+	return g_strdup(pathname);
+#endif
+	
 	g_assert_not_reached();
 	return NULL;
 }
