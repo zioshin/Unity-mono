@@ -1755,7 +1755,8 @@ gboolean _wapi_handle_get_or_set_share (dev_t device, ino_t inode,
 			if (file_share->handle_refs == 0) {
 				continue;
 			}
-		
+#ifndef SN_TARGET_PS3		// device & inode are always 0 on the PS3 which renders this useless (not to mention it makes it wrong)...
+
 			if (file_share->device == device &&
 				file_share->inode == inode) {
 				*old_sharemode = file_share->sharemode;
@@ -1772,6 +1773,7 @@ gboolean _wapi_handle_get_or_set_share (dev_t device, ino_t inode,
 				exists = TRUE;
 				break;
 			}
+#endif
 		}
 	
 		if (!exists) {
