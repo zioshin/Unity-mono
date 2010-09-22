@@ -473,7 +473,7 @@ size_t GC_get_total_bytes GC_PROTO(())
 
 int GC_get_suspend_signal GC_PROTO(())
 {
-#if defined(SIG_SUSPEND) && defined(GC_PTHREADS) && !defined(GC_MACOSX_THREADS)
+#if defined(SIG_SUSPEND) && defined(GC_PTHREADS) && !defined(GC_MACOSX_THREADS) && !defined(SN_TARGET_PS3)
 	return SIG_SUSPEND;
 #else
 	return -1;
@@ -505,13 +505,6 @@ void GC_init()
 	  InitializeCriticalSection (&GC_allocate_ml);
     }
 #endif /* MSWIN32 */
-#if defined(SN_TARGET_PS3)
-	pthread_mutexattr_init (&mattr);
-		
-	pthread_mutex_init (&GC_allocate_ml, &mattr);
-	pthread_mutexattr_destroy (&mattr);
-		
-#endif
 
     LOCK();
     GC_init_inner();

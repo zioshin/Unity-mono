@@ -112,12 +112,15 @@
 # include <time.h>
 # include <errno.h>
 # include <unistd.h>
-# include <sys/mman.h>
 # include <sys/time.h>
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <fcntl.h>
 # include <signal.h>
+
+#ifndef SN_TARGET_PS3
+#	include <sys/mman.h>
+#endif
 
 #if defined(GC_DARWIN_THREADS)
 # include "private/darwin_semaphore.h"
@@ -1113,7 +1116,7 @@ void GC_init_parallel()
 }
 
 
-#if !defined(GC_DARWIN_THREADS)
+#if !defined(GC_DARWIN_THREADS) && !defined(SN_TARGET_PS3)
 int WRAP_FUNC(pthread_sigmask)(int how, const sigset_t *set, sigset_t *oset)
 {
     sigset_t fudged_set;
@@ -1180,7 +1183,11 @@ int WRAP_FUNC(sleep) (unsigned int seconds)
     int result;
 
     GC_start_blocking();
-    result = REAL_FUNC(sleep)(seconds);
+#if SN_TARGET_PS3
+	result = sys_timer_sleep(seconds);
+#else
+	result = REAL_FUNC(sleep)(seconds);
+#endif
     GC_end_blocking();
     return result;
 }

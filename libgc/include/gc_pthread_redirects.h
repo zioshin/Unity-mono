@@ -46,15 +46,16 @@
 #endif /* SOLARIS_THREADS || SOLARIS_PTHREADS */
 
 
-#if !defined(GC_USE_LD_WRAP) && (defined(GC_PTHREADS) || defined(GC_DARWIN_THREADS) || defined(GC_MACOSX_THREADS)) && !defined(GC_SOLARIS_PTHREADS)
+#if !defined(SN_TARGET_PS3) && !defined(GC_USE_LD_WRAP) && (defined(GC_PTHREADS) || defined(GC_DARWIN_THREADS) || defined(GC_MACOSX_THREADS)) && !defined(GC_SOLARIS_PTHREADS)
 /* We treat these similarly. */
 # include <pthread.h>
 # include <signal.h>
 
+  
   int GC_pthread_create(pthread_t *new_thread,
                         const pthread_attr_t *attr,
 		        void *(*start_routine)(void *), void *arg);
-#ifndef GC_DARWIN_THREADS
+#if !defined(GC_DARWIN_THREADS)
   int GC_pthread_sigmask(int how, const sigset_t *set, sigset_t *oset);
 #endif
   int GC_pthread_join(pthread_t thread, void **retval);
