@@ -2747,6 +2747,12 @@ gboolean
 mono_method_needs_wrapperless_icall (MonoMethod *method) {
 	MonoCustomAttrInfo* ainfo = mono_custom_attrs_from_method (method);
 
+	// PS3 crosscompiler & runtime needs to return false here.
+#if !defined(MONO_AOT_XENON_CPU) && !defined(_XBOX)
+	return FALSE;
+#endif
+
+
 	if (ainfo == NULL) {
 		return FALSE;
 	} else {

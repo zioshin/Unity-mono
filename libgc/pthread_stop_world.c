@@ -2,7 +2,8 @@
 
 #if defined(GC_PTHREADS) && !defined(GC_SOLARIS_THREADS) \
      && !defined(GC_IRIX_THREADS) && !defined(GC_WIN32_THREADS) \
-     && !defined(GC_DARWIN_THREADS) && !defined(GC_AIX_THREADS)
+     && !defined(GC_DARWIN_THREADS) && !defined(GC_AIX_THREADS) \
+	 && !defined(SN_TARGET_PS3)
 
 #include <signal.h>
 #include <semaphore.h>
@@ -583,5 +584,24 @@ GC_mono_debugger_get_stack_ptr (void)
 }
 
 #endif
+
+#elif defined(SN_TARGET_PS3)
+
+void GC_stop_world()
+{
+
+}
+void GC_start_world()
+{
+
+}
+void GC_push_all_stacks()
+{
+
+}
+void GC_stop_init()
+{
+
+}
 
 #endif

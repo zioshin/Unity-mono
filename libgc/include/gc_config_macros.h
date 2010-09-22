@@ -57,7 +57,9 @@
 	defined(GC_HPUX_THREADS) || defined(GC_OSF1_THREADS) || \
 	defined(GC_DGUX386_THREADS) || defined(GC_DARWIN_THREADS) || \
 	defined(GC_AIX_THREADS) || defined(GC_NETBSD_THREADS) || \
-        (defined(GC_WIN32_THREADS) && defined(__CYGWIN32__))
+    (defined(GC_WIN32_THREADS) && defined(__CYGWIN32__)) || \
+	defined(SN_TARGET_PS3)
+
 #   define GC_PTHREADS
 # endif
 
