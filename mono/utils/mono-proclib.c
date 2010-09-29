@@ -55,7 +55,7 @@ mono_process_list (int *size)
 #else
 	int mib [4];
 	size_t data_len = sizeof (struct kinfo_proc) * 400;
-	struct kinfo_proc *processes = malloc (data_len);
+	struct kinfo_proc *processes = g_malloc_d (data_len);
 #endif /* KERN_PROC2 */
 	void **buf = NULL;
 
@@ -83,7 +83,7 @@ mono_process_list (int *size)
 #endif /* KERN_PROC2 */
 
 	if (res < 0) {
-		free (processes);
+		g_free_d (processes);
 		return NULL;
 	}
 #ifdef KERN_PROC2
@@ -94,7 +94,7 @@ mono_process_list (int *size)
 	buf = g_realloc (buf, res * sizeof (void*));
 	for (i = 0; i < res; ++i)
 		buf [i] = GINT_TO_POINTER (processes [i].kinfo_pid_member);
-	free (processes);
+	g_free_d (processes);
 	if (size)
 		*size = res;
 	return buf;

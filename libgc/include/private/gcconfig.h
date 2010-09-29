@@ -2426,8 +2426,8 @@
 	           extern void *ps3_get_mem (size_t size);
 #              define GET_MEM(bytes) (struct hblk*) ps3_get_mem (bytes)
 #         elif defined(_XBOX)
-				extern void *xenon_get_mem (size_t size);
-#               define GET_MEM(bytes) (struct hblk*) xenon_get_mem (bytes)
+				extern void *xenon_get_mem (size_t size, size_t page_size);
+#               define GET_MEM(bytes) (struct hblk*) xenon_get_mem (bytes, GC_page_size)
 #           else
 		extern ptr_t GC_unix_get_mem();
 #               define GET_MEM(bytes) (struct hblk *)GC_unix_get_mem(bytes)

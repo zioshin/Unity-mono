@@ -51,27 +51,33 @@ mono_file_map_close (MonoFileMap *fmap)
 
 #if !defined(HAVE_MMAP) && !defined (HOST_WIN32)
 
-static mono_file_map_alloc_fn alloc_fn = (mono_file_map_alloc_fn) malloc;
-static mono_file_map_release_fn release_fn = (mono_file_map_release_fn) free;
+#ifdef ENABLE_MONO_FILE_MAP_SET_ALLOCATOR
+static mono_file_map_alloc_fn alloc_fn = (mono_file_map_alloc_fn) g_malloc_d;
+static mono_file_map_release_fn release_fn = (mono_file_map_release_fn) g_free_d;
 
 void
 mono_file_map_set_allocator (mono_file_map_alloc_fn alloc, mono_file_map_release_fn release)
 {
-	alloc_fn = alloc == NULL     ? (mono_file_map_alloc_fn) malloc : alloc;
-	release_fn = release == NULL ? (mono_file_map_release_fn) free : release;
+	alloc_fn = alloc == NULL     ? (mono_file_map_alloc_fn) g_malloc_d : alloc;
+	release_fn = release == NULL ? (mono_file_map_release_fn) g_free_d : release;
 }
+#endif
 
 void *
 mono_file_map (size_t length, int flags, int fd, guint64 offset, void **ret_handle)
 {
 	guint64 cur_offset;
 	size_t bytes_read;
+#ifdef ENABLE_MONO_FILE_MAP_SET_ALLOCATOR
 	void *ptr = (*alloc_fn) (length);
+#else
+	void *ptr = g_malloc_d (length);
+#endif
 	if (!ptr)
 		return NULL;
 	cur_offset = lseek (fd, 0, SEEK_CUR);
 	if (lseek (fd, offset, SEEK_SET) != offset) {
-		free (ptr);
+		g_free_d (ptr);
 		return NULL;
 	}
 	bytes_read = read (fd, ptr, length);
@@ -83,7 +89,11 @@ mono_file_map (size_t length, int flags, int fd, guint64 offset, void **ret_hand
 int
 mono_file_unmap (void *addr, void *handle)
 {
+#ifdef ENABLE_MONO_FILE_MAP_SET_ALLOCATOR
 	(*release_fn) (addr);
+#else
+	g_free_d (addr);
+#endif
 	return 0;
 }
 #endif

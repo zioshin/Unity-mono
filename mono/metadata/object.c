@@ -64,9 +64,9 @@
 #else
 #define NEED_TO_ZERO_PTRFREE 1
 #define GC_NO_DESCRIPTOR (NULL)
-#define ALLOC_PTRFREE(obj,vt,size) do { (obj) = malloc ((size)); (obj)->vtable = (vt); (obj)->synchronisation = NULL;} while (0)
-#define ALLOC_OBJECT(obj,vt,size) do { (obj) = calloc (1, (size)); (obj)->vtable = (vt);} while (0)
-#define ALLOC_TYPED(dest,size,type) do { (dest) = calloc (1, (size)); *(gpointer*)dest = (type);} while (0)
+#define ALLOC_PTRFREE(obj,vt,size) do { (obj) = g_malloc_d ((size)); (obj)->vtable = (vt); (obj)->synchronisation = NULL;} while (0)
+#define ALLOC_OBJECT(obj,vt,size) do { (obj) = g_calloc_d (1, (size)); (obj)->vtable = (vt);} while (0)
+#define ALLOC_TYPED(dest,size,type) do { (dest) = g_calloc_d (1, (size)); *(gpointer*)dest = (type);} while (0)
 #endif
 #endif
 
@@ -1053,7 +1053,7 @@ mono_method_get_imt_slot (MonoMethod *method)
 
 	sig = mono_method_signature (method);
 	hashes_count = sig->param_count + 4;
-	hashes_start = malloc (hashes_count * sizeof (guint32));
+	hashes_start = g_malloc_d (hashes_count * sizeof (guint32));
 	hashes = hashes_start;
 
 	if (! MONO_CLASS_IS_INTERFACE (method->klass)) {
@@ -1094,7 +1094,7 @@ mono_method_get_imt_slot (MonoMethod *method)
 		break;
 	}
 	
-	free (hashes_start);
+	g_free_d (hashes_start);
 	/* Report the result */
 	return c % MONO_IMT_SIZE;
 }
@@ -1200,7 +1200,7 @@ imt_emit_ir (MonoImtBuilderEntry **sorted_array, int start, int end, GPtrArray *
 static GPtrArray*
 imt_sort_slot_entries (MonoImtBuilderEntry *entries) {
 	int number_of_entries = entries->children + 1;
-	MonoImtBuilderEntry **sorted_array = malloc (sizeof (MonoImtBuilderEntry*) * number_of_entries);
+	MonoImtBuilderEntry **sorted_array = g_malloc_d (sizeof (MonoImtBuilderEntry*) * number_of_entries);
 	GPtrArray *result = g_ptr_array_new ();
 	MonoImtBuilderEntry *current_entry;
 	int i;
@@ -1216,7 +1216,7 @@ imt_sort_slot_entries (MonoImtBuilderEntry *entries) {
 
 	imt_emit_ir (sorted_array, 0, number_of_entries, result);
 
-	free (sorted_array);
+	g_free_d (sorted_array);
 	return result;
 }
 
@@ -1261,7 +1261,7 @@ build_imt_slots (MonoClass *klass, MonoVTable *vt, MonoDomain *domain, gpointer*
 	int i;
 	GSList *list_item;
 	guint32 imt_collisions_bitmap = 0;
-	MonoImtBuilderEntry **imt_builder = calloc (MONO_IMT_SIZE, sizeof (MonoImtBuilderEntry*));
+	MonoImtBuilderEntry **imt_builder = g_calloc_d (MONO_IMT_SIZE, sizeof (MonoImtBuilderEntry*));
 	int method_count = 0;
 	gboolean record_method_count_for_max_collisions = FALSE;
 	gboolean has_generic_virtual = FALSE, has_variant_iface = FALSE;
@@ -1388,7 +1388,7 @@ build_imt_slots (MonoClass *klass, MonoVTable *vt, MonoDomain *domain, gpointer*
 			entry = next;
 		}
 	}
-	free (imt_builder);
+	g_free_d (imt_builder);
 	/* we OR the bitmap since we may build just a single imt slot at a time */
 	vt->imt_collisions_bitmap |= imt_collisions_bitmap;
 }

@@ -228,7 +228,7 @@ mono_backtrace (int size)
         for (i = 1; i < symbols; ++i) {
                 g_print ("\t%s\n", names [i]);
         }
-        free (names);
+        g_free_d (names);
         LeaveCriticalSection (&mempool_tracing_lock);
 }
 

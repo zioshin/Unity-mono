@@ -551,7 +551,7 @@ mono_array_to_lparray (MonoArray *array)
 #ifndef DISABLE_COM
 	case MONO_TYPE_CLASS:
 		nativeArraySize = array->max_length;
-		nativeArray = malloc(sizeof(gpointer) * nativeArraySize);
+		nativeArray = g_malloc_d(sizeof(gpointer) * nativeArraySize);
 		for(i = 0; i < nativeArraySize; ++i) 	
 			nativeArray[i] = ves_icall_System_Runtime_InteropServices_Marshal_GetIUnknownForObjectInternal(((gpointer*)array->vector)[i]);
 		return nativeArray;
@@ -605,7 +605,7 @@ mono_free_lparray (MonoArray *array, gpointer* nativeArray)
 		case MONO_TYPE_CLASS:
 			for(i = 0; i < array->max_length; ++i) 	
 				mono_marshal_free_ccw(nativeArray[i]);
-			free(nativeArray);
+			g_free_d(nativeArray);
 		break;
 	}		
 #endif
