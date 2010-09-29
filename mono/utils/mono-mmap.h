@@ -47,10 +47,14 @@ int   mono_shared_area_instances (void **array, int count);
  * we allow for the allocator to be set.   This function is only
  * defined on those platforms.
  */
+
+//#define ENABLE_MONO_FILE_MAP_SET_ALLOCATOR
+#ifdef ENABLE_MONO_FILE_MAP_SET_ALLOCATOR
 typedef void *(*mono_file_map_alloc_fn)   (size_t length);
 typedef void  (*mono_file_map_release_fn) (void *addr);
 
 void mono_file_map_set_allocator (mono_file_map_alloc_fn alloc, mono_file_map_release_fn release);
-				  
+#endif // ENABLE_MONO_FILE_MAP_SET_ALLOCATOR
+
 #endif /* __MONO_UTILS_MMAP_H__ */
 

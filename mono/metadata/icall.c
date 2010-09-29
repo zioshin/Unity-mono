@@ -6626,7 +6626,7 @@ ves_icall_System_Text_Encoding_InternalCodePage (gint32 *int_code_page)
 	MONO_ARCH_SAVE_REGS;
 
 	g_get_charset (&cset);
-	c = codepage = strdup (cset);
+	c = codepage = g_strdup_d (cset);
 	for (c = codepage; *c; c++){
 		if (isascii (*c) && isalpha (*c))
 			*c = tolower (*c);
@@ -6653,7 +6653,7 @@ ves_icall_System_Text_Encoding_InternalCodePage (gint32 *int_code_page)
 	
 	if (strstr (codepage, "utf_8") != NULL)
 		*int_code_page |= 0x10000000;
-	free (codepage);
+	g_free_d (codepage);
 	
 	if (want_name && *int_code_page == -1)
 		return mono_string_new (mono_domain_get (), cset);

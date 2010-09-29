@@ -3135,7 +3135,7 @@ get_debug_sym (MonoMethod *method, const char *prefix, GHashTable *cache)
 		
 	name1 = mono_method_full_name (method, TRUE);
 	len = strlen (name1);
-	name2 = malloc (strlen (prefix) + len + 16);
+	name2 = g_malloc_d (strlen (prefix) + len + 16);
 	memcpy (name2, prefix, strlen (prefix));
 	j = strlen (prefix);
 	for (i = 0; i < len; ++i) {
@@ -5148,7 +5148,7 @@ mono_aot_method_hash (MonoMethod *method)
 	sig = mono_method_signature (method);
 
 	hashes_count = sig->param_count + 5;
-	hashes_start = malloc (hashes_count * sizeof (guint32));
+	hashes_start = g_malloc_d (hashes_count * sizeof (guint32));
 	hashes = hashes_start;
 
 	/* Some wrappers are assigned to random classes */
@@ -5201,7 +5201,7 @@ mono_aot_method_hash (MonoMethod *method)
 		break;
 	}
 	
-	free (hashes_start);
+	g_free_d (hashes_start);
 	
 	return c;
 }

@@ -61,7 +61,7 @@ g_error_free (GError *error)
 {
 	g_return_if_fail (error != NULL);
 	
-	free (error->message);
+	g_free_d (error->message);
 	g_free (error);
 }
 

@@ -1727,7 +1727,7 @@ stat_prof_report (MonoProfiler *prof)
 			} else {
 				mn = g_strdup (names [0]);
 			}
-			free (names);
+			g_free_d (names);
 #else
 			prof_ucounts++;
 			mn = g_strdup_printf ("unmanaged [%p]", ip);

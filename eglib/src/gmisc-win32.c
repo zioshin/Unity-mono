@@ -90,7 +90,7 @@ g_win32_getlocale(void)
 	/* FIXME: Use GetThreadLocale
 	 * and convert LCID to standard 
 	 * string form, "en_US" */
-	return strdup ("en_US");
+	return g_strdup_d ("en_US");
 }
 
 gboolean

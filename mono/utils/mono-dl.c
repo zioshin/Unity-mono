@@ -353,7 +353,7 @@ mono_dl_open (const char *name, int flags, char **error_msg)
 	if (error_msg)
 		*error_msg = NULL;
 
-	module = malloc (sizeof (MonoDl));
+	module = g_malloc_d (sizeof (MonoDl));
 	if (!module) {
 		if (error_msg)
 			*error_msg = g_strdup ("Out of memory");
@@ -368,7 +368,7 @@ mono_dl_open (const char *name, int flags, char **error_msg)
 		const char *ext;
 		/* This platform does not support dlopen */
 		if (name == NULL) {
-			free (module);
+			g_free_d (module);
 			return NULL;
 		}
 		
@@ -387,7 +387,7 @@ mono_dl_open (const char *name, int flags, char **error_msg)
 			if (error_msg) {
 				*error_msg = LL_SO_ERROR ();
 			}
-			free (module);
+			g_free_d (module);
 			return NULL;
 		}
 	}
@@ -413,11 +413,11 @@ mono_dl_symbol (MonoDl *module, const char *name, void **symbol)
 
 #if MONO_DL_NEED_USCORE
 	{
-		char *usname = malloc (strlen (name) + 2);
+		char *usname = g_malloc_d (strlen (name) + 2);
 		*usname = '_';
 		strcpy (usname + 1, name);
 		sym = LL_SO_SYMBOL (module, usname);
-		free (usname);
+		g_free_d (usname);
 	}
 #else
 	sym = LL_SO_SYMBOL (module, name);
@@ -452,7 +452,7 @@ void
 mono_dl_close (MonoDl *module)
 {
 	LL_SO_CLOSE (module);
-	free (module);
+	g_free_d (module);
 }
 
 /**

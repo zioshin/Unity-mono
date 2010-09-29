@@ -1892,7 +1892,7 @@ mono_handle_native_sigsegv (int signal, void *ctx)
 	for (i =0; i < size; ++i) {
 		fprintf (stderr, "\t%s\n", names [i]);
 	}
-	free (names);
+	g_free_d (names);
 
 	fflush (stderr);
 
@@ -2001,7 +2001,7 @@ mono_print_thread_dump_internal (void *sigctx, MonoContext *start_ctx)
 #if !defined(HOST_WIN32) && !defined(_XBOX)
 	wapi_desc = wapi_current_thread_desc ();
 	g_string_append_printf (text, " tid=0x%p this=0x%p %s\n", (gpointer)(gsize)thread->tid, thread,  wapi_desc);
-	free (wapi_desc);
+	g_free_d (wapi_desc);
 #endif
 
 #ifdef MONO_ARCH_HAVE_SIGCTX_TO_MONOCTX

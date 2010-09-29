@@ -403,13 +403,13 @@ mono_pagesize (void)
 void*
 mono_valloc (void *addr, size_t length, int flags)
 {
-	return malloc (length);
+	return g_malloc_d (length);
 }
 
 int
 mono_vfree (void *addr, size_t length)
 {
-	free (addr);
+	g_free_d (addr);
 	return 0;
 }
 

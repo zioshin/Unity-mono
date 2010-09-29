@@ -13,7 +13,6 @@
 
 #include "mono-codeman.h"
 #include "mono-mmap.h"
-#include "dlmalloc.h"
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/profiler-private.h>
 #ifdef HAVE_VALGRIND_MEMCHECK_H
@@ -100,7 +99,7 @@ struct _MonoCodeManager {
 MonoCodeManager* 
 mono_code_manager_new (void)
 {
-	MonoCodeManager *cman = malloc (sizeof (MonoCodeManager));
+	MonoCodeManager *cman = g_malloc_d (sizeof (MonoCodeManager));
 	if (!cman)
 		return NULL;
 	cman->current = NULL;
@@ -152,7 +151,7 @@ free_chunklist (CodeChunk *chunk)
 		} else if (dead->flags == CODE_FLAG_MALLOC) {
 			dlfree (dead->data);
 		}
-		free (dead);
+		g_free_d (dead);
 	}
 }
 
@@ -167,7 +166,7 @@ mono_code_manager_destroy (MonoCodeManager *cman)
 {
 	free_chunklist (cman->full);
 	free_chunklist (cman->current);
-	free (cman);
+	g_free_d (cman);
 }
 
 /**
@@ -300,7 +299,7 @@ new_codechunk (int dynamic, int size)
 #endif
 	}
 
-	chunk = malloc (sizeof (CodeChunk));
+	chunk = g_malloc_d (sizeof (CodeChunk));
 	if (!chunk) {
 		if (flags == CODE_FLAG_MALLOC)
 			dlfree (ptr);
