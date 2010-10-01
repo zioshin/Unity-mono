@@ -1225,7 +1225,7 @@ stop_debugger_thread ()
 	//WaitForSingleObject (debugger_thread_handle, INFINITE);
 	if (GetCurrentThreadId () != debugger_thread_id) {
 		mono_mutex_lock (&debugger_thread_exited_mutex);
-		if (!debugger_thread_exited)
+		while (!debugger_thread_exited)
 		{
 #ifdef HOST_WIN32
 			if (WAIT_TIMEOUT == WaitForSingleObject(debugger_thread_exited_cond, 0)) {
