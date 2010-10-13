@@ -61,9 +61,13 @@ mono_locks_tracer_init (void)
 {
 	char *name;
 	InitializeCriticalSection (&tracer_lock);
+#ifdef SN_TARGET_PS3
+	name = g_strdup_printf ("/app_home/locks.%d", getpid ());
+#else
+	name = g_strdup_printf ("locks.%d", getpid ());
 	if (!getenv ("MONO_ENABLE_LOCK_TRACER"))
 		return;
-	name = g_strdup_printf ("locks.%d", getpid ());
+#endif
 	trace_file = fopen (name, "w+");
 	g_free (name);
 }
@@ -92,8 +96,13 @@ add_record (RecordType record_kind, RuntimeLocks kind, gpointer lock)
 {
 	gpointer frames[10];
 	char *msg;
- 	if (!trace_file)
+	if (!trace_file) {
+#ifdef SN_TARGET_PS3
+		return mono_locks_tracer_init();
+#else
 		return;
+#endif
+	}
 
 	memset (frames, 0, sizeof (gpointer));
 	mono_backtrace (frames, 6);
