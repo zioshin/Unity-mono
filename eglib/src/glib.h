@@ -124,7 +124,7 @@ typedef int32_t        gboolean;
 /*
  * Allocation
  */
-#ifdef _XBOX
+#if defined(_XBOX) || defined(SN_TARGET_PS3)
 	#define G_USE_MALLOC 0 // Use external allocators
 #else
 	#define G_USE_MALLOC 1
