@@ -373,6 +373,11 @@ gpointer CreateThread(WapiSecurityAttributes *security G_GNUC_UNUSED, guint32 st
 	thr_ret = pthread_attr_init(&attr);
 	g_assert (thr_ret == 0);
 	
+
+#ifdef SN_TARGET_PS3
+	attr.name = "_MONO_";
+#endif
+	
 	/* defaults of 2Mb for 32bits and 4Mb for 64bits */
 	/* temporarily changed to use 1 MB: this allows more threads
 	 * to be used, as well as using less virtual memory and so
