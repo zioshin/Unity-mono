@@ -1,5 +1,6 @@
 #include "private/pthread_support.h"
 
+
 #if defined(GC_PTHREADS) && !defined(GC_SOLARIS_THREADS) \
      && !defined(GC_IRIX_THREADS) && !defined(GC_WIN32_THREADS) \
      && !defined(GC_DARWIN_THREADS) && !defined(GC_AIX_THREADS) \
@@ -587,14 +588,125 @@ GC_mono_debugger_get_stack_ptr (void)
 
 #elif defined(SN_TARGET_PS3)
 
+#include <signal.h>
+#include <semaphore.h>
+#include <errno.h>
+#include <unistd.h> 
+
+#define USE_SPINLOCK_THREADS 1
+
+#if USE_SPINLOCK_THREADS 
+static pthread_t GC_spinlock_threads[2] = {NULL, NULL};
+static pthread_mutex_t GC_spinlock_mutex;
+
+static int GC_start_spinning = 0;
+
+static pthread_attr_t GC_sl_attr;
+static pthread_mutexattr_t GC_sl_mattr;
+
+void spinlockingThread(int v) 
+{
+	while(1) {
+		pthread_mutex_lock(&GC_spinlock_mutex);
+		if(GC_start_spinning) {
+			// ... spinlock!!!
+		}else {
+			sys_timer_usleep(1000);
+		}
+		pthread_mutex_unlock(&GC_spinlock_mutex);
+	}
+}
+
+void GC_Create_SpinlockingThreads(int sched_priority) {
+
+	pthread_mutexattr_init(&GC_sl_mattr);
+	pthread_mutexattr_settype(&GC_sl_mattr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&GC_spinlock_mutex, &GC_sl_mattr);
+
+	pthread_attr_init(&GC_sl_attr);
+	GC_sl_attr.sched_priority = sched_priority;
+	GC_sl_attr.name = "GCspnlck";
+
+	pthread_create(&GC_spinlock_threads[0], &GC_sl_attr, spinlockingThread, NULL);
+	pthread_create(&GC_spinlock_threads[1], &GC_sl_attr, spinlockingThread, NULL);
+}
+
+void GC_StartSpinlockThreads() {
+	printf ("Spinlocking START\n");
+	pthread_mutex_lock(&GC_spinlock_mutex);
+	GC_start_spinning = 1;
+	pthread_mutex_unlock(&GC_spinlock_mutex);
+}
+
+void GC_StopSpinlockThreads() {
+	pthread_mutex_lock(&GC_spinlock_mutex);
+	GC_start_spinning = 0;
+	pthread_mutex_unlock(&GC_spinlock_mutex);
+	printf ("Spinlocking STOP\n");
+}
+#endif
+
 void GC_stop_world()
 {
+	return;
 
+    int i;
+    pthread_t my_thread = pthread_self();
+	struct sched_param my_priority;
+	int my_policy;
+	pthread_getschedparam (my_thread, &my_policy, &my_priority);
+
+#if USE_SPINLOCK_THREADS
+	// create the spinlocking threads if necessary
+	if(!(GC_spinlock_threads[0] || GC_spinlock_threads[1])) {
+		GC_Create_SpinlockingThreads(my_priority.sched_priority + 5);
+	}
+	GC_StartSpinlockThreads();
+#endif
+
+	for (i = 0; i < THREAD_TABLE_SZ; i++) {
+	    GC_thread p;
+		for (p = GC_threads[i]; p != 0; p = p -> next) {
+			if (! pthread_equal (p->id, my_thread)) {
+				struct sched_param thread_priority;
+				int thread_policy;
+
+				pthread_getschedparam (p -> id, &thread_policy, &thread_priority);
+				p->original_thread_policy = thread_priority.sched_priority;
+				thread_priority.sched_priority = my_priority.sched_priority + 10;
+				pthread_setschedparam (p -> id, thread_policy, &thread_priority);
+			}
+		}
+	}
 }
+
 void GC_start_world()
 {
+	return;
+    int i;
+    pthread_t my_thread = pthread_self();
 
+	//printf ("GC_start_world START\n");
+
+	for (i = 0; i < THREAD_TABLE_SZ; i++) {
+	    GC_thread p;
+		for (p = GC_threads[i]; p != 0; p = p -> next) {
+			if (! pthread_equal (p->id, my_thread)) {
+				struct sched_param thread_priority;
+
+				thread_priority.sched_priority = p->original_thread_policy;
+				pthread_setschedparam (p -> id, SCHED_FIFO, &thread_priority);
+			}
+		}
+	}
+
+#if USE_SPINLOCK_THREADS
+	GC_StopSpinlockThreads();
+#endif
+
+	//printf ("GC_start_world END\n");
 }
+
 void GC_push_all_stacks()
 {
 
