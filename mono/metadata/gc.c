@@ -968,6 +968,9 @@ mono_gc_finalize_notify (void)
 
 #ifdef MONO_HAS_SEMAPHORES
 	MONO_SEM_POST (&finalizer_sem);
+#ifdef SN_TARGET_PS3
+	WaitForSingleObjectEx (pending_done_event, INFINITE, TRUE);
+#endif
 #else
 	SetEvent (finalizer_event);
 #endif
