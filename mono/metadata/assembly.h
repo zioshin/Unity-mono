@@ -42,6 +42,7 @@ MONO_API MonoAssembly *mono_assembly_get_main   (void);
 MONO_API MonoImage    *mono_assembly_get_image  (MonoAssembly *assembly);
 MONO_API mono_bool      mono_assembly_fill_assembly_name (MonoImage *image, MonoAssemblyName *aname);
 MONO_API mono_bool      mono_assembly_names_equal (MonoAssemblyName *l, MonoAssemblyName *r);
+MONO_API mono_bool      mono_assembly_names_equal_ignore_version (MonoAssemblyName *l, MonoAssemblyName *r, mono_bool ignore_version_and_key);
 MONO_API char*         mono_stringify_assembly_name (MonoAssemblyName *aname);
 
 /* Installs a function which is called each time a new assembly is loaded. */
