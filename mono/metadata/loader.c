@@ -286,7 +286,7 @@ mono_loader_clear_error (void)
 		g_free (ex->assembly_name);
 		g_free (ex->msg);
 		g_free (ex);
-
+	
 		mono_native_tls_set_value (loader_error_thread_id, NULL);
 	}
 }
@@ -614,11 +614,11 @@ find_method_in_class (MonoClass *klass, const char *name, const char *qname, con
 
 			method = mono_get_method (klass->image, MONO_TOKEN_METHOD_DEF | (klass->method.first + i + 1), klass);
 			if (method) {
-				other_sig = mono_method_signature (method);
+			other_sig = mono_method_signature (method);
 				if (other_sig && (sig->call_convention != MONO_CALL_VARARG) && mono_metadata_signature_equal (sig, other_sig))
-					return method;
-			}
+				return method;
 		}
+	}
 	}
 
 	mono_class_setup_methods (klass);
@@ -860,34 +860,34 @@ mono_method_get_signature_full (MonoMethod *method, MonoImage *image, guint32 to
 		sig = mono_reflection_lookup_signature (image, method, token);
 	} else {
 #endif
-		mono_metadata_decode_row (&image->tables [MONO_TABLE_MEMBERREF], idx-1, cols, MONO_MEMBERREF_SIZE);
-		sig_idx = cols [MONO_MEMBERREF_SIGNATURE];
+	mono_metadata_decode_row (&image->tables [MONO_TABLE_MEMBERREF], idx-1, cols, MONO_MEMBERREF_SIZE);
+	sig_idx = cols [MONO_MEMBERREF_SIGNATURE];
 
-		sig = find_cached_memberref_sig (image, sig_idx);
-		if (!sig) {
+	sig = find_cached_memberref_sig (image, sig_idx);
+	if (!sig) {
 			if (!mono_verifier_verify_memberref_method_signature (image, sig_idx, NULL)) {
-				guint32 class = cols [MONO_MEMBERREF_CLASS] & MONO_MEMBERREF_PARENT_MASK;
-				const char *fname = mono_metadata_string_heap (image, cols [MONO_MEMBERREF_NAME]);
-
-				mono_loader_set_error_bad_image (g_strdup_printf ("Bad method signature class token 0x%08x field name %s token 0x%08x on image %s", class, fname, token, image->name));
-				return NULL;
-			}
-
-			ptr = mono_metadata_blob_heap (image, sig_idx);
-			mono_metadata_decode_blob_size (ptr, &ptr);
-			sig = mono_metadata_parse_method_signature (image, 0, ptr, NULL);
-			if (!sig)
-				return NULL;
-			sig = cache_memberref_sig (image, sig_idx, sig);
-		}
-		/* FIXME: we probably should verify signature compat in the dynamic case too*/
-		if (!mono_verifier_is_sig_compatible (image, method, sig)) {
 			guint32 class = cols [MONO_MEMBERREF_CLASS] & MONO_MEMBERREF_PARENT_MASK;
 			const char *fname = mono_metadata_string_heap (image, cols [MONO_MEMBERREF_NAME]);
 
-			mono_loader_set_error_bad_image (g_strdup_printf ("Incompatible method signature class token 0x%08x field name %s token 0x%08x on image %s", class, fname, token, image->name));
+				mono_loader_set_error_bad_image (g_strdup_printf ("Bad method signature class token 0x%08x field name %s token 0x%08x on image %s", class, fname, token, image->name));
 			return NULL;
 		}
+
+		ptr = mono_metadata_blob_heap (image, sig_idx);
+		mono_metadata_decode_blob_size (ptr, &ptr);
+		sig = mono_metadata_parse_method_signature (image, 0, ptr, NULL);
+		if (!sig)
+			return NULL;
+		sig = cache_memberref_sig (image, sig_idx, sig);
+	}
+		/* FIXME: we probably should verify signature compat in the dynamic case too*/
+	if (!mono_verifier_is_sig_compatible (image, method, sig)) {
+		guint32 class = cols [MONO_MEMBERREF_CLASS] & MONO_MEMBERREF_PARENT_MASK;
+		const char *fname = mono_metadata_string_heap (image, cols [MONO_MEMBERREF_NAME]);
+
+		mono_loader_set_error_bad_image (g_strdup_printf ("Incompatible method signature class token 0x%08x field name %s token 0x%08x on image %s", class, fname, token, image->name));
+		return NULL;
+	}
 #ifndef DISABLE_REFLECTION_EMIT
 	}
 #endif
@@ -1394,15 +1394,15 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 	}
 
 	if (!module) {
-		mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
-					"DllImport attempting to load: '%s'.", new_scope);
+	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+			"DllImport attempting to load: '%s'.", new_scope);
 
 		/* we allow a special name to dlopen from the running process namespace */
 		if (strcmp (new_scope, "__Internal") == 0){
 			if (internal_module == NULL)
 				internal_module = mono_dl_open (NULL, MONO_DL_LAZY, &error_msg);
 			module = internal_module;
-		}
+	}
 	}
 
 	/*
@@ -1441,7 +1441,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 				file_name = g_strdup_printf ("lib%s", new_scope);
 				break;
 			}
-			continue;
+				continue;
 		default:
 #ifndef TARGET_WIN32
 			if (!g_ascii_strcasecmp ("user32.dll", new_scope) ||
@@ -1456,7 +1456,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 			break;
 #endif
 		}
-		
+
 		if (is_absolute) {
 			if (!dir_name)
 				dir_name = g_path_get_dirname (file_name);
@@ -1466,7 +1466,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 		
 		if (!module && is_absolute) {
 			module = cached_module_load (file_name, MONO_DL_LAZY, &error_msg);
-			if (!module) {
+		if (!module) {
 				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 						"DllImport error loading library '%s': '%s'.",
 							file_name, error_msg);
@@ -1783,7 +1783,7 @@ mono_get_method_from_token (MonoImage *image, guint32 token, MonoClass *klass,
 	} else if (cols [2] & METHOD_ATTRIBUTE_PINVOKE_IMPL) {
 		MonoMethodPInvoke *piinfo = (MonoMethodPInvoke *)result;
 
-#ifdef TARGET_WIN32
+#ifdef USE_COREE
 		/* IJW is P/Invoke with a predefined function pointer. */
 		if (image->is_module_handle && (cols [1] & METHOD_IMPL_ATTRIBUTE_NATIVE)) {
 			piinfo->addr = mono_image_rva_map (image, cols [0]);
@@ -1898,8 +1898,8 @@ get_method_constrained (MonoImage *image, MonoMethod *method, MonoClass *constra
 			if (!mono_error_ok (&error)) {
 				mono_error_cleanup (&error);
 				return NULL;
-			}
 		}
+	}
 	}
 
 	if ((constrained_class != method->klass) && (MONO_CLASS_IS_INTERFACE (method->klass)))
@@ -2260,7 +2260,7 @@ stack_walk_adapter (MonoStackFrameInfo *frame, MonoContext *ctx, gpointer data)
 	default:
 		g_assert_not_reached ();
 		return FALSE;
-	}
+}
 }
 
 void
@@ -2584,7 +2584,7 @@ mono_method_get_header (MonoMethod *method)
 
 		header = mono_method_get_header (imethod->declaring);
 		if (!header) {
-			mono_loader_unlock ();
+		mono_loader_unlock ();
 			return NULL;
 		}
 

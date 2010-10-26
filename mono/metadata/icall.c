@@ -256,7 +256,7 @@ ves_icall_System_Array_SetValueImpl (MonoArray *this, MonoObject *value, guint32
 			"value", "not a widening conversion")); \
 }G_STMT_END
 
-#define INVALID_CAST G_STMT_START{ \
+#define INVALID_CAST G_STMT_START{\
 		mono_get_runtime_callbacks ()->set_cast_details (vc, ec); \
 	mono_raise_exception (mono_get_exception_invalid_cast ()); \
 }G_STMT_END
@@ -727,7 +727,7 @@ ves_icall_System_Array_FastCopy (MonoArray *source, int source_idx, MonoArray* d
 	We fallback to managed here since we need to typecheck each boxed valuetype before storing them in the dest array.
 	*/
 	if (src_class == mono_defaults.object_class && dest_class->valuetype)
-		return FALSE;
+				return FALSE;
 
 	/* Check if we're copying a char[] <==> (u)short[] */
 	if (src_class != dest_class) {
@@ -1760,17 +1760,17 @@ ves_icall_MonoField_GetValueInternal (MonoReflectionField *field, MonoObject *ob
 {	
 	MonoClass *fklass = field->klass;
 	MonoClassField *cf = field->field;
-	MonoDomain *domain = mono_object_domain (field);
+	MonoDomain *domain = mono_object_domain (field); 
 
 	if (fklass->image->assembly->ref_only)
 		mono_raise_exception (mono_get_exception_invalid_operation (
 					"It is illegal to get the value on a field on a type loaded using the ReflectionOnly methods."));
-
+	
 	if (mono_security_core_clr_enabled ())
 		mono_security_core_clr_ensure_reflection_access_field (cf);
 
 	return mono_field_get_value_object (domain, cf, obj);
-}
+		}
 
 ICALL_EXPORT void
 ves_icall_MonoField_SetValueInternal (MonoReflectionField *field, MonoObject *obj, MonoObject *value)
@@ -2108,21 +2108,21 @@ ves_icall_Type_GetInterfaces (MonoReflectionType* type)
 		if (!data.domain->empty_types)
 			data.domain->empty_types = mono_array_new_cached (data.domain, mono_defaults.monotype_class, 0);
 		return data.domain->empty_types;
-	}
+			}
 
 	data.iface_array = mono_array_new_cached (data.domain, mono_defaults.monotype_class, len);
 	g_hash_table_foreach (iface_hash, fill_iface_array, &data);
 	if (!mono_error_ok (&error))
 		goto fail;
-
+		
 	g_hash_table_destroy (iface_hash);
 	return data.iface_array;
-
+		
 fail:
 	g_hash_table_destroy (iface_hash);
 	mono_error_raise_exception (&error);
 	return NULL;
-}
+	}
 
 ICALL_EXPORT void
 ves_icall_Type_GetInterfaceMapData (MonoReflectionType *type, MonoReflectionType *iface, MonoArray **targets, MonoArray **methods)
@@ -2144,7 +2144,7 @@ ves_icall_Type_GetInterfaceMapData (MonoReflectionType *type, MonoReflectionType
 
 	ioffset = mono_class_interface_offset_with_variance (class, iclass, &variance_used);
 	if (ioffset == -1)
-		return;
+			return;
 
 	len = mono_class_num_methods (iclass);
 	domain = mono_object_domain (type);
@@ -2814,7 +2814,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this, MonoAr
 		mono_gc_wbarrier_generic_store (exc, (MonoObject*) mono_get_exception_invalid_operation ("It is illegal to invoke a method on a type loaded using the ReflectionOnly api."));
 		return NULL;
 	}
-
+	
 	if (image->dynamic && !((MonoDynamicImage*)image)->run) {
 		mono_gc_wbarrier_generic_store (exc, (MonoObject*) mono_get_exception_not_supported ("Cannot invoke a method in a dynamic assembly without run access."));
 		return NULL;
@@ -3830,7 +3830,7 @@ ves_icall_MonoType_GetEvent (MonoReflectionType *type, MonoString *name, guint32
 	mono_class_init_or_throw (klass);
 
 	compare_func = (bflags & BFLAGS_IgnoreCase) ? mono_utf8_strcasecmp : strcmp;
-handle_parent:	
+  handle_parent:
 	if (klass->exception_type != MONO_EXCEPTION_NONE)
 		mono_raise_exception (mono_class_get_exception_for_failure (klass));
 
@@ -3923,7 +3923,7 @@ ves_icall_Type_GetEvents_internal (MonoReflectionType *type, guint32 bflags, Mon
 	klass = startklass = mono_class_from_mono_type (type->type);
 
 	events = g_hash_table_new (event_hash, (GEqualFunc)event_equal);
-handle_parent:
+handle_parent:	
 	mono_class_setup_vtable (klass);
 	if (klass->exception_type != MONO_EXCEPTION_NONE || mono_loader_get_last_error ())
 		goto loader_error;
@@ -5344,7 +5344,7 @@ ves_icall_System_Reflection_Module_GetGuidInternal (MonoReflectionModule *module
 ICALL_EXPORT gpointer
 ves_icall_System_Reflection_Module_GetHINSTANCE (MonoReflectionModule *module)
 {
-#ifdef HOST_WIN32
+#ifdef USE_COREE
 	if (module->image && module->image->is_module_handle)
 		return module->image->raw_data;
 #endif
@@ -5397,12 +5397,12 @@ static gboolean
 mono_memberref_is_method (MonoImage *image, guint32 token)
 {
 	if (!image->dynamic) {
-		guint32 cols [MONO_MEMBERREF_SIZE];
-		const char *sig;
-		mono_metadata_decode_row (&image->tables [MONO_TABLE_MEMBERREF], mono_metadata_token_index (token) - 1, cols, MONO_MEMBERREF_SIZE);
-		sig = mono_metadata_blob_heap (image, cols [MONO_MEMBERREF_SIGNATURE]);
-		mono_metadata_decode_blob_size (sig, &sig);
-		return (*sig != 0x6);
+	guint32 cols [MONO_MEMBERREF_SIZE];
+	const char *sig;
+	mono_metadata_decode_row (&image->tables [MONO_TABLE_MEMBERREF], mono_metadata_token_index (token) - 1, cols, MONO_MEMBERREF_SIZE);
+	sig = mono_metadata_blob_heap (image, cols [MONO_MEMBERREF_SIGNATURE]);
+	mono_metadata_decode_blob_size (sig, &sig);
+	return (*sig != 0x6);
 	} else {
 		MonoClass *handle_class;
 
@@ -5447,7 +5447,7 @@ ves_icall_System_Reflection_Module_ResolveTypeToken (MonoImage *image, guint32 t
 
 	if (image->dynamic) {
 		if ((table == MONO_TABLE_TYPEDEF) || (table == MONO_TABLE_TYPEREF)) {
-			klass = mono_lookup_dynamic_token_class (image, token, FALSE, NULL, NULL);
+		klass = mono_lookup_dynamic_token_class (image, token, FALSE, NULL, NULL);
 			return klass ? &klass->byval_arg : NULL;
 		}
 
@@ -5492,7 +5492,7 @@ ves_icall_System_Reflection_Module_ResolveMethodToken (MonoImage *image, guint32
 
 	if (image->dynamic) {
 		if (table == MONO_TABLE_METHOD)
-			return mono_lookup_dynamic_token_class (image, token, FALSE, NULL, NULL);
+		return mono_lookup_dynamic_token_class (image, token, FALSE, NULL, NULL);
 
 		if ((table == MONO_TABLE_MEMBERREF) && !(mono_memberref_is_method (image, token))) {
 			*error = ResolveTokenError_BadTable;
@@ -5566,7 +5566,7 @@ ves_icall_System_Reflection_Module_ResolveFieldToken (MonoImage *image, guint32 
 
 	if (image->dynamic) {
 		if (table == MONO_TABLE_FIELD)
-			return mono_lookup_dynamic_token_class (image, token, FALSE, NULL, NULL);
+		return mono_lookup_dynamic_token_class (image, token, FALSE, NULL, NULL);
 
 		if (mono_memberref_is_method (image, token)) {
 			*error = ResolveTokenError_BadTable;
@@ -7119,13 +7119,13 @@ ves_icall_MonoMethod_get_base_method (MonoReflectionMethod *m, gboolean definiti
 		klass = klass->generic_class->container_class;
 
 	if (definition) {
-		/* At the end of the loop, klass points to the eldest class that has this virtual function slot. */
-		for (parent = klass->parent; parent != NULL; parent = parent->parent) {
-			mono_class_setup_vtable (parent);
+	/* At the end of the loop, klass points to the eldest class that has this virtual function slot. */
+	for (parent = klass->parent; parent != NULL; parent = parent->parent) {
+		mono_class_setup_vtable (parent);
 			if (parent->vtable_size <= slot)
-				break;
-			klass = parent;
-		}
+			break;
+		klass = parent;
+	}		
 	} else {
 		klass = klass->parent;
 		if (!klass)
