@@ -2,7 +2,7 @@
 // System.Net.WebRequest
 //
 // Authors:
-//  Lawrence Pit (loz@cable.a2000.nl)
+//   Lawrence Pit (loz@cable.a2000.nl)
 //	Marek Safar (marek.safar@gmail.com)
 //
 // Copyright 2011 Xamarin Inc.
@@ -59,15 +59,14 @@ namespace System.Net
 		static bool isDefaultWebProxySet;
 		static IWebProxy defaultWebProxy;
 		static RequestCachePolicy defaultCachePolicy;
-
+		
 		static WebRequest ()
 		{
 #if MOBILE
-			IWebRequestCreate http = new HttpRequestCreator ();
-			RegisterPrefix ("http", http);
-			RegisterPrefix ("https", http);
-			RegisterPrefix ("file", new FileWebRequestCreator ());
-			RegisterPrefix ("ftp", new FtpRequestCreator ());
+			RegisterDynamicPrefix ("http", "HttpRequestCreator");
+			RegisterDynamicPrefix ("https", "HttpRequestCreator");
+			RegisterDynamicPrefix ("file", "FileWebRequestCreator");
+			RegisterDynamicPrefix ("ftp", "FtpRequestCreator");
 #else
 	#if CONFIGURATION_DEP
 			object cfg = ConfigurationManager.GetSection ("system.net/webRequestModules");
@@ -78,9 +77,21 @@ namespace System.Net
 					AddPrefix (el.Prefix, el.Type);
 				return;
 			}
-	#endif
+#endif
 			ConfigurationSettings.GetConfig ("system.net/webRequestModules");
 #endif
+		}
+		
+		static void RegisterDynamicPrefix(string protocol, string implementor)
+		{
+			//We're adding these types dynamically, so that they will get added if they are present,
+			//but in cases where they are not present (unity_web profile), it's fine. We need them to
+			//not be referenced statically so the linker is able to remove them from the unity_web profile
+			
+			var impl = typeof(WebRequest).Assembly.GetType("System.Net."+implementor);
+			if (impl == null)
+				return;
+			AddPrefix(protocol, impl);
 		}
 		
 		protected WebRequest () 
@@ -109,7 +120,7 @@ namespace System.Net
 				authentication_level = value;
 			}
 		}
-		
+
 		public virtual string ConnectionGroupName {
 			get { throw GetMustImplement (); }
 			set { throw GetMustImplement (); }
@@ -186,7 +197,7 @@ namespace System.Net
 				throw GetMustImplement ();
 			}
 		}
-
+		
 		public TokenImpersonationLevel ImpersonationLevel { get; set; }
 
 //		volatile static IWebProxy proxy;
@@ -379,30 +390,30 @@ namespace System.Net
 				if (Platform.IsMacOS)
 					return CFNetwork.GetDefaultProxy ();
 				
-				string address = Environment.GetEnvironmentVariable ("http_proxy");
+			string address = Environment.GetEnvironmentVariable ("http_proxy");
 
-				if (address == null)
-					address = Environment.GetEnvironmentVariable ("HTTP_PROXY");
-				
-				if (address != null) {
-					try {
-						if (!address.StartsWith ("http://"))
-							address = "http://" + address;
+			if (address == null)
+				address = Environment.GetEnvironmentVariable ("HTTP_PROXY");
 
-						Uri uri = new Uri (address);
-						IPAddress ip;
+			if (address != null) {
+				try {
+					if (!address.StartsWith ("http://"))
+						address = "http://" + address;
+
+					Uri uri = new Uri (address);
+					IPAddress ip;
 						
-						if (IPAddress.TryParse (uri.Host, out ip)) {
-							if (IPAddress.Any.Equals (ip)) {
-								UriBuilder builder = new UriBuilder (uri);
-								builder.Host = "127.0.0.1";
-								uri = builder.Uri;
-							} else if (IPAddress.IPv6Any.Equals (ip)) {
-								UriBuilder builder = new UriBuilder (uri);
-								builder.Host = "[::1]";
-								uri = builder.Uri;
-							}
+					if (IPAddress.TryParse (uri.Host, out ip)) {
+						if (IPAddress.Any.Equals (ip)) {
+							UriBuilder builder = new UriBuilder (uri);
+							builder.Host = "127.0.0.1";
+							uri = builder.Uri;
+						} else if (IPAddress.IPv6Any.Equals (ip)) {
+							UriBuilder builder = new UriBuilder (uri);
+							builder.Host = "[::1]";
+							uri = builder.Uri;
 						}
+					}
 						
 						bool bBypassOnLocal = false;						
 						ArrayList al = new ArrayList ();
@@ -419,7 +430,7 @@ namespace System.Net
 									al.Add (str);
 								else
 									bBypassOnLocal = true;
-							}
+			}
 						}
 						
 						return new WebProxy (uri, bBypassOnLocal, al.ToArray (typeof(string)) as string[]);
@@ -427,9 +438,9 @@ namespace System.Net
 					}
 				}
 #if !NET_2_1
-			}
+		}
 #endif
-			
+
 			return new WebProxy ();
 #endif // MONOTOUCH
 		}
@@ -486,7 +497,7 @@ namespace System.Net
 				
 			return creator;
 		}
-		
+
 		internal static bool IsWindows ()
 		{
 			return (int) Environment.OSVersion.Platform < 4;
@@ -520,12 +531,12 @@ namespace System.Net
 		public virtual Task<Stream> GetRequestStreamAsync ()
 		{
 			return Task<Stream>.Factory.FromAsync (BeginGetRequestStream, EndGetRequestStream, null);
-		}
+	}
 
 		public virtual Task<WebResponse> GetResponseAsync ()
 		{
 			return Task<WebResponse>.Factory.FromAsync (BeginGetResponse, EndGetResponse, null);
-		}
+}
 #endif
 
 	}
