@@ -16,6 +16,7 @@ MONO_BEGIN_DECLS
 
 MONO_API extern int32_t mono_environment_exitcode_get (void);
 MONO_API extern void mono_environment_exitcode_set (int32_t value);
+MONO_API extern MonoString* mono_unity_get_embeddinghostname (void);
 
 MONO_END_DECLS
 
