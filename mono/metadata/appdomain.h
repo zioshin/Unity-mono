@@ -212,6 +212,9 @@ typedef mono_bool (*MonoCoreClrPlatformCB) (const char *image_name);
 void
 mono_security_set_core_clr_platform_callback (MonoCoreClrPlatformCB callback);
 
+void
+mono_set_ignore_version_and_key_when_finding_assemblies_already_loaded(mono_bool value);
+
 MONO_END_DECLS
 
 #endif /* _MONO_METADATA_APPDOMAIN_H_ */
