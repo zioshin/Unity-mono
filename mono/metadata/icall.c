@@ -5348,7 +5348,7 @@ ves_icall_System_Reflection_Module_GetGuidInternal (MonoReflectionModule *module
 static gpointer
 ves_icall_System_Reflection_Module_GetHINSTANCE (MonoReflectionModule *module)
 {
-#ifdef HOST_WIN32
+#if (defined (HOST_WIN32) && defined (USE_COREE))
 	if (module->image && module->image->is_module_handle)
 		return module->image->raw_data;
 #endif
