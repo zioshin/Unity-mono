@@ -6523,6 +6523,11 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 	return 0;
 }
 
+#if defined(PLATFORM_ANDROID)
+/* Android GDB fails with "Unable to read JIT descriptor from remote memory!" */
+	#define __jit_debug_descriptor __jit_debug_descriptor_dummy
+#endif
+
 #else
 
 /* AOT disabled */
