@@ -189,8 +189,13 @@ namespace System.Net.Sockets {
 					waithandle = null;
 				}
 			}
-
-			public SocketAsyncResult (Socket sock, object state, AsyncCallback callback, SocketOperation operation)
+			
+			public SocketAsyncResult (Socket sock, object state, AsyncCallback callback, SocketOperation operation) : 
+				this (sock, state, callback, operation, true)
+			{
+			}
+			
+			public SocketAsyncResult (Socket sock, object state, AsyncCallback callback, SocketOperation operation, bool requireSocketSecurity)
 			{
 				this.Sock = sock;
 				this.blocking = sock.blocking;
@@ -200,7 +205,7 @@ namespace System.Net.Sockets {
 				GC.KeepAlive (this.callback);
 				this.operation = operation;
 				SockFlags = SocketFlags.None;
-				Worker = new Worker (this);
+				Worker = new Worker (this, requireSocketSecurity);
 			}
 
 			public void CheckIfThrowDelayedException ()
@@ -391,17 +396,28 @@ namespace System.Net.Sockets {
 		{
 			public SocketAsyncResult result;
 			SocketAsyncEventArgs args;
+			bool requireSocketSecurity;
 
-			public Worker (SocketAsyncEventArgs args)
+			public Worker (SocketAsyncEventArgs args) : this (args, true)
+			{
+			}
+			
+			public Worker (SocketAsyncEventArgs args, bool requireSocketSecurity)
 			{
 				this.args = args;
 				result = new SocketAsyncResult ();
 				result.Worker = this;
+				this.requireSocketSecurity = requireSocketSecurity;
 			}
 
-			public Worker (SocketAsyncResult ares)
+			public Worker (SocketAsyncResult ares) : this (ares, true)
+			{
+			}
+			
+			public Worker (SocketAsyncResult ares, bool requireSocketSecurity)
 			{
 				this.result = ares;
+				this.requireSocketSecurity = requireSocketSecurity;
 			}
 
 			public void Dispose ()
@@ -1204,11 +1220,78 @@ namespace System.Net.Sockets {
 
 		// Connects to the remote address
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
-		private extern static void Connect_internal(IntPtr sock,
+		private extern static void Connect_internal_real(IntPtr sock,
 							    SocketAddress sa,
 							    out int error);
 
+		private static void Connect_internal(IntPtr sock,
+							    SocketAddress sa,
+							    out int error)
+		{
+			Connect_internal(sock,sa, out error,true);
+		}
+		
+		static System.Reflection.MethodInfo check_socket_policy;
+		
+		private static void Connect_internal(IntPtr sock,
+							    SocketAddress sa,
+							    out int error,
+		                        bool requireSocketPolicyFile)
+		{
+#if NET_2_0 && !BOOTSTRAP_BASIC
+			if (requireSocketPolicyFile)
+			{
+				if (!CheckEndPoint(sa))
+				{
+					throw new SecurityException("Unable to connect, as no valid crossdomain policy was found");
+				}
+			}
+#endif
+			Connect_internal_real(sock,sa, out error);
+		}
+		
+		
+#if NET_2_0 && !BOOTSTRAP_BASIC
+		static internal bool CheckEndPoint (SocketAddress sa)
+		{
+			if (!System.Environment.SocketSecurityEnabled) return true;
+			try
+			{
+				//weird, why is EndPoint.Create not static?  Making a temp instance to be able to call the function
+				var temp = new IPEndPoint(IPAddress.Loopback, 123);
+				var endpoint = (IPEndPoint) temp.Create(sa);
+				
+				if (check_socket_policy == null)
+				{
+					check_socket_policy = GetUnityCrossDomainHelperMethod ("CheckSocketEndPoint");
+				}
+				return ((bool) check_socket_policy.Invoke (null, new object [2] { endpoint.Address.ToString(), endpoint.Port }));
+			} catch (Exception e)
+			{
+				Console.WriteLine("Unexpected error while trying to CheckEndPoint() : "+e);
+				return false;
+			}
+		}
+
+		static System.Reflection.MethodInfo GetUnityCrossDomainHelperMethod(string methodname)
+		{
+			//todo: enter strong name with public key here
+			Type type = Type.GetType ("UnityEngine.UnityCrossDomainHelper, CrossDomainPolicyParser, Version=1.0.0.0, Culture=neutral");
+            if (type==null)
+             	throw new SecurityException("Cant find type UnityCrossDomainHelper");
+			var result = type.GetMethod (methodname);
+			if (result == null)
+				throw new SecurityException("Cant find "+methodname);
+			return result;
+		}
+#endif
+		
 		public void Connect (EndPoint remoteEP)
+		{
+			Connect(remoteEP,true);
+		}
+		
+		internal void Connect (EndPoint remoteEP, bool requireSocketPolicy)
 		{
 			SocketAddress serial = null;
 
@@ -1240,7 +1323,7 @@ namespace System.Net.Sockets {
 
 			blocking_thread = Thread.CurrentThread;
 			try {
-				Connect_internal (socket, serial, out error);
+				Connect_internal (socket, serial, out error, requireSocketPolicy);
 			} catch (ThreadAbortException) {
 				if (disposed) {
 					Thread.ResetAbort ();
@@ -1349,6 +1432,15 @@ namespace System.Net.Sockets {
 
 		internal int Receive_nochecks (byte [] buf, int offset, int size, SocketFlags flags, out SocketError error)
 		{
+#if NET_2_0 && (!NET_2_1 || MONOTOUCH)
+			if (protocol_type == ProtocolType.Udp) {
+				EndPoint endpoint = new IPEndPoint (IPAddress.Any, 0);
+				int sillyError = 0;
+				int received = ReceiveFrom_nochecks_exc (buf, offset, size, flags, ref endpoint, false, out sillyError);
+				error = (SocketError)sillyError;
+				return received;
+			}
+#endif
 			int nativeError;
 			int ret = Receive_internal (socket, buf, offset, size, flags, out nativeError);
 			error = (SocketError) nativeError;
@@ -1473,13 +1565,18 @@ namespace System.Net.Sockets {
 #endif
 		IAsyncResult BeginConnect(EndPoint end_point, AsyncCallback callback, object state)
 		{
+			return BeginConnect(end_point,callback,state,false);
+		}
+
+		internal IAsyncResult BeginConnect(EndPoint end_point, AsyncCallback callback, object state, bool bypassSocketSecurity)
+		{
 			if (disposed && closed)
 				throw new ObjectDisposedException (GetType ().ToString ());
 
 			if (end_point == null)
 				throw new ArgumentNullException ("end_point");
 
-			SocketAsyncResult req = new SocketAsyncResult (this, state, callback, SocketOperation.Connect);
+			SocketAsyncResult req = new SocketAsyncResult (this, state, callback, SocketOperation.Connect, bypassSocketSecurity);
 			req.EndPoint = end_point;
 
 			// Bug #75154: Connect() should not succeed for .Any addresses.
@@ -1506,7 +1603,12 @@ namespace System.Net.Sockets {
 			if (blk)
 				Blocking = false;
 			SocketAddress serial = end_point.Serialize ();
-			Connect_internal (socket, serial, out error);
+			try {
+				Connect_internal (socket, serial, out error, bypassSocketSecurity);
+			} catch (Exception e) {
+				req.Complete(e);
+				return req;
+			}
 			if (blk)
 				Blocking = true;
 			if (error == 0) {
