@@ -3048,6 +3048,15 @@ mono_add_seq_point (MonoCompile *cfg, MonoBasicBlock *bb, MonoInst *ins, int nat
 
 #ifndef DISABLE_JIT
 
+void
+mono_add_seq_point (MonoCompile *cfg, MonoBasicBlock *bb, MonoInst *ins, int native_offset)
+{
+	ins->inst_offset = native_offset;
+	g_ptr_array_add (cfg->seq_points, ins);
+	bb->seq_points = g_slist_prepend_mempool (cfg->mempool, bb->seq_points, ins);
+	bb->last_seq_point = ins;
+}
+
 static void
 mono_compile_create_vars (MonoCompile *cfg)
 {
@@ -5022,7 +5031,7 @@ mono_jit_compile_method_with_opt (MonoMethod *method, guint32 opt, MonoException
 			mono_jit_stats.methods_lookups++;
 			vtable = mono_class_vtable (domain, method->klass);
 			g_assert (vtable);
-			tmpEx = mono_runtime_class_init_full (vtable, ex == NULL);
+			tmpEx = mono_runtime_class_init_full (vtable, NULL == ex);
 			if (tmpEx) {
 				*ex = tmpEx;
 				return NULL;
