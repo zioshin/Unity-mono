@@ -58,7 +58,7 @@ namespace System.Runtime.Serialization.Formatters.Binary {
 			this.context=context;
 		}
 		
-		static ISurrogateSelector DefaultSurrogateSelector { get; set; }
+		public static ISurrogateSelector DefaultSurrogateSelector { get; set; }
 		
 		public FormatterAssemblyStyle AssemblyFormat
 		{
