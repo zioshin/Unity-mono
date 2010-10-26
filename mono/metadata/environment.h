@@ -13,7 +13,7 @@
 #include <mono/utils/mono-publib.h>
 
 MONO_BEGIN_DECLS
-
+extern MonoString* mono_unity_get_embeddinghostname (void);
 extern int32_t mono_environment_exitcode_get (void);
 extern void mono_environment_exitcode_set (int32_t value);
 
