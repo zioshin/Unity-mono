@@ -30,13 +30,15 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 
 namespace System.Threading {
 
 	[Serializable]
 	public sealed class ExecutionContext : ISerializable {
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 		private SecurityContext _sc;
 #endif
 		private bool _suppressFlow;
@@ -48,7 +50,7 @@ namespace System.Threading {
 
 		internal ExecutionContext (ExecutionContext ec)
 		{
-#if !MOONLIGHT
+#if (!MOONLIGHT) && !DISABLE_SECURITY
 			if (ec._sc != null)
 				_sc = new SecurityContext (ec._sc);
 #endif
@@ -69,7 +71,7 @@ namespace System.Threading {
 				return null;
 
 			ExecutionContext capture = new ExecutionContext (ec);
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled)
 				capture.SecurityContext = SecurityContext.Capture ();
 #endif
@@ -85,7 +87,9 @@ namespace System.Threading {
 		}
 
 		[MonoTODO]
+		#if !DISABLE_SECURITY
 		[ReflectionPermission (SecurityAction.Demand, MemberAccess = true)]
+		#endif
 		public void GetObjectData (SerializationInfo info, StreamingContext context)
 		{
 			if (info == null)
@@ -94,7 +98,7 @@ namespace System.Threading {
 		}
 		
 		// internal stuff
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 		internal SecurityContext SecurityContext {
 			get {
 				if (_sc == null)
@@ -126,7 +130,7 @@ namespace System.Threading {
 
 			ec.FlowSuppressed = false;
 		}
-
+#if !MICRO_LIB
 #if !MOONLIGHT
 		[MonoTODO ("only the SecurityContext is considered")]
 		[SecurityPermission (SecurityAction.LinkDemand, Infrastructure = true)]
@@ -143,12 +147,13 @@ namespace System.Threading {
 			SecurityContext.Run (executionContext.SecurityContext, callback, state);
 		}
 
+#endif // !MICRO_LIB
 		public static AsyncFlowControl SuppressFlow ()
 		{
 			Thread t = Thread.CurrentThread;
 			t.ExecutionContext.FlowSuppressed = true;
 			return new AsyncFlowControl (t, AsyncFlowControlType.Execution);
 		}
-#endif
+#endif // !MOONLIGHT
 	}
 }

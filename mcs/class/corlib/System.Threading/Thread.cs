@@ -30,8 +30,10 @@
 using System.Runtime.Remoting.Contexts;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
 using System.Security.Principal;
+#endif
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -179,12 +181,15 @@ namespace System.Threading {
 		}
 
 		public static Context CurrentContext {
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.LinkDemand, Infrastructure=true)]
+			#endif
 			get {
 				return(AppDomain.InternalGetContext ());
 			}
 		}
 
+#if !DISABLE_SECURITY
 		/*
 		 * These two methods return an array in the target
 		 * domain with the same content as the argument.  If
@@ -241,7 +246,8 @@ namespace System.Threading {
 				th.principal_version = th.Internal._serialized_principal_version;
 			}
 		}
-#endif
+#endif // !DISABLE_SECURITY
+#endif // !MOONLIGHT
 
 		// Looks up the object associated with the current thread
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
@@ -363,7 +369,9 @@ namespace System.Threading {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern static void ResetAbort_internal();
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public static void ResetAbort ()
 		{
 			ResetAbort_internal ();
@@ -384,7 +392,7 @@ namespace System.Threading {
 			if (millisecondsTimeout < Timeout.Infinite)
 				throw new ArgumentOutOfRangeException ("millisecondsTimeout", "Negative timeout");
 
-			Sleep_internal (millisecondsTimeout);
+			Sleep_internal(millisecondsTimeout);
 		}
 
 		public static void Sleep (TimeSpan timeout)
@@ -501,7 +509,9 @@ namespace System.Threading {
 				return culture;
 			}
 			
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+			#endif
 			set {
 				if (value == null)
 					throw new ArgumentNullException ("value");
@@ -709,14 +719,18 @@ namespace System.Threading {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern static void Abort_internal (InternalThread thread, object stateInfo);
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Abort () 
 		{
 			Abort_internal (Internal, null);
 		}
 
 #if !MOONLIGHT
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif		
 		public void Abort (object stateInfo) 
 		{
 			Abort_internal (Internal, stateInfo);
@@ -728,7 +742,9 @@ namespace System.Threading {
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		private extern static void Interrupt_internal (InternalThread thread);
 		
+#if !DISABLE_SECURITY		
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Interrupt ()
 		{
 			Interrupt_internal (Internal);
@@ -759,7 +775,7 @@ namespace System.Threading {
 			long ms = (long) timeout.TotalMilliseconds;
 			if (ms < Timeout.Infinite || ms > Int32.MaxValue)
 				throw new ArgumentOutOfRangeException ("timeout", "timeout out of range");
-
+			
 			return Join_internal (Internal, (int) ms, Internal.system_thread_handle);
 		}
 #endif
@@ -774,7 +790,9 @@ namespace System.Threading {
 		private extern void Resume_internal();
 
 		[Obsolete ("")]
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Resume () 
 		{
 			Resume_internal ();
@@ -796,7 +814,7 @@ namespace System.Threading {
 			}
 		}
 
-#if MOONLIGHT
+#if MOONLIGHT && !MICRO_LIB
 		private void StartSafe ()
 		{
 			current_thread = this;
@@ -848,13 +866,15 @@ namespace System.Threading {
 		}
 
 		public void Start() {
+#if !DISABLE_SECURITY
 			// propagate informations from the original thread to the new thread
 			if (!ExecutionContext.IsFlowSuppressed ())
 				ec_to_set = ExecutionContext.Capture ();
 			Internal._serialized_principal = CurrentThread.Internal._serialized_principal;
+#endif
 
 			// Thread_internal creates and starts the new thread, 
-#if MOONLIGHT
+#if MOONLIGHT && !MICRO_LIB
 			if (Thread_internal((ThreadStart) StartSafe) == (IntPtr) 0)
 #else
 			if (Thread_internal((ThreadStart) StartUnsafe) == (IntPtr) 0)
@@ -867,7 +887,9 @@ namespace System.Threading {
 		private extern static void Suspend_internal(InternalThread thread);
 
 		[Obsolete ("")]
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Suspend ()
 		{
 			Suspend_internal (Internal);
@@ -1055,7 +1077,7 @@ namespace System.Threading {
 		{
 			// Managed and native threads are currently bound together.
 		}
-
+		
 #if !MOONLIGHT
 		public ApartmentState GetApartmentState ()
 		{
@@ -1102,8 +1124,10 @@ namespace System.Threading {
 		// NOTE: This method doesn't show in the class library status page because
 		// it cannot be "found" with the StrongNameIdentityPermission for ECMA key.
 		// But it's there!
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, UnmanagedCode = true)]
 		[StrongNameIdentityPermission (SecurityAction.LinkDemand, PublicKey="00000000000000000400000000000000")]
+		#endif
 		[Obsolete ("see CompressedStack class")]
 #if NET_1_1
 		public
@@ -1115,15 +1139,21 @@ namespace System.Threading {
 			// Note: returns null if no CompressedStack has been set.
 			// However CompressedStack.GetCompressedStack returns an 
 			// (empty?) CompressedStack instance.
+			#if !DISABLE_SECURITY
 			CompressedStack cs = ExecutionContext.SecurityContext.CompressedStack;
 			return ((cs == null) || cs.IsEmpty ()) ? null : cs.CreateCopy ();
+			#else
+			return null;
+			#endif
 		}
 
 		// NOTE: This method doesn't show in the class library status page because
 		// it cannot be "found" with the StrongNameIdentityPermission for ECMA key.
 		// But it's there!
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, UnmanagedCode = true)]
 		[StrongNameIdentityPermission (SecurityAction.LinkDemand, PublicKey="00000000000000000400000000000000")]
+		#endif
 		[Obsolete ("see CompressedStack class")]
 #if NET_1_1
 		public
@@ -1132,7 +1162,9 @@ namespace System.Threading {
 #endif
 		void SetCompressedStack (CompressedStack stack)
 		{
+			#if !DISABLE_SECURITY
 			ExecutionContext.SecurityContext.CompressedStack = stack;
+			#endif
 		}
 
 #endif

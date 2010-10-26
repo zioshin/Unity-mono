@@ -30,9 +30,11 @@ using System.Diagnostics;
 
 namespace System.Collections 
 {
+#if !MICRO_LIB
 	[ComVisible(true)]
 	[DebuggerDisplay ("Count={Count}")]
 	[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 	[Serializable]
 #if INSIDE_CORLIB
 	public

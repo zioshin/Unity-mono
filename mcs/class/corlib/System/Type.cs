@@ -32,7 +32,9 @@
 
 using System.Diagnostics;
 using System.Reflection;
+#if !MICRO_LIB
 using System.Reflection.Emit;
+#endif
 using System.Collections;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -853,10 +855,10 @@ namespace System {
 
 			if (Equals (c))
 				return true;
-
+#if !MICRO_LIB
 			if (c is TypeBuilder)
 				return ((TypeBuilder)c).IsAssignableTo (this);
-
+#endif
 			/* Handle user defined type classes */
 			if (!IsSystemType) {
 				Type systemType = UnderlyingSystemType;
@@ -1359,6 +1361,7 @@ namespace System {
 			}
 		}
 
+#if !DISABLE_SECURITY
 		public virtual Type[] GetGenericArguments ()
 		{
 			throw new NotSupportedException ();
@@ -1639,6 +1642,7 @@ namespace System {
 			return attrs;
 		}			
 
+#endif
 
 #if NET_4_0 || BOOTSTRAP_NET_4_0
 		public virtual bool IsEquivalentTo (Type other)

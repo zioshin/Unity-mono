@@ -37,7 +37,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security;
 using System.Text;
-#if !MOONLIGHT
+#if !MOONLIGHT && !MICRO_LIB
 using System.Security.AccessControl;
 #endif
 
@@ -270,7 +270,7 @@ namespace System.IO {
 			return OriginalPath;
 		}
 
-#if !MOONLIGHT
+#if !MOONLIGHT || UNITY
 		public DirectoryInfo[] GetDirectories (string searchPattern, SearchOption searchOption)
 		{
 			switch (searchOption) {
@@ -340,7 +340,9 @@ namespace System.IO {
 		}
 
 		// access control methods
-
+#endif
+#if NET_2_0 && !NET_2_1
+#if !MICRO_LIB
 		[MonoLimitation ("DirectorySecurity isn't implemented")]
 		public void Create (DirectorySecurity directorySecurity)
 		{

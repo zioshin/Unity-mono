@@ -29,16 +29,19 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Collections.Generic;
-
 namespace System.Reflection {
 
 	[ComVisible (true)]
 	[ComDefaultInterfaceAttribute (typeof (_MemberInfo))]
 	[Serializable]
 	[ClassInterface(ClassInterfaceType.None)]
+	#if !DISABLE_SECURITY
 	[PermissionSet (SecurityAction.InheritanceDemand, Unrestricted = true)]
+	#endif
 	public abstract class MemberInfo : ICustomAttributeProvider, _MemberInfo {
 
 		protected MemberInfo ()

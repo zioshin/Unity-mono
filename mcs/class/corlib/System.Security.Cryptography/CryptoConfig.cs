@@ -361,16 +361,20 @@ public partial      class CryptoConfig {
 		oid.Add (name3DESb, oid3DES);
 		oid.Add (nameRC2a, oidRC2);
 
+#if !UNITY
 		// Add/modify the config as specified by machine.config
 		string config = Environment.GetMachineConfigPath ();
 		LoadConfig (config, algorithms, oid);
+#endif
 
 		// update
 		CryptoConfig.algorithms = algorithms;
 		CryptoConfig.oid = oid;
 	}
 
+#if !DISABLE_SECURITY
 	[FileIOPermission (SecurityAction.Assert, Unrestricted = true)]
+#endif
 	private static void LoadConfig (string filename, Hashtable algorithms, Hashtable oid)
 	{
 		if (!File.Exists (filename))
@@ -392,7 +396,9 @@ public partial      class CryptoConfig {
 		return CreateFromName (name, null);
 	}
 
+#if !DISABLE_SECURITY
 	[PermissionSet (SecurityAction.LinkDemand, Unrestricted = true)]
+#endif
 	public static object CreateFromName (string name, params object[] args)
 	{
 		if (name == null)

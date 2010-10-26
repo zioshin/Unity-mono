@@ -26,6 +26,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !MICRO_LIB
 using System.Reflection;
 using System.Runtime.Hosting;
 using System.Runtime.InteropServices;
@@ -112,3 +113,5 @@ namespace System {
 		}
 	}
 }
+
+#endif

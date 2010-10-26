@@ -41,8 +41,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Text;
+#if !DISABLE_SECURITY
 using System.Runtime.InteropServices;
 
 #if !MOONLIGHT
@@ -51,7 +54,9 @@ using System.Security.AccessControl;
 
 namespace System.IO
 {
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
+#endif
 	public static class Directory
 	{
 
@@ -83,7 +88,7 @@ namespace System.IO
 			return CreateDirectoriesInternal (path);
 		}
 
-#if !MOONLIGHT
+#if !MOONLIGHT && !NET_2_1 && !DISABLE_SECURITY
 		[MonoLimitation ("DirectorySecurity not implemented")]
 		public static DirectoryInfo CreateDirectory (string path, DirectorySecurity directorySecurity)
 		{
@@ -93,7 +98,7 @@ namespace System.IO
 
 		static DirectoryInfo CreateDirectoriesInternal (string path)
 		{
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled) {
 				new FileIOPermission (FileIOPermissionAccess.Read | FileIOPermissionAccess.Write, path).Demand ();
 			}
@@ -243,7 +248,7 @@ namespace System.IO
 			string result = MonoIO.GetCurrentDirectory (out error);
 			if (error != MonoIOError.ERROR_SUCCESS)
 				throw MonoIO.GetException (error);
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 			if ((result != null) && (result.Length > 0) && SecurityManager.SecurityEnabled) {
 				new FileIOPermission (FileIOPermissionAccess.PathDiscovery, result).Demand ();
 			}
@@ -261,7 +266,7 @@ namespace System.IO
 			return GetFileSystemEntries (path, searchPattern, FileAttributes.Directory, FileAttributes.Directory);
 		}
 		
-#if !MOONLIGHT
+#if !MOONLIGHT || UNITY
 		public static string [] GetDirectories (string path, string searchPattern, SearchOption searchOption)
 		{
 			if (searchOption == SearchOption.TopDirectoryOnly)
@@ -298,7 +303,7 @@ namespace System.IO
 			return GetFileSystemEntries (path, searchPattern, FileAttributes.Directory, 0);
 		}
 
-#if !MOONLIGHT
+#if !MOONLIGHT || UNITY
 		public static string[] GetFiles (string path, string searchPattern, SearchOption searchOption)
 		{
 			if (searchOption == SearchOption.TopDirectoryOnly)
@@ -390,7 +395,7 @@ namespace System.IO
 				throw MonoIO.GetException (error);
 		}
 
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 		public static void SetAccessControl (string path, DirectorySecurity directorySecurity)
 		{
 			throw new NotImplementedException ();
@@ -407,7 +412,9 @@ namespace System.IO
 			SetCreationTime (path, creationTimeUtc.ToLocalTime ());
 		}
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 		public static void SetCurrentDirectory (string path)
 		{
 			if (path == null)
@@ -503,7 +510,7 @@ namespace System.IO
 			return result;
 		}
 
-#if NET_4_0 || MOONLIGHT
+#if (NET_4_0 || MOONLIGHT) && !DISABLE_SECURITY
 		public static string[] GetFileSystemEntries (string path, string searchPattern, SearchOption searchOption)
 		{
 			// Take the simple way home:

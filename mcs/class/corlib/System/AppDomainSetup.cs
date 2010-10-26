@@ -38,7 +38,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Runtime.Serialization.Formatters.Binary;
 
-#if(!MOONLIGHT)
+#if !MOONLIGHT && !MICRO_LIB
 using System.Runtime.Hosting;
 using System.Security.Policy;
 #endif
@@ -70,7 +70,7 @@ namespace System
 		bool disallow_binding_redirects;
 		bool disallow_code_downloads;
 
-#if (!MOONLIGHT)
+#if !MOONLIGHT && !MICRO_LIB
 		private ActivationArguments _activationArguments;
 		AppDomainInitializer domain_initializer;
 		[NonSerialized]
@@ -113,11 +113,13 @@ namespace System
 			domain_initializer = setup.domain_initializer;
 			application_trust = setup.application_trust;
 			domain_initializer_args = setup.domain_initializer_args;
+			#if !DISABLE_SECURITY
+			#endif
 			disallow_appbase_probe = setup.disallow_appbase_probe;
 			configuration_bytes = setup.configuration_bytes;
 		}
 
-#if (!MOONLIGHT)
+#if !MOONLIGHT && !MICRO_LIB
 		public AppDomainSetup (ActivationArguments activationArguments)
 		{
 			_activationArguments = activationArguments;
@@ -293,6 +295,7 @@ namespace System
 			}
 		}
 
+#if !MICRO_LIB
 		public ActivationArguments ActivationArguments {
 			get {
 				if (_activationArguments != null)
@@ -385,6 +388,7 @@ namespace System
 
 			serialized_non_primitives = ms.ToArray ();
 		}
+#endif // !MICRO_LIB
 #endif // !NET_2_1
 #if NET_4_0 || MOONLIGHT
 		[MonoTODO ("not implemented, does not throw because it's used in testing moonlight")]

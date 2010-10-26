@@ -32,7 +32,7 @@ using System.Runtime.InteropServices;
 namespace System.Security {
 
 	[ComVisible (true)]
-#if MOONLIGHT
+#if MOONLIGHT || DISABLE_SECURITY
 	public interface IPermission {
 #else
 	public interface IPermission : ISecurityEncodable {

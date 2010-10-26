@@ -26,6 +26,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !MICRO_LIB
 using System.Runtime.InteropServices;
 using System.Runtime.Remoting;
 using System.Security;
@@ -93,3 +94,4 @@ namespace System.Runtime.Hosting {
 	}
 }
 
+#endif

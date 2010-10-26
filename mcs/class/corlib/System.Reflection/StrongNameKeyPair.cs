@@ -31,7 +31,9 @@
 
 using System.IO;
 using System.Security.Cryptography;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 
@@ -54,8 +56,9 @@ public class StrongNameKeyPair : ISerializable, IDeserializationCallback
 
 	// note: we ask for UnmanagedCode because we do not want everyone
 	// to be able to generate strongnamed assemblies
-
+#if !DISABLE_SECURITY
 	[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 	public StrongNameKeyPair (byte[] keyPairArray) 
 	{
 		if (keyPairArray == null)
@@ -65,7 +68,9 @@ public class StrongNameKeyPair : ISerializable, IDeserializationCallback
 		GetRSA ();
 	}
 	
+#if !DISABLE_SECURITY	
 	[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 	public StrongNameKeyPair (FileStream keyPairFile) 
 	{
 		if (keyPairFile == null)
@@ -77,7 +82,9 @@ public class StrongNameKeyPair : ISerializable, IDeserializationCallback
 		GetRSA ();
 	}
 	
+#if !DISABLE_SECURITY
 	[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 	public StrongNameKeyPair (string keyPairContainer) 
 	{
 		// named key container
