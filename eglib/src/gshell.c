@@ -141,6 +141,7 @@ g_shell_parse_argv (const gchar *command_line, gint *argcp, gchar ***argvp, GErr
 	return TRUE;
 }
 
+
 gchar *
 g_shell_quote (const gchar *unquoted_string)
 {
