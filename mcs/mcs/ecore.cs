@@ -2776,6 +2776,12 @@ namespace Mono.CSharp {
 				}
 			} else {
 				InstanceExpression.Emit (ec);
+				#if GMCS_SOURCE
+				// Only to make verifier happy
+				if (instance_type.IsGenericParameter && !(InstanceExpression is This) && TypeManager.IsReferenceType (instance_type))
+					ec.ig.Emit (OpCodes.Box, instance_type);
+				#endif
+			}
 
 				// Only to make verifier happy
 				if (instance_type.IsGenericParameter && !(InstanceExpression is This) && TypeManager.IsReferenceType (instance_type))
