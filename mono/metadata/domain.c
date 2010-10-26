@@ -53,7 +53,7 @@
 static MonoNativeTlsKey appdomain_thread_id;
 
 #ifdef MONO_HAVE_FAST_TLS
-
+ 
 MONO_FAST_TLS_DECLARE(tls_appdomain);
 
 #define GET_APPDOMAIN() ((MonoDomain*)MONO_FAST_TLS_GET(tls_appdomain))
@@ -71,14 +71,14 @@ MONO_FAST_TLS_DECLARE(tls_appdomain);
 #else /* !MONO_HAVE_FAST_TLS */
 
 #define GET_APPDOMAIN() ((MonoDomain *)mono_native_tls_get_value (appdomain_thread_id))
-#define SET_APPDOMAIN(x) do {						\
+#define SET_APPDOMAIN(x) do { \
 		MonoThreadInfo *info;								\
 		mono_native_tls_set_value (appdomain_thread_id, x);	\
 		mono_gc_set_current_thread_appdomain (x);		\
 		info = mono_thread_info_current ();				\
 		if (info)												 \
 			mono_thread_info_tls_set (info, TLS_KEY_DOMAIN, (x));	\
-	} while (FALSE)
+} while (FALSE)
 
 #endif
 
@@ -375,7 +375,7 @@ jit_info_table_find (MonoJitInfoTable *table, MonoThreadHazardPointers *hp, gint
  not_found:
 	if (hp)
 		mono_hazard_pointer_clear (hp, JIT_INFO_HAZARD_INDEX);
-	return NULL;
+		return NULL;
 }
 
 /*
@@ -408,7 +408,7 @@ mono_jit_info_table_find_internal (MonoDomain *domain, char *addr, gboolean try_
 
 	ji = jit_info_table_find (table, hp, (gint8*)addr);
 	if (hp)
-		mono_hazard_pointer_clear (hp, JIT_INFO_TABLE_HAZARD_INDEX);
+	mono_hazard_pointer_clear (hp, JIT_INFO_TABLE_HAZARD_INDEX);
 	if (ji)
 		return ji;
 
@@ -865,7 +865,7 @@ mono_jit_info_add_aot_module (MonoImage *image, gpointer start, gpointer end)
 	if (!mono_root_domain->aot_modules) {
 		mono_root_domain->num_jit_info_tables ++;
 		mono_root_domain->aot_modules = jit_info_table_new (mono_root_domain);
-	}
+}
 
 	ji = g_new0 (MonoJitInfo, 1);
 	ji->d.image = image;
@@ -873,7 +873,7 @@ mono_jit_info_add_aot_module (MonoImage *image, gpointer start, gpointer end)
 	ji->code_size = (guint8*)end - (guint8*)start;
 	jit_info_table_add (mono_root_domain, &mono_root_domain->aot_modules, ji);
 
-	mono_appdomains_unlock ();
+			mono_appdomains_unlock ();
 }
 
 void
@@ -970,7 +970,7 @@ mono_jit_info_set_generic_sharing_context (MonoJitInfo *ji, MonoGenericSharingCo
 
 	gi->generic_sharing_context = gsctx;
 }
-
+ 
 MonoTryBlockHoleTableJitInfo*
 mono_jit_info_get_try_block_hole_table_info (MonoJitInfo *ji)
 {
@@ -1392,7 +1392,7 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 		 * exe_image, and close it during shutdown.
 		 */
 		get_runtimes_from_exe (exe_filename, &exe_image, runtimes);
-#ifdef HOST_WIN32
+#ifdef USE_COREE
 		if (!exe_image) {
 			exe_image = mono_assembly_open_from_bundle (exe_filename, NULL, FALSE);
 			if (!exe_image)
@@ -1410,7 +1410,7 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 		runtimes [0] = default_runtime;
 		runtimes [1] = NULL;
 		g_print ("WARNING: The runtime version supported by this application is unavailable.\n");
-		g_print ("Using default runtime: %s\n", default_runtime->runtime_version); 
+		g_print ("Using default runtime: %s\n", default_runtime->runtime_version);
 	}
 
 	/* The selected runtime will be the first one for which there is a mscrolib.dll */
@@ -1718,7 +1718,7 @@ mono_init (const char *domain_name)
  * @filename: filename to load on startup
  *
  * Used by the runtime, users should use mono_jit_init instead.
- *
+ * 
  * Creates the initial application domain and initializes the mono_defaults
  * structure.
  * This function is guaranteed to not run any IL code.
@@ -2634,7 +2634,7 @@ get_runtime_by_version (const char *version)
 
 	if (!version)
 		return NULL;
-
+	
 	for (n=0; n<max; n++) {
 		if (strcmp (version, supported_runtimes[n].runtime_version) == 0)
 			return &supported_runtimes[n];
