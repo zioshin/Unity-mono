@@ -28,11 +28,15 @@
 //
 
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Policy;
 using System.Security.Permissions;
+#endif
 using System.Runtime.Serialization;
+#if !MICRO_LIB
 using System.Reflection;
 using System.Reflection.Emit;
+#endif
 using System.IO;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -48,7 +52,7 @@ namespace System.Reflection {
 	[ComDefaultInterfaceAttribute (typeof (_Assembly))]
 	[Serializable]
 	[ClassInterface(ClassInterfaceType.None)]
-#if MOBILE
+#if MOBILE || DISABLE_SECURITY
 	public partial class Assembly : ICustomAttributeProvider, _Assembly {
 #elif MOONLIGHT
 	public abstract class Assembly : ICustomAttributeProvider, _Assembly {
@@ -67,12 +71,14 @@ namespace System.Reflection {
 #pragma warning restore 649
 
 		private ResolveEventHolder resolve_event_holder;
+		#if !DISABLE_SECURITY
 		private Evidence _evidence;
 		internal PermissionSet _minimum;	// for SecurityAction.RequestMinimum
 		internal PermissionSet _optional;	// for SecurityAction.RequestOptional
 		internal PermissionSet _refuse;		// for SecurityAction.RequestRefuse
 		private PermissionSet _granted;		// for the resolved assembly granted permissions
 		private PermissionSet _denied;		// for the resolved assembly denied permissions
+		#endif
 		private bool fromByteArray;
 		private string assemblyName;
 
@@ -91,11 +97,15 @@ namespace System.Reflection {
 		// compiler would silently insert the fields before _mono_assembly
 		//
 		public event ModuleResolveEventHandler ModuleResolve {
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.LinkDemand, ControlAppDomain = true)]
+			#endif
 			add {
 				resolve_event_holder.ModuleResolve += value;
 			}
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.LinkDemand, ControlAppDomain = true)]
+			#endif
 			remove {
 				resolve_event_holder.ModuleResolve -= value;
 			}
@@ -117,7 +127,7 @@ namespace System.Reflection {
 		private string GetCodeBase (bool escaped)
 		{
 			string cb = get_code_base (escaped);
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled) {
 				// we cannot divulge local file informations
 				if (String.Compare ("FILE://", 0, cb, 0, 7, true, CultureInfo.InvariantCulture) == 0) {
@@ -152,6 +162,7 @@ namespace System.Reflection {
 			get;
 		}
 #if !MOONLIGHT
+#if !DISABLE_SECURITY
 		public virtual Evidence Evidence {
 			[SecurityPermission (SecurityAction.Demand, ControlEvidence = true)]
 			get { return UnprotectedGetEvidence (); }
@@ -169,7 +180,7 @@ namespace System.Reflection {
 			}
 			return _evidence;
 		}
-
+#endif
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		internal extern bool get_global_assembly_cache ();
 
@@ -184,7 +195,7 @@ namespace System.Reflection {
 					return String.Empty;
 
 				string loc = get_location ();
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 				if ((loc != String.Empty) && SecurityManager.SecurityEnabled) {
 					// we cannot divulge local file informations
 					new FileIOPermission (FileIOPermissionAccess.PathDiscovery, loc).Demand ();
@@ -200,8 +211,9 @@ namespace System.Reflection {
 				return InternalImageRuntimeVersion ();
 			}
 		}
-
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, SerializationFormatter = true)]
+#endif
 		public virtual void GetObjectData (SerializationInfo info, StreamingContext context)
 		{
 			if (info == null)
@@ -372,10 +384,13 @@ namespace System.Reflection {
 		[MonoTODO ("copiedName == true is not supported")]
 		public virtual AssemblyName GetName (Boolean copiedName)
 		{
+			#if !DISABLE_SECURITY
 			// CodeBase, which is restricted, will be copied into the AssemblyName object so...
 			if (SecurityManager.SecurityEnabled) {
 				GetCodeBase (true); // this will ensure the Demand is made
 			}
+			#endif
+			
 			return UnprotectedGetName ();
 		}
 
@@ -439,8 +454,8 @@ namespace System.Reflection {
 
 			try {
 				assembly = AppDomain.CurrentDomain.LoadSatellite (aname, false);
-				if (assembly != null)
-					return assembly;
+			if (assembly != null)
+				return assembly;
 			} catch (FileNotFoundException) {
 				assembly = null;
 				// ignore
@@ -475,10 +490,14 @@ namespace System.Reflection {
 #if NET_4_0
 		[Obsolete]
 #endif
+#if !DISABLE_SECURITY
 		public static Assembly LoadFrom (String assemblyFile, Evidence securityEvidence)
+#else
+		public static Assembly LoadFrom (String assemblyFile, object securityEvidence)
+#endif
 		{
 			Assembly a = LoadFrom (assemblyFile, false);
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 			if ((a != null) && (securityEvidence != null)) {
 				// merge evidence (i.e. replace defaults with provided evidences)
 				a.Evidence.Merge (securityEvidence);
@@ -492,7 +511,11 @@ namespace System.Reflection {
 #endif
 		[MonoTODO("This overload is not currently implemented")]
 		// FIXME: What are we missing?
+		#if !DISABLE_SECURITY
 		public static Assembly LoadFrom (String assemblyFile, Evidence securityEvidence, byte[] hashValue, AssemblyHashAlgorithm hashAlgorithm)
+		#else
+		public static Assembly LoadFrom (String assemblyFile, object securityEvidence, byte[] hashValue, AssemblyHashAlgorithm hashAlgorithm)
+		#endif
 		{
 			throw new NotImplementedException ();
 		}
@@ -515,7 +538,11 @@ namespace System.Reflection {
 #if NET_4_0
 		[Obsolete]
 #endif
+#if !DISABLE_SECURITY
 		public static Assembly LoadFile (String path, Evidence securityEvidence)
+#else
+		public static Assembly LoadFile (String path, object securityEvidence)
+#endif
 		{
 			if (path == null)
 				throw new ArgumentNullException ("path");
@@ -538,7 +565,11 @@ namespace System.Reflection {
 #if NET_4_0
 		[Obsolete]
 #endif		
+		#if !DISABLE_SECURITY
 		public static Assembly Load (String assemblyString, Evidence assemblySecurity)
+		#else
+		public static Assembly Load (String assemblyString, object assemblySecurity)
+		#endif
 		{
 			return AppDomain.CurrentDomain.Load (assemblyString, assemblySecurity);
 		}
@@ -551,7 +582,11 @@ namespace System.Reflection {
 #if NET_4_0
 		[Obsolete]
 #endif
+		#if !DISABLE_SECURITY
 		public static Assembly Load (AssemblyName assemblyRef, Evidence assemblySecurity)
+		#else
+		public static Assembly Load (AssemblyName assemblyRef, object assemblySecurity)
+		#endif
 		{
 			return AppDomain.CurrentDomain.Load (assemblyRef, assemblySecurity);
 		}
@@ -570,7 +605,11 @@ namespace System.Reflection {
 		[Obsolete]
 #endif
 		public static Assembly Load (Byte[] rawAssembly, Byte[] rawSymbolStore,
+		#if !DISABLE_SECURITY
 					     Evidence securityEvidence)
+		#else
+						 object securityEvidence)
+		#endif
 		{
 			return AppDomain.CurrentDomain.Load (rawAssembly, rawSymbolStore, securityEvidence);
 		}
@@ -624,10 +663,18 @@ namespace System.Reflection {
 		}
 
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		#if !DISABLE_SECURITY
 		private static extern Assembly load_with_partial_name (string name, Evidence e);
+		#else
+		private static extern Assembly load_with_partial_name (string name, object e);
+		#endif
 
 		[Obsolete]
+#if !DISABLE_SECURITY
 		public static Assembly LoadWithPartialName (string partialName, Evidence securityEvidence)
+#else
+		public static Assembly LoadWithPartialName (string partialName, object securityEvidence)
+#endif
 		{
 			return LoadWithPartialName (partialName, securityEvidence, true);
 		}
@@ -640,7 +687,11 @@ namespace System.Reflection {
 		 */
 
 		// FIXME: LoadWithPartialName must look cache (no CAS) or read from disk (CAS)
+		#if !DISABLE_SECURITY
 		internal static Assembly LoadWithPartialName (string partialName, Evidence securityEvidence, bool oldBehavior)
+		#else
+		internal static Assembly LoadWithPartialName (string partialName, object securityEvidence, bool oldBehavior)
+		#endif
 		{
 			if (!oldBehavior)
 				throw new NotImplementedException ();
@@ -823,14 +874,16 @@ namespace System.Reflection {
 				// FIXME: As we (currently) delay the resolution until the first CAS
 				// Demand it's too late to evaluate the Minimum permission set as a 
 				// condition to load the assembly into the AppDomain
+				#if !DISABLE_SECURITY
 				LoadAssemblyPermissions ();
 				Evidence e = new Evidence (UnprotectedGetEvidence ()); // we need a copy to add PRE
 				e.AddHost (new PermissionRequestEvidence (_minimum, _optional, _refuse));
 				_granted = SecurityManager.ResolvePolicy (e,
 					_minimum, _optional, _refuse, out _denied);
+				#endif
 			}
 		}
-
+#if !DISABLE_SECURITY
 		internal PermissionSet GrantedPermissionSet {
 			get {
 				if (_granted == null) {
@@ -895,6 +948,7 @@ namespace System.Reflection {
 				}
 			}
 		}
+#endif
 #endif
 
 #if NET_4_0 || MOONLIGHT || MOBILE

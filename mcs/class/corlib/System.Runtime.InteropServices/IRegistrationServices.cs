@@ -32,31 +32,47 @@
 
 using System;
 using System.Reflection;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 namespace System.Runtime.InteropServices {
 
+#if !DISABLE_SECURITY
 	[ComVisible(true)]
+#endif
 	[Guid("CCBD682C-73A5-4568-B8B0-C7007E11ABA2")]
 	public interface IRegistrationServices {
 		Guid GetManagedCategoryGuid ();
+#if !DISABLE_SECURITY		
 		[SecurityPermission(SecurityAction.LinkDemand, Flags=SecurityPermissionFlag.UnmanagedCode)]
+#endif
 		string GetProgIdForType (Type type);
 
+#if !DISABLE_SECURITY	
 		[SecurityPermission(SecurityAction.LinkDemand, Flags=SecurityPermissionFlag.UnmanagedCode)]
+#endif
 		Type[] GetRegistrableTypesInAssembly (Assembly assembly);
 
+#if !DISABLE_SECURITY	
 		[SecurityPermission(SecurityAction.LinkDemand, Flags=SecurityPermissionFlag.UnmanagedCode)]
+#endif
 		bool RegisterAssembly (Assembly assembly, AssemblyRegistrationFlags flags);
 
+#if !DISABLE_SECURITY	
 		[SecurityPermission(SecurityAction.LinkDemand, Flags=SecurityPermissionFlag.UnmanagedCode)]
+#endif
 		void RegisterTypeForComClients (Type type, ref Guid g);
 		
 		bool TypeRepresentsComType (Type type);
 		
+#if !DISABLE_SECURITY	
 		[SecurityPermission(SecurityAction.LinkDemand, Flags=SecurityPermissionFlag.UnmanagedCode)]
+#endif
 		bool TypeRequiresRegistration (Type type);
 
+#if !DISABLE_SECURITY	
 		[SecurityPermission(SecurityAction.LinkDemand, Flags=SecurityPermissionFlag.UnmanagedCode)]
+#endif
 		bool UnregisterAssembly (Assembly assembly);
 	}
 }

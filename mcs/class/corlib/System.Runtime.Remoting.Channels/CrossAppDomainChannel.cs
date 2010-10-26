@@ -88,7 +88,9 @@ namespace System.Runtime.Remoting.Channels
 			{
 				// todo: make singleton
 				CrossAppDomainChannel monocad = new CrossAppDomainChannel();
+				#if !DISABLE_REMOTING
 				ChannelServices.RegisterChannel ((IChannel) monocad);
+				#endif
 			}
 		}		
 

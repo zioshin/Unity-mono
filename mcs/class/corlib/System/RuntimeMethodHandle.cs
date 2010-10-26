@@ -32,7 +32,10 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
+
 using System.Runtime.ConstrainedExecution;
 
 namespace System
@@ -80,7 +83,9 @@ namespace System
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		static extern IntPtr GetFunctionPointer (IntPtr m);
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 		public IntPtr GetFunctionPointer ()
 		{
 			return GetFunctionPointer (value);

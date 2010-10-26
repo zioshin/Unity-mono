@@ -33,8 +33,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if !DISABLE_SECURITY
 using System.Security;
 using System.Security.Permissions;
+#endif
 using System.Text;
 
 namespace System
@@ -179,7 +181,7 @@ namespace System
 
 		private static Stream Open (IntPtr handle, FileAccess access, int bufferSize)
 		{
-#if MOONLIGHT
+#if MOONLIGHT && !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled && !Debugger.IsAttached && Environment.GetEnvironmentVariable ("MOONLIGHT_ENABLE_CONSOLE") == null)
 				return new NullStream ();
 #endif
@@ -199,7 +201,9 @@ namespace System
 		// requires permissions UnmanagedCode permissions. In this 
 		// case we assert this permission so the console can be used
 		// in partial trust (i.e. without having UnmanagedCode).
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Assert, UnmanagedCode = true)]
+		#endif
 		public static Stream OpenStandardError (int bufferSize)
 		{
 			return Open (MonoIO.ConsoleError, FileAccess.Write, bufferSize);
@@ -214,7 +218,9 @@ namespace System
 		// requires permissions UnmanagedCode permissions. In this 
 		// case we assert this permission so the console can be used
 		// in partial trust (i.e. without having UnmanagedCode).
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Assert, UnmanagedCode = true)]
+		#endif
 		public static Stream OpenStandardInput (int bufferSize)
 		{
 			return Open (MonoIO.ConsoleInput, FileAccess.Read, bufferSize);
@@ -229,13 +235,17 @@ namespace System
 		// requires permissions UnmanagedCode permissions. In this 
 		// case we assert this permission so the console can be used
 		// in partial trust (i.e. without having UnmanagedCode).
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Assert, UnmanagedCode = true)]
+		#endif
 		public static Stream OpenStandardOutput (int bufferSize)
 		{
 			return Open (MonoIO.ConsoleOutput, FileAccess.Write, bufferSize);
 		}
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 		public static void SetError (TextWriter newError)
 		{
 			if (newError == null)
@@ -244,7 +254,9 @@ namespace System
 			stderr = newError;
 		}
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 		public static void SetIn (TextReader newIn)
 		{
 			if (newIn == null)
@@ -253,7 +265,9 @@ namespace System
 			stdin = newIn;
 		}
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 		public static void SetOut (TextWriter newOut)
 		{
 			if (newOut == null)
@@ -516,7 +530,7 @@ namespace System
 
 #endif
 
-#if !NET_2_1
+#if !NET_2_1 || UNITY
 		// FIXME: Console should use these encodings when changed
 		static Encoding inputEncoding;
 		static Encoding outputEncoding;
@@ -530,7 +544,8 @@ namespace System
 			get { return outputEncoding; }
 			set { outputEncoding = value; }
 		}
-
+#endif
+#if !NET_2_1
 		public static ConsoleColor BackgroundColor {
 			get { return ConsoleDriver.BackgroundColor; }
 			set { ConsoleDriver.BackgroundColor = value; }

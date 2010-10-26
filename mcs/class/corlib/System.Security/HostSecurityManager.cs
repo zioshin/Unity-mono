@@ -26,6 +26,8 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_SECURITY
+
 using System.Reflection;
 using System.Runtime.Hosting;
 using System.Runtime.InteropServices;
@@ -101,3 +103,5 @@ namespace System.Security {
 		}
 	}
 }
+
+#endif

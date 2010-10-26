@@ -43,7 +43,7 @@ namespace System {
 	[StructLayout (LayoutKind.Sequential)]
 	[ComVisible (true)]
 	public struct Guid : IFormattable, IComparable, IComparable<Guid>, IEquatable<Guid> {
-#if MONOTOUCH
+#if MONOTOUCH && !MICRO_LIB
 		static Guid () {
 			if (MonoTouchAOTHelper.FalseFlag) {
 				var comparer = new System.Collections.Generic.GenericComparer <Guid> ();

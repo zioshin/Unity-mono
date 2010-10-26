@@ -103,7 +103,7 @@ namespace System.Reflection {
 #endif
 		string FullyQualifiedName {
 			get {
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 				if (SecurityManager.SecurityEnabled) {
 					new FileIOPermission (FileIOPermissionAccess.PathDiscovery, fqname).Demand ();
 				}

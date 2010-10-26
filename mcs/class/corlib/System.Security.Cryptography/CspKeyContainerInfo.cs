@@ -28,11 +28,15 @@
 //
 
 using System.Runtime.InteropServices;
+#if !DISABLE_SECURITY
 using System.Security.AccessControl;
+#endif
 
 namespace System.Security.Cryptography {
 
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
+#endif
 	public sealed class CspKeyContainerInfo {
 
 		private CspParameters _params;
@@ -53,10 +57,12 @@ namespace System.Security.Cryptography {
 			get { return true; }
 		}
 
+		#if !DISABLE_SECURITY
 		// always null for Mono
 		public CryptoKeySecurity CryptoKeySecurity {
 			get { return null; }
 		}
+		#endif
 
 		// always true for Mono
 		public bool Exportable {

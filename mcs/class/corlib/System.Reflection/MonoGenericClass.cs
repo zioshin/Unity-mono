@@ -32,12 +32,16 @@
 //
 
 using System.Reflection;
+#if !MICRO_LIB
 using System.Reflection.Emit;
+#endif
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Globalization;
 using System.Runtime.Serialization;
 using System.Text;
+
+#if !MICRO_LIB
 
 namespace System.Reflection
 {
@@ -1064,4 +1068,6 @@ namespace System.Reflection
 		}
 	}
 }
+
+#endif
 

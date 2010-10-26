@@ -38,9 +38,11 @@ using System.Diagnostics;
 
 namespace System.Collections {
 
+#if !MICRO_LIB
 	[ComVisible(true)]
 	[DebuggerDisplay ("Count={Count}")]
 	[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 	[Serializable]
 #if INSIDE_CORLIB
 	public
@@ -963,8 +965,10 @@ namespace System.Collections {
 		}
 
 		[Serializable]
+#if !MICRO_LIB
 		[DebuggerDisplay ("Count={Count}")]
 		[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 		private class HashKeys : ICollection, IEnumerable {
 
 			private Hashtable host;
@@ -1017,8 +1021,10 @@ namespace System.Collections {
 		}
 
 		[Serializable]
+#if !MICRO_LIB
 		[DebuggerDisplay ("Count={Count}")]
 		[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 		private class HashValues : ICollection, IEnumerable {
 
 			private Hashtable host;

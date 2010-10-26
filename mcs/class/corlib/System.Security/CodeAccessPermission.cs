@@ -55,7 +55,9 @@ namespace System.Security {
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public void Assert ()
 		{
+			#if UNITY_DISABLE_CORECLR
 			new PermissionSet (this).Assert ();
+			#endif
 		}
 
 		internal bool CheckAssert (CodeAccessPermission asserted)
@@ -106,18 +108,25 @@ namespace System.Security {
 
 		public void Demand ()
 		{
+		// UNITY_DISABLE_CORECLR should never be defined ;)
+		#if UNITY_DISABLE_CORECLR
 			// note: here we're sure it's a CAS demand
+			#if !DISABLE_SECURITY
 			if (!SecurityManager.SecurityEnabled)
 				return;
 
 			// skip frames until we get the caller (of our caller)
 			new PermissionSet (this).CasOnlyDemand (3);
+			#endif
+		#endif 
 		}
 
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public void Deny ()
 		{
+		#if UNITY_DISABLE_CORECLR
 			new PermissionSet (this).Deny ();
+		#endif
 		}
 
 		[ComVisible (false)]
@@ -161,12 +170,16 @@ namespace System.Security {
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public void PermitOnly ()
 		{
+			#if UNITY_DISABLE_CORECLR
 			new PermissionSet (this).PermitOnly ();
+			#endif
 		}
 
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public static void RevertAll ()
 		{
+			#if UNITY_DISABLE_CORECLR
+			#if !DISABLE_SECURITY
 			if (!SecurityManager.SecurityEnabled)
 				return;
 
@@ -191,11 +204,15 @@ namespace System.Security {
 				msg += Environment.NewLine + "Currently only declarative stack modifiers are supported.";
 				throw new ExecutionEngineException (msg);
 			}
+			#endif
+			#endif
 		}
 
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public static void RevertAssert ()
 		{
+			#if UNITY_DISABLE_CORECLR
+			#if !DISABLE_SECURITY
 			if (!SecurityManager.SecurityEnabled)
 				return;
 
@@ -206,11 +223,15 @@ namespace System.Security {
 				// we can't revert declarative security (or an empty frame) imperatively
 				ThrowExecutionEngineException (SecurityAction.Assert);
 			}
+			#endif
+			#endif
 		}
 
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public static void RevertDeny ()
 		{
+			#if UNITY_DISABLE_CORECLR
+			#if !DISABLE_SECURITY
 			if (!SecurityManager.SecurityEnabled)
 				return;
 
@@ -221,11 +242,15 @@ namespace System.Security {
 				// we can't revert declarative security (or an empty frame) imperatively
 				ThrowExecutionEngineException (SecurityAction.Deny);
 			}
+			#endif
+			#endif
 		}
 
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public static void RevertPermitOnly ()
 		{
+			#if UNITY_DISABLE_CORECLR
+			#if !DISABLE_SECURITY
 			if (!SecurityManager.SecurityEnabled)
 				return;
 
@@ -236,6 +261,8 @@ namespace System.Security {
 				// we can't revert declarative security (or an empty frame) imperatively
 				ThrowExecutionEngineException (SecurityAction.PermitOnly);
 			}
+			#endif
+			#endif
 		}
 
 		// Internal helpers methods
@@ -378,14 +405,19 @@ namespace System.Security {
 		internal static void ThrowSecurityException (object demanded, string message, SecurityFrame frame,
 			SecurityAction action, IPermission failed)
 		{
+#if !DISABLE_SECURITY
 #if NET_2_1
 			throw new SecurityException (message);
 #else
+			
 			Assembly a = frame.Assembly;
 			throw new SecurityException (Locale.GetText (message), 
 				a.UnprotectedGetName (), a.GrantedPermissionSet, 
 				a.DeniedPermissionSet, frame.Method, action, demanded, 
 				failed, a.UnprotectedGetEvidence ());
+#endif
+#else
+			throw new SystemException(message);
 #endif
 		}
 	}

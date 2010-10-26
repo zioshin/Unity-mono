@@ -34,9 +34,11 @@ using System.Runtime.InteropServices;
 
 namespace System.Collections {
 
+#if !MICRO_LIB
 	[ComVisible(true)]
 	[System.Diagnostics.DebuggerDisplay ("Count={Count}")]
 	[System.Diagnostics.DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 	[Serializable]
 #if INSIDE_CORLIB
 	public

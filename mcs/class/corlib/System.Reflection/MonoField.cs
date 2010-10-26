@@ -185,8 +185,10 @@ namespace System.Reflection {
 #endif
 
 		void CheckGeneric () {
+#if !MICRO_LIB
 			if (DeclaringType.ContainsGenericParameters)
 				throw new InvalidOperationException ("Late bound operations cannot be performed on fields with types for which Type.ContainsGenericParameters is true.");
+#endif
 	    }
 	}
 }
