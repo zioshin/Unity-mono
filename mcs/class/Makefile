@@ -189,6 +189,9 @@ net_3_5_SUBDIRS := $(net_3_5_dirs)
 net_4_0_bootstrap_SUBDIRS := $(bootstrap_dirs) Mono.Posix System.Core
 net_4_0_SUBDIRS := $(common_dirs) $(net_2_0_dirs) $(net_4_0_dirs)
 
+unity_bootstrap_SUBDIRS := $(monotouch_bootstrap_SUBDIRS)
+unity_SUBDIRS := $(monotouch_SUBDIRS)
+
 include ../build/rules.make
 
 SUBDIRS = $(common_dirs) $(net_2_0_dirs) $(net_2_0_only_dirs) $(moonlight_dirs) $(monotouch_dirs) $(net_3_5_dirs) $(net_4_0_dirs)
