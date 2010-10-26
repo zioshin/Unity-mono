@@ -219,6 +219,10 @@ static MonoLoadAotDataFunc aot_data_load_func;
 static MonoFreeAotDataFunc aot_data_free_func;
 static gpointer aot_data_func_user_data;
 
+#if defined(PLATFORM_IPHONE)
+int mono_ficall_flag;
+#endif
+
 static void
 init_plt (MonoAotModule *info);
 
@@ -4347,6 +4351,15 @@ mono_aot_get_method_checked (MonoDomain *domain, MonoMethod *method, MonoError *
 
 	if (amodule->out_of_date)
 		return NULL;
+
+#if defined (PLATFORM_IPHONE)                                                                                                                                                                     
+        if (mono_ficall_flag && method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) {                                                                                                          
+        	MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);
+        	if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL))
+          	if (wrapped->signature->ret->type != MONO_TYPE_R4)
+               		return mono_lookup_internal_call (wrapped);                                                                                                                                        
+    	}
+#endif   
 
 	if ((method->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) ||
 		(method->flags & METHOD_ATTRIBUTE_PINVOKE_IMPL) ||
