@@ -132,7 +132,7 @@ else
    G_GINT64_FORMAT='"lld"'
 fi
 
-AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+#AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
 pkg_config_path=
 AC_ARG_WITH(crosspkgdir, [  --with-crosspkgdir=/path/to/pkg-config/dir      Change pkg-config dir to custom dir],
