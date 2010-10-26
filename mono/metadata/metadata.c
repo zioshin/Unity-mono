@@ -3456,7 +3456,7 @@ mono_metadata_parse_mh_full (MonoImage *m, MonoGenericContainer *container, cons
 	int hsize, num_clauses = 0;
 	MonoTableInfo *t = &m->tables [MONO_TABLE_STANDALONESIG];
 	guint32 cols [MONO_STAND_ALONE_SIGNATURE_SIZE];
-
+	
 	g_return_val_if_fail (ptr != NULL, NULL);
 
 	switch (format) {
@@ -3498,7 +3498,7 @@ mono_metadata_parse_mh_full (MonoImage *m, MonoGenericContainer *container, cons
 	default:
 		return NULL;
 	}
-
+		       
 	if (local_var_sig_tok) {
 		int idx = (local_var_sig_tok & 0xffffff)-1;
 		if (idx >= t->rows || idx < 0)
@@ -4292,10 +4292,18 @@ mono_type_size (MonoType *t, int *align)
 		return 4;
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8:
+#if defined(TARGET_ARM)
+		*align = 4;
+#else
 		*align = abi__alignof__(gint64);
+#endif
 		return 8;		
 	case MONO_TYPE_R8:
+#if defined(TARGET_ARM)
+		*align = 4;
+#else
 		*align = abi__alignof__(double);
+#endif
 		return 8;		
 	case MONO_TYPE_I:
 	case MONO_TYPE_U:
