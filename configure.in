@@ -81,6 +81,18 @@ need_link_unlink=no
 #Set to extra linker flags to be passed to the runtime binaries (mono /mono-sgen)
 extra_runtime_ldflags=""
 
+AC_ARG_WITH([macversion],
+	[  --with-macversion=<version>    Choose minimum macos version],
+	[], [with_macversion=10.4])
+
+MACSYSROOTBASE="-isysroot /Developer/SDKs"
+if [[ "$with_macversion" == "10.4" ]]; then
+  MACSYSROOT="$MACSYSROOTBASE/MacOSX10.4u.sdk"
+else
+  MACSYSROOT="$MACSYSROOTBASE/MacOSX""$with_macversion"".sdk"
+fi
+MACSDKOPTIONS="-mmacosx-version-min=$with_macversion $MACSYSROOT"
+
 # Thread configuration inspired by sleepycat's db
 AC_MSG_CHECKING([host platform characteristics])
 libgc_threads=no
@@ -291,6 +303,11 @@ case "$host" in
 		target_mach=yes
 		CPPFLAGS="$CPPFLAGS -no-cpp-precomp -D_THREAD_SAFE -DGC_MACOSX_THREADS -DPLATFORM_MACOSX -DUSE_MMAP -DUSE_MUNMAP"
 		CPPFLAGS="$CPPFLAGS -DGetCurrentProcess=MonoGetCurrentProcess -DGetCurrentThread=MonoGetCurrentThread -DCreateEvent=MonoCreateEvent"
+		
+		if [[ "$host" != "arm-apple-darwin9" ]]; then 
+			CPPFLAGS="$CPPFLAGS $MACSDKOPTIONS"
+			LDFLAGS="$LDFLAGS $MACSDKOPTIONS"
+		fi
 		libmono_cflags="-D_THREAD_SAFE"
 		need_link_unlink=yes
 		AC_DEFINE(PTHREAD_POINTER_ID)
@@ -663,6 +680,14 @@ AC_ARG_WITH(crosspkgdir, [  --with-crosspkgdir=/path/to/pkg-config/dir      Chan
 		export PKG_CONFIG_PATH
 	fi
 )
+
+  #need to talk to kangaroo about what the right fix is here. eglib was being compiled against 10.6sdk, but linekd against 10.4
+  #causing _file$INODE64 symbols that dont exist in 10.4 to fail. this should be made configurable with the --with-macversion argument
+  case "$host" in
+    i*86-apple-darwin* | powerpc-apple-darwin* )
+      EGLIB_CPPFLAGS="$MACSDKOPTIONS"
+      CLAGS_FOR_EGLIB="$EGLIB_CPPFLAGS"
+  esac
 
 ac_configure_args="$ac_configure_args \"CPPFLAGS_FOR_EGLIB=$EGLIB_CPPFLAGS\" \"CFLAGS_FOR_EGLIB=$CFLAGS_FOR_EGLIB\""
 AC_CONFIG_SUBDIRS(eglib)
