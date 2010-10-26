@@ -32,7 +32,9 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Text;
 using System.Runtime.InteropServices;
 
@@ -126,7 +128,7 @@ namespace System.Diagnostics {
                 
                 public virtual string GetFileName()
                 {
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled && (fileName != null) && (fileName.Length > 0)) {
 				string fn = Path.GetFullPath (fileName);
 				new FileIOPermission (FileIOPermissionAccess.PathDiscovery, fn).Demand ();
@@ -140,13 +142,16 @@ namespace System.Diagnostics {
 			string filename = "<filename unknown>";
 			if (fileName == null)
 				return filename;
-#if !MOONLIGHT
+#if (!NET_2_1 || MONOTOUCH) && !DISABLE_SECURITY
 			try {
 				filename = GetFileName ();
 			}
 			catch (SecurityException) {
 				// CAS check failure
 			}
+#else
+#if DISABLE_SECURITY
+			filename = Path.GetFileName (fileName);
 #else
 			// Silverlight always return <filename unknown> but that's not very useful for debugging
 			// OTOH we do not want to share any details about the original file system (even if they
@@ -159,6 +164,7 @@ namespace System.Diagnostics {
 			catch (ArgumentException) {
 				// e.g. invalid chars in filename
 			}
+#endif
 #endif
 			return filename;
 		}

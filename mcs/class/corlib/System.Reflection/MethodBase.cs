@@ -29,14 +29,18 @@
 
 using System.Diagnostics;
 using System.Globalization;
+#if !MICRO_LIB
 using System.Reflection.Emit;
+#endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace System.Reflection {
 
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
 	[ComDefaultInterfaceAttribute (typeof (_MethodBase))]
+#endif
 	[Serializable]
 	[ClassInterface(ClassInterfaceType.None)]
 	public abstract class MethodBase: MemberInfo, _MethodBase {
@@ -62,9 +66,11 @@ namespace System.Reflection {
 		public static MethodBase GetMethodFromHandle (RuntimeMethodHandle handle)
 		{
 			MethodBase res = GetMethodFromIntPtr (handle.Value, IntPtr.Zero);
+#if !MICRO_LIB
 			Type t = res.DeclaringType;
 			if (t.IsGenericType || t.IsGenericTypeDefinition)
 				throw new ArgumentException ("Cannot resolve method because it's declared in a generic class.");
+#endif
 			return res;
 		}
 
@@ -72,7 +78,7 @@ namespace System.Reflection {
 		private extern static MethodBase GetMethodFromHandleInternalType (IntPtr method_handle, IntPtr type_handle);
 
 		[ComVisible (false)]
-		public static MethodBase GetMethodFromHandle (RuntimeMethodHandle handle, RuntimeTypeHandle declaringType)
+		public static MethodBase GetMethodFromHandle(RuntimeMethodHandle handle, RuntimeTypeHandle declaringType)
 		{
 			return GetMethodFromIntPtr (handle.Value, declaringType.Value);
 		}
@@ -176,6 +182,7 @@ namespace System.Reflection {
 		}
 
 		internal virtual int get_next_table_index (object obj, int table, bool inc) {
+			#if !MICRO_LIB
 			if (this is MethodBuilder) {
 				MethodBuilder mb = (MethodBuilder)this;
 				return mb.get_next_table_index (obj, table, inc);
@@ -184,6 +191,7 @@ namespace System.Reflection {
 				ConstructorBuilder mb = (ConstructorBuilder)this;
 				return mb.get_next_table_index (obj, table, inc);
 			}
+			#endif
 			throw new Exception ("Method is not a builder method");
 		}
 

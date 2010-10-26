@@ -87,9 +87,13 @@ namespace System.Security {
 				string msg = Locale.GetText ("Can't create an instance of permission class {0}.");
 				throw new TypeLoadException (String.Format (msg, fullname));
 			}
+			#if !DISABLE_SECURITY
 			IPermission p = Create (classType);
 			p.FromXml (se);
 			return p;
+			#else
+			return null;
+			#endif
 		}
 	}
 }

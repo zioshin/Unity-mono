@@ -43,7 +43,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Text;
 
 namespace System.IO {
@@ -278,7 +280,7 @@ namespace System.IO {
 
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
 
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled) {
 				new FileIOPermission (FileIOPermissionAccess.PathDiscovery, fullpath).Demand ();
 			}
@@ -432,7 +434,9 @@ namespace System.IO {
 		}
 
 		// FIXME: Further limit the assertion when imperative Assert is implemented
+		#if !DISABLE_SECURITY
 		[FileIOPermission (SecurityAction.Assert, Unrestricted = true)]
+		#endif
 		public static string GetTempFileName ()
 		{
 			FileStream f = null;
@@ -452,10 +456,12 @@ namespace System.IO {
 					f = new FileStream (path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read,
 							    8192, false, (FileOptions) 1);
 				}
+				#if !DISABLE_SECURITY
 				catch (SecurityException) {
 					// avoid an endless loop
 					throw;
 				}
+				#endif
 				catch (UnauthorizedAccessException) {
 					// This can happen if we don't have write permission to /tmp
 					throw;
@@ -472,7 +478,9 @@ namespace System.IO {
 			return path;
 		}
 
+#if !DISABLE_SECURITY
 		[EnvironmentPermission (SecurityAction.Demand, Unrestricted = true)]
+#endif
 		public static string GetTempPath ()
 		{
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight

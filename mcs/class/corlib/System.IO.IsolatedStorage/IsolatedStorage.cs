@@ -33,8 +33,10 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
 using System.Security.Policy;
+#endif
 
 namespace System.IO.IsolatedStorage {
 
@@ -55,6 +57,7 @@ namespace System.IO.IsolatedStorage {
 		// Properties
 
 		[MonoTODO ("Does not currently use the manifest support")]
+#if !MICRO_LIB
 		[ComVisible (false)]
 		public object ApplicationIdentity {
 			[SecurityPermission (SecurityAction.Demand, ControlPolicy=true)]
@@ -68,9 +71,12 @@ namespace System.IO.IsolatedStorage {
 				throw new NotImplementedException (Locale.GetText ("CAS related")); 
 			}
 		}
+#endif
 
 		public object AssemblyIdentity {
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.Demand, ControlPolicy=true)]
+			#endif
 			get {
 				if ((storage_scope & IsolatedStorageScope.Assembly) == 0) {
 					throw new InvalidOperationException (Locale.GetText ("Invalid Isolation Scope.")); 
@@ -93,7 +99,9 @@ namespace System.IO.IsolatedStorage {
 		}
 
 		public object DomainIdentity {
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.Demand, ControlPolicy=true)]
+			#endif
 			get {
 				if ((storage_scope & IsolatedStorageScope.Domain) == 0) {
 					throw new InvalidOperationException (Locale.GetText ("Invalid Isolation Scope.")); 
@@ -149,10 +157,10 @@ namespace System.IO.IsolatedStorage {
 		protected virtual char SeparatorInternal {
 			get { return '.'; }
 		}
-
+#if !DISABLE_SECURITY
 		// Methods
 		protected abstract IsolatedStoragePermission GetPermission (PermissionSet ps);
-
+#endif
 		protected void InitStore (IsolatedStorageScope scope, Type domainEvidenceType, Type assemblyEvidenceType)
 		{
 			// I know it's useless - but it's tested as such...
@@ -166,6 +174,7 @@ namespace System.IO.IsolatedStorage {
 			}
 		}
 
+#if !MICRO_LIB
 		[MonoTODO ("requires manifest support")]
 		protected void InitStore (IsolatedStorageScope scope, Type appEvidenceType)
 		{
@@ -181,6 +190,7 @@ namespace System.IO.IsolatedStorage {
 			// no exception here because this can work without CAS
 			storage_scope = scope;
 		}
+#endif
 		public abstract void Remove ();
 
 #if NET_4_0 || MOBILE

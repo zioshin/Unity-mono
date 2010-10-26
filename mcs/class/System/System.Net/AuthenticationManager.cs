@@ -62,7 +62,7 @@ namespace System.Net
 				modules.Add (new NtlmClient ());
 		#endif
 #else
-#if NET_2_0 && CONFIGURATION_DEP
+#if CONFIGURATION_DEP
 				object cfg = ConfigurationManager.GetSection ("system.net/authenticationModules");
 				AuthenticationModulesSection s = cfg as AuthenticationModulesSection;
 				if (s != null) {

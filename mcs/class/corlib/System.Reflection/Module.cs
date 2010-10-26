@@ -32,7 +32,9 @@ using System.Security.Cryptography.X509Certificates;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Collections.Generic;
 
 namespace System.Reflection {
@@ -129,7 +131,9 @@ namespace System.Reflection {
 			return GetMethods (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
 		}
 	
+#if !DISABLE_SECURITY	
 		[SecurityPermission (SecurityAction.LinkDemand, SerializationFormatter = true)]
+#endif
 		public virtual void GetObjectData (SerializationInfo info, StreamingContext context) 
 		{
 			if (info == null)

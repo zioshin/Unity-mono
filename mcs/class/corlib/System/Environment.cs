@@ -36,13 +36,17 @@ using System.IO;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Text;
 using System.Runtime.InteropServices;
 
 namespace System {
 
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
+#endif
 	public static class Environment {
 
 		/*
@@ -185,15 +189,36 @@ namespace System {
 			[MethodImplAttribute (MethodImplOptions.InternalCall)]
 			get;
 		}
+
+		public extern static string EmbeddingHostName
+		{
+			[MethodImplAttribute (MethodImplOptions.InternalCall)]
+			get;
+		}
 		
+		public extern static bool SocketSecurityEnabled
+		{
+			[MethodImplAttribute (MethodImplOptions.InternalCall)]
+			get;
+		}
+		public static bool UnityWebSecurityEnabled
+		{
+			//might make a seperate native setter api for this, for now piggybag on SocketSecurityEnabled.
+			get
+			{
+				return SocketSecurityEnabled;
+			}
+		}
 
 		/// <summary>
 		/// Gets the name of the local computer
 		/// </summary>
 		public extern static string MachineName {
 			[MethodImplAttribute (MethodImplOptions.InternalCall)]
+			#if !DISABLE_SECURITY
 			[EnvironmentPermission (SecurityAction.Demand, Read="COMPUTERNAME")]
 			[SecurityPermission (SecurityAction.Demand, UnmanagedCode=true)]
+			#endif
 			get;
 		}
 
@@ -247,7 +272,9 @@ namespace System {
 		/// Get StackTrace
 		/// </summary>
 		public static string StackTrace {
+			#if !DISABLE_SECURITY
 			[EnvironmentPermission (SecurityAction.Demand, Unrestricted=true)]
+			#endif
 			get {
 				System.Diagnostics.StackTrace trace = new System.Diagnostics.StackTrace (0, true);
 				return trace.ToString ();
@@ -276,7 +303,9 @@ namespace System {
 		/// </summary>
 		public static string UserDomainName {
 			// FIXME: this variable doesn't exist (at least not on WinXP) - reported to MS as FDBK20562
+			#if !DISABLE_SECURITY
 			[EnvironmentPermission (SecurityAction.Demand, Read="USERDOMAINNAME")]
+			#endif
 			get {
 				return MachineName;
 			}
@@ -297,7 +326,9 @@ namespace System {
 		/// </summary>
 		public extern static string UserName {
 			[MethodImplAttribute (MethodImplOptions.InternalCall)]
+			#if !DISABLE_SECURITY
 			[EnvironmentPermission (SecurityAction.Demand, Read="USERNAME;USER")]
+			#endif
 			get;
 		}
 
@@ -315,12 +346,16 @@ namespace System {
 		/// </summary>
 		[MonoTODO ("Currently always returns zero")]
 		public static long WorkingSet {
+			#if !DISABLE_SECURITY
 			[EnvironmentPermission (SecurityAction.Demand, Unrestricted=true)]
+			#endif
 			get { return 0; }
 		}
 
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, UnmanagedCode=true)]
+		#endif
 		public extern static void Exit (int exitCode);
 
 		/// <summary>
@@ -393,7 +428,9 @@ namespace System {
 		/// Return an array of the command line arguments of the current process
 		/// </summary>
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		#if !DISABLE_SECURITY
 		[EnvironmentPermissionAttribute (SecurityAction.Demand, Read = "PATH")]
+		#endif
 		public extern static string[] GetCommandLineArgs ();
 
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
@@ -405,7 +442,7 @@ namespace System {
 		/// </summary>
 		public static string GetEnvironmentVariable (string variable)
 		{
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled) {
 				new EnvironmentPermission (EnvironmentPermissionAccess.Read, variable).Demand ();
 			}
@@ -432,12 +469,16 @@ namespace System {
 		public static IDictionary GetEnvironmentVariables ()
 		{
 			StringBuilder sb = null;
+			#if !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled) {
 				// we must have access to each variable to get the lot
 				sb = new StringBuilder ();
 				// but (performance-wise) we do not want a stack-walk
 				// for each of them so we concatenate them
 			}
+			#else
+				sb = new StringBuilder ();
+			#endif
 
 			Hashtable vars = new Hashtable ();
 			foreach (string name in GetEnvironmentVariableNames ()) {
@@ -448,13 +489,17 @@ namespace System {
 				}
 			}
 
+#if !DISABLE_SECURITY
 			if (sb != null) {
 				new EnvironmentPermission (EnvironmentPermissionAccess.Read, sb.ToString ()).Demand ();
 			}
+#endif
 			return vars;
 		}
 #else
+#if !DISABLE_SECURITY
 		[EnvironmentPermission (SecurityAction.Demand, Unrestricted=true)]
+#endif
 		public static IDictionary GetEnvironmentVariables ()
 		{
 			Hashtable vars = new Hashtable ();
@@ -490,7 +535,7 @@ namespace System {
 			else
 				dir = UnixGetFolderPath (folder, option);
 
-#if !NET_2_1
+#if !NET_2_1 && !DISABLE_SECURITY
 			if ((dir != null) && (dir.Length > 0) && SecurityManager.SecurityEnabled) {
 				new FileIOPermission (FileIOPermissionAccess.PathDiscovery, dir).Demand ();
 			}
@@ -694,13 +739,15 @@ namespace System {
                 }
 
 		
+#if !DISABLE_SECURITY
 		[EnvironmentPermission (SecurityAction.Demand, Unrestricted=true)]
+#endif
 		public static string[] GetLogicalDrives ()
 		{
 			return GetLogicalDrivesInternal ();
 		}
 
-#if !NET_2_1
+#if !NET_2_1 || UNITY
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		private static extern void internalBroadcastSettingChange ();
 
@@ -843,11 +890,13 @@ namespace System {
 		}
 #endif
 
+#if !DISABLE_SECURITY
 		public static extern int ProcessorCount {
 			[EnvironmentPermission (SecurityAction.Demand, Read="NUMBER_OF_PROCESSORS")]
 			[MethodImplAttribute (MethodImplOptions.InternalCall)]
 			get;			
 		}
+#endif
 
 		// private methods
 

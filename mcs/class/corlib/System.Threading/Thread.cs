@@ -30,8 +30,10 @@
 using System.Runtime.Remoting.Contexts;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
 using System.Security.Principal;
+#endif
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -131,7 +133,9 @@ namespace System.Threading {
 		#endregion
 #pragma warning restore 414
 
+#if !DISABLE_SECURITY				
 		IPrincipal principal;
+#endif
 		int principal_version;
 		CultureInfo current_culture;
 		CultureInfo current_ui_culture;
@@ -164,9 +168,12 @@ namespace System.Threading {
 				return internal_thread;
 			}
 		}
+		private int managed_id;
 
 		public static Context CurrentContext {
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.LinkDemand, Infrastructure=true)]
+			#endif
 			get {
 				return(AppDomain.InternalGetContext ());
 			}
@@ -184,48 +191,50 @@ namespace System.Threading {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern static byte[] ByteArrayToCurrentDomain (byte[] arr);
 
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 		public static IPrincipal CurrentPrincipal {
 			get {
 				Thread th = CurrentThread;
+				lock (th) {
+					if (th.principal_version != th.Internal._serialized_principal_version)
+						th.principal = null;
 
-				if (th.principal_version != th.Internal._serialized_principal_version)
-					th.principal = null;
-
-				if (th.principal != null)
-					return th.principal;
-
-				if (th.Internal._serialized_principal != null) {
-					try {
-						BinaryFormatter bf = new BinaryFormatter ();
-						MemoryStream ms = new MemoryStream (ByteArrayToCurrentDomain (th.Internal._serialized_principal));
-						th.principal = (IPrincipal) bf.Deserialize (ms);
-						th.principal_version = th.Internal._serialized_principal_version;
+					if (th.principal != null)
 						return th.principal;
-					} catch (Exception) {
-					}
-				}
 
-				th.principal = GetDomain ().DefaultPrincipal;
-				th.principal_version = th.Internal._serialized_principal_version;
-				return th.principal;
+					if (th.Internal._serialized_principal != null) {
+						try {
+							BinaryFormatter bf = new BinaryFormatter ();
+							MemoryStream ms = new MemoryStream (ByteArrayToCurrentDomain (th.Internal._serialized_principal));
+							th.principal = (IPrincipal) bf.Deserialize (ms);
+							th.principal_version = th.Internal._serialized_principal_version;
+							return th.principal;
+						} catch (Exception) {
+						}
+					}
+
+					th.principal = GetDomain ().DefaultPrincipal;
+					th.principal_version = th.Internal._serialized_principal_version;
+					return th.principal;
+				}
 			}
 			[SecurityPermission (SecurityAction.Demand, ControlPrincipal = true)]
 			set {
 				Thread th = CurrentThread;
+				lock (th) {
+					++th.Internal._serialized_principal_version;
+					try {
+						BinaryFormatter bf = new BinaryFormatter ();
+						MemoryStream ms = new MemoryStream ();
+						bf.Serialize (ms, value);
+						th.Internal._serialized_principal = ByteArrayToRootDomain (ms.ToArray ());
+					} catch (Exception) {
+						th.Internal._serialized_principal = null;
+					}
 
-				++th.Internal._serialized_principal_version;
-				try {
-					BinaryFormatter bf = new BinaryFormatter ();
-					MemoryStream ms = new MemoryStream ();
-					bf.Serialize (ms, value);
-					th.Internal._serialized_principal = ByteArrayToRootDomain (ms.ToArray ());
-				} catch (Exception) {
-					th.Internal._serialized_principal = null;
+					th.principal = value;
+					th.principal_version = th.Internal._serialized_principal_version;
 				}
-
-				th.principal = value;
-				th.principal_version = th.Internal._serialized_principal_version;
 			}
 		}
 #endif
@@ -350,7 +359,9 @@ namespace System.Threading {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern static void ResetAbort_internal();
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public static void ResetAbort ()
 		{
 			ResetAbort_internal ();
@@ -371,7 +382,7 @@ namespace System.Threading {
 			if (millisecondsTimeout < Timeout.Infinite)
 				throw new ArgumentOutOfRangeException ("millisecondsTimeout", "Negative timeout");
 
-			Sleep_internal (millisecondsTimeout);
+			Sleep_internal(millisecondsTimeout);
 		}
 
 		public static void Sleep (TimeSpan timeout)
@@ -428,7 +439,9 @@ namespace System.Threading {
 				return culture;
 			}
 			
+			#if !DISABLE_SECURITY
 			[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+			#endif
 			set {
 				if (value == null)
 					throw new ArgumentNullException ("value");
@@ -545,14 +558,18 @@ namespace System.Threading {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern static void Abort_internal (InternalThread thread, object stateInfo);
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Abort () 
 		{
 			Abort_internal (Internal, null);
 		}
 
 #if !MOONLIGHT
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif		
 		public void Abort (object stateInfo) 
 		{
 			Abort_internal (Internal, stateInfo);
@@ -564,7 +581,9 @@ namespace System.Threading {
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		private extern static void Interrupt_internal (InternalThread thread);
 		
+#if !DISABLE_SECURITY		
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Interrupt ()
 		{
 			Interrupt_internal (Internal);
@@ -610,7 +629,9 @@ namespace System.Threading {
 		private extern void Resume_internal();
 
 		[Obsolete ("")]
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Resume () 
 		{
 			Resume_internal ();
@@ -632,7 +653,7 @@ namespace System.Threading {
 			}
 		}
 
-#if MOONLIGHT
+#if MOONLIGHT && !MICRO_LIB
 		private void StartSafe ()
 		{
 			current_thread = this;
@@ -684,13 +705,15 @@ namespace System.Threading {
 		}
 
 		public void Start() {
+#if !DISABLE_SECURITY
 			// propagate informations from the original thread to the new thread
 			if (!ExecutionContext.IsFlowSuppressed ())
 				ec_to_set = ExecutionContext.Capture ();
 			Internal._serialized_principal = CurrentThread.Internal._serialized_principal;
+#endif
 
 			// Thread_internal creates and starts the new thread, 
-#if MOONLIGHT
+#if MOONLIGHT && !MICRO_LIB
 			if (Thread_internal((ThreadStart) StartSafe) == (IntPtr) 0)
 #else
 			if (Thread_internal((ThreadStart) StartUnsafe) == (IntPtr) 0)
@@ -703,7 +726,9 @@ namespace System.Threading {
 		private extern static void Suspend_internal(InternalThread thread);
 
 		[Obsolete ("")]
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+#endif
 		public void Suspend ()
 		{
 			Suspend_internal (Internal);
@@ -932,62 +957,63 @@ namespace System.Threading {
 		// NOTE: This method doesn't show in the class library status page because
 		// it cannot be "found" with the StrongNameIdentityPermission for ECMA key.
 		// But it's there!
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, UnmanagedCode = true)]
 		[StrongNameIdentityPermission (SecurityAction.LinkDemand, PublicKey="00000000000000000400000000000000")]
+		#endif
 		[Obsolete ("see CompressedStack class")]
-#if NET_1_1
-		public
-#else
-		internal
-#endif
-		CompressedStack GetCompressedStack ()
+		internal CompressedStack GetCompressedStack ()
 		{
 			// Note: returns null if no CompressedStack has been set.
 			// However CompressedStack.GetCompressedStack returns an 
 			// (empty?) CompressedStack instance.
+			#if !DISABLE_SECURITY
 			CompressedStack cs = ExecutionContext.SecurityContext.CompressedStack;
 			return ((cs == null) || cs.IsEmpty ()) ? null : cs.CreateCopy ();
+			#else
+			return null;
+			#endif
 		}
 
 		// NOTE: This method doesn't show in the class library status page because
 		// it cannot be "found" with the StrongNameIdentityPermission for ECMA key.
 		// But it's there!
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, UnmanagedCode = true)]
 		[StrongNameIdentityPermission (SecurityAction.LinkDemand, PublicKey="00000000000000000400000000000000")]
+		#endif
 		[Obsolete ("see CompressedStack class")]
-#if NET_1_1
-		public
-#else
-		internal
-#endif
-		void SetCompressedStack (CompressedStack stack)
+		internal void SetCompressedStack (CompressedStack stack)
 		{
+			#if !DISABLE_SECURITY
 			ExecutionContext.SecurityContext.CompressedStack = stack;
+			#endif
 		}
 
 #endif
 
 #if NET_1_1
-		void _Thread.GetIDsOfNames ([In] ref Guid riid, IntPtr rgszNames, uint cNames, uint lcid, IntPtr rgDispId)
-		{
-			throw new NotImplementedException ();
-		}
+              void _Thread.GetIDsOfNames ([In] ref Guid riid, IntPtr rgszNames, uint cNames, uint lcid, IntPtr rgDispId)
+              {
+                      throw new NotImplementedException ();
+              }
 
-		void _Thread.GetTypeInfo (uint iTInfo, uint lcid, IntPtr ppTInfo)
-		{
-			throw new NotImplementedException ();
-		}
+              void _Thread.GetTypeInfo (uint iTInfo, uint lcid, IntPtr ppTInfo)
+              {
+                      throw new NotImplementedException ();
+              }
 
-		void _Thread.GetTypeInfoCount (out uint pcTInfo)
-		{
-			throw new NotImplementedException ();
-		}
+              void _Thread.GetTypeInfoCount (out uint pcTInfo)
+              {
+                      throw new NotImplementedException ();
+              }
 
-		void _Thread.Invoke (uint dispIdMember, [In] ref Guid riid, uint lcid, short wFlags, IntPtr pDispParams,
-			IntPtr pVarResult, IntPtr pExcepInfo, IntPtr puArgErr)
-		{
-			throw new NotImplementedException ();
-		}
+              void _Thread.Invoke (uint dispIdMember, [In] ref Guid riid, uint lcid, short wFlags, IntPtr pDispParams,
+                      IntPtr pVarResult, IntPtr pExcepInfo, IntPtr puArgErr)
+              {
+                      throw new NotImplementedException ();
+              }
 #endif
+
 	}
 }

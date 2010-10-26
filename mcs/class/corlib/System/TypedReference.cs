@@ -30,7 +30,9 @@
 
 using System.Reflection;
 using System.Runtime.CompilerServices;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Runtime.InteropServices;
 
 namespace System 
@@ -64,7 +66,9 @@ namespace System
 
 		[MonoTODO]
 		[CLSCompliant (false)]
+		#if !DISABLE_SECURITY
 		[ReflectionPermission (SecurityAction.LinkDemand, MemberAccess = true)]
+		#endif
 		public static TypedReference MakeTypedReference (object target, FieldInfo[] flds) 
 		{
 			if (target == null) {

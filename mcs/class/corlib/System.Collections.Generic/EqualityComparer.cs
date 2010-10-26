@@ -39,9 +39,11 @@ namespace System.Collections.Generic {
 				_default = (EqualityComparer<T>) (object) new InternalStringComparer ();
 				return;
 			}
+			#if !MICRO_LIB
 			if (typeof (IEquatable <T>).IsAssignableFrom (typeof (T)))
 				_default = (EqualityComparer <T>) Activator.CreateInstance (typeof (GenericEqualityComparer <>).MakeGenericType (typeof (T)));
 			else
+			#endif
 				_default = new DefaultComparer ();
 		}
 		

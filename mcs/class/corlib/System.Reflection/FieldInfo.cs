@@ -27,7 +27,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System.Diagnostics;
+#if !MICRO_LIB
 using System.Reflection.Emit;
+#endif
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -188,7 +190,7 @@ namespace System.Reflection {
 		{
 			throw new NotImplementedException ();
 		}
-
+#if !MICRO_LIB
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern UnmanagedMarshal GetUnmanagedMarshal ();
 
@@ -197,6 +199,7 @@ namespace System.Reflection {
 				return GetUnmanagedMarshal ();
 			}
 		}
+#endif
 
 		internal object[] GetPseudoCustomAttributes ()
 		{
@@ -207,11 +210,11 @@ namespace System.Reflection {
 
 			if (DeclaringType.IsExplicitLayout)
 				count ++;
-
+#if !MICRO_LIB
 			UnmanagedMarshal marshalAs = UMarshal;
 			if (marshalAs != null)
 				count ++;
-
+#endif
 			if (count == 0)
 				return null;
 			object[] attrs = new object [count];
@@ -221,9 +224,10 @@ namespace System.Reflection {
 				attrs [count ++] = new NonSerializedAttribute ();
 			if (DeclaringType.IsExplicitLayout)
 				attrs [count ++] = new FieldOffsetAttribute (GetFieldOffset ());
+#if !MICRO_LIB
 			if (marshalAs != null)
 				attrs [count ++] = marshalAs.ToMarshalAsAttribute ();
-
+#endif			
 			return attrs;
 		}
 

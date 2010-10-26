@@ -33,7 +33,9 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+#if !MICRO_LIB
 using System.Reflection.Emit;
+#endif
 using System.Security;
 using System.Threading;
 using System.Text;
@@ -88,7 +90,7 @@ namespace System.Reflection {
 		{
 			return GetMethodInfo (handle).iattrs;
 		}
-
+		
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		static extern ParameterInfo[] get_parameter_info (IntPtr handle, MemberInfo member);
 
@@ -96,14 +98,15 @@ namespace System.Reflection {
 		{
 			return get_parameter_info (handle, member);
 		}
-
+#if !MICRO_LIB
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		static extern UnmanagedMarshal get_retval_marshal (IntPtr handle);
-
+		
 		static internal ParameterInfo GetReturnParameterInfo (MonoMethod method)
 		{
 			return new ParameterInfo (GetReturnType (method.mhandle), method, get_retval_marshal (method.mhandle));
 		}
+#endif
 	};
 	
 	/*
@@ -142,11 +145,13 @@ namespace System.Reflection {
 			return get_base_method (this, false);
 		}
 
+#if !MICRO_LIB
 		public override ParameterInfo ReturnParameter {
 			get {
 				return MonoMethodInfo.GetReturnParameterInfo (this);
 			}
 		}
+#endif
 
 		public override Type ReturnType {
 			get {
@@ -155,7 +160,11 @@ namespace System.Reflection {
 		}
 		public override ICustomAttributeProvider ReturnTypeCustomAttributes { 
 			get {
+				#if !MICRO_LIB
 				return MonoMethodInfo.GetReturnParameterInfo (this);
+				#else
+				return new ParameterInfo (ReturnType, this);
+				#endif
 			}
 		}
 		
@@ -205,6 +214,7 @@ namespace System.Reflection {
 			}
 
 #if !NET_2_1
+			#if !MICRO_LIB
 			if (SecurityManager.SecurityEnabled) {
 				// sadly Attributes doesn't tell us which kind of security action this is so
 				// we must do it the hard way - and it also means that we can skip calling
@@ -212,9 +222,12 @@ namespace System.Reflection {
 				SecurityManager.ReflectedLinkDemandInvoke (this);
 			}
 #endif
+#endif
 
+#if !MICRO_LIB
 			if (ContainsGenericParameters)
 				throw new InvalidOperationException ("Late bound operations cannot be performed on types or methods for which ContainsGenericParameters is true.");
+#endif
 
 			Exception exc;
 			object o = null;
@@ -317,7 +330,11 @@ namespace System.Reflection {
 
 		static bool ShouldPrintFullName (Type type) {
 			return type.IsClass && (!type.IsPointer ||
+#if !MICRO_LIB
  				(!type.GetElementType ().IsPrimitive && !type.GetElementType ().IsNested));
+#else
+				!type.GetElementType ().IsPrimitive);
+#endif
 		}
 
 		public override string ToString () {
@@ -374,6 +391,7 @@ namespace System.Reflection {
 			MemberInfoSerializationHolder.Serialize ( info, Name, ReflectedType, ToString(), MemberTypes.Method, genericArguments);
 		}
 
+#if !MICRO_LIB
 		public override MethodInfo MakeGenericMethod (Type [] methodInstantiation)
 		{
 			if (methodInstantiation == null)
@@ -441,6 +459,7 @@ namespace System.Reflection {
 				return DeclaringType.ContainsGenericParameters;
 			}
 		}
+#endif
 
 		public override MethodBody GetMethodBody () {
 			return GetMethodBody (mhandle);
@@ -503,7 +522,7 @@ namespace System.Reflection {
 						throw new ArgumentException ("parameters do not match signature");
 			}
 
-#if !NET_2_1
+#if !NET_2_1 && !MICRO_LIB
 			if (SecurityManager.SecurityEnabled) {
 				// sadly Attributes doesn't tell us which kind of security action this is so
 				// we must do it the hard way - and it also means that we can skip calling
@@ -512,8 +531,10 @@ namespace System.Reflection {
 			}
 #endif
 
+#if !MICRO_LIB
 			if (obj == null && DeclaringType.ContainsGenericParameters)
 				throw new MemberAccessException ("Cannot create an instance of " + DeclaringType + " because Type.ContainsGenericParameters is true.");
+#endif
 
 			if ((invokeAttr & BindingFlags.CreateInstance) != 0 && DeclaringType.IsAbstract) {
 				throw new MemberAccessException (String.Format ("Cannot create an instance of {0} because it is an abstract class", DeclaringType));
