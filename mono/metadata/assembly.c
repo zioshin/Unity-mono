@@ -234,7 +234,7 @@ void
 mono_set_assemblies_path (const char* path)
 {
 	char **splitted, **dest;
-	
+
 	splitted = g_strsplit (path, G_SEARCHPATH_SEPARATOR_S, 1000);
 	if (assemblies_path)
 		g_strfreev (assemblies_path);
@@ -1789,7 +1789,7 @@ mono_assembly_load_from_full (MonoImage *image, const char*fname,
 	loaded_assemblies = g_list_prepend (loaded_assemblies, ass);
 	mono_assemblies_unlock ();
 
-#ifdef HOST_WIN32
+#ifdef USE_COREE
 	if (image->is_module_handle)
 		mono_image_fixup_vtable (image);
 #endif
@@ -1836,7 +1836,7 @@ parse_public_key (const gchar *key, gchar** pubkey, gboolean *is_ecma)
 	keylen = strlen (key) >> 1;
 	if (keylen < 1)
 		return FALSE;
-
+	
 	/* allow the ECMA standard key */
 	if (strcmp (key, "00000000000000000400000000000000") == 0) {
 		if (pubkey) {
@@ -1973,7 +1973,7 @@ build_assembly_name (const char *name, const char *version, const char *culture,
 			mono_assembly_name_free (aname);
 			return FALSE;
 		}
-
+		
 		if (is_ecma) {
 			if (save_public_key)
 				aname->public_key = (guint8*)pkey;
@@ -2693,17 +2693,17 @@ mono_assembly_apply_binding (MonoAssemblyName *aname, MonoAssemblyName *dest_nam
 	}
 
 	if (!info) {
-		info = g_new0 (MonoAssemblyBindingInfo, 1);
-		info->major = aname->major;
-		info->minor = aname->minor;
+	info = g_new0 (MonoAssemblyBindingInfo, 1);
+	info->major = aname->major;
+	info->minor = aname->minor;
 	}
-
+	
 	if (!info->is_valid) {
-		ppimage = mono_assembly_load_publisher_policy (aname);
-		if (ppimage) {
-			get_publisher_policy_info (ppimage, aname, info);
-			mono_image_close (ppimage);
-		}
+	ppimage = mono_assembly_load_publisher_policy (aname);
+	if (ppimage) {
+		get_publisher_policy_info (ppimage, aname, info);
+		mono_image_close (ppimage);
+	}
 	}
 
 	/* Define default error value if needed */
@@ -2816,7 +2816,7 @@ mono_assembly_load_corlib (const MonoRuntimeInfo *runtime, MonoImageOpenStatus *
 		/* g_print ("corlib already loaded\n"); */
 		return corlib;
 	}
-
+	
 #if defined(__native_client__)
 	if (corlibData != NULL && corlibSize != 0) {
 		int status = 0;
@@ -2858,7 +2858,7 @@ mono_assembly_load_corlib (const MonoRuntimeInfo *runtime, MonoImageOpenStatus *
 	}
 	corlib = load_in_path (corlib_file, default_path, status, FALSE);
 	g_free (corlib_file);
-	
+
 	if (corlib && !strcmp (runtime->framework_version, "4.5"))
 		default_path [1] = g_strdup_printf ("%s/mono/4.5/Facades", default_path [0]);
 		
@@ -3040,7 +3040,7 @@ mono_assembly_close_except_image_pools (MonoAssembly *assembly)
 
 	if (assembly == REFERENCE_MISSING)
 		return FALSE;
-
+	
 	/* Might be 0 already */
 	if (InterlockedDecrement (&assembly->ref_count) > 0)
 		return FALSE;
