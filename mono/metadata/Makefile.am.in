@@ -92,6 +92,7 @@ null_sources = \
 
 common_sources = \
 	$(platform_sources)	\
+	../../unity/unity_utils.c \
 	assembly.c		\
 	attach.h		\
 	attach.c		\
