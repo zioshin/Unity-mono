@@ -76,6 +76,7 @@
 #include <mono/utils/mono-string.h>
 #include <mono/utils/mono-error-internals.h>
 #include <mono/utils/mono-mmap.h>
+#include <unity/unity_utils.h>
 
 #if defined (HOST_WIN32)
 #include <windows.h>
