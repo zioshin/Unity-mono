@@ -70,7 +70,10 @@
 #include <AvailabilityMacros.h>
 
 #if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_5) && !defined (TARGET_ARM)
+#if 0
+/* don't define this. causes problems with breakpoints and exceptions in Unity */
 #define NEEDS_EXCEPTION_THREAD
+#endif
 #endif
 
 #ifdef NEEDS_EXCEPTION_THREAD
