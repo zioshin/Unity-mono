@@ -61,7 +61,7 @@ static const char suffixes [][4] = {
 /* Bionic doesn't support NULL filenames */
 #  define LL_SO_OPEN(file,flags) ((file) ? dlopen ((file), (flags)) : NULL)
 #else
-#  define LL_SO_OPEN(file,flags) dlopen ((file), (flags))
+#define LL_SO_OPEN(file,flags) dlopen ((file), (flags))
 #endif
 #define LL_SO_CLOSE(module) dlclose ((module)->handle)
 #define LL_SO_SYMBOL(module, name) dlsym ((module)->handle, (name))
@@ -210,6 +210,29 @@ w32_load_module (const char* file, int flags)
 	return hModule;
 }
 #endif
+
+
+/*
+ * Maps static symbol names to the address
+ * Symbol names registered by mono_dl_register_symbol ().
+ */
+static GHashTable *static_dl_symbols;
+
+/*
+ * mono_dl_register_symbol:
+ *
+ * This should be called by embedding code to register AOT modules statically linked
+ * into the executable. AOT_INFO should be the value of the
+ * 'mono_aot_module_<ASSEMBLY_NAME>_info' global symbol from the AOT module.
+ */
+void
+mono_dl_register_symbol (const char* name, gpointer *addr)
+{
+	if (!static_dl_symbols)
+		static_dl_symbols = g_hash_table_new (g_str_hash, g_str_equal);
+
+	g_hash_table_insert (static_dl_symbols, name, addr);
+}
 
 /*
  * read a value string from line with any of the following formats:
@@ -414,8 +437,15 @@ mono_dl_symbol (MonoDl *module, const char *name, void **symbol)
 #else
 		sym = LL_SO_SYMBOL (module, name);
 #endif
+#ifndef TARGET_WIN32
+		// lookup in static table
+		if (!sym && module->handle == RTLD_DEFAULT)
+		{
+			if (static_dl_symbols)
+				sym = g_hash_table_lookup (static_dl_symbols, name);
+		}
+#endif
 	}
-
 	if (sym) {
 		if (symbol)
 			*symbol = sym;
@@ -443,7 +473,7 @@ mono_dl_close (MonoDl *module)
 		if (dl_fallback->close_func != NULL)
 			dl_fallback->close_func (module->handle, dl_fallback->user_data);
 	} else
-		LL_SO_CLOSE (module);
+	LL_SO_CLOSE (module);
 	
 	free (module);
 }
@@ -493,8 +523,8 @@ mono_dl_build_path (const char *directory, const char *name, void **iter)
 		suffixlen = 0;
 	} else {
 		idx--;
-		if (idx >= G_N_ELEMENTS (suffixes))
-			return NULL;
+	if (idx >= G_N_ELEMENTS (suffixes))
+		return NULL;
 		first_call = FALSE;
 		suffix = suffixes [idx];
 		suffixlen = strlen (suffix);
@@ -533,9 +563,9 @@ mono_dl_fallback_register (MonoDlFallbackLoad load_func, MonoDlFallbackSymbol sy
 	handler->symbol_func = symbol_func;
 	handler->close_func = close_func;
 	handler->user_data = user_data;
-
-	fallback_handlers = g_slist_prepend (fallback_handlers, handler);
 	
+	fallback_handlers = g_slist_prepend (fallback_handlers, handler);
+		
 	return handler;
 }
 
@@ -547,7 +577,7 @@ mono_dl_fallback_unregister (MonoDlFallbackHandler *handler)
 	found = g_slist_find (fallback_handlers, handler);
 	if (found == NULL)
 		return;
-
+	
 	g_slist_remove (fallback_handlers, handler);
 	g_free (handler);
-}
+		}
