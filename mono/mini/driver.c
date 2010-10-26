@@ -1318,8 +1318,10 @@ BOOL APIENTRY DllMain (HMODULE module_handle, DWORD reason, LPVOID reserved)
 		mono_install_runtime_load (mini_init);
 		break;
 	case DLL_PROCESS_DETACH:
+#ifdef USE_COREE
 		if (coree_module_handle)
 			FreeLibrary (coree_module_handle);
+#endif
 		break;
 	case DLL_THREAD_DETACH:
 		mono_thread_info_detach ();
