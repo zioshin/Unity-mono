@@ -11,7 +11,11 @@ runtime_lib=../interpreter/libmint.la
 endif
 
 if SUPPORT_BOEHM
+if CROSS_COMPILING
+bin_PROGRAMS = 
+else
 bin_PROGRAMS = monodis
+endif
 endif
 
 noinst_LIBRARIES = libmonodis.a
