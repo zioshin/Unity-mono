@@ -395,8 +395,10 @@ g_spawn_async_with_pipes (const gchar *working_directory,
 			}
 
 			actual_args = ((flags & G_SPAWN_FILE_AND_ARGV_ZERO) == 0) ? argv : argv + 1;
+			#if !defined(__APPLE__) || !defined(__arm__)
 			if (envp == NULL)
 				envp = environ;
+			#endif
 
 			if (child_setup)
 				child_setup (user_data);
