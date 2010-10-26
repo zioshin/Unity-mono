@@ -39,7 +39,9 @@ using System.Threading.Tasks;
 
 namespace System.IO {
 	[Serializable]
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
+#endif
 	public class StreamReader : TextReader
 	{
 		sealed class NullStreamReader : StreamReader
@@ -341,6 +343,7 @@ namespace System.IO {
 					return 3;
 				}
 
+#if !MICRO_LIB
 				if (count < 4) {
 					if (input_buffer [0] == 0xff && input_buffer [1] == 0xfe && input_buffer [2] != 0) {
 						this.encoding = Encoding.Unicode;
@@ -365,6 +368,7 @@ namespace System.IO {
 					this.encoding = Encoding.Unicode;
 					return 2;
 				}
+#endif
 			}
 
 			return 0;

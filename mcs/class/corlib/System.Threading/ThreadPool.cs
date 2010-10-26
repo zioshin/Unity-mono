@@ -34,7 +34,9 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.InteropServices;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 
 namespace System.Threading {
 
@@ -65,12 +67,17 @@ namespace System.Threading {
 
 		[MonoTODO("The min number of completion port threads is not evaluated.")]
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
+		#endif
 		public static extern bool SetMinThreads (int workerThreads, int completionPortThreads);
 
+#if !MICRO_LIB
+		[MonoTODO("The max number of threads cannot be decremented.")]
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		[SecurityPermission (SecurityAction.Demand, ControlThread=true)]
 		public static extern bool SetMaxThreads (int workerThreads, int completionPortThreads);
+#endif
 			
 		public static bool QueueUserWorkItem (WaitCallback callBack)
 		{
@@ -82,7 +89,7 @@ namespace System.Threading {
 			if (callBack == null)
 				throw new ArgumentNullException ("callBack");
 
-#if MOONLIGHT
+#if MOONLIGHT && !MICRO_LIB
 			callBack = MoonlightHandler (callBack);
 #endif
 			if (callBack.IsTransparentProxy ()) {
@@ -162,7 +169,9 @@ namespace System.Threading {
 
 #if !NET_2_1 || MOBILE
 
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlEvidence=true, ControlPolicy=true)]
+		#endif
 		public static bool UnsafeQueueUserWorkItem (WaitCallback callBack, object state)
 		{
 			// no stack propagation here (that's why it's unsafe and requires extra security permissions)
@@ -188,7 +197,9 @@ namespace System.Threading {
 		}
 		
 		[MonoTODO("Not implemented")]
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlEvidence=true, ControlPolicy=true)]
+		#endif
 		public static RegisteredWaitHandle UnsafeRegisterWaitForSingleObject (WaitHandle waitObject,
 			WaitOrTimerCallback callBack, object state, int millisecondsTimeOutInterval,
 			bool executeOnlyOnce) 
@@ -197,7 +208,9 @@ namespace System.Threading {
 		}
 		
 		[MonoTODO("Not implemented")]
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlEvidence=true, ControlPolicy=true)]
+		#endif
 		public static RegisteredWaitHandle UnsafeRegisterWaitForSingleObject (WaitHandle waitObject,
 			WaitOrTimerCallback callBack, object state, long millisecondsTimeOutInterval,
 			bool executeOnlyOnce) 
@@ -206,7 +219,9 @@ namespace System.Threading {
 		}
 
 		[MonoTODO("Not implemented")]
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlEvidence=true, ControlPolicy=true)]
+		#endif
 		public static RegisteredWaitHandle UnsafeRegisterWaitForSingleObject (WaitHandle waitObject,
 			WaitOrTimerCallback callBack, object state, TimeSpan timeout,
 			bool executeOnlyOnce) 
@@ -216,7 +231,9 @@ namespace System.Threading {
 
 		[MonoTODO("Not implemented")]
 		[CLSCompliant (false)]
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, ControlEvidence=true, ControlPolicy=true)]
+		#endif
 		public static RegisteredWaitHandle UnsafeRegisterWaitForSingleObject (WaitHandle waitObject,
 			WaitOrTimerCallback callBack, object state, uint millisecondsTimeOutInterval,
 			bool executeOnlyOnce) 
@@ -226,7 +243,7 @@ namespace System.Threading {
 
 #endif
 
-#if MOONLIGHT
+#if MOONLIGHT && !MICRO_LIB
 		static WaitCallback MoonlightHandler (WaitCallback callback)
 		{
 			return delegate (object o) {

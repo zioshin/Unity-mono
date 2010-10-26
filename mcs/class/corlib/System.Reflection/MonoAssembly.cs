@@ -155,7 +155,7 @@ namespace System.Reflection {
 
 #if !MOONLIGHT
 		public
-#if NET_4_0
+#if NET_4_0 || UNITY
 		override
 #endif
 		bool GlobalAssemblyCache {

@@ -34,7 +34,9 @@ using System.Globalization;
 using System.Runtime.Serialization;
 using System.Security;
 using System.Security.Cryptography;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Text;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -49,8 +51,10 @@ namespace System.Reflection {
 // a.	Uniform Resource Identifiers (URI): Generic Syntax
 //	http://www.ietf.org/rfc/rfc2396.txt
 
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
 	[ComDefaultInterfaceAttribute (typeof (_AssemblyName))]
+#endif
 	[Serializable]
 	[ClassInterfaceAttribute (ClassInterfaceType.None)]
 	[StructLayout (LayoutKind.Sequential)]
@@ -238,8 +242,10 @@ namespace System.Reflection {
 				if (publicKey.Length == 0)
 					return new byte [0];
 
+#if !DISABLE_SECURITY
 				if (!IsPublicKeyValid)
 					throw new  SecurityException ("The public key is not valid.");
+#endif
 
 				keyToken = ComputePublicKeyToken ();
 				return keyToken;
@@ -286,6 +292,7 @@ namespace System.Reflection {
 
 		private byte [] InternalGetPublicKeyToken ()
 		{
+#if !DISABLE_SECURITY
 			if (keyToken != null)
 				return keyToken;
 
@@ -299,6 +306,29 @@ namespace System.Reflection {
 				throw new  SecurityException ("The public key is not valid.");
 
 			return ComputePublicKeyToken ();
+#else
+			if ((Flags & AssemblyNameFlags.PublicKey) != 0) {
+				if (publicKey == null)
+					return null;
+				if (publicKey.Length == 0)
+					return new byte [0];
+			}
+
+			if (keyToken != null && publicKey == null)
+				return keyToken;
+
+			if (publicKey == null)
+				return null;
+
+			if (publicKey.Length == 0)
+				return new byte [0];
+
+			if (keyToken != null && keyToken.Length == 0)
+				return ComputePublicKeyToken ();
+
+			keyToken = ComputePublicKeyToken ();
+			return keyToken;
+#endif
 		}
 
 		private byte [] ComputePublicKeyToken ()
@@ -337,8 +367,9 @@ namespace System.Reflection {
 		{
 			keyToken = publicKeyToken;
 		}
-
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, SerializationFormatter = true)]
+#endif
 		public void GetObjectData (SerializationInfo info, StreamingContext context)
 		{
 			if (info == null)

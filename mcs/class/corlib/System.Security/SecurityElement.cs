@@ -330,6 +330,7 @@ namespace System.Security {
 
 		public static SecurityElement FromString (string xml)
 		{
+			#if !DISABLE_SECURITY
 			if (xml == null)
 				throw new ArgumentNullException ("xml");
 			if (xml.Length == 0)
@@ -343,6 +344,9 @@ namespace System.Security {
 				string msg = Locale.GetText ("Invalid XML.");
 				throw new XmlSyntaxException (msg, e);
 			}
+			#else
+			return null;
+			#endif
 		}
 
 		public static bool IsValidAttributeName (string name)

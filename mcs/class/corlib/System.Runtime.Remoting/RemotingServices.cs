@@ -578,7 +578,11 @@ namespace System.Runtime.Remoting
 #if MOONLIGHT
 			throw new NotSupportedException ();
 #else
+			#if !DISABLE_REMOTING
 			RemotingProxy proxy = new RemotingProxy (type, ChannelServices.CrossContextUrl, activationAttributes);
+			#else
+			RemotingProxy proxy = new RemotingProxy (type, null);
+			#endif
 			return proxy.GetTransparentProxy();
 #endif
 		}
@@ -690,7 +694,12 @@ namespace System.Runtime.Remoting
 
 		static IMessageSink GetClientChannelSinkChain(string url, object channelData, out string objectUri)
 		{
+			#if !DISABLE_REMOTING
 			IMessageSink sink = ChannelServices.CreateClientChannelSinkChain (url, channelData, out objectUri);
+			#else
+			IMessageSink sink = null;
+			objectUri = null;
+			#endif
 			if (sink == null) 
 			{
 				if (url != null) 
@@ -710,7 +719,9 @@ namespace System.Runtime.Remoting
 		internal static ClientActivatedIdentity CreateContextBoundObjectIdentity(Type objectType)
 		{
 			ClientActivatedIdentity identity = new ClientActivatedIdentity (null, objectType);
+			#if !DISABLE_REMOTING
 			identity.ChannelSink = ChannelServices.CrossContextChannel;
+			#endif
 			return identity;
 		}
 

@@ -36,7 +36,9 @@ using System.Runtime.InteropServices;
 
 namespace System.Reflection
 {
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
+#endif
 	[Serializable]
 	[ClassInterface(ClassInterfaceType.AutoDual)]
 	public abstract class Binder
@@ -333,8 +335,10 @@ namespace System.Reflection
 						return true;
 				}
 
+#if !MICRO_LIB
 				if (to.IsGenericType && to.GetGenericTypeDefinition () == typeof (Nullable<>) && to.GetGenericArguments ()[0] == from)
 					return true;
+#endif
 
 				TypeCode fromt = Type.GetTypeCode (from);
 				TypeCode tot = Type.GetTypeCode (to);
@@ -568,10 +572,12 @@ namespace System.Reflection
 			{
 				if (t1 == t2)
 					return 0;
+#if !MICRO_LIB
 				if (t1.IsGenericParameter && !t2.IsGenericParameter)
 					return 1; // t2
 				if (!t1.IsGenericParameter && t2.IsGenericParameter)
 					return -1; // t1
+#endif
 				if (t1.HasElementType && t2.HasElementType)
 					return CompareCloserType (
 						t1.GetElementType (),

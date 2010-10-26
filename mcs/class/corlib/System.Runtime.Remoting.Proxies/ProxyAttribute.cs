@@ -52,14 +52,22 @@ namespace System.Runtime.Remoting.Proxies {
 #if MOONLIGHT
 			throw new NotImplementedException ();
 #else
+			#if !DISABLE_REMOTING
 			RemotingProxy proxy = new RemotingProxy (serverType, ChannelServices.CrossContextUrl, null);
+			#else
+			RemotingProxy proxy = new RemotingProxy (serverType, "", null);
+			#endif
 			return (MarshalByRefObject) proxy.GetTransparentProxy();
 #endif
 		}
 
 		public virtual RealProxy CreateProxy (ObjRef objRef, Type serverType, object serverObject, Context serverContext)
 		{
+			#if !DISABLE_REMOTING
 			return RemotingServices.GetRealProxy (RemotingServices.GetProxyForRemoteObject (objRef, serverType));
+			#else
+			return null;
+			#endif
 		}
 
 		[ComVisible (true)]

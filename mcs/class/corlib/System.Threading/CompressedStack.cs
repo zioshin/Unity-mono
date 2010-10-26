@@ -33,12 +33,18 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 
 namespace System.Threading {
 
+#if !MICRO_LIB
 	[Serializable]
 	public sealed class CompressedStack : ISerializable {
+#else
+	public class CompressedStack {
+#endif
 		private ArrayList _list;
 
 		internal CompressedStack (int length)
@@ -76,8 +82,10 @@ namespace System.Threading {
 		// NOTE: This method doesn't show in the class library status page because
 		// it cannot be "found" with the StrongNameIdentityPermission for ECMA key.
 		// But it's there!
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, UnmanagedCode = true)]
 		[StrongNameIdentityPermission (SecurityAction.LinkDemand, PublicKey="00000000000000000400000000000000")]
+		#endif
 		static public CompressedStack GetCompressedStack ()
 		{
 			// Note: CompressedStack.GetCompressedStack doesn't return null
@@ -96,6 +104,7 @@ namespace System.Threading {
 			return cs;
 		}
 
+#if !MICRO_LIB
 		[MonoTODO ("incomplete")]
 		[ReflectionPermission (SecurityAction.Demand, MemberAccess = true)]
 		public void GetObjectData (SerializationInfo info, StreamingContext context)
@@ -122,6 +131,7 @@ namespace System.Threading {
 					t.SetCompressedStack (original);
 			}
 		}
+#endif
 
 		// internal stuff
 		internal bool Equals (CompressedStack cs)

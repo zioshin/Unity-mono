@@ -671,8 +671,10 @@ namespace System
 				throw new ArgumentException ("Type must be a type provided by the runtime.", "elementType");
 			if (elementType.Equals (typeof (void)))
 				throw new NotSupportedException ("Array type can not be void");
+#if !MICRO_LIB
 			if (elementType.ContainsGenericParameters)
 				throw new NotSupportedException ("Array type can not be an open generic type");
+#endif
 			if ((elementType is TypeBuilder) && !(elementType as TypeBuilder).IsCreated ())
 				throw new NotSupportedException ("Can't create an array of the unfinished type '" + elementType + "'.");
 			
@@ -693,8 +695,10 @@ namespace System
 				throw new ArgumentException ("Type must be a type provided by the runtime.", "elementType");
 			if (elementType.Equals (typeof (void)))
 				throw new NotSupportedException ("Array type can not be void");
+#if !MICRO_LIB
 			if (elementType.ContainsGenericParameters)
 				throw new NotSupportedException ("Array type can not be an open generic type");
+#endif
 
 			if (lengths.Length < 1)
 				throw new ArgumentException (Locale.GetText ("Arrays must contain >= 1 elements."));

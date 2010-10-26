@@ -35,7 +35,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [Serializable]
+#if !DISABLE_SECURITY
 [ComVisible (true)]
+#endif
 public abstract class Encoding : ICloneable
 {
 	// Code page used by this encoding.
@@ -383,8 +385,10 @@ public abstract class Encoding : ICloneable
 				}
 			} catch (MissingMethodException) {
 				return null;
+			#if !DISABLE_SECURITY
 			} catch (SecurityException) {
 				return null;
+			#endif
 			} catch (NotImplementedException) {
 				// "InvokeMember" is not supported by the engine.
 				i18nDisabled = true;
@@ -401,9 +405,12 @@ public abstract class Encoding : ICloneable
 						 null, manager, args, null, null, null);
 			} catch (MissingMethodException) {
 				return null;
-			} catch (SecurityException) {
+			} 
+			#if !DISABLE_SECURITY
+			catch (SecurityException) {
 				return null;
 			}
+			#endif
 		}
 	}
 
@@ -426,17 +433,20 @@ public abstract class Encoding : ICloneable
 			case ASCIIEncoding.ASCII_CODE_PAGE:
 				return ASCII;
 
+#if !MICRO_LIB
 			case UTF7Encoding.UTF7_CODE_PAGE:
 				return UTF7;
-
+#endif
 			case UTF8Encoding.UTF8_CODE_PAGE:
 				return UTF8;
 
+#if !MICRO_LIB
 			case UTF32Encoding.UTF32_CODE_PAGE:
 				return UTF32;
 
 			case UTF32Encoding.BIG_UTF32_CODE_PAGE:
 				return BigEndianUTF32;
+#endif
 
 			case UnicodeEncoding.UNICODE_CODE_PAGE:
 				return Unicode;
@@ -878,7 +888,9 @@ public abstract class Encoding : ICloneable
 								code_page = code_page & 0x0fffffff;
 								switch (code_page){
 								case 1: code_page = ASCIIEncoding.ASCII_CODE_PAGE; break;
+								#if !MICRO_LIB
 								case 2: code_page = UTF7Encoding.UTF7_CODE_PAGE; break;
+								#endif
 								case 3: code_page = UTF8Encoding.UTF8_CODE_PAGE; break;
 								case 4: code_page = UnicodeEncoding.UNICODE_CODE_PAGE; break;
 								case 5: code_page = UnicodeEncoding.BIG_UNICODE_CODE_PAGE; break;
@@ -943,6 +955,7 @@ public abstract class Encoding : ICloneable
 	static Encoding UTF7
 	{
 		get {
+			#if !MICRO_LIB
 			if (utf7Encoding == null) {
 				lock (lockobj) {
 					if (utf7Encoding == null) {
@@ -951,6 +964,7 @@ public abstract class Encoding : ICloneable
 					}
 				}
 			}
+			#endif
 
 			return utf7Encoding;
 		}
@@ -1028,6 +1042,7 @@ public abstract class Encoding : ICloneable
 		}
 	}
 
+#if !MICRO_LIB
 	// Get the standard little-endian UTF-32 encoding object.
 	public static Encoding UTF32
 	{
@@ -1061,6 +1076,7 @@ public abstract class Encoding : ICloneable
 			return bigEndianUTF32Encoding;
 		}
 	}
+#endif
 
 	// Forwarding decoder implementation.
 	private sealed class ForwardingDecoder : Decoder

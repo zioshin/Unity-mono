@@ -32,13 +32,19 @@ using System.Runtime.InteropServices;
 
 namespace System.Reflection {
 
+#if !DISABLE_SECURITY
 	[ComVisible (true)]
 	[ComDefaultInterfaceAttribute (typeof (_EventInfo))]
+#endif
 	[Serializable]
 	[ClassInterface(ClassInterfaceType.None)]
 	[StructLayout (LayoutKind.Sequential)]
 	public abstract class EventInfo : MemberInfo, _EventInfo {
+#if !MICRO_LIB
 		AddEventAdapter cached_add_event;
+#else
+		object placeholder;
+#endif
 
 		public abstract EventAttributes Attributes {get;}
 
@@ -84,6 +90,7 @@ namespace System.Reflection {
 #endif
 		void AddEventHandler (object target, Delegate handler)
 		{
+#if !MICRO_LIB
 			if (cached_add_event == null) {
 				MethodInfo add = GetAddMethod ();
 				if (add == null)
@@ -99,6 +106,12 @@ namespace System.Reflection {
 			//if (target == null && is_instance)
 			//	throw new TargetException ("Cannot add a handler to a non static event with a null target");
 			cached_add_event (target, handler);
+#else
+			MethodInfo add = GetAddMethod ();
+			if (add == null)
+				throw new InvalidOperationException ("Cannot add a handler to an event that doesn't have a visible add method");
+			add.Invoke (target, new object [] {handler});
+#endif
 		}
 
 		public MethodInfo GetAddMethod() {
@@ -187,6 +200,7 @@ namespace System.Reflection {
 		{
 			throw new NotImplementedException ();
 		}
+#if !MICRO_LIB
 		delegate void AddEventAdapter (object _this, Delegate dele);
 		delegate void AddEvent<T, D> (T _this, D dele);
 		delegate void StaticAddEvent<D> (D dele);
@@ -246,5 +260,6 @@ namespace System.Reflection {
 			adapterFrame = adapterFrame.MakeGenericMethod (typeVector);
 			return (AddEventAdapter)Delegate.CreateDelegate (typeof (AddEventAdapter), addHandlerDelegate, adapterFrame, true);
 		}
+#endif
 	}
 }

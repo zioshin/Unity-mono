@@ -37,7 +37,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security;
 using System.Text;
-#if !MOONLIGHT
+#if !MOONLIGHT && !MICRO_LIB
 using System.Security.AccessControl;
 #endif
 
@@ -340,7 +340,8 @@ namespace System.IO {
 		}
 
 		// access control methods
-
+#endif
+#if !NET_2_1 && !MICRO_LIB
 		[MonoLimitation ("DirectorySecurity isn't implemented")]
 		public void Create (DirectorySecurity directorySecurity)
 		{

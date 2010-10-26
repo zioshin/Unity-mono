@@ -236,6 +236,7 @@ namespace System.Reflection {
 		}
 
 
+#if !MICRO_LIB
 		delegate object GetterAdapter (object _this);
 		delegate R Getter<T,R> (T _this);
 		delegate R StaticGetter<R> ();
@@ -313,6 +314,7 @@ namespace System.Reflection {
 
 			return GetValue (obj, BindingFlags.Default, null, index, null);
 		}
+#endif
 
 		public override object GetValue (object obj, BindingFlags invokeAttr, Binder binder, object[] index, CultureInfo culture)
 		{
@@ -328,9 +330,16 @@ namespace System.Reflection {
 				else
 					ret = method.Invoke (obj, invokeAttr, binder, index, culture);
 			}
+			#if !DISABLE_SECURITY
 			catch (SecurityException se) {
 				throw new TargetInvocationException (se);
 			}
+			#else
+			catch 
+			{
+				throw;
+			}
+			#endif
 
 			return ret;
 		}

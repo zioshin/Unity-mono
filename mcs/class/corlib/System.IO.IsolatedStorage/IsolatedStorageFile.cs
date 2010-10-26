@@ -34,8 +34,10 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security;
 using System.Security.Cryptography;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
 using System.Security.Policy;
+#endif
 using System.Text;
 using System.Threading;
 
@@ -49,13 +51,17 @@ namespace System.IO.IsolatedStorage {
 
 	[ComVisible (true)]
 	// FIXME: Further limit the assertion when imperative Assert is implemented
+	#if !DISABLE_SECURITY
 	[FileIOPermission (SecurityAction.Assert, Unrestricted = true)]
+	#endif
 	public sealed class IsolatedStorageFile : IsolatedStorage, IDisposable {
 #if !MOBILE
 		private bool _resolved;
 		private ulong _maxSize;
 #endif
+		#if !DISABLE_SECURITY
 		private Evidence _fullEvidences;
+		#endif
 		private static Mutex mutex = new Mutex ();
 #if NET_4_0 || MOBILE
 		private bool closed;
@@ -78,7 +84,7 @@ namespace System.IO.IsolatedStorage {
 
 			return new IsolatedStorageFileEnumerator (scope, GetIsolatedStorageRoot (scope));
 		}
-
+#if !DISABLE_SECURITY
 		public static IsolatedStorageFile GetStore (IsolatedStorageScope scope,
 			Evidence domainEvidence, Type domainEvidenceType,
 			Evidence assemblyEvidence, Type assemblyEvidenceType)
@@ -120,7 +126,7 @@ namespace System.IO.IsolatedStorage {
 			storageFile.PostInit ();
 			return storageFile;
 		}
-
+#endif
 		public static IsolatedStorageFile GetStore (IsolatedStorageScope scope, object domainIdentity, object assemblyIdentity)
 		{
 			Demand (scope);
@@ -134,8 +140,10 @@ namespace System.IO.IsolatedStorage {
 
 			IsolatedStorageFile storageFile = new IsolatedStorageFile (scope);
 #if !MOBILE
+#if !DISABLE_SECURITY
 			if (assembly)
 				storageFile._fullEvidences = Assembly.GetCallingAssembly ().UnprotectedGetEvidence ();
+#endif
 #endif
 			storageFile._domainIdentity = domainIdentity;
 			storageFile._assemblyIdentity = assemblyIdentity;
@@ -148,6 +156,7 @@ namespace System.IO.IsolatedStorage {
 			Demand (scope);
 			IsolatedStorageFile storageFile = new IsolatedStorageFile (scope);
 #if !MOBILE
+#if !DISABLE_SECURITY
 			if ((scope & IsolatedStorageScope.Domain) != 0) {
 				if (domainEvidenceType == null)
 					domainEvidenceType = typeof (Url);
@@ -165,9 +174,11 @@ namespace System.IO.IsolatedStorage {
 				}
 			}
 #endif
+#endif
 			storageFile.PostInit ();
 			return storageFile;
 		}
+#if !MICRO_LIB
 		public static IsolatedStorageFile GetStore (IsolatedStorageScope scope, object applicationIdentity)
 		{
 			Demand (scope);
@@ -249,31 +260,39 @@ namespace System.IO.IsolatedStorage {
 			storageFile.PostInit ();
 			return storageFile;
 		}
-
+#endif
+#if !DISABLE_SECURITY
 		[IsolatedStorageFilePermission (SecurityAction.Demand, UsageAllowed = IsolatedStorageContainment.AssemblyIsolationByUser)]
+#endif
 		public static IsolatedStorageFile GetUserStoreForAssembly ()
 		{
 			IsolatedStorageScope scope = IsolatedStorageScope.User | IsolatedStorageScope.Assembly;
 			IsolatedStorageFile storageFile = new IsolatedStorageFile (scope);
 #if !MOBILE
+#if !DISABLE_SECURITY
 			Evidence e = Assembly.GetCallingAssembly ().UnprotectedGetEvidence ();
 			storageFile._fullEvidences = e;
 			storageFile._assemblyIdentity = GetAssemblyIdentityFromEvidence (e);
+#endif
 #endif
 			storageFile.PostInit ();
 			return storageFile;
 		}
 
+#if !DISABLE_SECURITY
 		[IsolatedStorageFilePermission (SecurityAction.Demand, UsageAllowed = IsolatedStorageContainment.DomainIsolationByUser)]
+#endif
 		public static IsolatedStorageFile GetUserStoreForDomain ()
 		{
 			IsolatedStorageScope scope = IsolatedStorageScope.User | IsolatedStorageScope.Domain | IsolatedStorageScope.Assembly;
 			IsolatedStorageFile storageFile = new IsolatedStorageFile (scope);
 #if !MOBILE
+#if !DISABLE_SECURITY
 			storageFile._domainIdentity = GetDomainIdentityFromEvidence (AppDomain.CurrentDomain.Evidence);
 			Evidence e = Assembly.GetCallingAssembly ().UnprotectedGetEvidence ();
 			storageFile._fullEvidences = e;
 			storageFile._assemblyIdentity = GetAssemblyIdentityFromEvidence (e);
+#endif
 #endif
 			storageFile.PostInit ();
 			return storageFile;
@@ -333,14 +352,16 @@ namespace System.IO.IsolatedStorage {
 		private static void Demand (IsolatedStorageScope scope)
 		{
 #if !MOBILE
+#if !DISABLE_SECURITY
 			if (SecurityManager.SecurityEnabled) {
 				IsolatedStorageFilePermission isfp = new IsolatedStorageFilePermission (PermissionState.None);
 				isfp.UsageAllowed = ScopeToContainment (scope);
 				isfp.Demand ();
 			}
 #endif
+#endif
 		}
-
+#if !DISABLE_SECURITY
 		private static IsolatedStorageContainment ScopeToContainment (IsolatedStorageScope scope)
 		{
 			switch (scope) {
@@ -367,7 +388,7 @@ namespace System.IO.IsolatedStorage {
 				return IsolatedStorageContainment.UnrestrictedIsolatedStorage;
 			}
 		}
-
+#endif
 		internal static ulong GetDirectorySize (DirectoryInfo di)
 		{
 			ulong size = 0;
@@ -459,6 +480,7 @@ namespace System.IO.IsolatedStorage {
 				// no security manager is active so the rest of the code is useless
 				return Int64.MaxValue;
 #else
+#if !DISABLE_SECURITY
 				if (!SecurityManager.SecurityEnabled)
 					return Int64.MaxValue;
 
@@ -494,6 +516,9 @@ namespace System.IO.IsolatedStorage {
 				} else {
 					_maxSize = (ulong) isp.UserQuota;
 				}
+#else
+				_maxSize = Int64.MaxValue; /* default value */
+#endif
 				_resolved = true;
 				return _maxSize;
 #endif
@@ -788,8 +813,12 @@ namespace System.IO.IsolatedStorage {
 				if ((subdirs.Length == 1) && (subdirs [0].Name == path) && (subdirs [0].FullName.IndexOf (directory.FullName) >= 0)) {
 					adi = subdirs [0].GetDirectories (pattern);
 				} else {
+					#if !DISABLE_SECURITY
 					// CAS, even in FullTrust, normally enforce IsolatedStorage
 					throw new SecurityException ();
+					#else
+					throw new Exception();
+					#endif
 				}
 			}
 			 
@@ -835,8 +864,12 @@ namespace System.IO.IsolatedStorage {
 				if ((subdirs.Length == 1) && (subdirs [0].Name == path) && (subdirs [0].FullName.IndexOf (directory.FullName) >= 0)) {
 					afi = subdirs [0].GetFiles (pattern);
 				} else {
+					#if !DISABLE_SECURITY
 					// CAS, even in FullTrust, normally enforce IsolatedStorage
 					throw new SecurityException ();
+					#else
+					throw new Exception();
+					#endif
 				}
 			}
 
@@ -959,14 +992,14 @@ namespace System.IO.IsolatedStorage {
 			Close ();
 		}
 
-
+#if !DISABLE_SECURITY
 		protected override IsolatedStoragePermission GetPermission (PermissionSet ps)
 		{
 			if (ps == null)
 				return null;
 			return (IsolatedStoragePermission) ps.GetPermission (typeof (IsolatedStorageFilePermission));
 		}
-
+#endif
 		// internal stuff
 #if NET_4_0 || MOBILE
 		void CheckOpen ()
@@ -1003,7 +1036,7 @@ namespace System.IO.IsolatedStorage {
 			Buffer.BlockCopy (full, 0, half, 0, half.Length);
 			return CryptoConvert.ToHex (half);
 		}
-
+#if !DISABLE_SECURITY
 		private static object GetTypeFromEvidence (Evidence e, Type t)
 		{
 			foreach (object o in e) {
@@ -1038,6 +1071,7 @@ namespace System.IO.IsolatedStorage {
 			// b. a Url evidence
 			return GetTypeFromEvidence (e, typeof (Url));
 		}
+#endif
 
 		[Serializable]
 		private struct Identities {
@@ -1052,8 +1086,11 @@ namespace System.IO.IsolatedStorage {
 				Domain = domain;
 			}
 		}
+
 /*
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Assert, SerializationFormatter = true)]
+#endif
 		private void LoadIdentities (string root)
 		{
 			if (!File.Exists (root + ".storage"))
@@ -1068,8 +1105,11 @@ namespace System.IO.IsolatedStorage {
 				_domainIdentity = identities.Domain;
 			}
 		}
+
 */
+		#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Assert, SerializationFormatter = true)]
+		#endif
 		private void SaveIdentities (string root)
 		{
 			Identities identities = new Identities (_applicationIdentity, _assemblyIdentity, _domainIdentity);

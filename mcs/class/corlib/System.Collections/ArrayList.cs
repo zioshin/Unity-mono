@@ -32,9 +32,11 @@ namespace System.Collections
 {
 	[Serializable]
 #if INSIDE_CORLIB
+#if !MICRO_LIB
 	[ComVisible(true)]
 	[DebuggerDisplay ("Count={Count}")]
 	[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 	public class ArrayList : IList, ICloneable, ICollection, IEnumerable {
 #else
 	internal class ArrayList : IList {

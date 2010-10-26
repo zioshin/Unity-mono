@@ -35,8 +35,9 @@ using System.Text;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
-
+#endif
 namespace System
 {
 	[Serializable]
@@ -277,7 +278,9 @@ namespace System
 			return this;
 		}
 
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, SerializationFormatter = true)]
+#endif
 		public virtual void GetObjectData (SerializationInfo info, StreamingContext context)
 		{
 			if (info == null)

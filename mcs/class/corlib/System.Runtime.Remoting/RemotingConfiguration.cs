@@ -289,7 +289,9 @@ namespace System.Runtime.Remoting
 			lock (channelTemplates)
 			{
 				wellKnownServiceEntries [entry.ObjectUri] = entry;
+				#if !DISABLE_REMOTING
 				RemotingServices.CreateWellKnownServerIdentity (entry.ObjectType, entry.ObjectUri, entry.Mode);
+				#endif
 			}
 		}
 
@@ -345,7 +347,9 @@ namespace System.Runtime.Remoting
 					}
 				}
 				
+				#if !DISABLE_REMOTING
 				ChannelServices.RegisterChannelConfig (channel);
+				#endif
 			}
 		}
 		

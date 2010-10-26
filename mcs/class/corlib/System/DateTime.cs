@@ -286,6 +286,15 @@ namespace System
 
 		// Constructors
 		
+#if MONOTOUCH && !MICRO_LIB
+		static DateTime () {
+			if (MonoTouchAOTHelper.FalseFlag) {
+				var comparer = new System.Collections.Generic.GenericComparer <DateTime> ();
+				var eqcomparer = new System.Collections.Generic.GenericEqualityComparer <DateTime> ();
+			}
+		}
+#endif
+
 		/// <summary>
 		/// Constructs a DateTime for specified ticks
 		/// </summary>

@@ -40,9 +40,11 @@ namespace System.Collections {
 
 	[Serializable]
 #if INSIDE_CORLIB
+#if !MICRO_LIB
 	[ComVisible(true)]
 	[DebuggerDisplay ("Count={Count}")]
 	[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 	public class Hashtable : IDictionary, ICollection, 
 		IEnumerable, ICloneable, ISerializable, IDeserializationCallback {
 #else
@@ -959,8 +961,10 @@ namespace System.Collections {
 
 		[Serializable]
 #if INSIDE_CORLIB
+#if !MICRO_LIB
 		[DebuggerDisplay ("Count={Count}")]
 		[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 #endif
 		private class HashKeys : ICollection, IEnumerable {
 
@@ -1015,8 +1019,10 @@ namespace System.Collections {
 
 		[Serializable]
 #if INSIDE_CORLIB
+#if !MICRO_LIB
 		[DebuggerDisplay ("Count={Count}")]
 		[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 #endif
 		private class HashValues : ICollection, IEnumerable {
 
