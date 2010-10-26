@@ -66,7 +66,7 @@ namespace System.Runtime.Serialization.Formatters.Binary {
 		// deserialization code for List<> and Dictionary<,>.
 		// DefaultSurrogateSelector is private, and needs to be set by the embedder trough reflection, so we do not expose any public
 		// API point that is not present in .NET
-		static ISurrogateSelector DefaultSurrogateSelector { get; set; }
+		public static ISurrogateSelector DefaultSurrogateSelector { get; set; }
 		
 		public FormatterAssemblyStyle AssemblyFormat
 		{
