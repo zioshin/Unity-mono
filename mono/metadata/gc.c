@@ -267,7 +267,7 @@ object_register_finalizer (MonoObject *obj, void (*callback)(void *, void*))
 
 	if (obj == NULL)
 		mono_raise_exception (mono_get_exception_argument_null ("obj"));
-
+	
 	domain = obj->vtable->domain;
 
 #if HAVE_BOEHM_GC
@@ -295,7 +295,7 @@ object_register_finalizer (MonoObject *obj, void (*callback)(void *, void*))
 	 * the objects will not be valid anymore.
 	 */
 	if (!mono_domain_is_unloading (domain))
-		mono_gc_register_for_finalization (obj, callback);
+	mono_gc_register_for_finalization (obj, callback);
 #endif
 }
 
@@ -377,7 +377,7 @@ mono_domain_finalize (MonoDomain *domain, guint32 timeout)
 		timeout = INFINITE;
 
 	while (TRUE) {
-		res = WaitForSingleObjectEx (done_event, timeout, TRUE);
+		res = WaitForSingleObjectEx (done_event, timeout, FALSE);
 		/* printf ("WAIT RES: %d.\n", res); */
 
 		if (res == WAIT_IO_COMPLETION) {
@@ -1050,7 +1050,7 @@ finalize_domain_objects (DomainFinalizationReq *req)
 
 	/* cleanup the reference queue */
 	reference_queue_clear_for_domain (domain);
-	
+
 	/* printf ("DONE.\n"); */
 	SetEvent (req->done_event);
 
