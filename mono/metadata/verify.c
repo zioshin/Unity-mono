@@ -2981,6 +2981,14 @@ do_invoke_method (VerifyContext *ctx, int method_token, gboolean virtual)
 			char *name = mono_method_full_name (method, TRUE);
 			CODE_NOT_VERIFIABLE2 (ctx, g_strdup_printf ("Method %s is not accessible at 0x%04x", name, ctx->ip_offset), MONO_EXCEPTION_METHOD_ACCESS);
 			g_free (name);
+		if (!verify_stack_type_compatibility (ctx, type, &copy)) {
+			 char *expected = mono_type_full_name (type);
+			 char *found = stack_slot_full_name (&copy);
+			 CODE_NOT_VERIFIABLE (ctx, g_strdup_printf ("Incompatible this argument on stack. expected %s but found %s at 0x%04x", expected, found, ctx->ip_offset));
+			 g_free (expected);
+			 g_free (found);
+		}
+		
 		}
 
 	} else if (!IS_SKIP_VISIBILITY (ctx) && !mono_method_can_access_method_full (ctx->method, method, NULL)) {
