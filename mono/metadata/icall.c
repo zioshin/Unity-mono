@@ -83,6 +83,7 @@
 #include <mono/utils/mono-mmap.h>
 #include <mono/utils/mono-io-portability.h>
 
+#include <unity/unity_utils.h>
 #if defined (HOST_WIN32)
 #include <windows.h>
 #include <shlobj.h>
