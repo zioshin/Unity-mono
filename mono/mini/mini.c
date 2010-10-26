@@ -5022,7 +5022,7 @@ mono_jit_compile_method_with_opt (MonoMethod *method, guint32 opt, MonoException
 			mono_jit_stats.methods_lookups++;
 			vtable = mono_class_vtable (domain, method->klass);
 			g_assert (vtable);
-			tmpEx = mono_runtime_class_init_full (vtable, ex == NULL);
+			tmpEx = mono_runtime_class_init_full (vtable, NULL == ex);
 			if (tmpEx) {
 				*ex = tmpEx;
 				return NULL;
