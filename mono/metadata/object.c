@@ -227,7 +227,7 @@ get_type_init_exception_for_vtable (MonoVTable *vtable)
 
 	if (!vtable->init_failed)
 		g_error ("Trying to get the init exception for a non-failed vtable of class %s", mono_type_get_full_name (klass));
-	
+
 	/* 
 	 * If the initializing thread was rudely aborted, the exception is not stored
 	 * in the hash.
@@ -1104,7 +1104,7 @@ mono_method_get_imt_slot (MonoMethod *method)
 	for (i = 0; i < sig->param_count; i++) {
 		hashes [4 + i] = mono_metadata_type_hash (sig->params [i]);
 	}
-
+	
 	/* Setup internal state */
 	a = b = c = 0xdeadbeef + (((guint32)hashes_count)<<2);
 
@@ -3180,8 +3180,8 @@ mono_field_get_value_object (MonoDomain *domain, MonoClassField *field, MonoObje
 
 		if (!is_literal) {
 			vtable = mono_class_vtable_full (domain, field->parent, TRUE);
-			if (!vtable->initialized)
-				mono_runtime_class_init (vtable);
+		if (!vtable->initialized)
+			mono_runtime_class_init (vtable);
 		}
 	} else {
 		g_assert (obj);
@@ -3407,7 +3407,7 @@ void
 mono_nullable_init (guint8 *buf, MonoObject *value, MonoClass *klass)
 {
 	MonoClass *param_class = klass->cast_class;
-
+				
 	mono_class_setup_fields_locking (klass);
 	g_assert (klass->fields_inited);
 				
@@ -3418,7 +3418,7 @@ mono_nullable_init (guint8 *buf, MonoObject *value, MonoClass *klass)
 	if (value) {
 		if (param_class->has_references)
 			mono_gc_wbarrier_value_copy (buf + klass->fields [0].offset - sizeof (MonoObject), mono_object_unbox (value), 1, param_class);
-		else
+	else
 			mono_gc_memmove_atomic (buf + klass->fields [0].offset - sizeof (MonoObject), mono_object_unbox (value), mono_class_value_size (param_class, NULL));
 	} else {
 		mono_gc_bzero_atomic (buf + klass->fields [0].offset - sizeof (MonoObject), mono_class_value_size (param_class, NULL));
@@ -3566,7 +3566,7 @@ static void
 free_main_args (void)
 {
 	int i;
-
+	
 	for (i = 0; i < num_main_args; ++i)
 		g_free (main_args [i]);
 	g_free (main_args);
@@ -3607,39 +3607,21 @@ mono_runtime_set_main_args (int argc, char* argv[])
 	return 0;
 }
 
-/**
- * mono_runtime_run_main:
- * @method: the method to start the application with (usually Main)
- * @argc: number of arguments from the command line
- * @argv: array of strings from the command line
- * @exc: excetption results
- *
- * Execute a standard Main() method (argc/argv contains the
- * executable name). This method also sets the command line argument value
- * needed by System.Environment.
- *
- * 
- */
-int
-mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
-		       MonoObject **exc)
+void
+mono_set_commandline_arguments(int argc, const char* argv[], const char* basedir)
 {
 	int i;
-	MonoArray *args = NULL;
-	MonoDomain *domain = mono_domain_get ();
 	gchar *utf8_fullpath;
-	MonoMethodSignature *sig;
 
-	g_assert (method != NULL);
-	
-	mono_thread_set_main (mono_thread_current ());
+	// this should only be called once
+	g_assert(main_args==NULL);
 
 	main_args = g_new0 (char*, argc);
 	num_main_args = argc;
 
 	if (!g_path_is_absolute (argv [0])) {
 		gchar *basename = g_path_get_basename (argv [0]);
-		gchar *fullpath = g_build_filename (method->klass->image->assembly->basedir,
+		gchar *fullpath = g_build_filename (basedir,
 						    basename,
 						    NULL);
 
@@ -3666,7 +3648,8 @@ mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
 		}
 	}
 
-	main_args [0] = utf8_fullpath;
+	if (NULL != main_args)
+		main_args [0] = utf8_fullpath;
 
 	for (i = 1; i < argc; ++i) {
 		gchar *utf8_arg;
@@ -3681,6 +3664,35 @@ mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
 
 		main_args [i] = utf8_arg;
 	}
+}
+
+/**
+ * mono_runtime_run_main:
+ * @method: the method to start the application with (usually Main)
+ * @argc: number of arguments from the command line
+ * @argv: array of strings from the command line
+ * @exc: excetption results
+ *
+ * Execute a standard Main() method (argc/argv contains the
+ * executable name). This method also sets the command line argument value
+ * needed by System.Environment.
+ *
+ * 
+ */
+int
+mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
+		       MonoObject **exc)
+{
+	int i;
+	MonoArray *args = NULL;
+	MonoDomain *domain = mono_domain_get ();
+	MonoMethodSignature *sig;
+
+	g_assert (method != NULL);
+	
+	mono_thread_set_main (mono_thread_current ());
+
+	mono_set_commandline_arguments(argc, argv,method->klass->image->assembly->basedir);
 	argc--;
 	argv++;
 
@@ -3902,7 +3914,7 @@ call_unhandled_exception_delegate (MonoDomain *domain, MonoObject *delegate, Mon
 	pa [0] = domain->domain;
 	pa [1] = create_unhandled_exception_eventargs (exc);
 	mono_runtime_delegate_invoke (delegate, pa, &e);
-
+	
 	if (domain != current_domain)
 		mono_domain_set_internal_with_options (current_domain, FALSE);
 
@@ -3983,8 +3995,8 @@ mono_unhandled_exception (MonoObject *exc)
 
 		/* set exitcode only if we will abort the process */
 		if ((current_appdomain_delegate == NULL) && (root_appdomain_delegate == NULL)) {
-			if (abort_process)
-				mono_environment_exitcode_set (1);
+		if (abort_process)
+			mono_environment_exitcode_set (1);
 			mono_print_unhandled_exception (exc);
 		} else {
 			if (root_appdomain_delegate) {
@@ -4622,7 +4634,7 @@ mono_object_clone (MonoObject *obj)
 		mono_gc_wbarrier_object_copy (o, obj);
 	} else {
 		int size = obj->vtable->klass->instance_size;
-		/* do not copy the sync state */
+	/* do not copy the sync state */
 		mono_gc_memmove_atomic ((char*)o + sizeof (MonoObject), (char*)obj + sizeof (MonoObject), size - sizeof (MonoObject));
 	}
 	if (G_UNLIKELY (profile_allocs))
@@ -4924,7 +4936,7 @@ mono_array_new_specific (MonoVTable *vtable, uintptr_t n)
 		arith_overflow ();
 		return NULL;
 	}
-
+	
 	if (!mono_array_calc_byte_len (vtable->klass, n, &byte_len)) {
 		mono_gc_out_of_memory (MONO_ARRAY_MAX_SIZE);
 		return NULL;
@@ -5313,7 +5325,7 @@ mono_object_isinst_mbyref (MonoObject *obj, MonoClass *klass)
 		MonoClass *oklass = vt->klass;
 		if (mono_class_is_transparent_proxy (oklass))
 			oklass = ((MonoTransparentProxy *)obj)->remote_class->proxy_class;
-
+	
 		mono_class_setup_supertypes (klass);	
 		if ((oklass->idepth >= klass->idepth) && (oklass->supertypes [klass->idepth - 1] == klass))
 			return obj;
@@ -5391,8 +5403,8 @@ mono_string_get_pinned (MonoString *str)
 	size = sizeof (MonoString) + 2 * (mono_string_length (str) + 1);
 	news = mono_gc_alloc_pinned_obj (((MonoObject*)str)->vtable, size);
 	if (news) {
-		memcpy (mono_string_chars (news), mono_string_chars (str), mono_string_length (str) * 2);
-		news->length = mono_string_length (str);
+	memcpy (mono_string_chars (news), mono_string_chars (str), mono_string_length (str) * 2);
+	news->length = mono_string_length (str);
 	}
 	return news;
 }
@@ -5418,7 +5430,7 @@ mono_string_is_interned_lookup (MonoString *str, int insert)
 	if (insert) {
 		str = mono_string_get_pinned (str);
 		if (str)
-			mono_g_hash_table_insert (ldstr_table, str, str);
+		mono_g_hash_table_insert (ldstr_table, str, str);
 		ldstr_unlock ();
 		return str;
 	} else {
@@ -5528,7 +5540,7 @@ mono_ldstr_metadata_sig (MonoDomain *domain, const char* sig)
 
 	o = mono_string_get_pinned (o);
 	if (o)
-		mono_g_hash_table_insert (domain->ldstr_table, o, o);
+	mono_g_hash_table_insert (domain->ldstr_table, o, o);
 	ldstr_unlock ();
 
 	return o;
@@ -5718,9 +5730,9 @@ mono_string_to_utf8_internal (MonoMemPool *mp, MonoImage *image, MonoString *s, 
 	if (ignore_error) {
 		r = mono_string_to_utf8_ignore (s);
 	} else {
-		r = mono_string_to_utf8_checked (s, error);
-		if (!mono_error_ok (error))
-			return NULL;
+	r = mono_string_to_utf8_checked (s, error);
+	if (!mono_error_ok (error))
+		return NULL;
 	}
 
 	if (!mp && !image)
@@ -5792,10 +5804,10 @@ mono_raise_exception (MonoException *ex)
 	 * that will cause gcc to omit the function epilog, causing problems when
 	 * the JIT tries to walk the stack, since the return address on the stack
 	 * will point into the next function in the executable, not this one.
-	 */	
+	 */
 	eh_callbacks.mono_raise_exception (ex);
-}
-
+	}
+	
 void
 mono_raise_exception_with_context (MonoException *ex, MonoContext *ctx) 
 {
@@ -6109,7 +6121,7 @@ void
 mono_print_unhandled_exception (MonoObject *exc)
 {
 	MonoString * str;
-	char *message = (char*)"";
+	char *message = (char *) "";
 	gboolean free_message = FALSE;
 	MonoError error;
 
@@ -6117,7 +6129,7 @@ mono_print_unhandled_exception (MonoObject *exc)
 		message = g_strdup ("OutOfMemoryException");
 		free_message = TRUE;
 	} else {
-		
+
 		if (((MonoException*)exc)->native_trace_ips) {
 			message = mono_exception_get_native_backtrace ((MonoException*)exc);
 			free_message = TRUE;
@@ -6127,7 +6139,7 @@ mono_print_unhandled_exception (MonoObject *exc)
 			if (other_exc) {
 				char *original_backtrace = mono_exception_get_managed_backtrace ((MonoException*)exc);
 				char *nested_backtrace = mono_exception_get_managed_backtrace ((MonoException*)other_exc);
-				
+
 				message = g_strdup_printf ("Nested exception detected.\nOriginal Exception: %s\nNested exception:%s\n",
 					original_backtrace, nested_backtrace);
 
@@ -6135,15 +6147,15 @@ mono_print_unhandled_exception (MonoObject *exc)
 				g_free (nested_backtrace);
 				free_message = TRUE;
 			} else if (str) {
-				message = mono_string_to_utf8_checked (str, &error);
-				if (!mono_error_ok (&error)) {
-					mono_error_cleanup (&error);
-					message = (char *) "";
-				} else {
-					free_message = TRUE;
-				}
+			message = mono_string_to_utf8_checked (str, &error);
+			if (!mono_error_ok (&error)) {
+				mono_error_cleanup (&error);
+				message = (char *)"";
+			} else {
+				free_message = TRUE;
 			}
 		}
+	}				
 	}
 
 	/*
@@ -6609,7 +6621,7 @@ mono_get_addr_from_ftnptr (gpointer descr)
  * Returns a pointer to the UCS16 characters stored in the MonoString
  */
 gunichar2 *
-mono_string_chars (MonoString *s)
+mono_string_chars(MonoString *s)
 {
 	return s->chars;
 }
