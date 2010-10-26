@@ -104,7 +104,11 @@ endif
 if HOST_WIN32
 bin_PROGRAMS = $(boehm_binaries) $(sgen_binaries) monow
 else
+if CROSS_COMPILING
+bin_PROGRAMS =
+else
 bin_PROGRAMS = $(boehm_binaries) $(sgen_binaries)
+endif
 endif
 
 noinst_PROGRAMS = genmdesc
