@@ -33,5 +33,8 @@
 /libtool.m4
 /ltoptions.m4
 /ltsugar.m4
+/external
+/builds
+*.pidb
 /lt~obsolete.m4
 /ltversion.m4
