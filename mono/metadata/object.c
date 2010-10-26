@@ -3366,38 +3366,21 @@ free_main_args (void)
 	g_free (main_args);
 }
 
-/**
- * mono_runtime_run_main:
- * @method: the method to start the application with (usually Main)
- * @argc: number of arguments from the command line
- * @argv: array of strings from the command line
- * @exc: excetption results
- *
- * Execute a standard Main() method (argc/argv contains the
- * executable name). This method also sets the command line argument value
- * needed by System.Environment.
- *
- * 
- */
-int
-mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
-		       MonoObject **exc)
+void
+mono_set_commandline_arguments(int argc, const char* argv[], const char* basedir)
 {
 	int i;
-	MonoArray *args = NULL;
-	MonoDomain *domain = mono_domain_get ();
 	gchar *utf8_fullpath;
 
-	g_assert (method != NULL);
-	
-	mono_thread_set_main (mono_thread_current ());
+	//this should only be called once
+	g_assert(main_args==NULL);
 
 	main_args = g_new0 (char*, argc);
 	num_main_args = argc;
 
-	if (!g_path_is_absolute (argv [0])) {
+	if (!g_path_is_absolute (argv [0]) && basedir!=NULL) {
 		gchar *basename = g_path_get_basename (argv [0]);
-		gchar *fullpath = g_build_filename (method->klass->image->assembly->basedir,
+		gchar *fullpath = g_build_filename (basedir,
 						    basename,
 						    NULL);
 
@@ -3424,7 +3407,8 @@ mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
 		}
 	}
 
-	main_args [0] = utf8_fullpath;
+	if (NULL != main_args)
+		main_args [0] = utf8_fullpath;
 
 	for (i = 1; i < argc; ++i) {
 		gchar *utf8_arg;
@@ -3439,6 +3423,38 @@ mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
 
 		main_args [i] = utf8_arg;
 	}
+}
+
+
+/**
+ * mono_runtime_run_main:
+ * @method: the method to start the application with (usually Main)
+ * @argc: number of arguments from the command line
+ * @argv: array of strings from the command line
+ * @exc: excetption results
+ *
+ * Execute a standard Main() method (argc/argv contains the
+ * executable name). This method also sets the command line argument value
+ * needed by System.Environment.
+ *
+ * 
+ */
+int
+mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
+		       MonoObject **exc)
+{
+	int i;
+	MonoArray *args = NULL;
+	MonoDomain *domain = mono_domain_get ();
+
+	int result;
+
+	g_assert (method != NULL);
+	
+	mono_thread_set_main (mono_thread_current ());
+
+	mono_set_commandline_arguments(argc, argv,method->klass->image->assembly->basedir);
+
 	argc--;
 	argv++;
 	if (mono_method_signature (method)->param_count) {
@@ -3456,7 +3472,7 @@ mono_runtime_run_main (MonoMethod *method, int argc, char* argv[],
 	} else {
 		args = (MonoArray*)mono_array_new (domain, mono_defaults.string_class, 0);
 	}
-	
+
 	mono_assembly_set_main (method->klass->image->assembly);
 
 	return mono_runtime_exec_main (method, args, exc);
@@ -3516,6 +3532,7 @@ deserialize_object (MonoObject *obj, gboolean *failure, MonoObject **exc)
 
 	return result;
 }
+
 
 static MonoObject*
 make_transparent_proxy (MonoObject *obj, gboolean *failure, MonoObject **exc)
