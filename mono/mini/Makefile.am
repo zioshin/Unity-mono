@@ -90,7 +90,11 @@ endif
 if HOST_WIN32
 bin_PROGRAMS = mono monow
 else
+if CROSS_COMPILING
+bin_PROGRAMS = 
+else
 bin_PROGRAMS = mono $(sgen_binaries)
+endif
 endif
 
 noinst_PROGRAMS = genmdesc
