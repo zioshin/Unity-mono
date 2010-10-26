@@ -80,7 +80,7 @@ namespace System.Linq.Expressions {
 
 		public Delegate Compile ()
 		{
-#if TARGET_JVM || MONOTOUCH
+#if TARGET_JVM || (MONOTOUCH && !UNITY)
 			return new System.Linq.jvm.Runner (this).CreateDelegate ();
 #else
 			var context = new CompilationContext ();
@@ -89,7 +89,7 @@ namespace System.Linq.Expressions {
 #endif
 		}
 
-#if TARGET_JVM || MONOTOUCH
+#if TARGET_JVM || (MONOTOUCH && !UNITY)
 		internal Delegate Compile (System.Linq.jvm.ExpressionInterpreter interpreter)
 		{
 			return new System.Linq.jvm.Runner (this, interpreter).CreateDelegate ();
