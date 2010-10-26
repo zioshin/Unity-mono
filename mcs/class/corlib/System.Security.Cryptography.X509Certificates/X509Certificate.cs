@@ -29,7 +29,9 @@
 
 using System.IO;
 using System.Runtime.InteropServices;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Text;
 
 using Mono.Security;
@@ -110,10 +112,12 @@ namespace System.Security.Cryptography.X509Certificates {
 					return new X509Certificate (a.SigningCertificate.RawData);
 				}
 			}
+			#if !DISABLE_SECURITY
 			catch (SecurityException) {
 				// don't wrap SecurityException into a COMException
 				throw;
 			}
+			#endif
 			catch (Exception e) {
 				string msg = Locale.GetText ("Couldn't extract digital signature from {0}.", filename);
 				throw new COMException (msg, e);
@@ -153,7 +157,9 @@ namespace System.Security.Cryptography.X509Certificates {
 		}
 
 #if !MOONLIGHT
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.Demand, UnmanagedCode = true)]
+#endif
 		private void InitFromHandle (IntPtr handle)
 		{
 			if (handle != IntPtr.Zero) {

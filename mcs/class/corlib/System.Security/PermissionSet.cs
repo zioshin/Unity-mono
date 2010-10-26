@@ -37,7 +37,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Permissions;
+#if !DISABLE_SECURITY
 using System.Security.Policy;
+#endif
 using System.Text;
 using System.Threading;
 
@@ -45,7 +47,9 @@ namespace System.Security {
 
 	[Serializable]
 	// Microsoft public key - i.e. only MS signed assembly can inherit from PermissionSet (1.x) or (2.0) FullTrust assemblies
+	#if !DISABLE_SECURITY
 	[StrongNameIdentityPermission (SecurityAction.InheritanceDemand, PublicKey="002400000480000094000000060200000024000052534131000400000100010007D1FA57C4AED9F0A32E84AA0FAEFD0DE9E8FD6AEC8F87FB03766C834C99921EB23BE79AD9D5DCC1DD9AD236132102900B723CF980957FC4E177108FC607774F29E8320E92EA05ECE4E821C0A5EFE8F1645C4C0C93C1AB99285D622CAA652C1DFAD63D745D6F2DE5F17E5EAF0FC4963D261C8A12436518206DC093344D5AD293")]
+	#endif 
 	[ComVisible (true)]
 	[MonoTODO ("CAS support is experimental (and unsupported).")]
 	public class PermissionSet: ISecurityEncodable, ICollection, IEnumerable, IStackWalk, IDeserializationCallback {
@@ -56,7 +60,11 @@ namespace System.Security {
 
 		private PermissionState state;
 		private ArrayList list;
+		#if !DISABLE_SECURITY
 		private PolicyLevel _policyLevel;
+		#else
+		private object _policyLevel;
+		#endif 
 		private bool _declsec;
 		private bool _readOnly;
 		private bool[] _ignored; // for asserts and non-CAS permissions
@@ -141,6 +149,7 @@ namespace System.Security {
 		[SecurityPermission (SecurityAction.Demand, Assertion = true)]
 		public void Assert ()
 		{
+			#if !DISABLE_SECURITY
 			int count = this.Count;
 
 			// we (current frame) must have the permission to assert it to others
@@ -158,6 +167,7 @@ namespace System.Security {
 			// note: we must ignore the stack modifiers for the non-CAS permissions
 			if (SecurityManager.SecurityEnabled && (count > 0))
 				throw new NotSupportedException ("Currently only declarative Assert are supported.");
+			#endif
 		}
 
 		internal void Clear () 
@@ -190,6 +200,8 @@ namespace System.Security {
 
 		public void Demand ()
 		{
+			#if UNITY_DISABLE_CORECLR
+			#if !DISABLE_SECURITY
 			// Note: SecurityEnabled only applies to CAS permissions
 			// so we're not checking for it (yet)
 			if (IsEmpty ())
@@ -219,6 +231,8 @@ namespace System.Security {
 			// - security isn't enabled (applis only to CAS!)
 			if (call_cas_only && SecurityManager.SecurityEnabled)
 				CasOnlyDemand (_declsec ? 5 : 3);
+			#endif
+			#endif
 		}
 
 		// The number of frames to skip depends on who's calling
@@ -267,6 +281,7 @@ namespace System.Security {
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public void Deny ()
 		{
+			#if !DISABLE_SECURITY
 			if (!SecurityManager.SecurityEnabled)
 				return;
 
@@ -276,6 +291,7 @@ namespace System.Security {
 					throw new NotSupportedException ("Currently only declarative Deny are supported.");
 				}
 			}
+			#endif
 		}
 
 		public virtual void FromXml (SecurityElement et)
@@ -306,8 +322,12 @@ namespace System.Security {
 							"No permission class is specified."));
 					}
 					if (Resolver != null) {
+						#if !DISABLE_SECURITY
 						// policy class names do not have to be fully qualified
 						className = Resolver.ResolveClassName (className);
+						#else
+						className = null;
+						#endif
 					}
 
 					list.Add (PermissionBuilder.Create (className, se));
@@ -355,6 +375,7 @@ namespace System.Security {
 		[MonoTODO ("CAS support is experimental (and unsupported). Imperative mode is not implemented.")]
 		public void PermitOnly ()
 		{
+			#if !DISABLE_SECURITY
 			if (!SecurityManager.SecurityEnabled)
 				return;
 
@@ -364,6 +385,7 @@ namespace System.Security {
 					throw new NotSupportedException ("Currently only declarative Deny are supported.");
 				}
 			}
+			#endif
 		}
 
 		public bool ContainsNonCodeAccessPermissions () 
@@ -557,6 +579,7 @@ namespace System.Security {
 
 		public virtual SecurityElement ToXml ()
 		{
+			#if !DISABLE_SECURITY
 			SecurityElement se = new SecurityElement (tagName);
 			se.AddAttribute ("class", GetType ().FullName);
 			se.AddAttribute ("version", version.ToString ());
@@ -568,6 +591,9 @@ namespace System.Security {
 				se.AddChild (p.ToXml ());
 			}
 			return se;
+			#else
+			return null;
+			#endif
 		}
 
 		public PermissionSet Union (PermissionSet other)
@@ -657,8 +683,11 @@ namespace System.Security {
 		}
 
 		// internal
-
+		#if !DISABLE_SECURITY
 		internal PolicyLevel Resolver {
+		#else
+		internal object Resolver {
+		#endif
 			get { return _policyLevel; }
 			set { _policyLevel = value; }
 		}
@@ -724,20 +753,24 @@ namespace System.Security {
 
 		internal void CheckAssembly (Assembly a, SecurityFrame frame)
 		{
+			#if !DISABLE_SECURITY
 			IPermission p = SecurityManager.CheckPermissionSet (a, this, false);
 			if (p != null) {
 				CodeAccessPermission.ThrowSecurityException (this, "Demand failed assembly permissions checks.",
 					frame, SecurityAction.Demand, p);
 			}
+			#endif
 		}
 
 		internal void CheckAppDomain (AppDomain domain, SecurityFrame frame)
 		{
+			#if !DISABLE_SECURITY
 			IPermission p = SecurityManager.CheckPermissionSet (domain, this);
 			if (p != null) {
 				CodeAccessPermission.ThrowSecurityException (this, "Demand failed appdomain permissions checks.",
 					frame, SecurityAction.Demand, p);
 			}
+			#endif
 		}
 
 		// 2.0 metadata format
@@ -746,7 +779,11 @@ namespace System.Security {
 		{
 			if ((data == null) || (data [0] != 0x2E) || (data.Length < 2)) {
 				string msg = Locale.GetText ("Invalid data in 2.0 metadata format.");
+				#if !DISABLE_SECURITY
 				throw new SecurityException (msg);
+				#else
+				throw new SystemException (msg);
+				#endif
 			}
 
 			int pos = 1;
@@ -756,7 +793,11 @@ namespace System.Security {
 				IPermission p = ProcessAttribute (data, ref pos);
 				if (p == null) {
 					string msg = Locale.GetText ("Unsupported data found in 2.0 metadata format.");
+					#if !DISABLE_SECURITY
 					throw new SecurityException (msg);
+					#else
+					throw new SystemException (msg);
+					#endif
 				}
 				ps.AddPermission (p);
 			}

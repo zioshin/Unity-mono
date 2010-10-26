@@ -189,7 +189,11 @@ namespace System.Runtime.Remoting.Channels
 
 			replyMsg = SyncDispatchMessage (msg);
 
+			#if !DISABLE_REMOTING
 			if (RemotingServices.IsOneWay (((IMethodMessage) msg).MethodBase))
+			#else
+			if ((((IMethodMessage) msg).MethodBase).IsDefined (typeof (OneWayAttribute), false))
+			#endif
 				return ServerProcessing.OneWay;
 			else
 				return ServerProcessing.Complete;
@@ -208,6 +212,9 @@ namespace System.Runtime.Remoting.Channels
 
 		public static IDictionary GetChannelSinkProperties (object obj)
 		{
+			#if DISABLE_REMOTING
+				throw new ArgumentException ("Remoting disabled. obj must be a proxy","obj");
+			#else
 			if (!RemotingServices.IsTransparentProxy (obj))
 				throw new ArgumentException ("obj must be a proxy","obj");
 				
@@ -230,10 +237,12 @@ namespace System.Runtime.Remoting.Channels
 
 			IDictionary[] adics = (IDictionary[]) dics.ToArray (typeof(IDictionary[]));
 			return new AggregateDictionary (adics);
+			#endif
 		}
 
 		public static string[] GetUrlsForObject (MarshalByRefObject obj)
 		{
+			#if !DISABLE_REMOTING
 			string uri = RemotingServices.GetObjectUri (obj);
 			if (uri == null) return new string [0];
 
@@ -252,6 +261,9 @@ namespace System.Runtime.Remoting.Channels
 			}
 			
 			return  (string[]) list.ToArray (typeof(string));
+			#else
+			return new string [0];
+			#endif
 		}
 
 		[Obsolete ("Use RegisterChannel(IChannel,Boolean)")]
@@ -412,6 +424,7 @@ namespace System.Runtime.Remoting.Channels
 		
 		static ReturnMessage CheckIncomingMessage (IMessage msg)
 		{
+			#if !DISABLE_REMOTING
 			IMethodMessage call = (IMethodMessage)msg;
 			ServerIdentity identity = RemotingServices.GetIdentityForUri (call.Uri) as ServerIdentity;
 
@@ -420,6 +433,9 @@ namespace System.Runtime.Remoting.Channels
 
 			RemotingServices.SetMessageTargetIdentity (msg, identity);
 			return null;
+			#else
+				return new ReturnMessage (new RemotingException ("No receiver for uri . Remoting disabled"), (IMethodCallMessage) msg);
+			#endif
 		}
 
 		internal static IMessage CheckReturnMessage (IMessage callMsg, IMessage retMsg)

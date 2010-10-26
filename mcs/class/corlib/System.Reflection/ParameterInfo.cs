@@ -25,7 +25,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !MICRO_LIB
 using System.Reflection.Emit;
+#endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
@@ -44,12 +46,14 @@ namespace System.Reflection
 		protected string NameImpl;
 		protected int PositionImpl;
 		protected ParameterAttributes AttrsImpl;
+#if !MICRO_LIB
 		private UnmanagedMarshal marshalAs;
+#endif
 		//ParameterInfo parent;
 
 		protected ParameterInfo () {
 		}
-
+#if !MICRO_LIB
 		internal ParameterInfo (ParameterBuilder pb, Type type, MemberInfo member, int position) {
 			this.ClassImpl = type;
 			this.MemberImpl = member;
@@ -63,6 +67,7 @@ namespace System.Reflection
 				this.AttrsImpl = ParameterAttributes.None;
 			}
 		}
+#endif
 
 		/*FIXME this constructor looks very broken in the position parameter*/
 		internal ParameterInfo (ParameterInfo pinfo, Type type, MemberInfo member, int position) {
@@ -88,6 +93,7 @@ namespace System.Reflection
 			//this.parent = pinfo;
 		}
 
+#if !MICRO_LIB
 		/* to build a ParameterInfo for the return type of a method */
 		internal ParameterInfo (Type type, MemberInfo member, UnmanagedMarshal marshalAs) {
 			this.ClassImpl = type;
@@ -97,7 +103,16 @@ namespace System.Reflection
 			this.AttrsImpl = ParameterAttributes.Retval;
 			this.marshalAs = marshalAs;
 		}
-
+#else
+		/* to build a ParameterInfo for the return type of a method */
+		internal ParameterInfo (Type type, MemberInfo member) {
+			this.ClassImpl = type;
+			this.MemberImpl = member;
+			this.NameImpl = "";
+			this.PositionImpl = -1;	// since parameter positions are zero-based, return type pos is -1
+			this.AttrsImpl = ParameterAttributes.Retval;
+		}
+#endif
 		public override string ToString() {
 			Type elementType = ClassImpl;
 			while (elementType.HasElementType) {
@@ -223,9 +238,10 @@ namespace System.Reflection
 				count ++;
 			if (IsOptional)
 				count ++;
+#if !MICRO_LIB
 			if (marshalAs != null)
 				count ++;
-
+#endif
 			if (count == 0)
 				return null;
 			object[] attrs = new object [count];
@@ -237,10 +253,10 @@ namespace System.Reflection
 				attrs [count ++] = new OptionalAttribute ();
 			if (IsOut)
 				attrs [count ++] = new OutAttribute ();
-
+#if !MICRO_LIB
 			if (marshalAs != null)
 				attrs [count ++] = marshalAs.ToMarshalAsAttribute ();
-
+#endif
 			return attrs;
 		}			
 
