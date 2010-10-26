@@ -115,6 +115,9 @@ typedef struct MonoAotOptions {
 	gboolean autoreg;
 	char *mtriple;
 	char *llvm_path;
+#if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
+       gboolean ficall;                                                                                                                                                                           
+#endif 
 } MonoAotOptions;
 
 typedef struct MonoAotStats {
@@ -2748,7 +2751,7 @@ add_wrappers (MonoAotCompile *acfg)
 				klass = mono_class_from_mono_type (t);
 				g_assert (klass->parent == mono_defaults.multicastdelegate_class);
 
-				add_method (acfg, mono_marshal_get_managed_wrapper (method, klass, 0));
+				add_method (acfg, mono_marshal_get_managed_wrapper (method, klass, NULL));
 			}
 		}
 
@@ -4578,6 +4581,10 @@ mono_aot_parse_options (const char *aot_options, MonoAotOptions *opts)
 			opts->no_dlsym = TRUE;
 		} else if (str_begins_with (arg, "asmonly")) {
 			opts->asm_only = TRUE;
+#if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
+                } else if (str_begins_with (arg, "ficall")) {
+                        opts->ficall = TRUE;                                                                                                                                                       
+#endif 
 		} else if (str_begins_with (arg, "asmwriter")) {
 			opts->asm_writer = TRUE;
 		} else if (str_begins_with (arg, "nodebug")) {
@@ -4727,6 +4734,19 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 	gboolean skip;
 	int index, depth;
 	MonoMethod *wrapped;
+
+#if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
+        if (acfg->aot_opts.ficall && method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE)                                                                                                       
+         {                                                                                                                                                                                         
+             method->save_lmf = FALSE;                                                                                                                                                             
+             MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);                                                                                                                      
+             if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL))                                                                                                               
+             {
+                 if (wrapped->signature->ret->type != MONO_TYPE_R4)                                                                                                                                
+                     return;                                                                                                                                                                       
+             }                                                                                                                                                                                     
+         }                                                                                                                                                                                         
+#endif        
 
 	if (acfg->aot_opts.metadata_only)
 		return;
