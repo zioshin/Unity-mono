@@ -343,7 +343,7 @@ async_invoke_io_thread (gpointer data)
 
 		data = dequeue_job (&io_queue_lock, &async_io_queue);
 	
-		if (!data && !mono_runtime_is_shutting_down()) {
+		if (!data && !mono_runtime_is_shutting_down ()) {
 			guint32 wr;
 			int timeout = THREAD_EXIT_TIMEOUT;
 			guint32 start_time = mono_msec_ticks ();
@@ -358,14 +358,14 @@ async_invoke_io_thread (gpointer data)
 				if (wr != WAIT_TIMEOUT && wr != WAIT_IO_COMPLETION)
 					data = dequeue_job (&io_queue_lock, &async_io_queue);
 			}
-			while (!data && timeout > 0 && !mono_runtime_is_shutting_down());
+			while (!data && timeout > 0 && !mono_runtime_is_shutting_down ());
 		}
 
 		if (!data) {
 			workers_io = (int) InterlockedCompareExchange (&io_worker_threads, 0, -1); 
 			min_io = (int) InterlockedCompareExchange (&mono_io_min_worker_threads, 0, -1); 
 	
-			while (!data && workers_io <= min_io && !mono_runtime_is_shutting_down()) {
+			while (!data && workers_io <= min_io && !mono_runtime_is_shutting_down ()) {
 				WaitForSingleObjectEx (io_job_added, INFINITE, TRUE);
 				if (THREAD_WANTS_A_BREAK (thread))
 					mono_thread_interruption_checkpoint ();
@@ -1245,7 +1245,7 @@ null_array (MonoArray *a, int first, int last)
 static void
 append_job (CRITICAL_SECTION *cs, TPQueue *list, MonoObject *ar)
 {
-	if (mono_runtime_is_shutting_down())
+	if (mono_runtime_is_shutting_down ())
 		return;
 
 	threadpool_jobs_inc (ar); 
@@ -1458,6 +1458,7 @@ async_invoke_thread (gpointer data)
 				}
 				mono_thread_pop_appdomain_ref ();
 				InterlockedDecrement (&busy_worker_threads);
+				mono_thread_clr_state (thread , ~ThreadState_Background);
 				/* If the callee changes the background status, set it back to TRUE */
 				if (*version != '1' && !mono_thread_test_state (thread , ThreadState_Background))
 					ves_icall_System_Threading_Thread_SetState (thread, ThreadState_Background);
@@ -1481,14 +1482,14 @@ async_invoke_thread (gpointer data)
 				if (wr != WAIT_TIMEOUT && wr != WAIT_IO_COMPLETION)
 					data = dequeue_job (&mono_delegate_section, &async_call_queue);
 			}
-			while (!mono_runtime_is_shutting_down() && !data && timeout > 0);
+			while (!mono_runtime_is_shutting_down () && !data && timeout > 0);
 		}
 
 		if (!data) {
 			workers = (int) InterlockedCompareExchange (&mono_worker_threads, 0, -1); 
 			min = (int) InterlockedCompareExchange (&mono_min_worker_threads, 0, -1); 
 	
-			while (!mono_runtime_is_shutting_down() && !data && workers <= min) {
+			while (!mono_runtime_is_shutting_down () && !data && workers <= min) {
 				WaitForSingleObjectEx (job_added, INFINITE, TRUE);
 				if (THREAD_WANTS_A_BREAK (thread))
 					mono_thread_interruption_checkpoint ();

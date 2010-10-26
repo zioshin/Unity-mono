@@ -805,7 +805,7 @@ typedef struct {
 	void            (*abort_func) (MonoObject *object);
 	/* Used to implement --debug=casts */
 	MonoClass       *class_cast_from, *class_cast_to;
-	/* Stores state needed by the backport of r157327 */
+
 	MonoContext      ex_ctx;
 } MonoJitTlsData;
 
@@ -1485,6 +1485,7 @@ void	  mono_print_ins_index (int i, MonoInst *ins) MONO_INTERNAL;
 void	  mono_print_ins (MonoInst *ins) MONO_INTERNAL;
 gboolean  mini_assembly_can_skip_verification (MonoDomain *domain, MonoMethod *method) MONO_INTERNAL;
 gboolean  mini_method_verify (MonoCompile *cfg, MonoMethod *method) MONO_INTERNAL;
+gboolean mono_compile_is_broken (MonoCompile *cfg, MonoMethod *method, gboolean fail_compile) MONO_INTERNAL;
 MonoInst *mono_get_got_var (MonoCompile *cfg) MONO_INTERNAL;
 void      mono_add_seq_point (MonoCompile *cfg, MonoBasicBlock *bb, MonoInst *ins, int native_offset) MONO_INTERNAL;
 

@@ -29,7 +29,6 @@
 #include <signal.h>
 #include <ctype.h>
 
-
 static MiniVerifierMode verifier_mode = MONO_VERIFIER_MODE_OFF;
 static gboolean verify_all = FALSE;
 
@@ -481,6 +480,21 @@ mono_type_is_valid_type_in_context (MonoType *type, MonoGenericContext *context)
 			if (!mono_type_is_valid_type_in_context (inst->type_argv [i], context))
 				return FALSE;
 		break;
+	case MONO_TYPE_CLASS:
+	case MONO_TYPE_VALUETYPE: {
+		MonoClass *klass = type->data.klass;
+		/*
+		 * It's possible to encode generic'sh types in such a way that they disguise themselves as class or valuetype.
+		 * Fixing the type decoding is really tricky since under some cases this behavior is needed, for example, to
+		 * have a 'class' type pointing to a 'genericinst' class.
+		 *
+		 * For the runtime these non canonical (weird) encodings work fine, they worst they can cause is some
+		 * reflection oddities which are harmless  - to security at least.
+		 */
+		if (klass->byval_arg.type != type->type)
+			return mono_type_is_valid_type_in_context (&klass->byval_arg, context);
+		break;
+	}
 	}
 	return TRUE;
 }
@@ -618,8 +632,6 @@ mono_generic_param_is_constraint_compatible (VerifyContext *ctx, MonoGenericPara
 
 	if (tinfo->constraints) {
 		MonoClass **target_class, **candidate_class;
-		if (!cinfo->constraints)
-			return FALSE;
 		for (target_class = tinfo->constraints; *target_class; ++target_class) {
 			MonoClass *tc;
 			MonoType *inflated = verifier_inflate_type (ctx, &(*target_class)->byval_arg, context);
@@ -634,6 +646,9 @@ mono_generic_param_is_constraint_compatible (VerifyContext *ctx, MonoGenericPara
 			 */
 			if (mono_metadata_type_equal (&tc->byval_arg, &candidate_param_class->byval_arg))
 				continue;
+
+			if (!cinfo->constraints)
+				return FALSE;
 
 			for (candidate_class = cinfo->constraints; *candidate_class; ++candidate_class) {
 				MonoClass *cc;
@@ -3553,20 +3568,15 @@ do_invoke_method (VerifyContext *ctx, int method_token, gboolean virtual)
 		}
 		if (!verify_stack_type_compatibility (ctx, type, &copy)) {
 			char *expected = mono_type_full_name (type);
-			char *found = stack_slot_full_name (&copy);
-			CODE_NOT_VERIFIABLE (ctx, g_strdup_printf ("Incompatible this argument on stack. Expected %s but found %s at 0x%04x", expected, found, ctx->ip_offset));
+			char *effective = stack_slot_full_name (&copy);
+			char *method_name = mono_method_full_name (method, TRUE);
+			CODE_NOT_VERIFIABLE (ctx, g_strdup_printf ("Incompatible this argument on stack with method signature expected '%s' but got '%s' for a call to '%s' at 0x%04x",
+					expected, effective, method_name, ctx->ip_offset));
+			g_free (method_name);
+			g_free (effective);
 			g_free (expected);
-			g_free (found);
 		}
 
-		if (!verify_stack_type_compatibility (ctx, type, &copy)) {
-			 char *expected = mono_type_full_name (type);
-			 char *found = stack_slot_full_name (&copy);
-			 CODE_NOT_VERIFIABLE (ctx, g_strdup_printf ("Incompatible this argument on stack. expected %s but found %s at 0x%04x", expected, found, ctx->ip_offset));
-			 g_free (expected);
-			 g_free (found);
-		}
-		
 		if (!IS_SKIP_VISIBILITY (ctx) && !mono_method_can_access_method_full (ctx->method, method, mono_class_from_mono_type (value->type))) {
 			char *name = mono_method_full_name (method, TRUE);
 			CODE_NOT_VERIFIABLE2 (ctx, g_strdup_printf ("Method %s is not accessible at 0x%04x", name, ctx->ip_offset), MONO_EXCEPTION_METHOD_ACCESS);
@@ -3906,6 +3916,25 @@ do_load_token (VerifyContext *ctx, int token)
 	MonoClass *handle_class;
 	if (!check_overflow (ctx))
 		return;
+
+	switch (token & 0xff000000) {
+	case MONO_TOKEN_TYPE_DEF:
+	case MONO_TOKEN_TYPE_REF:
+	case MONO_TOKEN_TYPE_SPEC:
+	case MONO_TOKEN_FIELD_DEF:
+	case MONO_TOKEN_METHOD_DEF:
+	case MONO_TOKEN_METHOD_SPEC:
+	case MONO_TOKEN_MEMBER_REF:
+		if (!token_bounds_check (ctx->image, token)) {
+			ADD_VERIFY_ERROR (ctx, g_strdup_printf ("Table index out of range 0x%x for token %x for ldtoken at 0x%04x", mono_metadata_token_index (token), token, ctx->ip_offset));
+			return;
+		}
+		break;
+	default:
+		ADD_VERIFY_ERROR (ctx, g_strdup_printf ("Invalid table 0x%x for token 0x%x for ldtoken at 0x%04x", mono_metadata_token_table (token), token, ctx->ip_offset));
+		return;
+	}
+
 	handle = mono_ldtoken (ctx->image, token, &handle_class, ctx->generic_context);
 	if (!handle) {
 		ADD_VERIFY_ERROR (ctx, g_strdup_printf ("Invalid token 0x%x for ldtoken at 0x%04x", token, ctx->ip_offset));
@@ -4531,6 +4560,7 @@ do_leave (VerifyContext *ctx, int delta)
 	if (!is_correct_leave (ctx->header, ctx->ip_offset, target))
 		CODE_NOT_VERIFIABLE (ctx, g_strdup_printf ("Leave not allowed in finally block at 0x%04x", ctx->ip_offset));
 	ctx->eval.size = 0;
+	ctx->target = target;
 }
 
 /* 
@@ -5215,10 +5245,11 @@ mono_method_verify (MonoMethod *method, int level)
 	g_assert (bb);
 
 	while (ip < end && ctx.valid) {
+		int op_size;
 		ip_offset = ip - code_start;
 		{
 			const unsigned char *ip_copy = ip;
-			int size, op;
+			int op;
 
 			if (ip_offset > bb->end) {
 				ADD_VERIFY_ERROR (&ctx, g_strdup_printf ("Branch or EH block at [0x%04x] targets middle instruction at 0x%04x", bb->end, ip_offset));
@@ -5228,28 +5259,21 @@ mono_method_verify (MonoMethod *method, int level)
 			if (ip_offset == bb->end)
 				bb = bb->next;
 	
-			size = mono_opcode_value_and_size (&ip_copy, end, &op);
-			if (size == -1) {
+			op_size = mono_opcode_value_and_size (&ip_copy, end, &op);
+			if (op_size == -1) {
 				ADD_VERIFY_ERROR (&ctx, g_strdup_printf ("Invalid instruction %x at 0x%04x", *ip, ip_offset));
 				goto cleanup;
 			}
 
-			if (ADD_IS_GREATER_OR_OVF (ip_offset, size, bb->end)) {
+			if (ADD_IS_GREATER_OR_OVF (ip_offset, op_size, bb->end)) {
 				ADD_VERIFY_ERROR (&ctx, g_strdup_printf ("Branch or EH block targets middle of instruction at 0x%04x", ip_offset));
 				goto cleanup;
 			}
 
 			/*Last Instruction*/
-			if (ip_offset + size == bb->end && mono_opcode_is_prefix (op)) {
+			if (ip_offset + op_size == bb->end && mono_opcode_is_prefix (op)) {
 				ADD_VERIFY_ERROR (&ctx, g_strdup_printf ("Branch or EH block targets between prefix '%s' and instruction at 0x%04x", mono_opcode_name (op), ip_offset));
 				goto cleanup;
-			}
-
-			if (bb->dead) {
-				/*FIXME remove this once we move all bad branch checking code to use BB only*/
-				ctx.code [ip_offset].flags |= IL_CODE_FLAG_SEEN;
-				ip += size;
-				continue;
 			}
 		}
 
@@ -5290,6 +5314,14 @@ mono_method_verify (MonoMethod *method, int level)
 				ADD_VERIFY_ERROR (&ctx, g_strdup_printf ("Try to enter try block with a non-empty stack at 0x%04x", ip_offset));
 				start = 1;
 			}
+		}
+
+		/*This must be done after fallthru detection otherwise it won't happen.*/
+		if (bb->dead) {
+			/*FIXME remove this once we move all bad branch checking code to use BB only*/
+			ctx.code [ip_offset].flags |= IL_CODE_FLAG_SEEN;
+			ip += op_size;
+			continue;
 		}
 
 		if (!ctx.valid)
@@ -5924,6 +5956,7 @@ mono_method_verify (MonoMethod *method, int level)
 			do_leave (&ctx, read32 (ip + 1) + 5);
 			ip += 5;
 			start = 1;
+			need_merge = 1;
 			break;
 
 		case CEE_LEAVE_S:
@@ -5931,6 +5964,7 @@ mono_method_verify (MonoMethod *method, int level)
 			do_leave (&ctx, (signed char)ip [1] + 2);
 			ip += 2;
 			start = 1;
+			need_merge = 1;
 			break;
 
 		case CEE_PREFIX1:
@@ -5964,7 +5998,8 @@ mono_method_verify (MonoMethod *method, int level)
 
 
 			case CEE_ARGLIST:
-				check_overflow (&ctx);
+				if (!check_overflow (&ctx))
+					break;
 				if (ctx.signature->call_convention != MONO_CALL_VARARG)
 					ADD_VERIFY_ERROR (&ctx, g_strdup_printf ("Cannot use arglist on method without VARGARG calling convention at 0x%04x", ctx.ip_offset));
 				set_stack_value (&ctx, stack_push (&ctx), &mono_defaults.argumenthandle_class->byval_arg, FALSE);

@@ -114,8 +114,15 @@ namespace System
 		// try combinations of these patterns. The algorithm also looks for
 		// day of the week, AM/PM GMT and Z independently of the patterns.
 		private static readonly string[] ParseTimeFormats = new string [] {
+			"H:m:s.fff zzz",
 			"H:m:s.fffffffzzz",
 			"H:m:s.fffffff",
+			"H:m:s.ffffff",
+			"H:m:s.fffff",
+			"H:m:s.ffff",
+			"H:m:s.fff",
+			"H:m:s.ff",
+			"H:m:s.f",
 			"H:m:s tt zzz",
 			"H:m:szzz",
 			"H:m:s",

@@ -3172,7 +3172,7 @@ mono_nullable_box (guint8 *buf, MonoClass *klass)
  * mono_get_delegate_invoke:
  * @klass: The delegate class
  *
- * Returns: the MonoMethod for the "Invoke" method in the delegate klass
+ * Returns: the MonoMethod for the "Invoke" method in the delegate klass or NULL if @klass is a broken delegate type
  */
 MonoMethod *
 mono_get_delegate_invoke (MonoClass *klass)
@@ -3184,8 +3184,6 @@ mono_get_delegate_invoke (MonoClass *klass)
 	if (klass->exception_type)
 		return NULL;
 	im = mono_class_get_method_from_name (klass, "Invoke", -1);
-	g_assert (im);
-
 	return im;
 }
 

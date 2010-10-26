@@ -1009,6 +1009,19 @@ mono_class_inflate_generic_method_full_checked (MonoMethod *method, MonoClass *k
 			mono_metadata_free_type (inflated);
 	}
 
+	/*
+	 * FIXME: This should hold, but it doesn't:
+	 *
+	 * if (result->is_inflated && mono_method_get_context (result)->method_inst &&
+	 *		mono_method_get_context (result)->method_inst == mono_method_get_generic_container (((MonoMethodInflated*)result)->declaring)->context.method_inst) {
+	 * 	g_assert (result->is_generic);
+	 * }
+	 *
+	 * Fixing this here causes other things to break, hence a very
+	 * ugly hack in mini-trampolines.c - see
+	 * is_generic_method_definition().
+	 */
+
 	mono_method_inflated_lookup (iresult, TRUE);
 	mono_loader_unlock ();
 	return result;
@@ -1708,8 +1721,8 @@ mono_class_layout_fields (MonoClass *class)
 					field->offset += align - 1;
 					field->offset &= ~(align - 1);
 				}
-				/*TypeBuilders produce all sort of weird things*/
-				g_assert (class->image->dynamic || field->offset > 0);
+				/*can't have this assert on 2.6 since its SRE has much more trouble handling inflated types in SRE context.*/
+				/*g_assert (class->image->dynamic || field->offset > 0);*/
 				real_size = field->offset + size;
 			}
 
@@ -4167,11 +4180,12 @@ setup_generic_array_ifaces (MonoClass *class, MonoClass *iface, MonoMethod **met
 static char*
 concat_two_strings_with_zero (MonoImage *image, const char *s1, const char *s2)
 {
-	int len = strlen (s1) + strlen (s2) + 2;
+	int null_length = strlen ("(null)");
+	int len = (s1 ? strlen (s1) : null_length) + (s2 ? strlen (s2) : null_length) + 2;
 	char *s = mono_image_alloc (image, len);
 	int result;
 
-	result = g_snprintf (s, len, "%s%c%s", s1, '\0', s2);
+	result = g_snprintf (s, len, "%s%c%s", s1 ? s1 : "(null)", '\0', s2 ? s2 : "(null)");
 	g_assert (result == len - 1);
 
 	return s;
@@ -4913,6 +4927,12 @@ mono_class_create_from_typedef (MonoImage *image, guint32 type_token)
 				mono_profiler_class_loaded (class, MONO_PROFILE_FAILED);
 				return NULL;
 			}
+			if (class->generic_container && tmp->generic_class && tmp->generic_class->container_class == class) {
+				mono_class_set_failure (class, MONO_EXCEPTION_TYPE_LOAD, g_strdup ("Parent extends generic instance of this type"));
+				mono_loader_unlock ();
+				mono_profiler_class_loaded (class, MONO_PROFILE_FAILED);
+				return NULL;
+			}
 		}
 	}
 
@@ -5649,7 +5669,10 @@ mono_bounded_array_class_get (MonoClass *eclass, guint32 rank, gboolean bounded)
 	class->parent = parent;
 	class->instance_size = mono_class_instance_size (class->parent);
 
-	if (eclass->enumtype && !mono_class_enum_basetype (eclass)) {
+	if (eclass->byval_arg.type == MONO_TYPE_TYPEDBYREF || eclass->byval_arg.type == MONO_TYPE_VOID) {
+		/*Arrays of those two types are invalid.*/
+		mono_class_set_failure (class, MONO_EXCEPTION_TYPE_LOAD, NULL);
+	} else if (eclass->enumtype && !mono_class_enum_basetype (eclass)) {
 		if (!eclass->reflection_info || eclass->wastypebuilder) {
 			g_warning ("Only incomplete TypeBuilder objects are allowed to be an enum without base_type");
 			g_assert (eclass->reflection_info && !eclass->wastypebuilder);
@@ -6122,8 +6145,11 @@ mono_assembly_name_from_token (MonoImage *image, guint32 type_token)
 	
 	switch (type_token & 0xff000000){
 	case MONO_TOKEN_TYPE_DEF:
-		return mono_stringify_assembly_name (&image->assembly->aname);
-		break;
+		if (image->assembly)
+			return mono_stringify_assembly_name (&image->assembly->aname);
+		else if (image->assembly_name)
+			return g_strdup (image->assembly_name);
+		return g_strdup_printf ("%s", image->name ? image->name : "[Could not resolve assembly name");
 	case MONO_TOKEN_TYPE_REF: {
 		MonoAssemblyName aname;
 		guint32 cols [MONO_TYPEREF_SIZE];
@@ -8563,7 +8589,18 @@ mono_method_can_access_method_full (MonoMethod *method, MonoMethod *called, Mono
 	if (!can)
 		return FALSE;
 
-	if (!can_access_type (access_class, member_class) && (!access_class->nested_in || !can_access_type (access_class->nested_in, member_class)))
+	can = can_access_type (access_class, member_class);
+	if (!can) {
+		MonoClass *nested = access_class->nested_in;
+		while (nested) {
+			can = can_access_type (nested, member_class);
+			if (can)
+				break;
+			nested = nested->nested_in;
+		}
+	}
+
+	if (!can)
 		return FALSE;
 
 	if (called->is_inflated) {
@@ -8607,7 +8644,18 @@ mono_method_can_access_field_full (MonoMethod *method, MonoClassField *field, Mo
 	if (!can)
 		return FALSE;
 
-	if (!can_access_type (access_class, member_class) && (!access_class->nested_in || !can_access_type (access_class->nested_in, member_class)))
+	can = can_access_type (access_class, member_class);
+	if (!can) {
+		MonoClass *nested = access_class->nested_in;
+		while (nested) {
+			can = can_access_type (nested, member_class);
+			if (can)
+				break;
+			nested = nested->nested_in;
+		}
+	}
+
+	if (!can)
 		return FALSE;
 	return TRUE;
 }

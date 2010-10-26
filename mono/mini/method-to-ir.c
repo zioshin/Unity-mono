@@ -4369,6 +4369,11 @@ inline_method (MonoCompile *cfg, MonoMethod *cmethod, MonoMethodSignature *fsig,
 		mono_jit_stats.inlineable_methods++;
 		cmethod->inline_info = 1;
 	}
+
+	/*Must verify before creating locals as it can cause the JIT to assert.*/
+	if (mono_compile_is_broken (cfg, cmethod, FALSE))
+		return 0;
+
 	/* allocate space to store the return value */
 	if (!MONO_TYPE_IS_VOID (fsig->ret)) {
 		rvar = mono_compile_create_var (cfg, fsig->ret, OP_LOCAL);
@@ -5463,9 +5468,6 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 		dont_verify_stloc = TRUE;
 	}
 
-	if (!dont_verify && mini_method_verify (cfg, method_definition))
-		goto exception_exit;
-
 	if (mono_debug_using_mono_debugger ())
 		cfg->keep_cil_nops = TRUE;
 
@@ -6209,7 +6211,7 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 			/* FIXME: check the signature matches */
 			cmethod = mini_get_method (cfg, method, token, NULL, generic_context);
 
-			if (!cmethod)
+			if (!cmethod || mono_loader_get_last_error ())
 				goto load_error;
  
 			if (cfg->generic_sharing_context && mono_method_check_context_used (cmethod))
@@ -6323,7 +6325,7 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 					cil_method = cmethod;
 				}
 
-				if (!cmethod)
+				if (!cmethod || mono_loader_get_last_error ())
 					goto load_error;
 				if (!dont_verify && !cfg->skip_visibility) {
 					MonoMethod *target_method = cil_method;
@@ -6364,11 +6366,10 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 					array_rank = cmethod->klass->rank;
 					fsig = mono_method_signature (cmethod);
 				} else {
-					fsig = mono_method_signature (cmethod);
-					if (!fsig)
+					if (!mono_method_signature (cmethod))
 						goto load_error;
 
-					if (fsig->pinvoke) {
+					if (mono_method_signature (cmethod)->pinvoke) {
 						MonoMethod *wrapper = mono_marshal_get_native_wrapper (cmethod,
 							check_for_pending_exc, FALSE);
 						fsig = mono_method_signature (wrapper);
@@ -7631,7 +7632,7 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 			CHECK_OPSIZE (5);
 			token = read32 (ip + 1);
 			cmethod = mini_get_method (cfg, method, token, NULL, generic_context);
-			if (!cmethod)
+			if (!cmethod || mono_loader_get_last_error ())
 				goto load_error;
 			fsig = mono_method_get_signature (cmethod, image, token);
 			if (!fsig)
@@ -7652,6 +7653,11 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 			} else if (mono_security_get_mode () == MONO_SECURITY_MODE_CORE_CLR) {
 				ensure_method_is_allowed_to_call_method (cfg, method, cmethod, bblock, ip);
  			}
+
+			if (cfg->generic_sharing_context && cmethod && cmethod->klass != method->klass && cmethod->klass->generic_class && mono_method_is_generic_sharable_impl (cmethod, TRUE) && mono_class_needs_cctor_run (cmethod->klass, method)) {
+				emit_generic_class_init (cfg, cmethod->klass);
+				CHECK_TYPELOAD (cmethod->klass);
+			}
 
 			if (cmethod->klass->valuetype && mono_class_generic_sharing_enabled (cmethod->klass) &&
 					mono_method_is_generic_sharable_impl (cmethod, TRUE)) {
@@ -8288,6 +8294,11 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 				}
 
 				if (*ip == CEE_LDFLDA) {
+					if (sp [0]->type == STACK_OBJ) {
+						MONO_EMIT_NEW_BIALU_IMM (cfg, OP_COMPARE_IMM, -1, sp [0]->dreg, 0);
+						MONO_EMIT_NEW_COND_EXC (cfg, EQ, "NullReferenceException");
+					}
+
 					dreg = alloc_preg (cfg);
 
 					EMIT_NEW_BIALU_IMM (cfg, ins, OP_PADD_IMM, dreg, sp [0]->dreg, foffset);
@@ -9569,7 +9580,7 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 				CHECK_OPSIZE (6);
 				n = read32 (ip + 2);
 				cmethod = mini_get_method (cfg, method, n, NULL, generic_context);
-				if (!cmethod)
+				if (!cmethod || mono_loader_get_last_error ())
 					goto load_error;
 				mono_class_init (cmethod->klass);
 
@@ -9642,7 +9653,7 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 				CHECK_OPSIZE (6);
 				n = read32 (ip + 2);
 				cmethod = mini_get_method (cfg, method, n, NULL, generic_context);
-				if (!cmethod)
+				if (!cmethod || mono_loader_get_last_error ())
 					goto load_error;
 				mono_class_init (cmethod->klass);
  
@@ -10501,46 +10512,37 @@ op_to_op_src2_membase (int load_opcode, int opcode)
 #endif
 
 #ifdef TARGET_AMD64
+	if ((load_opcode == OP_LOADI4_MEMBASE) || (load_opcode == OP_LOADU4_MEMBASE)) {
 	switch (opcode) {
 	case OP_ICOMPARE:
-		if ((load_opcode == OP_LOADI4_MEMBASE) || (load_opcode == OP_LOADU4_MEMBASE))
 			return OP_AMD64_ICOMPARE_REG_MEMBASE;
-		break;
-	case OP_COMPARE:
-	case OP_LCOMPARE:
-		if ((load_opcode == OP_LOADI8_MEMBASE) || (load_opcode == OP_LOAD_MEMBASE))
-			return OP_AMD64_COMPARE_REG_MEMBASE;
-		break;
 	case OP_IADD:
-		if ((load_opcode == OP_LOADI4_MEMBASE) || (load_opcode == OP_LOADU4_MEMBASE))
 			return OP_X86_ADD_REG_MEMBASE;
 	case OP_ISUB:
-		if ((load_opcode == OP_LOADI4_MEMBASE) || (load_opcode == OP_LOADU4_MEMBASE))
 			return OP_X86_SUB_REG_MEMBASE;
 	case OP_IAND:
-		if ((load_opcode == OP_LOADI4_MEMBASE) || (load_opcode == OP_LOADU4_MEMBASE))
 			return OP_X86_AND_REG_MEMBASE;
 	case OP_IOR:
-		if ((load_opcode == OP_LOADI4_MEMBASE) || (load_opcode == OP_LOADU4_MEMBASE))
 			return OP_X86_OR_REG_MEMBASE;
 	case OP_IXOR:
-		if ((load_opcode == OP_LOADI4_MEMBASE) || (load_opcode == OP_LOADU4_MEMBASE))
 			return OP_X86_XOR_REG_MEMBASE;
+		}
+	} else if ((load_opcode == OP_LOADI8_MEMBASE) || (load_opcode == OP_LOAD_MEMBASE)) {
+		switch (opcode) {
+		case OP_COMPARE:
+		case OP_LCOMPARE:
+			return OP_AMD64_COMPARE_REG_MEMBASE;
 	case OP_LADD:
-		if ((load_opcode == OP_LOADI8_MEMBASE) || (load_opcode == OP_LOAD_MEMBASE))
 			return OP_AMD64_ADD_REG_MEMBASE;
 	case OP_LSUB:
-		if ((load_opcode == OP_LOADI8_MEMBASE) || (load_opcode == OP_LOAD_MEMBASE))
 			return OP_AMD64_SUB_REG_MEMBASE;
 	case OP_LAND:
-		if ((load_opcode == OP_LOADI8_MEMBASE) || (load_opcode == OP_LOAD_MEMBASE))
 			return OP_AMD64_AND_REG_MEMBASE;
 	case OP_LOR:
-		if ((load_opcode == OP_LOADI8_MEMBASE) || (load_opcode == OP_LOAD_MEMBASE))
 			return OP_AMD64_OR_REG_MEMBASE;
 	case OP_LXOR:
-		if ((load_opcode == OP_LOADI8_MEMBASE) || (load_opcode == OP_LOAD_MEMBASE))
 			return OP_AMD64_XOR_REG_MEMBASE;
+	}
 	}
 #endif
 

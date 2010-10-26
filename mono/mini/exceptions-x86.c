@@ -840,7 +840,6 @@ mono_arch_get_throw_corlib_exception (void)
 
 #endif
 
-/* This is really incomplete, I added it only to backport r157327 (Massi) */
 void
 mono_arch_exceptions_init (void)
 {
@@ -870,8 +869,10 @@ mono_arch_exceptions_init (void)
 		//signal_exception_trampoline = mono_aot_get_trampoline ("x86_signal_exception_trampoline");
 		return;
 	}
+
 	signal_exception_trampoline = mono_x86_get_signal_exception_trampoline (NULL, FALSE);
 }
+
 
 /*
  * mono_arch_find_jit_info_ext:
@@ -1174,16 +1175,18 @@ gboolean
 mono_arch_handle_exception (void *sigctx, gpointer obj, gboolean test_only)
 {
 #if defined(MONO_ARCH_USE_SIGACTION)
+	ucontext_t *ctx = (ucontext_t*)sigctx;
+
 	/*
 	 * Handling the exception in the signal handler is problematic, since the original
 	 * signal is disabled, and we could run arbitrary code though the debugger. So
 	 * resume into the normal stack and do most work there if possible.
 	 */
 	MonoJitTlsData *jit_tls = TlsGetValue (mono_jit_tls_id);
-	guint64 sp = UCONTEXT_REG_ESP (sigctx);
+	guint64 sp = UCONTEXT_REG_ESP (ctx);
 
 	/* Pass the ctx parameter in TLS */
-	mono_arch_sigctx_to_monoctx (sigctx, &jit_tls->ex_ctx);
+	mono_arch_sigctx_to_monoctx (ctx, &jit_tls->ex_ctx);
 	/*
 	 * Can't pass the obj on the stack, since we are executing on the
 	 * same stack. Can't save it into MonoJitTlsData, since it needs GC tracking.
@@ -1191,16 +1194,16 @@ mono_arch_handle_exception (void *sigctx, gpointer obj, gboolean test_only)
 	 * pushes it.
 	 */
 	g_assert (!test_only);
-	UCONTEXT_REG_EAX (sigctx) = (gsize)obj;
-	UCONTEXT_REG_ECX (sigctx) = UCONTEXT_REG_EIP (sigctx);
-	UCONTEXT_REG_EDX (sigctx) = (gsize)handle_signal_exception;
+	UCONTEXT_REG_EAX (ctx) = (gsize)obj;
+	UCONTEXT_REG_ECX (ctx) = UCONTEXT_REG_EIP (ctx);
+	UCONTEXT_REG_EDX (ctx) = (gsize)handle_signal_exception;
 
 	/* Allocate a stack frame, align it to 16 bytes which is needed on apple */
 	sp -= 16;
 	sp &= ~15;
-	UCONTEXT_REG_ESP (sigctx) = sp;
+	UCONTEXT_REG_ESP (ctx) = sp;
 
-	UCONTEXT_REG_EIP (sigctx) = (gsize)signal_exception_trampoline;
+	UCONTEXT_REG_EIP (ctx) = (gsize)signal_exception_trampoline;
 
 	return TRUE;
 #elif defined (PLATFORM_WIN32)

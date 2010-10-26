@@ -53,6 +53,7 @@ MonoDefaults mono_defaults;
  * domain lock.
  */
 static CRITICAL_SECTION loader_mutex;
+static gboolean loader_lock_inited;
 
 /* Statistics */
 static guint32 inflated_signatures_size;
@@ -76,6 +77,7 @@ mono_loader_init ()
 
 	if (!inited) {
 		InitializeCriticalSection (&loader_mutex);
+		loader_lock_inited = TRUE;
 
 		loader_error_thread_id = TlsAlloc ();
 		loader_lock_nest_id = TlsAlloc ();
@@ -96,6 +98,7 @@ mono_loader_cleanup (void)
 	TlsFree (loader_lock_nest_id);
 
 	/*DeleteCriticalSection (&loader_mutex);*/
+	loader_lock_inited = FALSE;
 }
 
 /*
@@ -667,7 +670,9 @@ find_method (MonoClass *in_class, MonoClass *ic, const char* name, MonoMethodSig
 		if (name [0] == '.' && (!strcmp (name, ".ctor") || !strcmp (name, ".cctor")))
 			break;
 
-		g_assert (from_class->interface_offsets_count == in_class->interface_offsets_count);
+		/*This is a workaround for 2.6 since 2.8 doesn't show this behavior. See #567859*/
+		if (from_class->interface_offsets_count != in_class->interface_offsets_count)
+			return NULL;
 		for (i = 0; i < in_class->interface_offsets_count; i++) {
 			MonoClass *in_ic = in_class->interfaces_packed [i];
 			MonoClass *from_ic = from_class->interfaces_packed [i];
@@ -1396,6 +1401,16 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 		return NULL;
 	}
 
+#ifdef TARGET_WIN32
+	if (import && import [0] == '#' && isdigit (import [1])) {
+		char *end;
+		long id;
+
+		id = strtol (import + 1, &end, 10);
+		if (id > 0 && *end == '\0')
+			import++;
+	}
+#endif
 	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 				"Searching for '%s'.", import);
 
@@ -2106,6 +2121,26 @@ mono_loader_lock_is_owned_by_self (void)
 	return GPOINTER_TO_UINT (TlsGetValue (loader_lock_nest_id)) > 0;
 }
 
+/*
+ * mono_loader_lock_if_inited:
+ *
+ *   Acquire the loader lock if it has been initialized, no-op otherwise. This can
+ * be used in runtime initialization code which can be executed before mono_loader_init ().
+ */
+void
+mono_loader_lock_if_inited (void)
+{
+	if (loader_lock_inited)
+		mono_loader_lock ();
+}
+
+void
+mono_loader_unlock_if_inited (void)
+{
+	if (loader_lock_inited)
+		mono_loader_unlock ();
+}
+
 /**
  * mono_method_signature:
  *
@@ -2136,10 +2171,15 @@ mono_method_signature (MonoMethod *m)
 	}
 
 	if (m->is_inflated) {
+		MonoError error;
 		MonoMethodInflated *imethod = (MonoMethodInflated *) m;
 		/* the lock is recursive */
 		signature = mono_method_signature (imethod->declaring);
-		signature = inflate_generic_signature (imethod->declaring->klass->image, signature, mono_method_get_context (m));
+		signature = inflate_generic_signature_checked (imethod->declaring->klass->image, signature, mono_method_get_context (m), &error);
+		if (!mono_error_ok (&error)) {
+			mono_loader_unlock ();
+			return NULL;
+		}
 
 		inflated_signatures_size += mono_metadata_signature_size (signature);
 

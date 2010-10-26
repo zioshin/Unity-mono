@@ -1248,14 +1248,15 @@ namespace System.Web {
 				throw new HttpException (String.Format ("'{0}' is not a valid virtual path.", virtualPath));
 
 			string appVirtualPath = HttpRuntime.AppDomainAppVirtualPath;
-
 			if (!VirtualPathUtility.IsRooted (virtualPath)) {
 				if (StrUtils.IsNullOrEmpty (baseVirtualDir))
 					baseVirtualDir = appVirtualPath;
 				virtualPath = VirtualPathUtility.Combine (VirtualPathUtility.AppendTrailingSlash (baseVirtualDir), virtualPath);
-			}
-			virtualPath = VirtualPathUtility.ToAbsolute (virtualPath);
-			
+				if (!VirtualPathUtility.IsAbsolute (virtualPath))
+					virtualPath = VirtualPathUtility.ToAbsolute (virtualPath);
+			} else if (!VirtualPathUtility.IsAbsolute (virtualPath))
+				virtualPath = VirtualPathUtility.ToAbsolute (virtualPath);
+
 			if (!allowCrossAppMapping){
 				if (!StrUtils.StartsWith (virtualPath, appVirtualPath, true))
 					throw new HttpException ("MapPath: Mapping across applications not allowed");
@@ -1373,7 +1374,7 @@ namespace System.Web {
 		{
 			cached_url = null;
 			current_exe_path = path;
-			UrlComponents.Path = path;
+			UrlComponents.Path = path + PathInfo;
 			// recreated on demand
 			root_virtual_dir = null;
 			base_virtual_dir = null;
@@ -1385,6 +1386,9 @@ namespace System.Web {
 		{
 			cached_url = null;
 			path_info = pi;
+
+			string path = UrlComponents.Path;
+			UrlComponents.Path = path + PathInfo;
 		}
 
 		// Headers is ReadOnly, so we need this hack for cookie-less sessions.

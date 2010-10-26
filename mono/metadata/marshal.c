@@ -575,10 +575,10 @@ mono_array_to_lparray (MonoArray *array)
 	case MONO_TYPE_R4:
 	case MONO_TYPE_R8:
 	case MONO_TYPE_VALUETYPE:
+	case MONO_TYPE_PTR:
 		/* nothing to do */
 		break;
 	case MONO_TYPE_GENERICINST:
-	case MONO_TYPE_PTR:
 	case MONO_TYPE_OBJECT:
 	case MONO_TYPE_ARRAY: 
 	case MONO_TYPE_SZARRAY:
@@ -3712,6 +3712,7 @@ mono_marshal_get_delegate_invoke (MonoMethod *method, MonoDelegate *del)
 	MonoMethod *target_method = NULL;
 	MonoClass *target_class = NULL;
 	gboolean callvirt = FALSE;
+	gboolean closed_over_null = FALSE;
 
 	/*
 	 * If the delegate target is null, and the target method is not static, a virtual 
@@ -3737,6 +3738,9 @@ mono_marshal_get_delegate_invoke (MonoMethod *method, MonoDelegate *del)
 		  !strcmp (method->name, "Invoke"));
 		
 	sig = mono_signature_no_pinvoke (method);
+
+	if (callvirt)
+		closed_over_null = sig->param_count == mono_method_signature (del->method)->param_count;
 
 	if (callvirt) {
 		/* We need to cache the signature+method pair */
@@ -3835,11 +3839,18 @@ mono_marshal_get_delegate_invoke (MonoMethod *method, MonoDelegate *del)
 	mono_mb_patch_branch (mb, pos0);
 
 	if (callvirt) {
-		mono_mb_emit_ldarg (mb, 1);
-		mono_mb_emit_op (mb, CEE_CASTCLASS, target_class);
-		for (i = 1; i < sig->param_count; ++i)
-			mono_mb_emit_ldarg (mb, i + 1);
-		mono_mb_emit_op (mb, CEE_CALLVIRT, target_method);
+		if (!closed_over_null) {
+			mono_mb_emit_ldarg (mb, 1);
+			mono_mb_emit_op (mb, CEE_CASTCLASS, target_class);
+			for (i = 1; i < sig->param_count; ++i)
+				mono_mb_emit_ldarg (mb, i + 1);
+			mono_mb_emit_op (mb, CEE_CALLVIRT, target_method);
+		} else {
+			mono_mb_emit_byte (mb, CEE_LDNULL);
+			for (i = 0; i < sig->param_count; ++i)
+				mono_mb_emit_ldarg (mb, i + 1);
+			mono_mb_emit_op (mb, CEE_CALL, target_method);
+		}
 	} else {
 		for (i = 0; i < sig->param_count; ++i)
 			mono_mb_emit_ldarg (mb, i + 1);

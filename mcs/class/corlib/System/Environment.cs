@@ -108,9 +108,26 @@ namespace System {
 		public static string CommandLine {
 			// note: security demand inherited from calling GetCommandLineArgs
 			get {
-				// FIXME: we may need to quote, but any sane person
-				// should use GetCommandLineArgs () instead.
-				return String.Join (" ", GetCommandLineArgs ());
+				StringBuilder sb = new StringBuilder ();
+				foreach (string str in GetCommandLineArgs ()) {
+					bool escape = false;
+					string quote = "";
+					string s = str;
+					for (int i = 0; i < s.Length; i++) {
+						if (quote.Length == 0 && Char.IsWhiteSpace (s [i])) {
+							quote = "\"";
+						} else if (s [i] == '"') {
+							escape = true;
+						}
+					}
+					if (escape && quote.Length != 0) {
+						s = s.Replace ("\"", "\\\"");
+					}
+					sb.AppendFormat ("{0}{1}{0} ", quote, s);
+				}
+				if (sb.Length > 0)
+					sb.Length--;
+				return sb.ToString ();
 			}
 		}
 
@@ -560,10 +577,30 @@ namespace System {
 #endif
 			// use FDO's CONFIG_HOME. This data will be synced across a network like the windows counterpart.
 			case SpecialFolder.ApplicationData:
+#if MONOTOUCH
+			{
+				string dir = Path.Combine (Path.Combine (home, "Documents"), ".config");
+				if (!Directory.Exists (dir))
+					Directory.CreateDirectory (dir);
+
+				return dir;
+			}
+#else
 				return config;
+#endif
 			//use FDO's DATA_HOME. This is *NOT* synced
 			case SpecialFolder.LocalApplicationData:
+#if MONOTOUCH
+			{
+				string dir = Path.Combine (home, "Documents");
+				if (!Directory.Exists (dir))
+					Directory.CreateDirectory (dir);
+
+				return dir;
+			}
+#else
 				return data;
+#endif
 #if NET_1_1
 			case SpecialFolder.Desktop:
 #endif

@@ -149,7 +149,7 @@ namespace System.IO
 		}
 
 		public FileStream (string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, bool useAsync)
-			: this (path, mode, access, share, bufferSize, useAsync, FileOptions.None)
+			: this (path, mode, access, share, bufferSize, false, useAsync ? FileOptions.Asynchronous : FileOptions.None)
 		{
 		}
 

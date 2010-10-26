@@ -1,3 +1,148 @@
+2010-07-30 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* loader.c (find_method): Return null if from_class number
+	of interfaces doesnt't match in_class.
+
+	Fixes #567859
+
+2010-07-30 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* class.c (mono_class_layout_fields): Comment out an
+	assert from a backport. It can't be done under 2.6
+	due to weaker SRE implementation.
+
+2010-07-28 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* verify.c (mono_method_verify): Don't move forward
+	with verification if a stack overflow is detected for
+	the ARGLIST opcode.
+
+	Fixes #601953
+
+2010-07-28 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* class.c (mono_bounded_array_class_get): Fail arrays
+	of void or typedbyref. Those two types are not allowed
+	to be used with arrays. Failing them is easier and less
+	error prone than returning NULL.
+
+	Fixes #603279
+
+2010-07-28 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* object.c (mono_get_delegate_invoke): Don't assert if
+	the Invoke method is not found. This can happen with
+	broken types and it's the caller resposibility to deal
+	with a null return.
+
+	Fixes #553403
+
+2010-07-28 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* class.c (mono_assembly_name_from_token): Handle
+	images with null assembly. This can happen with resource
+	or broken assemblies.
+
+	Fixes #623586.
+
+2010-07-27 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* class.c (concat_two_strings_with_zero): Guard against
+	null strings.
+
+	Modified version of patch by Sebastien Pouliot.
+
+	Fixes #623653.
+
+2010-07-27 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* image.c (mono_image_load_module): Handle the case of
+	module index equal or smaller than zero. It is possible
+	to embed a valid zero index into metadata so this case
+	must be explicitly handled.
+
+	Patch by Sebastien Pouliot.
+
+	Fixes #623581.
+
+2010-07-27 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* metadata-verify.c (INVALID_IMPLMAP_FLAGS_BITS): Add non standard
+	bits for best fit on/off (4,5) and throw on unmappable on/off (12/13).
+
+	Fixes #622221.
+
+2010-07-27 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* verify.c (do_invoke_method): Improve error message.
+
+2010-07-27 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* verify.c (mono_generic_param_is_constraint_compatible): Don't
+	fail a contraint check even if the candidate has no constraints.
+	All constraints might resolve to the candidate itself so it can
+	have none.
+
+	Fixes #622225.
+
+2010-07-23  Zoltan Varga  <vargaz@gmail.com>
+
+	* loader.c (mono_loader_lock_if_inited): New helper function which can be called
+	during startup before the loader lock is initialized.
+	(mono_loader_unlock_if_inited): Ditto.
+
+2010-07-21 Gonzalo Paniagua Javier <gonzalo@novell.com>
+
+	* threadpool.c: don't accept more work items or keep waiting for them
+	if the runtime is shutting down. This way, even the idle threads will
+	exit when teh runtime is being shut down.
+
+2010-07-12 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* verify.c (mono_generic_param_is_constraint_compatible):
+	The candidate type itself might satisty the required
+	constraints.
+
+	Fixes #621599.
+
+2010-07-10 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* loader.c (mono_method_signature_checked): Use checked
+	variant of inflate_generic_signature.
+
+	Fixes #606353.
+
+2010-07-09 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* class.c (mono_method_can_access_method_full): Handle type
+	accessibility with very deep nested types.
+
+	* class.c (mono_method_can_access_field_full): Ditto.
+
+	Fixes #619300.
+
+2010-06-25  Mark Probst  <mark.probst@gmail.com>
+
+	* class.c (mono_class_inflate_generic_method_full_checked): Added
+	a comment regarding a hack in mini-trampolines.c.
+
+	Backport of r159578.
+
+2010-06-29 Rodrigo Kumpera  <rkumpera@novell.com>
+
+	* icall.c (ves_icall_Type_make_array_type): Raise a TLE if a
+	TypedByRef is passed.
+
+	* icall.c (ves_icall_Type_make_byref_type): Ditto.
+
+	* icall.c (ves_icall_Type_MakePointerType): Ditto.
+
+	Fixes #612780.
+
+2010-06-21  Zoltan Varga  <vargaz@gmail.com>
+
+	* marshal.c (mono_array_to_lparray): Allow MONO_TYPE_PTR. Fixes #615952.
+
 2010-06-04  Marek Habersack  <mhabersack@novell.com>
 
 	* icall.c (ves_icall_MonoType_GetEvent): be case insensitive is

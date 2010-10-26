@@ -1066,6 +1066,8 @@ void GC_thr_init()
 	      GC_markers = atoi(markers_string);
 	    } else {
 	      GC_markers = GC_nprocs;
+		  if (GC_markers > MAX_MARKERS)
+			  GC_markers = MAX_MARKERS;
 	    }
           }
 #	endif

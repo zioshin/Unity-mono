@@ -53,6 +53,8 @@ namespace System.Web.UI.WebControls
 	[Designer ("System.Web.UI.Design.WebControls.TreeViewDesigner, " + Consts.AssemblySystem_Design, "System.ComponentModel.Design.IDesigner")]
 	public class TreeView: HierarchicalDataBoundControl, IPostBackEventHandler, IPostBackDataHandler, ICallbackEventHandler
 	{
+		static readonly char[] postDataSplitChars = {'|'};
+		
 		string activeSiteMapPath;
 		bool stylesPrepared;
 		Style hoverNodeStyle;
@@ -1025,12 +1027,15 @@ namespace System.Web.UI.WebControls
 			if (EnableClientScript && PopulateNodesFromClient) {
 				string states = postCollection [ClientID + "_PopulatedStates"];
 				if (states != null) {
-					foreach (string id in states.Split ('|')) {
-						if (String.IsNullOrEmpty(id))
-							continue;
+					foreach (string id in states.Split (postDataSplitChars, StringSplitOptions.RemoveEmptyEntries)) {
 						TreeNode node = FindNodeByPos (id);
-						if (node != null && node.PopulateOnDemand && !node.Populated)
-							node.Populated = true;
+						if (node != null && node.PopulateOnDemand && !node.Populated) {
+							Page page = Page;
+							if (page != null && page.IsCallback)
+								node.Populated = true; // Bug #492307
+							else
+								node.Populate (); // Bug #626829
+						}
 					}
 				}
 				res = true;
@@ -1042,7 +1047,7 @@ namespace System.Web.UI.WebControls
 			if (EnableClientScript) {
 				string states = postCollection [ClientID + "_ExpandStates"];
 				if (states != null) {
-					string[] ids = states.Split ('|');
+					string[] ids = states.Split (postDataSplitChars, StringSplitOptions.RemoveEmptyEntries);
 					UnsetExpandStates (Nodes, ids);
 					SetExpandStates (ids);
 				} else
@@ -1086,13 +1091,14 @@ namespace System.Web.UI.WebControls
 		{
 			base.OnPreRender (e);
 
-			if (Page != null) {
-				if (Enabled)
-					Page.RegisterRequiresPostBack (this);
+			Page page = Page;
+			if (page != null) {
+				if (IsEnabled)
+					page.RegisterRequiresPostBack (this);
 			
-				if (EnableClientScript && !Page.ClientScript.IsClientScriptIncludeRegistered (typeof(TreeView), "TreeView.js")) {
-					string url = Page.ClientScript.GetWebResourceUrl (typeof(TreeView), "TreeView.js");
-					Page.ClientScript.RegisterClientScriptInclude (typeof(TreeView), "TreeView.js", url);
+				if (EnableClientScript && !page.ClientScript.IsClientScriptIncludeRegistered (typeof(TreeView), "TreeView.js")) {
+					string url = page.ClientScript.GetWebResourceUrl (typeof(TreeView), "TreeView.js");
+					page.ClientScript.RegisterClientScriptInclude (typeof(TreeView), "TreeView.js", url);
 				}
 			}
 			
@@ -1117,11 +1123,11 @@ namespace System.Web.UI.WebControls
 							     ClientScriptManager.GetScriptLiteral (GetNodeImageUrl ("noexpand", imageStyle)));
 			}
 
-			if (Page != null) {
+			if (page != null) {
 				script.AppendFormat (_OnPreRender_Script_PopulateCallback,
 						     ctree,
-						     Page.theForm,
-						     Page.WebFormScriptReference);
+						     page.theForm,
+						     page.WebFormScriptReference);
 				
 						     // Page.ClientScript.GetCallbackEventReference (
 						     // 	     "this.uid", "nodeId",
@@ -1134,23 +1140,24 @@ namespace System.Web.UI.WebControls
 						     ClientScriptManager.GetScriptLiteral (GetNodeImageToolTip (true, null)),
 						     ClientScriptManager.GetScriptLiteral (GetNodeImageToolTip (false, null)));
 				
-				if (!Page.IsPostBack)
+				if (!page.IsPostBack)
 					SetNodesExpandedToDepthRecursive (Nodes);
 
-				if (EnableClientScript) {
-					Page.ClientScript.RegisterHiddenField (ClientID + "_ExpandStates", GetExpandStates ());
+				bool enableClientScript = EnableClientScript;
+				if (enableClientScript) {
+					page.ClientScript.RegisterHiddenField (ClientID + "_ExpandStates", GetExpandStates ());
 
 					// Make sure the basic script infrastructure is rendered
-					Page.ClientScript.RegisterWebFormClientScript ();
+					page.ClientScript.RegisterWebFormClientScript ();
 				}
 
-				if (EnableClientScript && PopulateNodesFromClient)
-					Page.ClientScript.RegisterHiddenField (ClientID + "_PopulatedStates", "|");
+				if (enableClientScript && PopulateNodesFromClient)
+					page.ClientScript.RegisterHiddenField (ClientID + "_PopulatedStates", "|");
 
 				EnsureStylesPrepared ();
 
 				if (hoverNodeStyle != null) {
-					if (Page.Header == null)
+					if (page.Header == null)
 						throw new InvalidOperationException ("Using TreeView.HoverNodeStyle requires Page.Header to be non-null (e.g. <head runat=\"server\" />).");
 					RegisterStyle (HoverNodeStyle, HoverNodeLinkStyle);
 					script.AppendFormat (_OnPreRender_Script_HoverStyle,
@@ -1159,7 +1166,7 @@ namespace System.Web.UI.WebControls
 							     ClientScriptManager.GetScriptLiteral (HoverNodeLinkStyle.RegisteredCssClass));					
 				}
 				
-				Page.ClientScript.RegisterStartupScript (typeof(TreeView), this.UniqueID, script.ToString (), true);
+				page.ClientScript.RegisterStartupScript (typeof(TreeView), this.UniqueID, script.ToString (), true);
 				script = null;
 			}
 		}
@@ -1355,8 +1362,9 @@ namespace System.Web.UI.WebControls
 		
  		void RenderNode (HtmlTextWriter writer, TreeNode node, int level, ArrayList levelLines, bool hasPrevious, bool hasNext)
 		{
-			if (node.PopulateOnDemand && node.HadChildrenBeforePopulating)
-				throw new InvalidOperationException ("PopulateOnDemand cannot be set to true on a node that already has children.");
+			// FIXME: disabled for now - needs closer investigation
+			//if (node.PopulateOnDemand && node.HadChildrenBeforePopulating)
+			// 	throw new InvalidOperationException ("PopulateOnDemand cannot be set to true on a node that already has children.");
 			
 			DecorateNode(node);
 			

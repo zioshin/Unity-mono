@@ -1,3 +1,29 @@
+2010-07-14  Jb Evain  <jbevain@novell.com>
+
+	backport of r160338.
+
+	* Enumerable.cs (Union): fix HashSet.Contains call.
+
+2010-07-13  Jb Evain  <jbevain@novell.com>
+
+	backport of r160298.
+
+	* Enumerable.cs (Except): fix HashSet.Contains call.
+	Fixes #621911.
+
+2010-06-22  Jb Evain  <jbevain@novell.com>
+
+	backport of r159337.
+
+	* Queryable.cs: properly set the constants types in the queryable
+	expression tree.
+
+2010-06-22  Jb Evain  <jbevain@novell.com>
+
+	backport of r159329.
+
+	* QueryableEnumerable.cs: override ToString.
+
 2010-05-25  Jb Evain  <jbevain@novell.com>
 
 	backport of r157831.

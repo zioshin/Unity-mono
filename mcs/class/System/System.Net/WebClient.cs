@@ -93,6 +93,7 @@ namespace System.Net
 		Thread async_thread;
 		Encoding encoding = Encoding.Default;
 		IWebProxy proxy;
+		RequestCachePolicy cache_policy;
 #endif
 
 		// Constructors
@@ -139,25 +140,23 @@ namespace System.Net
 			return new NotImplementedException ();
 		}
 		
-		[MonoTODO]
+		[MonoTODO ("Value can be set but is currently ignored")]
 		public RequestCachePolicy CachePolicy
 		{
 			get {
 				throw GetMustImplement ();
 			}
-			set {
-				throw GetMustImplement ();
-			}
+			set { cache_policy = value; }
 		}
 
-		[MonoTODO]
+		[MonoTODO ("Value can be set but is currently ignored")]
 		public bool UseDefaultCredentials
 		{
 			get {
 				throw GetMustImplement ();
 			}
 			set {
-				throw GetMustImplement ();
+				// This makes no sense in mono
 			}
 		}
 #endif
@@ -272,9 +271,7 @@ namespace System.Net
 			
 			try {
 				request = SetupRequest (address);
-				WebResponse response = GetWebResponse (request);
-				Stream st = response.GetResponseStream ();
-				return ReadAll (st, (int) response.ContentLength, userToken);
+				return ReadAll (request, userToken);
 			} catch (ThreadInterruptedException){
 				if (request != null)
 					request.Abort ();
@@ -549,9 +546,7 @@ namespace System.Net
 					stream.Write (data, 0, contentLength);
 				}
 				
-				WebResponse response = GetWebResponse (request);
-				Stream st = response.GetResponseStream ();
-				return ReadAll (st, (int) response.ContentLength, userToken);
+				return ReadAll (request, userToken);
 			} catch (ThreadInterruptedException){
 				if (request != null)
 					request.Abort ();
@@ -642,8 +637,12 @@ namespace System.Net
 				fStream = File.OpenRead (fileName);
 				request = SetupRequest (address, method, true);
 				reqStream = request.GetRequestStream ();
-				byte [] realBoundary = Encoding.ASCII.GetBytes ("--" + boundary + "\r\n");
-				reqStream.Write (realBoundary, 0, realBoundary.Length);
+				byte [] bytes_boundary = Encoding.ASCII.GetBytes (boundary);
+				reqStream.WriteByte ((byte) '-');
+				reqStream.WriteByte ((byte) '-');
+				reqStream.Write (bytes_boundary, 0, bytes_boundary.Length);
+				reqStream.WriteByte ((byte) '\r');
+				reqStream.WriteByte ((byte) '\n');
 				string partHeaders = String.Format ("Content-Disposition: form-data; " +
 								    "name=\"file\"; filename=\"{0}\"\r\n" +
 								    "Content-Type: {1}\r\n\r\n",
@@ -658,12 +657,16 @@ namespace System.Net
 
 				reqStream.WriteByte ((byte) '\r');
 				reqStream.WriteByte ((byte) '\n');
-				reqStream.Write (realBoundary, 0, realBoundary.Length);
+				reqStream.WriteByte ((byte) '-');
+				reqStream.WriteByte ((byte) '-');
+				reqStream.Write (bytes_boundary, 0, bytes_boundary.Length);
+				reqStream.WriteByte ((byte) '-');
+				reqStream.WriteByte ((byte) '-');
+				reqStream.WriteByte ((byte) '\r');
+				reqStream.WriteByte ((byte) '\n');
 				reqStream.Close ();
 				reqStream = null;
-				WebResponse response = GetWebResponse (request);
-				Stream st = response.GetResponseStream ();
-				resultBytes = ReadAll (st, (int) response.ContentLength, userToken);
+				resultBytes = ReadAll (request, userToken);
 			} catch (ThreadInterruptedException){
 				if (request != null)
 					request.Abort ();
@@ -771,9 +774,7 @@ namespace System.Net
 				}
 				tmpStream.Close ();
 				
-				WebResponse response = GetWebResponse (request);
-				Stream st = response.GetResponseStream ();
-				return ReadAll (st, (int) response.ContentLength, userToken);
+				return ReadAll (request, userToken);
 			} catch (ThreadInterruptedException) {
 				request.Abort ();
 				throw;
@@ -997,10 +998,23 @@ namespace System.Net
 			return request;
 		}
 
-		byte [] ReadAll (Stream stream, int length, object userToken)
+		byte [] ReadAll (WebRequest request, object userToken)
 		{
+			WebResponse response = GetWebResponse (request);
+			Stream stream = response.GetResponseStream ();
+			int length = (int) response.ContentLength;
+			HttpWebRequest wreq = request as HttpWebRequest;
+
+#if NET_2_0
+			if (length > -1 && wreq != null && (int) wreq.AutomaticDecompression != 0) {
+				string content_encoding = ((HttpWebResponse) response).ContentEncoding;
+				if (((content_encoding == "gzip" && (wreq.AutomaticDecompression & DecompressionMethods.GZip) != 0)) ||
+					((content_encoding == "deflate" && (wreq.AutomaticDecompression & DecompressionMethods.Deflate) != 0)))
+					length = -1;
+			}
+#endif
+
 			MemoryStream ms = null;
-			
 			bool nolength = (length == -1);
 			int size = ((nolength) ? 8192 : length);
 			if (nolength)
