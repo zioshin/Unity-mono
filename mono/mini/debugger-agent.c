@@ -930,8 +930,12 @@ mono_debugger_agent_cleanup (void)
 #ifdef HOST_WIN32
 	/* SD_RECEIVE doesn't break the recv in the debugger thread */
 	shutdown (conn_fd, SD_BOTH);
+	shutdown (listen_fd, SD_BOTH);
+	closesocket (listen_fd);
 #else
 	shutdown (conn_fd, SHUT_RD);
+	shutdown (listen_fd, SHUT_RDWR);
+	close (listen_fd);
 #endif
 
 	/* 
