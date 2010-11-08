@@ -388,6 +388,7 @@ mono_dl_symbol (MonoDl *module, const char *name, void **symbol)
 #else
 	sym = LL_SO_SYMBOL (module, name);
 #endif
+#ifndef TARGET_WIN32
 	if (sym) {
 		if (symbol)
 			*symbol = sym;

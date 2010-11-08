@@ -9,7 +9,7 @@
 
 #include <config.h>
 
-#ifdef HOST_WIN32
+//if (defined (HOST_WIN32) && defined (USE_COREE))
 
 #if _WIN32_WINNT < 0x0501
 /* Required for ACTCTX. */

@@ -1824,6 +1824,7 @@ mono_domain_assembly_preload (MonoAssemblyName *aname,
 /*
  * Check whenever a given assembly was already loaded in the current appdomain.
  */
+mono_set_ignore_version_and_key_when_finding_assemblies_already_loaded(mono_bool value)
 static MonoAssembly *
 mono_domain_assembly_search (MonoAssemblyName *aname,
 							 gpointer user_data)
