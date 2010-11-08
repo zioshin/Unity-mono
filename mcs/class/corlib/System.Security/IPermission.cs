@@ -32,7 +32,7 @@ using System.Runtime.InteropServices;
 namespace System.Security {
 
 	[ComVisible (true)]
-#if MOONLIGHT
+#if (NET_2_1 && !MONOTOUCH) || DISABLE_SECURITY
 	public interface IPermission {
 #else
 	public interface IPermission : ISecurityEncodable {

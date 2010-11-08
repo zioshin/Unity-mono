@@ -2943,6 +2943,7 @@ appdomain_unload (MonoProfiler *prof, MonoDomain *domain)
 	/* Invalidate each thread's frame stack */
 	mono_g_hash_table_foreach (thread_to_tls, invalidate_each_thread, NULL);
 	clear_breakpoints_for_domain (domain);
+	g_hash_table_remove_all (loaded_classes);
 	process_profiler_event (EVENT_KIND_APPDOMAIN_UNLOAD, domain);
 }
 
@@ -2973,7 +2974,6 @@ assembly_unload (MonoProfiler *prof, MonoAssembly *assembly)
 	process_profiler_event (EVENT_KIND_ASSEMBLY_UNLOAD, assembly);
 
 	clear_event_requests_for_assembly (assembly);
-	clear_types_for_assembly (assembly);
 }
 
 static void
@@ -3165,7 +3165,7 @@ insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo
 		il_offset = seq_points->seq_points [i].il_offset;
 		native_offset = seq_points->seq_points [i].native_offset;
 
-		if (il_offset == bp->il_offset)
+		if (il_offset >= bp->il_offset)
 			break;
 	}
 
@@ -4098,6 +4098,21 @@ ss_destroy (SingleStepReq *req)
 	g_free (ss_req);
 	ss_req = NULL;
 }
+// FIXME: This should be abstracted into a callback provided from
+// outside of sdb...
+static gboolean
+class_is_a_UnityEngine_MonoBehaviour (MonoClass *klass) {
+	while (klass != NULL) {
+		if ((klass->name_space != NULL) &&
+				(! strcmp (klass->name_space, "UnityEngine")) &&
+				(klass->name != NULL) &&
+				(! strcmp (klass->name, "MonoBehaviour"))) {
+			return TRUE;
+		}
+		klass = klass->parent;
+	}
+	return FALSE;
+}
 
 void
 mono_debugger_agent_handle_exception (MonoException *exc, MonoContext *throw_ctx, 
@@ -4169,6 +4184,23 @@ mono_debugger_agent_handle_exception (MonoException *exc, MonoContext *throw_ctx
 
 	ei.exc = (MonoObject*)exc;
 	ei.caught = catch_ctx != NULL;
+	
+	if (catch_ctx != NULL) {
+		MonoDomain *d = mono_domain_get ();
+		if (d != NULL) {
+			MonoJitInfo *catch_ji = mini_jit_info_table_find (mono_domain_get (), MONO_CONTEXT_GET_IP (catch_ctx), NULL);
+			if (catch_ji != NULL) {
+				const char *catch_m_name = mono_method_full_name (catch_ji->method, TRUE);
+				if ((catch_ji->method->wrapper_type == MONO_WRAPPER_RUNTIME_INVOKE) &&
+						(ji != NULL) &&
+						class_is_a_UnityEngine_MonoBehaviour (ji->method->klass)) {
+					// Make so that we stop at this exception
+					suspend_policy = SUSPEND_POLICY_ALL;
+					ei.caught = FALSE;
+				}
+			}
+		}
+	}
 
 	mono_loader_lock ();
 	events = create_event_list (EVENT_KIND_EXCEPTION, NULL, ji, &ei, &suspend_policy);
@@ -4617,30 +4649,6 @@ clear_event_requests_for_assembly (MonoAssembly *assembly)
 			}
 		}
 	}
-	mono_loader_unlock ();
-}
-
-/*
- * type_comes_from_assembly:
- *
- *   GHRFunc that returns TRUE if klass comes from assembly
- */
-static gboolean
-type_comes_from_assembly (gpointer klass, gpointer also_klass, gpointer assembly)
-{
-	return (mono_class_get_image ((MonoClass*)klass) == mono_assembly_get_image ((MonoAssembly*)assembly));
-}
-
-/*
- * clear_types_for_assembly:
- *
- *   Clears types from loaded_classes for a given assembly
- */
-static void
-clear_types_for_assembly (MonoAssembly *assembly)
-{
-	mono_loader_lock ();
-	g_hash_table_foreach_remove (loaded_classes, type_comes_from_assembly, assembly);
 	mono_loader_unlock ();
 }
 

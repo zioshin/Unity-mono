@@ -4,8 +4,8 @@ AC_CANONICAL_SYSTEM
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(eglib,0.3)
 AM_MAINTAINER_MODE
+AM_PROG_CC_C_O
 
-AC_PROG_CC
 AM_PROG_LIBTOOL
 CFLAGS="$CFLAGS -g -O0 -D_GNU_SOURCE"
 GNUC_PRETTY=
@@ -132,7 +132,7 @@ else
    G_GINT64_FORMAT='"lld"'
 fi
 
-AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+#AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
 pkg_config_path=
 AC_ARG_WITH(crosspkgdir, [  --with-crosspkgdir=/path/to/pkg-config/dir      Change pkg-config dir to custom dir],

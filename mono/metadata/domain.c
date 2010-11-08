@@ -1272,7 +1272,8 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 #ifdef HOST_WIN32
 	/* Avoid system error message boxes. */
 	SetErrorMode (SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
-
+#endif
+#ifdef USE_COREE
 	mono_load_coree (exe_filename);
 #endif
 
@@ -1311,7 +1312,7 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 		 * exe_image, and close it during shutdown.
 		 */
 		get_runtimes_from_exe (exe_filename, &exe_image, runtimes);
-#ifdef HOST_WIN32
+#if (defined (HOST_WIN32) && defined (USE_COREE))
 		if (!exe_image) {
 			exe_image = mono_assembly_open_from_bundle (exe_filename, NULL, FALSE);
 			if (!exe_image)
@@ -1969,6 +1970,13 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 		domain->type_init_exception_hash = NULL;
 	}
 
+	/* must do this early as it accesses fields and types */
+	if (domain->special_static_fields) {
+		mono_alloc_special_static_data_free (domain->special_static_fields);
+		g_hash_table_destroy (domain->special_static_fields);
+		domain->special_static_fields = NULL;
+	}
+
 	for (tmp = domain->domain_assemblies; tmp; tmp = tmp->next) {
 		MonoAssembly *ass = tmp->data;
 		mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_ASSEMBLY, "Unloading domain %s %p, assembly %s %p, refcount=%d\n", domain->friendly_name, domain, ass->aname.name, ass, ass->ref_count);
@@ -2016,6 +2024,7 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 	domain->stack_overflow_ex = NULL;
 	domain->ephemeron_tombstone = NULL;
 	domain->entry_assembly = NULL;
+
 
 	g_free (domain->friendly_name);
 	domain->friendly_name = NULL;

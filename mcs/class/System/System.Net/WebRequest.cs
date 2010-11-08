@@ -68,13 +68,13 @@ namespace System.Net
 		static WebRequest ()
 		{
 #if NET_2_1
-			AddPrefix ("http", typeof (HttpRequestCreator));
-			AddPrefix ("https", typeof (HttpRequestCreator));
+			AddDynamicPrefix("http","HttpRequestCreator");
+			AddDynamicPrefix("https","HttpRequestCreator");
 	#if MONOTOUCH
-			AddPrefix ("file", typeof (FileWebRequestCreator));
-			AddPrefix ("ftp", typeof (FtpRequestCreator));
+			AddDynamicPrefix("file","FileWebRequestCreator");
+			AddDynamicPrefix("ftp","FtpRequestCreator");
 	#endif
-#else
+ #else
 	#if NET_2_0
 			defaultCachePolicy = new HttpRequestCachePolicy (HttpRequestCacheLevel.NoCacheNoStore);
 	#endif
@@ -89,7 +89,19 @@ namespace System.Net
 			}
 	#endif
 			ConfigurationSettings.GetConfig ("system.net/webRequestModules");
-#endif
+ #endif
+		}
+		
+		static void AddDynamicPrefix(string protocol, string implementor)
+		{
+			//We're adding these types dynamically, so that they will get added if they are present,
+			//but in cases where they are not present (unity_web profile), it's fine. We need them to
+			//not be referenced statically so the linker is able to remove them from the unity_web profile
+			
+			var impl = typeof(WebRequest).Assembly.GetType("System.Net."+implementor);
+			if (impl == null)
+				return;
+			AddPrefix(protocol, impl);
 		}
 		
 		protected WebRequest () 

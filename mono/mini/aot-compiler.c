@@ -111,6 +111,9 @@ typedef struct MonoAotOptions {
 	gboolean stats;
 	char *tool_prefix;
 	gboolean autoreg;
+#if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
+	gboolean ficall;                                                                                                                                                                           
+#endif 
 } MonoAotOptions;
 
 typedef struct MonoAotStats {
@@ -4158,6 +4161,10 @@ mono_aot_parse_options (const char *aot_options, MonoAotOptions *opts)
 			opts->no_dlsym = TRUE;
 		} else if (str_begins_with (arg, "asmonly")) {
 			opts->asm_only = TRUE;
+#if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
+                } else if (str_begins_with (arg, "ficall")) {
+                        opts->ficall = TRUE;                                                                                                                                                       
+#endif 
 		} else if (str_begins_with (arg, "asmwriter")) {
 			opts->asm_writer = TRUE;
 		} else if (str_begins_with (arg, "nodebug")) {
@@ -4301,6 +4308,19 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 	gboolean skip;
 	int index, depth;
 	MonoMethod *wrapped;
+
+#if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
+        if (acfg->aot_opts.ficall && method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE)                                                                                                       
+         {                                                                                                                                                                                         
+             method->save_lmf = FALSE;                                                                                                                                                             
+             MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);                                                                                                                      
+             if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL))                                                                                                               
+             {
+                 if (wrapped->signature->ret->type != MONO_TYPE_R4)                                                                                                                                
+                     return;                                                                                                                                                                       
+             }                                                                                                                                                                                     
+         }                                                                                                                                                                                         
+#endif        
 
 	if (acfg->aot_opts.metadata_only)
 		return;
@@ -6522,6 +6542,11 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 	
 	return 0;
 }
+
+#if defined(PLATFORM_ANDROID)
+/* Android GDB fails with "Unable to read JIT descriptor from remote memory!" */
+	#define __jit_debug_descriptor __jit_debug_descriptor_dummy
+#endif
 
 #else
 

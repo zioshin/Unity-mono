@@ -1426,8 +1426,11 @@ icall_append_job (MonoObject *ar)
 static void
 threadpool_append_job (ThreadPool *tp, MonoObject *ar)
 {
+	if (mono_runtime_is_shutting_down())
+		return;
 	threadpool_append_jobs (tp, &ar, 1);
 }
+
 
 static MonoMList *
 create_or_reuse_list (ThreadPool *tp)

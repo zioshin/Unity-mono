@@ -35,7 +35,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
+#if !DISABLE_SECURITY
 using System.Security.Permissions;
+#endif
 using System.Text;
 
 using Mono.Xml;
@@ -165,11 +167,15 @@ namespace Mono.Security.Cryptography {
 		{
 			// see NOTES
 // FIXME		new FileIOPermission (FileIOPermissionAccess.Read, this.Filename).Assert ();
-
+			
+			if (System.Environment.SocketSecurityEnabled) return false;
+			
 			bool result = File.Exists (this.Filename);
 			if (result) {
 				using (StreamReader sr = File.OpenText (this.Filename)) {
+					#if !DISABLE_SECURITY
 					FromXml (sr.ReadToEnd ());
+					#endif
 				}
 			}
 			return result;
@@ -180,9 +186,13 @@ namespace Mono.Security.Cryptography {
 			// see NOTES
 // FIXME		new FileIOPermission (FileIOPermissionAccess.Write, this.Filename).Assert ();
 
+			if (System.Environment.SocketSecurityEnabled) return;
+			
 			using (FileStream fs = File.Open (this.Filename, FileMode.Create)) {
 				StreamWriter sw = new StreamWriter (fs, Encoding.UTF8);
+				#if !DISABLE_SECURITY
 				sw.Write (this.ToXml ());
+				#endif
 				sw.Close ();
 			}
 			// apply protection to newly created files
@@ -197,6 +207,8 @@ namespace Mono.Security.Cryptography {
 			// see NOTES
 // FIXME		new FileIOPermission (FileIOPermissionAccess.Write, this.Filename).Assert ();
 
+			if (System.Environment.SocketSecurityEnabled) return;
+			
 			File.Delete (this.Filename);
 			// it's now possible to change the keypair un the container
 		}
@@ -418,7 +430,7 @@ namespace Mono.Security.Cryptography {
 			copy.Flags = p.Flags;
 			return copy;
 		}
-
+#if !DISABLE_SECURITY
 		private void FromXml (string xml) 
 		{
 			SecurityParser sp = new SecurityParser ();
@@ -452,6 +464,7 @@ namespace Mono.Security.Cryptography {
 			xml.AppendFormat (">{1}\t\t{0}{1}\t</KeyValue>{1}</KeyPair>{1}", this.KeyValue, Environment.NewLine);
 			return xml.ToString ();
 		}
+#endif
 	}
 }
 

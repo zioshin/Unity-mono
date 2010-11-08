@@ -38,10 +38,12 @@ static MonoW32ExceptionHandler fpe_handler;
 static MonoW32ExceptionHandler ill_handler;
 static MonoW32ExceptionHandler segv_handler;
 
-static LPTOP_LEVEL_EXCEPTION_FILTER old_handler;
+LPTOP_LEVEL_EXCEPTION_FILTER old_win32_toplevel_exception_filter;
+guint64 win32_chained_exception_filter_result;
+gboolean win32_chained_exception_filter_didrun;
 
 #define W32_SEH_HANDLE_EX(_ex) \
-	if (_ex##_handler) _ex##_handler(0, er, sctx)
+	if (_ex##_handler) _ex##_handler(0, ep, sctx)
 
 /*
  * Unhandled Exception Filter
@@ -54,6 +56,7 @@ LONG CALLBACK seh_handler(EXCEPTION_POINTERS* ep)
 	MonoContext* sctx;
 	LONG res;
 
+	win32_chained_exception_filter_didrun = FALSE;
 	res = EXCEPTION_CONTINUE_EXECUTION;
 
 	er = ep->ExceptionRecord;
@@ -114,17 +117,20 @@ LONG CALLBACK seh_handler(EXCEPTION_POINTERS* ep)
 
 	g_free (sctx);
 
+	if (win32_chained_exception_filter_didrun)
+		res = win32_chained_exception_filter_result;
+
 	return res;
 }
 
 void win32_seh_init()
 {
-	old_handler = SetUnhandledExceptionFilter(seh_handler);
+	old_win32_toplevel_exception_filter = SetUnhandledExceptionFilter(seh_handler);
 }
 
 void win32_seh_cleanup()
 {
-	if (old_handler) SetUnhandledExceptionFilter(old_handler);
+	if (old_win32_toplevel_exception_filter) SetUnhandledExceptionFilter(old_win32_toplevel_exception_filter);
 }
 
 void win32_seh_set_handler(int type, MonoW32ExceptionHandler handler)
@@ -689,31 +695,6 @@ mono_arch_find_jit_info_ext (MonoDomain *domain, MonoJitTlsData *jit_tls,
 	return FALSE;
 }
 
-/*
- * handle_exception:
- *
- *   Called by resuming from a signal handler.
- */
-static void
-handle_signal_exception (gpointer obj, gboolean test_only)
-{
-	MonoJitTlsData *jit_tls = TlsGetValue (mono_jit_tls_id);
-	MonoContext ctx;
-	static void (*restore_context) (MonoContext *);
-
-	if (!restore_context)
-		restore_context = mono_get_restore_context ();
-
-	memcpy (&ctx, &jit_tls->ex_ctx, sizeof (MonoContext));
-
-	if (mono_debugger_handle_exception (&ctx, (MonoObject *)obj))
-		return;
-
-	mono_handle_exception (&ctx, obj, MONO_CONTEXT_GET_IP (&ctx), test_only);
-
-	restore_context (&ctx);
-}
-
 /**
  * mono_arch_handle_exception:
  *
@@ -723,34 +704,8 @@ handle_signal_exception (gpointer obj, gboolean test_only)
 gboolean
 mono_arch_handle_exception (void *sigctx, gpointer obj, gboolean test_only)
 {
-#if defined(MONO_ARCH_USE_SIGACTION)
 	ucontext_t *ctx = (ucontext_t*)sigctx;
 
-	/*
-	 * Handling the exception in the signal handler is problematic, since the original
-	 * signal is disabled, and we could run arbitrary code though the debugger. So
-	 * resume into the normal stack and do most work there if possible.
-	 */
-	MonoJitTlsData *jit_tls = TlsGetValue (mono_jit_tls_id);
-	guint64 sp = UCONTEXT_REG_RSP (ctx);
-
-	/* Pass the ctx parameter in TLS */
-	mono_arch_sigctx_to_monoctx (ctx, &jit_tls->ex_ctx);
-	/* The others in registers */
-	UCONTEXT_REG_RDI (ctx) = (guint64)obj;
-	UCONTEXT_REG_RSI (ctx) = test_only;
-
-	/* Allocate a stack frame below the red zone */
-	sp -= 128;
-	/* The stack should be unaligned */
-	if (sp % 8 == 0)
-		sp -= 8;
-	UCONTEXT_REG_RSP (ctx) = sp;
-
-	UCONTEXT_REG_RIP (ctx) = (guint64)handle_signal_exception;
-
-	return TRUE;
-#else
 	MonoContext mctx;
 
 	mono_arch_sigctx_to_monoctx (sigctx, &mctx);
@@ -763,7 +718,6 @@ mono_arch_handle_exception (void *sigctx, gpointer obj, gboolean test_only)
 	mono_arch_monoctx_to_sigctx (&mctx, sigctx);
 
 	return TRUE;
-#endif
 }
 
 #if defined(MONO_ARCH_USE_SIGACTION) && defined(UCONTEXT_GREGS)

@@ -1736,8 +1736,12 @@ try_load_from (MonoAssembly **assembly, const gchar *path1, const gchar *path2,
 		found = g_file_test (fullpath, G_FILE_TEST_IS_REGULAR);
 	
 	if (found)
-		*assembly = mono_assembly_open_full (fullpath, NULL, refonly);
-
+	{
+		gchar* afullpath = mono_path_resolve_symlinks(fullpath);
+		*assembly = mono_assembly_open_full (afullpath, NULL, refonly);
+		g_free(afullpath);
+	}
+		
 	g_free (fullpath);
 	return (*assembly != NULL);
 }
@@ -1824,7 +1828,16 @@ mono_domain_assembly_preload (MonoAssemblyName *aname,
 /*
  * Check whenever a given assembly was already loaded in the current appdomain.
  */
+
+static mono_bool ignore_version_and_key_when_finding_assemblies_already_loaded = FALSE;
+
+void
 mono_set_ignore_version_and_key_when_finding_assemblies_already_loaded(mono_bool value)
+{
+	ignore_version_and_key_when_finding_assemblies_already_loaded = value;
+}
+
+
 static MonoAssembly *
 mono_domain_assembly_search (MonoAssemblyName *aname,
 							 gpointer user_data)
@@ -1838,7 +1851,7 @@ mono_domain_assembly_search (MonoAssemblyName *aname,
 	for (tmp = domain->domain_assemblies; tmp; tmp = tmp->next) {
 		ass = tmp->data;
 		/* Dynamic assemblies can't match here in MS.NET */
-		if (ass->dynamic || refonly != ass->ref_only || !mono_assembly_names_equal (aname, &ass->aname))
+		if (ass->dynamic || refonly != ass->ref_only || !mono_assembly_names_equal2 (aname, &ass->aname, ignore_version_and_key_when_finding_assemblies_already_loaded))
 			continue;
 
 		mono_domain_assemblies_unlock (domain);

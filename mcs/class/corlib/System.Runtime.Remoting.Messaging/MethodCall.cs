@@ -303,6 +303,7 @@ namespace System.Runtime.Remoting.Messaging {
 
 		public void ResolveMethod ()
 		{
+			#if !DISABLE_REMOTING
 			if (_uri != null)
 			{
 				Type type = RemotingServices.GetServerTypeForUri (_uri);
@@ -335,7 +336,7 @@ namespace System.Runtime.Remoting.Messaging {
 				_methodBase = RemotingServices.GetMethodBaseFromMethodMessage (this);
 				if (_methodBase == null) throw new RemotingException ("Method " + _methodName + " not found in " + TypeName);
 			}
-
+			#endif
 
 			if (_methodBase.IsGenericMethod && _methodBase.ContainsGenericParameters) {
 				if (GenericArguments == null)

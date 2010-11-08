@@ -46,6 +46,10 @@ if INSTALL_MONOTOUCH
 build_profiles += monotouch
 endif
 
+if INSTALL_UNITY
+build_profiles += unity
+endif
+
 endif
 
 if BUILD_MCS

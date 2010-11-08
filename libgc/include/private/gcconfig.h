@@ -1924,7 +1924,9 @@
 #     define STACKBOTTOM ((ptr_t) 0x30000000)
 #     define USE_MMAP
 #     define USE_MMAP_ANON
-#     define USE_MUNMAP
+#     ifndef __arm__
+#         define USE_MUNMAP
+#     endif
 #   endif
 #   ifdef NOSYS
       /* __data_start is usually defined in the target linker script.  */
@@ -2429,6 +2431,14 @@
   /* IBMs xlc compiler doesn't appear to follow the convention of	*/
   /* defining  __STDC__ to be zero in extended mode.			*/
 #   define __STDC__ 0
+#endif
+
+#if defined(ANDROID)
+// Vytautas added this one; it causes dyn_load.c not to be dependendent on the contents of link.h
+#define USE_PROC_FOR_LIBRARIES
+#ifdef DYNAMIC_LOADING	// dynamic loading causes GC to register the main heap, which can shrink at any time..
+	#undef DYNAMIC_LOADING
+#endif
 #endif
 
 # endif /* GCCONFIG_H */

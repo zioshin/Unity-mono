@@ -28,7 +28,11 @@ unix_sources = \
 platform_sources = $(unix_sources)
 endif
 
+if CROSS_COMPILING
+bin_PROGRAMS = 
+else
 bin_PROGRAMS = pedump
+endif
 
 #
 # libtool is not capable of creating static/shared versions of the same
@@ -71,6 +75,7 @@ sgen_sources = \
 
 libmonoruntime_la_SOURCES = \
 	$(platform_sources)	\
+	../../unity/unity_utils.c	\
 	appdomain.c		\
 	assembly.c		\
 	attach.h		\

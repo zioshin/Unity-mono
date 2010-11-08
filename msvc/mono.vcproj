@@ -21,7 +21,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\builds\monodistribution\bin\"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -44,11 +44,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\libgc\include;..\;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0\glib&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\lib\glib-2.0\include&quot;;..\mono\;..\mono\jit"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\jit;..\eglib\src"
 				PreprocessorDefinitions="_DEBUG;__i386__;TARGET_X86;i386;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;HAVE_CONFIG_H;WINVER=0x0500;_WIN32_WINNT=0x0500;_WIN32_IE=0x0501;WIN32_THREADS;FD_SETSIZE=1024"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				BufferSecurityCheck="true"
 				UsePrecompiledHeader="0"
 				DebugInformationFormat="3"
@@ -101,7 +101,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\builds\monodistribution\bin\"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -125,9 +125,10 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\libgc\include;..\;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0\glib&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\lib\glib-2.0\include&quot;;..\mono\;..\mono\jit"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\jit;..\eglib\src"
 				PreprocessorDefinitions="_DEBUG;__x86_64__;WIN64;_WIN64;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;HAVE_CONFIG_H;WINVER=0x0500;_WIN32_WINNT=0x0500;_WIN32_IE=0x0501;WIN32_THREADS;FD_SETSIZE=1024"
 				MinimalRebuild="true"
+				RuntimeLibrary="0"
 				BasicRuntimeChecks="3"
 				BufferSecurityCheck="true"
 				UsePrecompiledHeader="0"
@@ -179,7 +180,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\builds\monodistribution\bin\"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -202,8 +203,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="1"
-				AdditionalIncludeDirectories="..\libgc\include;..\;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0\glib&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\lib\glib-2.0\include&quot;;..\mono\;..\mono\jit"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\jit;..\eglib\src"
 				PreprocessorDefinitions="NDEBUG;__i386__;TARGET_X86;i386;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;HAVE_CONFIG_H;WINVER=0x0500;_WIN32_WINNT=0x0500;_WIN32_IE=0x0501;WIN32_THREADS;FD_SETSIZE=1024"
+				MinimalRebuild="true"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="true"
 				UsePrecompiledHeader="0"
@@ -257,7 +259,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(PlatformName)_$(ConfigurationName)/bin"
+			OutputDirectory="..\builds\monodistribution\bin\"
 			IntermediateDirectory="$(PlatformName)_$(ConfigurationName)/obj/$(ProjectName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -281,9 +283,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="1"
-				AdditionalIncludeDirectories="..\libgc\include;..\;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\include\glib-2.0\glib&quot;;&quot;$(MONO_DEPENDENCIES_PREFIX)\lib\glib-2.0\include&quot;;..\mono\;..\mono\jit"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\jit;..\eglib\src"
 				PreprocessorDefinitions="NDEBUG;__x86_64__;WIN64;_WIN64;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE;HAVE_CONFIG_H;WINVER=0x0500;_WIN32_WINNT=0x0500;_WIN32_IE=0x0501;WIN32_THREADS;FD_SETSIZE=1024"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				BufferSecurityCheck="true"
 				UsePrecompiledHeader="0"
 				DebugInformationFormat="3"

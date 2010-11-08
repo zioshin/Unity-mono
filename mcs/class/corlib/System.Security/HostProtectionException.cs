@@ -26,6 +26,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_SECURITY
 
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -89,3 +90,5 @@ namespace System.Security {
 		}
 	}
 }
+
+#endif

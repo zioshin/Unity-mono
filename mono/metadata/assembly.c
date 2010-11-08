@@ -195,15 +195,13 @@ mono_public_tokens_are_equal (const unsigned char *pubt1, const unsigned char *p
 	return memcmp (pubt1, pubt2, 16) == 0;
 }
 
-static void
-check_path_env (void)
+/**
+ *	Explicitly sets assemblies path (similar to check_path_env), useful for platforms that do not support environment variables.
+ */
+void
+mono_set_assemblies_path (const char* path)
 {
-	const char *path;
 	char **splitted, **dest;
-	
-	path = g_getenv ("MONO_PATH");
-	if (!path)
-		return;
 
 	splitted = g_strsplit (path, G_SEARCHPATH_SEPARATOR_S, 1000);
 	if (assemblies_path)
@@ -226,6 +224,17 @@ check_path_env (void)
 
 		splitted++;
 	}
+}
+
+static void
+check_path_env (void)
+{
+	const char* path;
+	path = g_getenv ("MONO_PATH");
+	if (!path || assemblies_path != NULL)
+		return;
+
+	mono_set_assemblies_path(path);
 }
 
 static void
@@ -405,6 +414,12 @@ check_policy_versions (MonoAssemblyBindingInfo *info, MonoAssemblyName *name)
 gboolean
 mono_assembly_names_equal (MonoAssemblyName *l, MonoAssemblyName *r)
 {
+	return mono_assembly_names_equal2(l,r,FALSE);
+}
+
+gboolean
+mono_assembly_names_equal2 (MonoAssemblyName *l, MonoAssemblyName *r, gboolean ignore_version_and_key)
+{
 	if (!l->name || !r->name)
 		return FALSE;
 
@@ -413,6 +428,9 @@ mono_assembly_names_equal (MonoAssemblyName *l, MonoAssemblyName *r)
 
 	if (l->culture && r->culture && strcmp (l->culture, r->culture))
 		return FALSE;
+
+	if (ignore_version_and_key)
+		return TRUE;
 
 	if (l->major != r->major || l->minor != r->minor ||
 			l->build != r->build || l->revision != r->revision)
@@ -433,12 +451,15 @@ load_in_path (const char *basename, const char** search_path, MonoImageOpenStatu
 {
 	int i;
 	char *fullpath;
+	char *afullpath;
 	MonoAssembly *result;
 
 	for (i = 0; search_path [i]; ++i) {
 		fullpath = g_build_filename (search_path [i], basename, NULL);
-		result = mono_assembly_open_full (fullpath, status, refonly);
+		afullpath = mono_path_resolve_symlinks(fullpath);
+		result = mono_assembly_open_full (afullpath, status, refonly);
 		g_free (fullpath);
+		g_free (afullpath);
 		if (result)
 			return result;
 	}
@@ -1597,7 +1618,7 @@ mono_assembly_load_from_full (MonoImage *image, const char*fname,
 	loaded_assemblies = g_list_prepend (loaded_assemblies, ass);
 	mono_assemblies_unlock ();
 
-#ifdef HOST_WIN32
+#ifdef USE_COREE
 	if (image->is_module_handle)
 		mono_image_fixup_vtable (image);
 #endif
