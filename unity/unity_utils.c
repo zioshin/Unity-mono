@@ -88,16 +88,16 @@ MonoString* mono_unity_get_embeddinghostname()
 	return mono_string_new_wrapper(gEmbeddingHostName->str);
 }
 
-static gboolean socket_security_enabled = FALSE;
+static mono_bool socket_security_enabled = FALSE;
 
-gboolean
+mono_bool
 mono_unity_socket_security_enabled_get ()
 {
 	return socket_security_enabled;
 }
 
 void
-mono_unity_socket_security_enabled_set (gboolean enabled)
+mono_unity_socket_security_enabled_set (mono_bool enabled)
 {
 	socket_security_enabled = enabled;
 }

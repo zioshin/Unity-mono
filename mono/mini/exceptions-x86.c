@@ -666,39 +666,11 @@ mono_arch_get_throw_corlib_exception (MonoTrampInfo **info, gboolean aot)
 	return get_throw_trampoline ("throw_corlib_exception", FALSE, FALSE, TRUE, FALSE, FALSE, info, aot);
 }
 
-void
-mono_arch_exceptions_init (void)
-{
-	guint8 *tramp;
-
-	if (mono_aot_only) {
-		signal_exception_trampoline = mono_aot_get_trampoline ("x86_signal_exception_trampoline");
-		return;
-	}
-
-	/* LLVM needs different throw trampolines */
-	tramp = get_throw_trampoline ("llvm_throw_exception_trampoline", FALSE, TRUE, FALSE, FALSE, FALSE, NULL, FALSE);
-	mono_register_jit_icall (tramp, "llvm_throw_exception_trampoline", NULL, TRUE);
-
-	tramp = get_throw_trampoline ("llvm_rethrow_exception_trampoline", FALSE, TRUE, FALSE, FALSE, FALSE, NULL, FALSE);
-	mono_register_jit_icall (tramp, "llvm_rethrow_exception_trampoline", NULL, TRUE);
-
-	tramp = get_throw_trampoline ("llvm_throw_corlib_exception_trampoline", FALSE, TRUE, TRUE, FALSE, FALSE, NULL, FALSE);
-	mono_register_jit_icall (tramp, "llvm_throw_corlib_exception_trampoline", NULL, TRUE);
-
-	tramp = get_throw_trampoline ("llvm_throw_corlib_exception_abs_trampoline", FALSE, TRUE, TRUE, TRUE, FALSE, NULL, FALSE);
-	mono_register_jit_icall (tramp, "llvm_throw_corlib_exception_abs_trampoline", NULL, TRUE);
-
-	tramp = get_throw_trampoline ("llvm_resume_unwind_trampoline", FALSE, FALSE, FALSE, FALSE, TRUE, NULL, FALSE);
-	mono_register_jit_icall (tramp, "llvm_resume_unwind_trampoline", NULL, TRUE);
-
-	signal_exception_trampoline = mono_x86_get_signal_exception_trampoline (NULL, FALSE);
-}
-
 /* This is really incomplete, I added it only to backport r157327 (Massi) */
 void
 mono_arch_exceptions_init (void)
 {
+	guint8 *tramp;
 /* 
  * If we're running WoW64, we need to set the usermode exception policy 
  * for SEHs to behave. This requires hotfix http://support.microsoft.com/kb/976038
@@ -721,10 +693,26 @@ mono_arch_exceptions_init (void)
 #endif
 
 	if (mono_aot_only) {
-		// FIXME: backort does not work in full AOT mode yet (but we don't use it…) (Massi)
-		//signal_exception_trampoline = mono_aot_get_trampoline ("x86_signal_exception_trampoline");
+		signal_exception_trampoline = mono_aot_get_trampoline ("x86_signal_exception_trampoline");
 		return;
 	}
+
+	/* LLVM needs different throw trampolines */
+	tramp = get_throw_trampoline ("llvm_throw_exception_trampoline", FALSE, TRUE, FALSE, FALSE, FALSE, NULL, FALSE);
+	mono_register_jit_icall (tramp, "llvm_throw_exception_trampoline", NULL, TRUE);
+
+	tramp = get_throw_trampoline ("llvm_rethrow_exception_trampoline", FALSE, TRUE, FALSE, FALSE, FALSE, NULL, FALSE);
+	mono_register_jit_icall (tramp, "llvm_rethrow_exception_trampoline", NULL, TRUE);
+
+	tramp = get_throw_trampoline ("llvm_throw_corlib_exception_trampoline", FALSE, TRUE, TRUE, FALSE, FALSE, NULL, FALSE);
+	mono_register_jit_icall (tramp, "llvm_throw_corlib_exception_trampoline", NULL, TRUE);
+
+	tramp = get_throw_trampoline ("llvm_throw_corlib_exception_abs_trampoline", FALSE, TRUE, TRUE, TRUE, FALSE, NULL, FALSE);
+	mono_register_jit_icall (tramp, "llvm_throw_corlib_exception_abs_trampoline", NULL, TRUE);
+
+	tramp = get_throw_trampoline ("llvm_resume_unwind_trampoline", FALSE, FALSE, FALSE, FALSE, TRUE, NULL, FALSE);
+	mono_register_jit_icall (tramp, "llvm_resume_unwind_trampoline", NULL, TRUE);
+
 	signal_exception_trampoline = mono_x86_get_signal_exception_trampoline (NULL, FALSE);
 }
 
@@ -991,30 +979,6 @@ mono_arch_ip_from_context (void *sigctx)
 #endif	/* __native_client__ */
 }
 
-/*
- * handle_exception:
- *
- *   Called by resuming from a signal handler.
- */
-static void
-handle_signal_exception (gpointer obj)
-{
-	MonoJitTlsData *jit_tls = TlsGetValue (mono_jit_tls_id);
-	MonoContext ctx;
-	static void (*restore_context) (MonoContext *);
-
-	if (!restore_context)
-		restore_context = mono_get_restore_context ();
-
-	memcpy (&ctx, &jit_tls->ex_ctx, sizeof (MonoContext));
-
-	if (mono_debugger_handle_exception (&ctx, (MonoObject *)obj))
-		return;
-
-	mono_handle_exception (&ctx, obj, MONO_CONTEXT_GET_IP (&ctx), FALSE);
-
-	restore_context (&ctx);
-}
 
 /*
  * mono_x86_get_signal_exception_trampoline:
@@ -1079,48 +1043,6 @@ handle_signal_exception (gpointer obj)
 	mono_handle_exception (&ctx, obj, MONO_CONTEXT_GET_IP (&ctx), FALSE);
 
 	restore_context (&ctx);
-}
-
-/*
- * mono_x86_get_signal_exception_trampoline:
- *
- *   This x86 specific trampoline is used to call handle_signal_exception.
- */
-gpointer
-mono_x86_get_signal_exception_trampoline (MonoTrampInfo **info, gboolean aot)
-{
-	guint8 *start, *code;
-	MonoJumpInfo *ji = NULL;
-	GSList *unwind_ops = NULL;
-	int stack_size;
-
-	start = code = mono_global_codeman_reserve (128);
-
-	/* Caller ip */
-	x86_push_reg (code, X86_ECX);
-
-	mono_add_unwind_op_def_cfa (unwind_ops, (guint8*)NULL, (guint8*)NULL, X86_ESP, 4);
-	mono_add_unwind_op_offset (unwind_ops, (guint8*)NULL, (guint8*)NULL, X86_NREG, -4);
-
-	/* Fix the alignment to be what apple expects */
-	stack_size = 12;
-
-	x86_alu_reg_imm (code, X86_SUB, X86_ESP, stack_size);
-	mono_add_unwind_op_def_cfa_offset (unwind_ops, code, start, stack_size + 4);
-
-	/* Arg1 */
-	x86_mov_membase_reg (code, X86_ESP, 0, X86_EAX, 4);
-	/* Branch to target */
-	x86_call_reg (code, X86_EDX);
-
-	g_assert ((code - start) < 128);
-
-	mono_save_trampoline_xdebug_info ("x86_signal_exception_trampoline", start, code - start, unwind_ops);
-
-	if (info)
-		*info = mono_tramp_info_create (g_strdup ("x86_signal_exception_trampoline"), start, code - start, ji, unwind_ops);
-
-	return start;
 }
 
 gboolean

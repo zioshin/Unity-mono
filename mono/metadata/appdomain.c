@@ -1829,10 +1829,10 @@ mono_domain_assembly_preload (MonoAssemblyName *aname,
  * Check whenever a given assembly was already loaded in the current appdomain.
  */
 
-static gboolean ignore_version_and_key_when_finding_assemblies_already_loaded = FALSE;
+static mono_bool ignore_version_and_key_when_finding_assemblies_already_loaded = FALSE;
 
 void
-mono_set_ignore_version_and_key_when_finding_assemblies_already_loaded(gboolean value)
+mono_set_ignore_version_and_key_when_finding_assemblies_already_loaded(mono_bool value)
 {
 	ignore_version_and_key_when_finding_assemblies_already_loaded = value;
 }

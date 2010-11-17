@@ -417,8 +417,8 @@ mono_assembly_names_equal (MonoAssemblyName *l, MonoAssemblyName *r)
 	return mono_assembly_names_equal2(l,r,FALSE);
 }
 
-gboolean
-mono_assembly_names_equal2 (MonoAssemblyName *l, MonoAssemblyName *r, gboolean ignore_version_and_key)
+mono_bool
+mono_assembly_names_equal2 (MonoAssemblyName *l, MonoAssemblyName *r, mono_bool ignore_version_and_key)
 {
 	if (!l->name || !r->name)
 		return FALSE;

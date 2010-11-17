@@ -12,7 +12,7 @@ mono_field_get_offset
 mono_gchandle_is_in_domain
 mono_gchandle_new
 mono_jit_parse_options
-g_free
+;g_free
 mono_image_open_from_data_with_name
 ;Unity Exports that add new functions created by Unity
 unity_mono_redirect_output

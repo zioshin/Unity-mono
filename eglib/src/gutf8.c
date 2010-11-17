@@ -65,7 +65,7 @@ utf8_to_utf16_len (const gchar *str, glong len, glong *items_read, GError **erro
 	glong in_pos, ret;
 
 	if (len < 0)
-		len = strlen (str);
+		len = (glong) strlen (str);
 
 	in_pos = 0;
 	ret = 0;
@@ -212,7 +212,7 @@ g_utf8_to_utf16 (const gchar *str, glong len, glong *items_read, glong *items_wr
 		*error = NULL;
 
 	if (len < 0)
-		len = strlen (str);
+		len = (glong) strlen (str);
 
 	if (items_written)
 		*items_written = 0;

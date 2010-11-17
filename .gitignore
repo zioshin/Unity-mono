@@ -38,3 +38,11 @@
 *.pidb
 /lt~obsolete.m4
 /ltversion.m4
+mcs/jay/Debug/
+mcs/jay/jay.ilk
+msvc/Debug_eglib/
+msvc/Win32_Debug_eglib/
+msvc/mono.ncb
+msvc/mono.suo
+unity/smalltestcases/asyncsocketshutdown/Win32_Debug_eglib/
+unity/smalltestcases/asyncsocketshutdown2/Win32_Debug_eglib/
