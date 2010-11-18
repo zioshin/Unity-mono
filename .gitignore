@@ -46,3 +46,6 @@ msvc/mono.ncb
 msvc/mono.suo
 unity/smalltestcases/asyncsocketshutdown/Win32_Debug_eglib/
 unity/smalltestcases/asyncsocketshutdown2/Win32_Debug_eglib/
+msvc/*.user
+mcs/jay/*.user
+unity/smalltestcases/*/*.user
