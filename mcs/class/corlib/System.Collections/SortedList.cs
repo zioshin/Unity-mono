@@ -42,9 +42,11 @@ namespace System.Collections {
 	///  and by index.
 	/// </summary>
 	[Serializable]
+#if !DISABLE_SECURITY
 	[ComVisible(true)]
 	[DebuggerDisplay ("Count={Count}")]
 	[DebuggerTypeProxy (typeof (CollectionDebuggerView))]
+#endif
 	public class SortedList : IDictionary, ICollection,
 	                          IEnumerable, ICloneable {
 

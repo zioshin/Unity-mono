@@ -106,7 +106,9 @@ namespace System.IO {
 			}
 
 			set {
+#if !DISABLE_SECURITY
 				SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 				long filetime = value.ToFileTime ();
 			
@@ -138,7 +140,9 @@ namespace System.IO {
 			}
 
 			set {
+#if !DISABLE_SECURITY
 				SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 				long filetime = value.ToFileTime ();
 
@@ -172,7 +176,9 @@ namespace System.IO {
 			}
 
 			set {
+#if !DISABLE_SECURITY
 				SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 				long filetime = value.ToFileTime ();
 

@@ -146,8 +146,10 @@ namespace System.Threading {
 		#endregion
 #pragma warning restore 414
 
+#if !MICRO_LIB
 		IPrincipal principal;
 		int principal_version;
+#endif
 
 		// the name of local_slots, current_thread and _ec is
 		// important because they are used by the runtime.
@@ -189,7 +191,8 @@ namespace System.Threading {
 			}
 		}
 
-#if !DISABLE_SECURITY
+// FIXME MASSI: can we have these two methods with DISABLE_SICURITY?
+//if !DISABLE_SECURITY
 		/*
 		 * These two methods return an array in the target
 		 * domain with the same content as the argument.  If
@@ -202,7 +205,8 @@ namespace System.Threading {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern static byte[] ByteArrayToCurrentDomain (byte[] arr);
 
-#if !MOONLIGHT
+#if !DISABLE_SECURITY
+#if !MOONLIGHT && !MICRO_LIB
 		public static IPrincipal CurrentPrincipal {
 			get {
 				Thread th = CurrentThread;

@@ -63,7 +63,9 @@ namespace System.IO {
 		{
 			CheckPath (path);
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			FullPath = Path.GetFullPath (path);
 			if (simpleOriginalPath)
@@ -474,8 +476,7 @@ namespace System.IO {
 				MonoIO.FindClose (handle);
 			}
 		}
-		
-		
+#endif		
 #endif
 	}
 }

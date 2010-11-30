@@ -57,10 +57,28 @@ else
 USE_BOOT_COMPILE = yes
 endif
 
-ifdef USE_BOOT_COMPILE
-ifndef PROFILE_MCS_HAS_BOOTSTRAP_FALLBACK
-LIBRARY_COMPILE = $(BOOT_COMPILE)
+ifeq (net_2_0, $(PROFILE))
+BOOTSTRAP_MCS = MONO_PATH="$(topdir)/class/lib/$(PROFILE)$(PLATFORM_PATH_SEPARATOR)$(topdir)/class/lib/$(PROFILE)_bootstrap$(PLATFORM_PATH_SEPARATOR)$(topdir)/class/lib/basic$(PLATFORM_PATH_SEPARATOR)$$$MONO_PATH" $(INTERNAL_GMCS)
 endif
+
+ifeq (net_4_0_bootstrap, $(PROFILE))
+BOOTSTRAP_MCS = MONO_PATH="$(topdir)/class/lib/$(PROFILE)$(PLATFORM_PATH_SEPARATOR)$(topdir)/class/lib/$(PROFILE)_bootstrap$(PLATFORM_PATH_SEPARATOR)$(topdir)/class/lib/basic$(PLATFORM_PATH_SEPARATOR)$$$MONO_PATH" $(RUNTIME)  $(RUNTIME_FLAGS) $(topdir)/class/lib/$(PROFILE)/dmcs.exe
+endif
+
+ifeq (unity_bootstrap, $(PROFILE))
+BOOTSTRAP_MCS = MONO_PATH="$(topdir)/class/lib/$(PROFILE)$(PLATFORM_PATH_SEPARATOR)$(topdir)/class/lib/net_2_0$(PLATFORM_PATH_SEPARATOR)$$MONO_PATH" $(INTERNAL_SMCS)
+endif
+
+
+ifeq (basic, $(PROFILE))
+LIB_MCS_FLAGS += -d:EXCLUDE_UNITY_ADDITIONS
+endif
+
+
+ifdef USE_BOOT_COMPILE
+#ifndef PROFILE_MCS_HAS_BOOTSTRAP_FALLBACK
+LIBRARY_COMPILE = $(BOOT_COMPILE)
+#endif
 endif
 
 # Because System.dll, Mono.Security.dll System.Xml.dll have a cyclic dependency, we need a two-pass build.
@@ -129,6 +147,7 @@ handle-missing-deps:
 	@for f in $(MISSING_DEPS:%=../lib/$(PROFILE)/%); do \
 	  test ! -f $$f || { echo "   purging stale $$f"; rm -f $$f; }; done
 endif
+
 
 include ../../build/library.make
 

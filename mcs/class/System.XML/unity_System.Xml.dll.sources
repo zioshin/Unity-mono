@@ -78,6 +78,7 @@ Mono.Xml/SubtreeXmlReader.cs
 Mono.Xml/XmlFilterReader.cs
 Mono.Xml/XmlNodeWriter.cs
 System.Xml/ConformanceLevel.cs
+System.Xml/DefaultXmlWriter.cs
 System.Xml/DTDAutomata.cs
 System.Xml/DTDObjectModel.cs
 System.Xml/DTDReader.cs

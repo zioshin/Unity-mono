@@ -89,7 +89,9 @@ namespace System.IO
 			if (destFileName.Trim ().Length == 0 || destFileName.IndexOfAny (Path.InvalidPathChars) != -1)
 				throw new ArgumentException ("The file name is not valid.");
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (!MonoIO.Exists (sourceFileName, out error))
 				throw new FileNotFoundException (Locale.GetText ("{0} does not exist", sourceFileName), sourceFileName);
@@ -157,7 +159,9 @@ namespace System.IO
 			if (DirName != String.Empty && !Directory.Exists (DirName))
 				throw new DirectoryNotFoundException (Locale.GetText ("Could not find a part of the path \"{0}\".", path));
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			MonoIOError error;
 			
@@ -177,9 +181,11 @@ namespace System.IO
 			if (String.IsNullOrWhiteSpace (path) || path.IndexOfAny(Path.InvalidPathChars) >= 0)
 				return false;
 
+#if !DISABLE_SECURITY
 			// on Moonlight this does not throw but returns false
 			if (!SecurityManager.CheckElevatedPermissions ())
 				return false;
+#endif
 
 			MonoIOError error;
 			return MonoIO.ExistsFile (path, out error);
@@ -200,7 +206,9 @@ namespace System.IO
 		public static FileAttributes GetAttributes (string path)
 		{
 			Path.Validate (path);
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			MonoIOError error;
 			FileAttributes attrs;
@@ -216,7 +224,9 @@ namespace System.IO
 			MonoIOStat stat;
 			MonoIOError error;
 			Path.Validate (path);
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (!MonoIO.GetFileStat (path, out stat, out error)) {
 				if (error == MonoIOError.ERROR_PATH_NOT_FOUND || error == MonoIOError.ERROR_FILE_NOT_FOUND)
@@ -237,7 +247,9 @@ namespace System.IO
 			MonoIOStat stat;
 			MonoIOError error;
 			Path.Validate (path);
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (!MonoIO.GetFileStat (path, out stat, out error)) {
 				if (error == MonoIOError.ERROR_PATH_NOT_FOUND || error == MonoIOError.ERROR_FILE_NOT_FOUND)
@@ -258,7 +270,9 @@ namespace System.IO
 			MonoIOStat stat;
 			MonoIOError error;
 			Path.Validate (path);
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (!MonoIO.GetFileStat (path, out stat, out error)) {
 				if (error == MonoIOError.ERROR_PATH_NOT_FOUND || error == MonoIOError.ERROR_FILE_NOT_FOUND)
@@ -289,7 +303,9 @@ namespace System.IO
 			if (destFileName.Trim ().Length == 0 || destFileName.IndexOfAny (Path.InvalidPathChars) != -1)
 				throw new ArgumentException ("The file name is not valid.");
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			MonoIOError error;
 			if (!MonoIO.Exists (sourceFileName, out error))

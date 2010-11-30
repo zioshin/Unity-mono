@@ -654,7 +654,11 @@ namespace System {
 
 		public int ExecuteAssembly (string assemblyFile)
 		{
+#if MICRO_LIB
+			return ExecuteAssembly (assemblyFile, null, null);
+#else
 			return ExecuteAssembly (assemblyFile, (Evidence)null, null);
+#endif
 		}
 
 #if !DISABLE_SECURITY

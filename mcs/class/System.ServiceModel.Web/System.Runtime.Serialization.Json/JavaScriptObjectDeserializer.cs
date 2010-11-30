@@ -8,7 +8,13 @@ using System.Xml;
 
 namespace System.Runtime.Serialization.Json
 {
-	internal partial class JavaScriptObjectDeserializer
+	//FIXME MASSI: Hack to make System.Json.dll compile, will check later
+#if UNITY || MONOTOUCH
+	public
+#else
+	internal
+#endif
+	partial class JavaScriptObjectDeserializer
 	{
 		#region stream/reader classes
 

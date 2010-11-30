@@ -2783,11 +2783,6 @@ namespace Mono.CSharp {
 				#endif
 			}
 
-				// Only to make verifier happy
-				if (instance_type.IsGenericParameter && !(InstanceExpression is This) && TypeManager.IsReferenceType (instance_type))
-					ec.Emit (OpCodes.Box, instance_type);
-			}
-
 			if (prepare_for_load)
 				ec.Emit (OpCodes.Dup);
 		}

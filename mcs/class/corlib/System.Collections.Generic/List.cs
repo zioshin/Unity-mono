@@ -36,8 +36,10 @@ using System.Diagnostics;
 
 namespace System.Collections.Generic {
 	[Serializable]
+#if !MICRO_LIB
 	[DebuggerDisplay ("Count={Count}")]
 	[DebuggerTypeProxy (typeof (CollectionDebuggerView<>))]
+#endif
 	public class List <T> : IList <T>, IList, ICollection {
 		T [] _items;
 		int _size;

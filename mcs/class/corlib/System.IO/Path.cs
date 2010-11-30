@@ -445,7 +445,9 @@ namespace System.IO {
 			Random rnd;
 			int num = 0;
 
+			#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+			#endif
 
 			rnd = new Random ();
 			do {
@@ -484,7 +486,9 @@ namespace System.IO {
 #endif
 		public static string GetTempPath ()
 		{
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			string p = get_temp_path ();
 			if (p.Length > 0 && p [p.Length - 1] != DirectorySeparatorChar)

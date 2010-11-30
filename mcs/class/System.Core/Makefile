@@ -18,7 +18,7 @@ ifeq (4.0, $(FRAMEWORK_VERSION))
 LIB_MCS_FLAGS += -d:CODEPLEX_40
 endif
 
-FULL_PROFILE := $(filter net_2_0 net_4_0 moonlight_raw monotouch, $(PROFILE))
+FULL_PROFILE := $(filter net_2_0 net_4_0 moonlight_raw monotouch unity, $(PROFILE))
 ifdef FULL_PROFILE
 LIBRARY_COMPILE = $(BOOT_COMPILE)
 endif
@@ -29,6 +29,13 @@ endif
 
 ifdef CLR_PROFILE
 LIB_MCS_FLAGS += -r:../lib/$(PROFILE)/Mono.Posix -unsafe
+endif
+
+ifeq (unity_bootstrap, $(PROFILE))
+LIB_MCS_FLAGS += -r:Mono.Posix
+endif
+ifeq (unity, $(PROFILE))
+LIB_MCS_FLAGS += -r:../lib/net_2_0/Mono.Posix
 endif
 
 TEST_MCS_FLAGS = $(LIB_MCS_FLAGS)

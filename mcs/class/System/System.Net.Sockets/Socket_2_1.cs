@@ -504,7 +504,9 @@ namespace System.Net.Sockets {
 #if NET_2_0
 		static internal bool CheckEndPoint (SocketAddress sa)
 		{
+#if !EXCLUDE_UNITY_ADDITIONS
 			if (!System.Environment.SocketSecurityEnabled) return true;
+#endif // !EXCLUDE_UNITY_ADDITIONS
 			try
 			{
 				//weird, why is EndPoint.Create not static?  Making a temp instance to be able to call the function

@@ -784,10 +784,6 @@ namespace System.Net
 			return sb.ToString ();
 		}
 
-					if (System.Environment.UnityWebSecurityEnabled) throw;
-#if NET_2_0
-					if (System.Environment.UnityWebSecurityEnabled) throw;
-#endif
 		WebRequest SetupRequest (Uri uri)
 		{
 			WebRequest request = GetWebRequest (uri);

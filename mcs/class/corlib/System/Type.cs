@@ -688,8 +688,10 @@ namespace System {
 			Type type = this;
 			if (type is MonoType)
 				return GetTypeCodeInternal (type);
+#if !DISABLE_SECURITY
 			if (type is TypeBuilder)
 				return ((TypeBuilder)type).GetTypeCodeInternal ();
+#endif
 
 			type = type.UnderlyingSystemType;
 
@@ -1345,8 +1347,12 @@ namespace System {
 
 		internal virtual bool IsCompilerContext {
 			get {
+#if !DISABLE_SECURITY
 				AssemblyBuilder builder = Assembly as AssemblyBuilder;
 				return builder != null && builder.IsCompilerContext;
+#else
+				return false;
+#endif
 			}
 		}
 
@@ -1384,10 +1390,12 @@ namespace System {
 			throw new NotSupportedException ("Derived classes must provide an implementation.");
 		}
 
+#endif
 		public virtual extern bool IsGenericType {
 			[MethodImplAttribute(MethodImplOptions.InternalCall)]
 			get;
 		}
+#if !DISABLE_SECURITY
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		static extern Type MakeGenericType (Type gt, Type [] types);
@@ -1449,6 +1457,7 @@ namespace System {
 				throw new TypeLoadException ();
 			return res;
 		}
+#endif
 
 		public virtual bool IsGenericParameter {
 			get {
@@ -1456,6 +1465,7 @@ namespace System {
 			}
 		}
 
+#if !DISABLE_SECURITY
 		public bool IsNested {
 			get {
 				return DeclaringType != null;

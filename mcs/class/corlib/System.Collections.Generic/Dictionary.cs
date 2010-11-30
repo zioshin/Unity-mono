@@ -55,8 +55,10 @@ namespace System.Collections.Generic {
 
 	[ComVisible(false)]
 	[Serializable]
+#if !MICRO_LIB
 	[DebuggerDisplay ("Count={Count}")]
 	[DebuggerTypeProxy (typeof (CollectionDebuggerView<,>))]
+#endif
 	public class Dictionary<TKey, TValue> : IDictionary<TKey, TValue>,
 		IDictionary,
 		ICollection,
@@ -954,8 +956,10 @@ namespace System.Collections.Generic {
 
 		// This collection is a read only collection
 		[Serializable]
+#if !MICRO_LIB
 		[DebuggerDisplay ("Count={Count}")]
 		[DebuggerTypeProxy (typeof (CollectionDebuggerView<,>))]		
+#endif
 		public sealed class KeyCollection : ICollection<TKey>, IEnumerable<TKey>, ICollection, IEnumerable {
 			Dictionary<TKey, TValue> dictionary;
 
@@ -1072,8 +1076,10 @@ namespace System.Collections.Generic {
 
 		// This collection is a read only collection
 		[Serializable]
+#if !MICRO_LIB
 		[DebuggerDisplay ("Count={Count}")]
 		[DebuggerTypeProxy (typeof (CollectionDebuggerView<,>))]		
+#endif
 		public sealed class ValueCollection : ICollection<TValue>, IEnumerable<TValue>, ICollection, IEnumerable {
 			Dictionary<TKey, TValue> dictionary;
 

@@ -2302,12 +2302,14 @@ namespace System.Net.Sockets
 			if (!isbound)
 				throw new SocketException ((int)SocketError.InvalidArgument);
 			
+#if !EXCLUDE_UNITY_ADDITIONS
 			if (System.Environment.SocketSecurityEnabled)
 			{
 				var se = new System.Security.SecurityException("Listening on TCP sockets is not allowed in the webplayer");
 				Console.WriteLine("Throwing the following securityexception: "+se);
 				throw se;
 			}
+#endif // !EXCLUDE_UNITY_ADDITIONS
 #endif			
 			
 			int error;
@@ -2666,7 +2668,8 @@ namespace System.Net.Sockets
 				return 0;
 			}
 			
-#if NET_2_0
+#if NET_2_0 && !EXCLUDE_UNITY_ADDITIONS
+
 			if (System.Environment.SocketSecurityEnabled)
 			{
 				Console.WriteLine ("Checking {0}", sockaddr);
@@ -3045,7 +3048,7 @@ namespace System.Net.Sockets
 							  SocketAddress sa,
 							  out int error)
 		{
-#if NET_2_0
+#if NET_2_0 && !EXCLUDE_UNITY_ADDITIONS
 			if (System.Environment.SocketSecurityEnabled)
 			{
 				bool allowed = CheckEndPoint(sa);

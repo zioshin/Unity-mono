@@ -40,7 +40,9 @@ using System.Security;
 using System.Security.Permissions;
 #endif
 using System.Text;
+#if !DISABLE_SECURITY
 using System.Runtime.InteropServices;
+#endif
 
 namespace System {
 
@@ -62,7 +64,9 @@ namespace System {
 		private const int mono_corlib_version = 93;
 #pragma warning restore 169
 
+#if !DISABLE_SECURITY
 		[ComVisible (true)]
+#endif
 		public enum SpecialFolder
 		{	
 			MyDocuments = 0x05,
@@ -514,7 +518,9 @@ namespace System {
 #endif
 		static string GetFolderPath(SpecialFolder folder, SpecialFolderOption option)
 		{
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			string dir = null;
 
@@ -790,7 +796,9 @@ namespace System {
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		internal static extern void InternalSetEnvironmentVariable (string variable, string value);
 #endif
+#if !DISABLE_SECURITY
 		[SecurityPermission (SecurityAction.LinkDemand, UnmanagedCode=true)]
+#endif
 		public static void FailFast (string message)
 		{
 			throw new NotImplementedException ();

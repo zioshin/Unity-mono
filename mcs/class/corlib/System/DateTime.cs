@@ -2148,7 +2148,7 @@ namespace System
 			info.AddValue ("dateData", encoded);
 		}
 		
-#if MONOTOUCH
+#if MONOTOUCH && !DISABLE_SECURITY
 		static DateTime () {
 			if (MonoTouchAOTHelper.FalseFlag) {
 				var comparer = new System.Collections.Generic.GenericComparer <DateTime> ();

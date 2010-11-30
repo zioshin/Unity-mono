@@ -154,12 +154,12 @@ namespace System.IO
 		{
 		}
 
-#if !DISABLE_SECURITY
 		public FileStream (string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options)
 			: this (path, mode, access, share, bufferSize, false, options)
 		{
 		}
 
+#if !DISABLE_SECURITY
 #if !NET_2_1
 		public FileStream (SafeFileHandle handle, FileAccess access)
 			:this(handle, access, DefaultBufferSize, false)
@@ -272,7 +272,9 @@ namespace System.IO
 				throw new ArgumentException (string.Format (msg, access, mode));
 			}
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			string dname;
 			if (Path.DirectorySeparatorChar != '/' && path.IndexOf ('/') >= 0)

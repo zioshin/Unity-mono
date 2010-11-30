@@ -47,8 +47,9 @@ using System.Security.Permissions;
 using System.Text;
 #if !DISABLE_SECURITY
 using System.Runtime.InteropServices;
+#endif
 
-#if !MOONLIGHT
+#if !MOONLIGHT && !DISABLE_SECURITY
 using System.Security.AccessControl;
 #endif
 
@@ -75,7 +76,9 @@ namespace System.IO
 				throw new ArgumentException ("Only blank characters in path");
 
 			// after validations but before File.Exists to avoid an oracle
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (File.Exists(path))
 				throw new IOException ("Cannot create " + path + " because a file with the same name already exists.");
@@ -133,7 +136,9 @@ namespace System.IO
 			if (Environment.IsRunningOnWindows && path == ":")
 				throw new NotSupportedException ("Only ':' In path");
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			MonoIOError error;
 			bool success;
@@ -184,7 +189,9 @@ namespace System.IO
 		public static void Delete (string path, bool recursive)
 		{
 			Path.Validate (path);			
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (recursive)
 				RecursiveDelete (path);
@@ -197,9 +204,11 @@ namespace System.IO
 			if (path == null)
 				return false;
 
+#if !DISABLE_SECURITY
 			// on Moonlight this does not throw but returns false
 			if (!SecurityManager.CheckElevatedPermissions ())
 				return false;
+#endif
 				
 			MonoIOError error;
 			bool exists;
@@ -243,7 +252,9 @@ namespace System.IO
 		{
 			MonoIOError error;
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 				
 			string result = MonoIO.GetCurrentDirectory (out error);
 			if (error != MonoIOError.ERROR_SUCCESS)
@@ -287,7 +298,9 @@ namespace System.IO
 		public static string GetDirectoryRoot (string path)
 		{
 			Path.Validate (path);			
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			// FIXME nice hack but that does not work under windows
 			return new String(Path.DirectorySeparatorChar,1);
@@ -382,7 +395,9 @@ namespace System.IO
 			if (sourceDirName == destDirName)
 				throw new IOException ("Source and destination path must be different.");
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (Exists (destDirName))
 				throw new IOException (destDirName + " already exists.");
@@ -529,7 +544,9 @@ namespace System.IO
 				throw new ArgumentOutOfRangeException ("searchoption");
 
 			Path.Validate (path);
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 		}
 
 		internal static IEnumerable<string> EnumerateKind (string path, string searchPattern, SearchOption searchOption, FileAttributes kind)
@@ -589,7 +606,9 @@ namespace System.IO
 		public static IEnumerable<string> EnumerateDirectories (string path)
 		{
 			Path.Validate (path); // no need for EnumerateCheck since we supply valid arguments
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 			return EnumerateKind (path, "*", SearchOption.TopDirectoryOnly, FileAttributes.Directory);
 		}
 
@@ -608,7 +627,9 @@ namespace System.IO
 		public static IEnumerable<string> EnumerateFiles (string path)
 		{
 			Path.Validate (path); // no need for EnumerateCheck since we supply valid arguments
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 			return EnumerateKind (path, "*", SearchOption.TopDirectoryOnly, FileAttributes.Normal);
 		}
 
@@ -627,13 +648,15 @@ namespace System.IO
 		public static IEnumerable<string> EnumerateFileSystemEntries (string path)
 		{
 			Path.Validate (path); // no need for EnumerateCheck since we supply valid arguments
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 			return EnumerateKind (path, "*", SearchOption.TopDirectoryOnly, FileAttributes.Normal | FileAttributes.Directory);
 		}
 		
 #endif
 
-#if !MOONLIGHT
+#if !MOONLIGHT && !MICRO_LIB
 		[MonoNotSupported ("DirectorySecurity isn't implemented")]
 		public static DirectorySecurity GetAccessControl (string path, AccessControlSections includeSections)
 		{

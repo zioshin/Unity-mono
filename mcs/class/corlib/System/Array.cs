@@ -37,7 +37,9 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.ConstrainedExecution;
+#if !MICRO_LIB
 using System.Reflection.Emit;
+#endif
 
 namespace System
 {

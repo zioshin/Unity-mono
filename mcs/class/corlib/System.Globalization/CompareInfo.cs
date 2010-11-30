@@ -158,7 +158,9 @@ namespace System.Globalization
 						collators [ci.LCID] = collator;
 					}
 				}
-			} else {
+			} else
+			#endif
+			{
 #if !MOONLIGHT
 				this.icu_name = ci.IcuName;
 				this.construct_compareinfo (icu_name);

@@ -72,7 +72,8 @@ if [[ "$with_macversion" == "10.4" ]]; then
 else
   MACSYSROOT="$MACSYSROOTBASE/MacOSX""$with_macversion"".sdk"
 fi
-MACSDKOPTIONS="-mmacosx-version-min=$with_macversion $MACSYSROOT"
+# MACSDKOPTIONS="-mmacosx-version-min=$with_macversion $MACSYSROOT"
+MACSDKOPTIONS=""
 
 
 # Thread configuration inspired by sleepycat's db
@@ -574,6 +575,7 @@ if test "x$OS" = "xLinux"; then
 	if test "x$PKG_CONFIG" = "xno"; then
 		AC_MSG_ERROR([You need to install pkg-config])
 	fi
+fi
 
 pkg_config_path=
 AC_ARG_WITH(crosspkgdir, [  --with-crosspkgdir=/path/to/pkg-config/dir      Change pkg-config dir to custom dir],

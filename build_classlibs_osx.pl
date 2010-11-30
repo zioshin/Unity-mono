@@ -99,7 +99,7 @@ system("cp -r $monoprefix/bin $monodistro/") eq 0 or die ("failed copying bin fo
 
 system("cp -r $monoprefix/etc $monodistro/") eq 0 or die("failed copy 4");
 mkpath("$root/builds/headers/mono");
-system("cp -r $monoprefix/include/mono-1.0/mono $root/builds/headers/") eq 0 or die("failed copy 5");
+system("cp -r $monoprefix/include/mono-2.0/mono $root/builds/headers/") eq 0 or die("failed copy 5");
 system("cp $root/eglib/src/glib.h $root/builds/headers/") eq 0 or die("failed copying glib.h");
 system("cp $root/eglib/src/eglib-config.hw $root/builds/headers/") eq 0 or die ("failed copying eglib-config.hw");
 system('perl -e \"s/\\bmono_/mangledmono_/g;\" -pi $(find '.$root.'/builds/headers -type f)');

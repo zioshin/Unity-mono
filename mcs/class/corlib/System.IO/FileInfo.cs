@@ -60,7 +60,9 @@ namespace System.IO {
 				throw new ArgumentNullException ("fileName");
 
 			CheckPath (fileName);
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			OriginalPath = fileName;
 			FullPath = Path.GetFullPath (fileName);
@@ -221,7 +223,9 @@ namespace System.IO {
 		{
 			MonoIOError error;
 
+#if !DISABLE_SECURITY
 			SecurityManager.EnsureElevatedPermissions (); // this is a no-op outside moonlight
+#endif
 
 			if (!MonoIO.Exists (FullPath, out error))
 				// a weird MS.NET behaviour

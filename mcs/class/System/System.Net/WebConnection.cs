@@ -156,7 +156,9 @@ namespace System.Net
 		{
 #if NET_2_0
 			//we should probably create a different securitysetting for webrequest, but for now we'll piggybag on the socketsecurity one.
+#if !EXCLUDE_UNITY_ADDITIONS
 			if (!System.Environment.SocketSecurityEnabled) return;
+#endif // !EXCLUDE_UNITY_ADDITIONS
 
 			Console.WriteLine("CheckingSecurityForUrl: "+request.RequestUri.AbsoluteUri);
 						

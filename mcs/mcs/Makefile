@@ -19,7 +19,7 @@ INTERNAL_GMCS = $(RUNTIME) $(RUNTIME_FLAGS) $(topdir)/class/lib/$(BOOTSTRAP_PROF
 endif
 
 ifeq (moonlight_bootstrap, $(PROFILE))
-INTERNAL_GMCS = $(RUNTIME) $(RUNTIME_FLAGS) $(topdir)/class/lib/$(BOOTSTRAP_PROFILE)/gmcs.exe
+INTERNAL_GMCS = $(RUNTIME) $(RUNTIME_FLAGS) $(topdir)/mcs/mcs/gmcs.exe
 endif
 
 ifeq (2.1, $(FRAMEWORK_VERSION))

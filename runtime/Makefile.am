@@ -28,9 +28,9 @@ if ONLY_MOONLIGHT
 build_profiles = moonlight_raw
 test_profiles = moonlight_raw
 else
-
 build_profiles = net_2_0 net_3_5
 test_profiles = $(build_profiles)
+endif
 
 if MOONLIGHT
 build_profiles += moonlight_raw

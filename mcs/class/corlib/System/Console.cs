@@ -512,7 +512,7 @@ namespace System
 			set { outputEncoding = value; }
 		}
 #endif
-#if NET2_API && !NET_2_1
+#if !NET_2_1
 		public static ConsoleColor BackgroundColor {
 			get { return ConsoleDriver.BackgroundColor; }
 			set { ConsoleDriver.BackgroundColor = value; }

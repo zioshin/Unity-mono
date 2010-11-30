@@ -30,8 +30,9 @@ using System;
 using System.Collections;
 using System.Globalization;
 using System.Runtime.InteropServices;
+#if !DISABLE_SECURITY
 using System.Reflection.Emit;
-
+#endif
 
 namespace System.Reflection {
 
@@ -57,7 +58,7 @@ namespace System.Reflection {
 			throw new ArgumentException ("name", "Name cannot be empty");
 
 			res = InternalGetType (null, name, throwOnError, ignoreCase);
-#if !(NET_4_0 || MOONLIGHT)
+#if !(NET_4_0 || MOONLIGHT || DISABLE_SECURITY)
 			if (res is TypeBuilder) {
 				if (throwOnError)
 					throw new TypeLoadException (string.Format ("Could not load type '{0}' from assembly '{1}'", name, this));
