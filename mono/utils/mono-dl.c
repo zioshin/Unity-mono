@@ -422,7 +422,7 @@ mono_dl_symbol (MonoDl *module, const char *name, void **symbol)
 #else
 	sym = LL_SO_SYMBOL (module, name);
 #endif
-#ifndef PLATFORM_WIN32
+#if ! (defined (PLATFORM_WIN32) || defined (SN_TARGET_PS3))
        // lookup in static table                                                                                                                                                                  
        if (!sym && module->handle == RTLD_DEFAULT)                                                                                                                                               
        {                                                                                                                                                                                         

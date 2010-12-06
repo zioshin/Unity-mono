@@ -768,6 +768,7 @@ handle_signal_exception (gpointer obj, gboolean test_only)
 	restore_context (&ctx);
 }
 
+#if defined(MONO_ARCH_USE_SIGACTION) && defined(UCONTEXT_REG_Rn)
 static void
 setup_ucontext_return (void *uc, gpointer func)
 {
@@ -783,6 +784,7 @@ setup_ucontext_return (void *uc, gpointer func)
 	UCONTEXT_REG_NIP(uc) = (unsigned long)func;
 #endif
 }
+#endif
 
 gboolean
 mono_arch_handle_exception (void *ctx, gpointer obj, gboolean test_only)

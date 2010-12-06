@@ -690,34 +690,6 @@ mono_set_rootdir (void)
 #endif
 }
 
-void
-mono_set_assemblies_path (const char* path)
-{
-	char **splitted, **dest;
-
-	splitted = g_strsplit (path, G_SEARCHPATH_SEPARATOR_S, 1000);
-	if (assemblies_path)
-		g_strfreev (assemblies_path);
-	assemblies_path = dest = splitted;
-	while (*splitted){
-		if (**splitted)
-			*dest++ = *splitted;
-		splitted++;
-	}
-	*dest = *splitted;
-
-	if (g_getenv ("MONO_DEBUG") == NULL)
-		return;
-
-	splitted = assemblies_path;
-	while (*splitted) {
-		if (**splitted && !g_file_test (*splitted, G_FILE_TEST_IS_DIR))
-			g_warning ("'%s' in MONO_PATH doesn't exist or has wrong permissions.", *splitted);
-
-		splitted++;
-	}
-} 
-
 /**
  * mono_assemblies_init:
  *
