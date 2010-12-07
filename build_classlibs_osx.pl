@@ -240,6 +240,7 @@ sub BuildUnityScriptForUnity
 	cp("$monoprefixUnity/UnityScript.* $usBuildDir/");
 	cp("$monoprefixUnity/us.exe $usBuildDir/");
 	
+	$ENV{'MONO_EXECUTABLE'} = "$monoprefix/bin/mono";
 	system(<$monoprefix/bin/nunit-console2>, "-noshadow", "-exclude=FailsOnMono", $UnityScriptTestsDLL) eq 0 or die("UnityScript test suite failed");
 }
 	
