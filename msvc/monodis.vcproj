@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="monodis"
 	ProjectGUID="{37F50E5A-4818-46CF-81FE-4BB06DE5D42E}"
 	RootNamespace="dis"
@@ -203,7 +203,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\;&quot;..\VSDependancies\include\glib-2.0&quot;;&quot;..\VSDependancies\include\glib-2.0\glib&quot;;..\VSDependancies\include;&quot;..\VSDependancies\lib\glib-2.0\include&quot;;..\mono\;..\mono\jit"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\mono\jit;..\mono\eglib\src;..\..\mono\eglib\src"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_WINDOWS;__WIN32__;HOST_WIN32;TARGET_WIN32;__i386__;TARGET_X86"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -228,7 +228,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="glib-2.0.lib gmodule-2.0.lib ws2_32.lib gthread-2.0.lib gobject-2.0.lib mono.lib Psapi.lib"
+				AdditionalDependencies="mono.lib version.lib libgc.lib eglib.lib ws2_32.lib Psapi.lib winmm.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(PlatformName)_$(ConfigurationName)/lib&quot;"
 				GenerateDebugInformation="true"

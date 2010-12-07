@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="asyncsocketshutdown"
 	ProjectGUID="{D02963B5-3792-472A-B05D-53EFEAA818EE}"
 	RootNamespace="teste"
@@ -231,7 +231,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
-				AdditionalDependencies="ws2_32.lib Psapi.lib mono.lib"
+				AdditionalDependencies="ws2_32.lib Psapi.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\..\mono\msvc\&quot;$(PlatformName)_$(ConfigurationName)/lib&quot;&quot;"
 				GenerateDebugInformation="true"
