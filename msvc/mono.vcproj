@@ -306,6 +306,7 @@
 				AdditionalDependencies="mono.lib version.lib libgc.lib eglib.lib ws2_32.lib Psapi.lib winmm.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(PlatformName)_$(ConfigurationName)/lib&quot;"
+				IgnoreDefaultLibraryNames="MSVCRT"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

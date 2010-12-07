@@ -342,6 +342,7 @@
 				OutputFile="$(OutDir)/genmdesc.exe"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="&quot;$(PlatformName)_$(ConfigurationName)/lib&quot;"
+				IgnoreDefaultLibraryNames="LIBCMT"
 				ProgramDatabaseFile=".\Release/genmdesc.pdb"
 				SubSystem="1"
 				RandomizedBaseAddress="1"
