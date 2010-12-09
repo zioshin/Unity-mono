@@ -140,7 +140,7 @@ chdir($root);
 mkpath($bintarget);
 mkpath($libtarget);
 
-my $cmdline = "gcc -arch $arch -bundle -reexport_library mono/mini/.libs/libmono.a -isysroot /Developer/SDKs/MacOSX$sdkversion.sdk -mmacosx-version-min=$macversion -all_load -liconv -o $libtarget/MonoBundleBinary";
+my $cmdline = "gcc -arch $arch -bundle -reexport_library mono/mini/.libs/libmono-2.0.a -isysroot /Developer/SDKs/MacOSX$sdkversion.sdk -mmacosx-version-min=$macversion -all_load -liconv -o $libtarget/MonoBundleBinary";
 
 
 if (!$iphone_simulator)
