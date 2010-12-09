@@ -17,9 +17,9 @@ void unity_mono_redirect_output( const char *fout, const char *ferr );
 /**
  *	Closes redirected output files.
  */
-void unity_mono_close_output();
+void unity_mono_close_output(void);
 
-extern MonoString* mono_unity_get_embeddinghostname();
+extern MonoString* mono_unity_get_embeddinghostname(void);
 
 void mono_unity_write_to_unity_log(MonoString* str);
 
