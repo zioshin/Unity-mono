@@ -186,7 +186,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\mono\jit;..\mono\eglib\src;..\..\mono\eglib\src"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\mono\jit;..\eglib\src;..\..\eglib\src"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;PROFILERCOV_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"

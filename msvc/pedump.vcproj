@@ -206,7 +206,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\;..\libgc\include;&quot;..\VSDependancies\include\glib-2.0\glib&quot;;..\VSDependancies\include;..\mono\;..\mono\eglib\src;..\..\mono\eglib\src"
+				AdditionalIncludeDirectories="..\;..\libgc\include;&quot;..\VSDependancies\include\glib-2.0\glib&quot;;..\VSDependancies\include;..\mono\;..\eglib\src;..\..\eglib\src"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_WINDOWS;__WIN32__;HOST_WIN32;TARGET_WIN32;__i386__;TARGET_X86;GC_NOT_DLL;GC_GCJ_SUPPORT;GC_WIN32_THREADS;HAVE_INET_PTON"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"

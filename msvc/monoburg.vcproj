@@ -380,7 +380,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\mono\eglib\src;..\..\mono\eglib\src"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\eglib\src"
 				PreprocessorDefinitions="_DEBUG;__i386__;TARGET_X86;i386;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -465,7 +465,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\mono\eglib\src;..\..\mono\eglib\src"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\eglib\src"
 				PreprocessorDefinitions="_DEBUG;__x86_64__;WIN64;_WIN64;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -549,7 +549,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="1"
-				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\mono\eglib\src;..\..\mono\eglib\src"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\eglib\src"
 				PreprocessorDefinitions="NDEBUG;__i386__;TARGET_X86;i386;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="true"
@@ -633,7 +633,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="1"
-				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\mono\eglib\src;..\..\mono\eglib\src"
+				AdditionalIncludeDirectories="..\libgc\include;..\;..\mono\;..\eglib\src"
 				PreprocessorDefinitions="NDEBUG;__x86_64__;WIN64;_WIN64;WIN32;_WIN32;__WIN32__;_WINDOWS;WINDOWS;HOST_WIN32;TARGET_WIN32;_CRT_SECURE_NO_DEPRECATE;_CONSOLE"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="true"
