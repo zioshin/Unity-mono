@@ -140,23 +140,25 @@ chdir($root);
 mkpath($bintarget);
 mkpath($libtarget);
 
-my $cmdline = "gcc -arch $arch -bundle -reexport_library mono/mini/.libs/libmono-2.0.a -isysroot /Developer/SDKs/MacOSX$sdkversion.sdk -mmacosx-version-min=$macversion -all_load -liconv -o $libtarget/MonoBundleBinary";
-
+my $libname_a = "libmono-2.0.a";
+my $libname_dylib = "libmono-2.0.1.dylib";
+ 
+my $cmdline = "gcc -arch $arch -bundle -reexport_library mono/mini/.libs/$libname_a -isysroot /Developer/SDKs/MacOSX$sdkversion.sdk -mmacosx-version-min=$macversion -all_load -liconv -framework CoreFoundation -o $libtarget/MonoBundleBinary";
 
 if (!$iphone_simulator)
 {
 	print "About to call this cmdline to make a bundle:\n$cmdline\n";
 	system($cmdline) eq 0 or die("failed to link libmono.a into mono bundle");
 
-	print "Symlinking libmono.dylib\n";
-	system("ln","-f", "$root/mono/mini/.libs/libmono.0.dylib","$libtarget/libmono.0.dylib") eq 0 or die ("failed symlinking libmono.0.dylib");
+	print "Symlinking $libname_dylib\n";
+	system("ln","-f", "$root/mono/mini/.libs/$libname_dylib","$libtarget/libmono.0.dylib") eq 0 or die ("failed symlinking $libname_dylib");
 
-	print "Symlinking libmono.a\n";
-	system("ln", "-f", "$root/mono/mini/.libs/libmono.a","$libtarget/libmono.a") eq 0 or die ("failed symlinking libmono.a");
+	print "Symlinking $libname_a\n";
+	system("ln", "-f", "$root/mono/mini/.libs/$libname_a","$libtarget/libmono.a") eq 0 or die ("failed symlinking $libname_a");
 
 	if (($arch eq 'i386') and (not $ENV{"UNITY_THISISABUILDMACHINE"}))
 	{
-		system("ln","-fs", "$root/mono/mini/.libs/libmono.0.dylib.dSYM","$libtarget/libmono.0.dylib.dSYM") eq 0 or die ("failed symlinking libmono.0.dylib.dSYM");
+		system("ln","-fs", "$root/mono/mini/.libs/${libname_dylib}.dSYM","$libtarget/libmono.0.dylib.dSYM") eq 0 or die ("failed symlinking ${libname_dylib}.dSYM");
 	}
  
 #if ($ENV{"UNITY_THISISABUILDMACHINE"})

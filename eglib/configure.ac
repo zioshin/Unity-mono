@@ -134,6 +134,27 @@ fi
 
 #AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 
+AC_ARG_WITH([macversion],
+	[  --with-macversion=<version>    Choose minimum macos version],
+	[], [with_macversion=10.4])
+
+MACSYSROOTBASE="-isysroot /Developer/SDKs"
+if [[ "$with_macversion" == "10.4" ]]; then
+  MACSYSROOT="$MACSYSROOTBASE/MacOSX10.4u.sdk"
+else
+  MACSYSROOT="$MACSYSROOTBASE/MacOSX""$with_macversion"".sdk"
+fi
+MACSDKOPTIONS="-mmacosx-version-min=$with_macversion $MACSYSROOT"
+
+case $host in
+	*-*-darwin*)
+		if [[ "$host" != "arm-apple-darwin9" ]]; then 
+			CPPFLAGS="$CPPFLAGS $MACSDKOPTIONS"
+			LDFLAGS="$LDFLAGS $MACSDKOPTIONS"
+		fi
+	;;
+esac
+
 pkg_config_path=
 AC_ARG_WITH(crosspkgdir, [  --with-crosspkgdir=/path/to/pkg-config/dir      Change pkg-config dir to custom dir],
 	if test x$with_crosspkgdir = "x"; then

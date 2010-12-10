@@ -72,8 +72,7 @@ if [[ "$with_macversion" == "10.4" ]]; then
 else
   MACSYSROOT="$MACSYSROOTBASE/MacOSX""$with_macversion"".sdk"
 fi
-# MACSDKOPTIONS="-mmacosx-version-min=$with_macversion $MACSYSROOT"
-MACSDKOPTIONS=""
+MACSDKOPTIONS="-mmacosx-version-min=$with_macversion $MACSYSROOT"
 
 
 # Thread configuration inspired by sleepycat's db

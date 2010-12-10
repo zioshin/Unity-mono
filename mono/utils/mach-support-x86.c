@@ -15,13 +15,18 @@
 #include <pthread.h>
 #include "utils/mono-sigcontext.h"
 #include "mach-support.h"
+#include <ucontext.h>
 
 void *
 mono_mach_arch_get_ip (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
 
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
 	return (void *) arch_state->__eip;
+#else
+	return (void *) arch_state->eip;
+#endif
 }
 
 void *
@@ -29,22 +34,34 @@ mono_mach_arch_get_sp (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
 
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
 	return (void *) arch_state->__esp;
+#else
+	return (void *) arch_state->esp;
+#endif
 }
 
 int
 mono_mach_arch_get_mcontext_size ()
 {
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
 	return sizeof (struct __darwin_mcontext32);
+#else
+	return I386_MCONTEXT_SIZE;
+#endif
 }
 
 void
 mono_mach_arch_thread_state_to_mcontext (thread_state_t state, mcontext_t context)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
 	struct __darwin_mcontext32 *ctx = (struct __darwin_mcontext32 *) context;
+#else
+	struct mcontext *ctx = (struct mcontext *) context;
+#endif
 
-	ctx->__ss = *arch_state;
+	ctx->ss = *arch_state;
 }
 
 int
@@ -73,7 +90,13 @@ mono_mach_arch_get_tls_value_from_thread (thread_port_t thread, guint32 key)
 	 * They are keyed off a giant array offset 0x48 into the pointer.  This value
 	 * is baked into their pthread_getspecific implementation
 	 */
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
 	intptr_t *p = (intptr_t *) pthread_from_mach_thread_np (thread);
+#else
+	// I assign p only to avoid warnings...
+	intptr_t *p = NULL;
+	g_error ("pthread_from_mach_thread_np unsupported on Mac 10.4");
+#endif
 	intptr_t **tsd = (intptr_t **) (p + 0x48);
 
 	return (void *) tsd [key];
