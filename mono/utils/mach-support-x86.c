@@ -44,7 +44,7 @@ mono_mach_arch_get_sp (thread_state_t state)
 int
 mono_mach_arch_get_mcontext_size ()
 {
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
 	return sizeof (struct __darwin_mcontext32);
 #else
 	return I386_MCONTEXT_SIZE;
@@ -55,13 +55,13 @@ void
 mono_mach_arch_thread_state_to_mcontext (thread_state_t state, mcontext_t context)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
 	struct __darwin_mcontext32 *ctx = (struct __darwin_mcontext32 *) context;
+	ctx->ss = *arch_state;
 #else
 	struct mcontext *ctx = (struct mcontext *) context;
+	ctx->__ss = *arch_state;
 #endif
-
-	ctx->ss = *arch_state;
 }
 
 int
