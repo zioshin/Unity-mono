@@ -120,6 +120,11 @@ if (not $skipbuild)
 	# one would give us space, so here is this silly looong prefix.
 	unshift(@autogenparams, "--prefix=/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890/1234567890");
 
+	if ($arch eq "ppc")
+	{
+		unshift(@autogenparams, "--with-sgen=no");
+	}
+
 	if ($minimal)
 	{
 		unshift(@autogenparams,"--enable-minimal=aot,logging,com,profiler,debug");
