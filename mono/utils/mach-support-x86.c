@@ -22,7 +22,7 @@ mono_mach_arch_get_ip (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
 
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
 	return (void *) arch_state->__eip;
 #else
 	return (void *) arch_state->eip;
@@ -34,7 +34,7 @@ mono_mach_arch_get_sp (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
 
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
+#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
 	return (void *) arch_state->__esp;
 #else
 	return (void *) arch_state->esp;
