@@ -22,7 +22,7 @@ mono_mach_arch_get_ip (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
 
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
 	return (void *) arch_state->__eip;
 #else
 	return (void *) arch_state->eip;
@@ -34,7 +34,7 @@ mono_mach_arch_get_sp (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
 
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
 	return (void *) arch_state->__esp;
 #else
 	return (void *) arch_state->esp;
@@ -44,7 +44,7 @@ mono_mach_arch_get_sp (thread_state_t state)
 int
 mono_mach_arch_get_mcontext_size ()
 {
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
 	return sizeof (struct __darwin_mcontext32);
 #else
 	return I386_MCONTEXT_SIZE;
@@ -55,12 +55,12 @@ void
 mono_mach_arch_thread_state_to_mcontext (thread_state_t state, mcontext_t context)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
 	struct __darwin_mcontext32 *ctx = (struct __darwin_mcontext32 *) context;
-	ctx->ss = *arch_state;
+	ctx->__ss = *arch_state;
 #else
 	struct mcontext *ctx = (struct mcontext *) context;
-	ctx->__ss = *arch_state;
+	ctx->ss = *arch_state;
 #endif
 }
 
@@ -90,7 +90,7 @@ mono_mach_arch_get_tls_value_from_thread (thread_port_t thread, guint32 key)
 	 * They are keyed off a giant array offset 0x48 into the pointer.  This value
 	 * is baked into their pthread_getspecific implementation
 	 */
-#ifndef AVAILABLE_MAC_OS_X_VERSION_10_5_AND_LATER
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
 	intptr_t *p = (intptr_t *) pthread_from_mach_thread_np (thread);
 #else
 	// I assign p only to avoid warnings...
