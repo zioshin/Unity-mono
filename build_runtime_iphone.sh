@@ -46,8 +46,6 @@ export cv_mono_sizeof_sunpath=104
 export ac_cv_func_posix_getpwuid_r=yes
 export ac_cv_func_backtrace_symbols=no
 
-my $libname_a = "libmono-2.0.a";
-
 build_arm_mono ()
 {
 	setenv "$1"
@@ -70,7 +68,7 @@ build_arm_mono ()
 	make || exit 1
 
 	mkdir -p builds/embedruntimes/iphone
-	cp mono/mini/.libs/$libname_a "builds/embedruntimes/iphone/libmono-$1.a" || exit 1
+	cp mono/mini/.libs/libmono-2.0.a "builds/embedruntimes/iphone/libmono-$1.a" || exit 1
 }
 
 build_iphone_runtime () 
@@ -113,7 +111,7 @@ build_iphone_simulator ()
 	perl build_runtime_osx.pl -iphone_simulator=1 || exit 1
 	echo "Copying iPhone simulator static lib to final destination";
 	mkdir -p builds/embedruntimes/iphone
-	cp mono/mini/.libs/$libname_a builds/embedruntimes/iphone/libmono-i386.a
+	cp mono/mini/.libs/libmono-2.0.a builds/embedruntimes/iphone/libmono-i386.a
 }
 
 usage()
