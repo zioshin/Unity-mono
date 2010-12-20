@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Mono.Cecil;
 
 namespace CoreClr.Tools
@@ -72,24 +73,42 @@ namespace CoreClr.Tools
 				processed.Add(method);
 
 			    var ssc = _canBeSscManual.Contains(method);
+                var reasons = GetPropagationReasonsFor(method);
                 if (ssc)
                 {
-                    var reasons = GetPropagationReasonsFor(method);
-                    if (reasons.Any(r=>r.GetType()==typeof(PropagationReasonIsInSameEnheritanceGraphAs)))
-                        throw new ArgumentException("Method "+method+" needs to become [SC] because of enheritance rules, but it is marked [SSC]. We cannot mark it [SSC], you should fix this");
-                    if (GetPropagationReasonsFor(method).Single().GetType() ==typeof (PropagationReasonRequiresPrivilegesItself))
-                        continue;
+                    var p = reasons.OfType<PropagationReasonIsInSameEnheritanceGraphAs>().FirstOrDefault();
+                    if (p != null)
+                    {
+                        bool temporarilyDisableSSCWarningWhileInvestigating = false;
+                        if (temporarilyDisableSSCWarningWhileInvestigating)
+                        {
+                            ssc = false;
+                        }
+                        else
+                        {
+                            throw new MethodNeedsSCButIsMarkedSSCException(method, p);
+                        }
+                    }
+                    else
+                    {
+                        if (GetPropagationReasonsFor(method).Single().GetType() ==
+                            typeof (PropagationReasonRequiresPrivilegesItself))
+                            continue;
+                    }
                 }
 
 			    if (!_criticalTypes.Contains(method.DeclaringType) && !ssc)
                 {
-                    //SC method in Transparent type.  these are fucked up, as they 'pollute' an entire enheritance graph. because of coreclr rules, everything it overrides,
-                    //and everything overriding it must also have method level [sc]. If this were .ToString(), that means all .ToString() methods everywhere become [sc].
-                    foreach(var m in _methodMap.GetEntireMethodEnheritanceGraph(method))
+                    if (!reasons.OfType<PropagationReasonIsInSameEnheritanceGraphAs>().Any())
                     {
-                        if (m==method) continue;
-                        AddPropagationReasonFor(m, new PropagationReasonIsInSameEnheritanceGraphAs(method));
-                        _propagationQueue.Enqueue(m);
+                        //SC method in Transparent type.  these are fucked up, as they 'pollute' an entire enheritance graph. because of coreclr rules, everything it overrides,
+                        //and everything overriding it must also have method level [sc]. If this were .ToString(), that means all .ToString() methods everywhere become [sc].
+                        foreach (var m in _methodMap.GetEntireMethodEnheritanceGraph(method))
+                        {
+                            if (m == method) continue;
+                            AddPropagationReasonFor(m, new PropagationReasonIsInSameEnheritanceGraphAs(m, method));
+                            _propagationQueue.Enqueue(m);
+                        }
                     }
                 }
 
@@ -102,13 +121,34 @@ namespace CoreClr.Tools
             //as they are already allowed to call whatever they want. Except those methods that have [sc] because they live in the same entiremethodhierarchy as a transparent
             //type with that method having [sc].
 
-	        var candidatesForRemoval = _resultingCriticalMethods.Where(m => _criticalTypes.Contains(m.DeclaringType));
-	        var canremove = candidatesForRemoval.Where(m =>!GetPropagationReasonsFor(m).Any(r => r.GetType() == typeof (PropagationReasonIsInSameEnheritanceGraphAs)));
+	        var sw = System.Diagnostics.Stopwatch.StartNew();
+	        var candidatesForRemoval =_resultingCriticalMethods.Where(m => _criticalTypes.Contains(m.DeclaringType)).ToArray();
+	        Console.WriteLine("Check1: " + sw.ElapsedMilliseconds);
+            sw.Reset();
+	        var canremove = candidatesForRemoval.Where(m =>!GetPropagationReasonsFor(m).Any(r => r.GetType() == typeof (PropagationReasonIsInSameEnheritanceGraphAs))).ToArray();
             
+            Console.WriteLine("Check2: " + sw.ElapsedMilliseconds);
+            sw.Reset();
             _resultingCriticalMethods = _resultingCriticalMethods.Where(m => !canremove.Contains(m)).ToList();
+            Console.WriteLine("Check3: " + sw.ElapsedMilliseconds);
 		}
 
-    
+	    private PropagationReason[] FindMethodsInEnheritanceGraphThatHaveReasonsOtherThanBeingInTheGraph(MethodDefinition method)
+	    {
+	        var graph = _methodMap.GetEntireMethodEnheritanceGraph(method);
+	        var result = new List<PropagationReason>();
+            foreach(var m in graph)
+            {
+                var reasons = GetPropagationReasonsFor(m);
+                foreach(var reason in reasons.Where(r=>r.GetType() != typeof(PropagationReasonIsInSameEnheritanceGraphAs)))
+	            {
+	                result.Add(reason);
+	            }
+            }
+	        return result.ToArray();
+	    }
+
+
 	    private void InitPropagationReasonForMethodsRequiringPrivilegesThemselves()
 		{
 			foreach (var m in _methodRequiringPrivilegesThemselves)
@@ -155,7 +195,26 @@ namespace CoreClr.Tools
 		}
 	}
 
-	public class MethodToMethodCall
+    public class MethodNeedsSCButIsMarkedSSCException : Exception
+    {
+        private readonly MethodDefinition _method;
+        private readonly PropagationReason _propagationReason;
+
+        public MethodNeedsSCButIsMarkedSSCException(MethodDefinition method, PropagationReasonIsInSameEnheritanceGraphAs propagationReason)
+        {
+            _method = method;
+            _propagationReason = propagationReason;
+        }
+        public override string ToString()
+        {
+            var sb = new StringBuilder("Method: " + _method +
+                   " is marked as SSC, but its enheritance chain needs to be SC because it is in the same graph as: "+_propagationReason.MethodThatTaintedMe);
+            
+            return sb.ToString();
+        }
+    }
+
+    public class MethodToMethodCall
 	{
 		public MethodToMethodCall(MethodDefinition caller, MethodDefinition callee)
 		{

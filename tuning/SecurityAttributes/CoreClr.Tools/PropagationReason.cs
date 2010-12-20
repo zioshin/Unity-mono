@@ -22,7 +22,7 @@ namespace CoreClr.Tools
 
 		override public string Explanation
 		{
-			get { return "calls"; }
+            get { return " calls "; } // +_callee; }
 		}
 
 		public override MethodDefinition MethodThatTaintedMe
@@ -52,21 +52,24 @@ namespace CoreClr.Tools
 
     public class PropagationReasonIsInSameEnheritanceGraphAs : PropagationReason
     {
-        private readonly MethodDefinition _method;
+        private readonly MethodDefinition _taintedMethod;
+        private readonly MethodDefinition _taintingMethod;
 
-        public PropagationReasonIsInSameEnheritanceGraphAs(MethodDefinition method)
+        public PropagationReasonIsInSameEnheritanceGraphAs(MethodDefinition taintedMethod, MethodDefinition taintingMethod)
         {
-            _method = method;
+            if (taintedMethod.Equals(taintingMethod)) throw new ArgumentException("Cannot create PropagationReasonIsInSameEnheritanceGraphAs where tainter equals tainted");
+            _taintedMethod = taintedMethod;
+            _taintingMethod = taintingMethod;
         }
 
         public override MethodDefinition MethodThatTaintedMe
         {
-            get { return _method; }
+            get { return _taintingMethod; }
         }
 
         public override string Explanation
         {
-            get { return "Is in same enheritancegraph as " + _method; }
+            get { return "Is in same enheritancegraph as " + _taintingMethod; }
         }
     }
 

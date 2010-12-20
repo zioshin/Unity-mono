@@ -161,8 +161,11 @@ namespace CoreClr.Tools.Tests
             try
             {
                 PropagateAndAssert(ptd);
-            } catch (ArgumentException ae)
+            }
+            catch (MethodNeedsSCButIsMarkedSSCException e)
             {
+                Assert.AreEqual("Method: System.Void TestChild::M1() is marked as SSC, but its enheritance chain needs to be SC because it is in the same graph as: " +
+                    "System.Void TestBase::M1()", e.ToString());
                 return;
             }
             Assert.Fail("Propagate needs to throw, because it needs to mark a method as [SC], which was manually specified as [SSC]");
