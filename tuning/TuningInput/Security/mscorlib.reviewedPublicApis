@@ -286,3 +286,6 @@ System.Reflection.Emit.AssemblyBuilder System.AppDomain::DefineDynamicAssembly\(
 #unsure about this one, but it has been offlimits in 3.0b0->b5. maybe it could be opened up
 System.Reflection.Assembly System.Reflection.Assembly::Load\(System.Reflection.AssemblyName\)
 System.Reflection.MethodBody System.Reflection.MethodBase::GetMethodBody\(\)
+
+#Everything below needs an audit, and was added in order to get mono2.8 to build.
+System.Void System.Text.Encoder::Convert\(System.Char\[\],System.Int32,System.Int32,System.Byte\[\],System.Int32,System.Int32,System.Boolean,System.Int32&,System.Int32&,System.Boolean&\)

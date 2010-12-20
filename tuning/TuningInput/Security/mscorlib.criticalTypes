@@ -150,3 +150,6 @@ System.Security.Policy.StrongNameMembershipCondition
 
 #criticaltype in moonlight
 System.Resources.ResourceWriter
+
+#Everything below needs an audit, and was added in order to get mono2.8 to build.
+Mono.Security.X509.Extensions.ExtendedKeyUsageExtension

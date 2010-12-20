@@ -21,3 +21,7 @@ System.IO.Compression.GZipStream
 
 #need zlib installed anyway
 System.IO.Compression.DeflateStream
+
+#Everything below needs an audit, and was added in order to get mono2.8 to build.
+System.Net.FileWebRequestCreator
+System.Net.WebClient

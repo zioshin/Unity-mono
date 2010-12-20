@@ -2025,3 +2025,23 @@ System.Globalization.CultureInfo System.Globalization.CultureInfo::GetCultureInf
 System.Void System.Globalization.CultureInfo::.ctor(System.Int32,System.Boolean)
 System.Globalization.CultureInfo System.Globalization.CultureInfo::GetCultureInfo(System.String)
 System.Void System.Globalization.CultureInfo::.ctor(System.String,System.Boolean)
+
+
+#Everything below needs an audit, and was added in order to get mono2.8 to build. 
+
+System.Int32 System.Text.Latin1Encoding::GetBytes(System.Char[],System.Int32,System.Int32,System.Byte[],System.Int32)
+System.Int32 System.Text.Latin1Encoding::GetBytes(System.String,System.Int32,System.Int32,System.Byte[],System.Int32)
+System.Int32 System.Text.UTF8Encoding::GetBytes(System.Char[],System.Int32,System.Int32,System.Byte[],System.Int32)
+System.String System.Reflection.Emit.FieldOnTypeBuilderInst::ToString()
+System.Int32 System.Threading.Thread::GetHashCode()
+System.Type[] System.Reflection.Emit.AssemblyBuilder::GetTypes(System.Boolean)
+System.Boolean System.Array::FastCopy(System.Array,System.Int32,System.Array,System.Int32,System.Int32)
+System.Int32 System.Text.UTF8Encoding::GetByteCount(System.Char[],System.Int32,System.Int32)
+System.Void System.Array::SortImpl(System.Array,System.Array,System.Int32,System.Int32,System.Collections.IComparer)
+System.Reflection.MonoMethod System.Reflection.MonoMethod::get_base_method(System.Reflection.MonoMethod,System.Boolean)
+System.Int32 System.Text.UTF8Encoding/UTF8Encoder::GetByteCount(System.Char[],System.Int32,System.Int32,System.Boolean)
+System.Threading.InternalThread System.Threading.Thread::get_Internal()
+System.Int32 System.Text.UTF8Encoding/UTF8Encoder::GetBytes(System.Char[],System.Int32,System.Int32,System.Byte[],System.Int32,System.Boolean)
+System.Type System.Reflection.MonoField::get_FieldType()
+System.Void System.Reflection.CustomAttributeData::ResolveArguments()
+System.Byte[] System.Threading.Thread::ByteArrayToRootDomain(System.Byte[])
