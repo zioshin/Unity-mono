@@ -78,12 +78,6 @@ if (not $skipbuild)
 	}
 	system("make") eq 0 or die ("Failed running make");
 	system("make install") eq 0 or die ("Failed running make install");
-	print(">>>Making micro lib\n");
-	chdir("$root/mcs/class/corlib") eq 1 or die("failed to chdir corlib");
-	system("make PROFILE=monotouch_bootstrap") eq 0 or die ("Failed making monotouch bootstrap");
-	system("make PROFILE=monotouch MICRO=1 clean") eq 0 or die ("Failed cleaning micro corlib");
-	system("make PROFILE=monotouch MICRO=1") eq 0 or die ("Failed making micro corlib");
-	
 }
 chdir ($root);
 
@@ -92,8 +86,6 @@ $File::Copy::Recursive::CopyLink = 0;  #make sure we copy files as files and not
 mkpath("$libmono/2.0");
 dircopy("$monoprefix/lib/mono/2.0","$libmono/2.0");
 system("rm $libmono/2.0/*.mdb");
-mkpath("$libmono/micro");
-system("cp $root/mcs/class/lib/monotouch/mscorlib.dll $libmono/micro") eq 0 or die("Failed to copy micro corlib");
 system("cp $monoprefix/lib/mono/gac/Mono.Cecil/*/Mono.Cecil.dll $libmono/2.0") eq 0 or die("failed to copy Mono.Cecil.dll");
 system("cp -r $monoprefix/bin $monodistro/") eq 0 or die ("failed copying bin folder");
 
@@ -210,10 +202,6 @@ sub BuildUnityScriptForUnity
 	UnityBooc("-out:$monoprefixUnity/Boo.Lang.Extensions.dll -noconfig -nostdlib -srcdir:$booCheckout/src/Boo.Lang.Extensions -r:System.dll -r:mscorlib.dll -r:Boo.Lang.dll");
 	UnityBooc("-out:$monoprefixUnity/Boo.Lang.Useful.dll -srcdir:$booCheckout/src/Boo.Lang.Useful -r:Boo.Lang.Parser");
 	UnityBooc("-out:$monoprefixUnity/Boo.Lang.PatternMatching.dll -srcdir:$booCheckout/src/Boo.Lang.PatternMatching");
-	
-	# micro profile version
-	UnityXBuild("$booCheckout/src/Boo.Lang/Boo.Lang.csproj", "Micro-Release");
-	cp("$booCheckout/src/Boo.Lang/bin/Micro-Release/Boo.Lang.dll $monodistroLibMono/micro/");
 	
 	my $usCheckout = "external/unityscript";
 	GitClone("git://github.com/bamboo/unityscript.git", $usCheckout);
