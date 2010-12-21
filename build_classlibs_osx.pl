@@ -78,6 +78,8 @@ if (not $skipbuild)
 	}
 	system("make") eq 0 or die ("Failed running make");
 	system("make install") eq 0 or die ("Failed running make install");
+	chdir("$root/mono");
+	system("make check") eq 0 or die ("Failed running mono runtime tests");
 }
 chdir ($root);
 
