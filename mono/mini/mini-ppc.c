@@ -805,6 +805,25 @@ mono_arch_flush_icache (guint8 *code, gint size)
 		sync
 		isync
 	}
+#elif defined(_XBOX)
+	
+	if (cpu_hw_caps & PPC_SMP_CAPABLE) {
+		for (p = start; p < endp; p += cachelineinc) {
+			__dcbf(0, p);
+		}
+	} else {
+		for (p = start; p < endp; p += cachelineinc) {
+			__dcbst(0, p);
+		}
+	}
+	__sync();
+	p = code;
+	for (p = start; p < endp; p += cachelineinc) {
+		//__icbi(0, p);	// mircea@TODO: couldn't find I$ related functions
+		__sync();
+	}
+	__sync();
+	//__isync();
 #else
 	/* For POWER5/6 with ICACHE_SNOOPing only one icbi in the range is required.
 	 * The sync is required to insure that the store queue is completely empty.
@@ -4580,6 +4599,12 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 		case OP_ATOMIC_ADD_NEW_I8: {
 			guint8 *loop = code, *branch;
 			g_assert (ins->inst_offset == 0);
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mfmsr( code, ins->dreg);
+			ppc_mtmsree( code, ppc_r13 );
+#endif
+
 			if (ins->opcode == OP_ATOMIC_ADD_NEW_I4)
 				ppc_lwarx (code, ppc_r0, 0, ins->inst_basereg);
 			else
@@ -4589,6 +4614,11 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				ppc_stwcxd (code, ppc_r0, 0, ins->inst_basereg);
 			else
 				ppc_stdcxd (code, ppc_r0, 0, ins->inst_basereg);
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mtmsree( code, ins->dreg );
+#endif
+
 			branch = code;
 			ppc_bc (code, PPC_BR_FALSE, PPC_BR_EQ, 0);
 			ppc_patch (branch, loop);
@@ -4618,6 +4648,12 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			guint8 *start, *not_equal, *lost_reservation;
 
 			start = code;
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mfmsr( code, ins->dreg);
+			ppc_mtmsree( code, ppc_r13 );
+#endif
+
 			if (ins->opcode == OP_ATOMIC_CAS_I4)
 				ppc_lwarx (code, ppc_r0, 0, location);
 #ifdef __mono_ppc64__
@@ -4633,6 +4669,10 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 #ifdef __mono_ppc64__
 			else
 				ppc_stdcxd (code, value, 0, location);
+#endif
+
+#if defined(MONO_AOT_XENON_CPU)
+			ppc_mtmsree( code, ins->dreg );
 #endif
 
 			lost_reservation = code;
@@ -5704,7 +5744,7 @@ setup_tls_access (void)
 		}
 #endif
 	}
-#ifndef TARGET_PS3
+#if !defined(TARGET_PS3) && !defined(_XBOX)
 	if (tls_mode == TLS_MODE_DETECT)
 		tls_mode = TLS_MODE_FAILED;
 	if (tls_mode == TLS_MODE_FAILED)

@@ -29,13 +29,6 @@
 #include <string.h>
 #include <glib.h>
 
-void
-g_free (void *ptr)
-{
-	if (ptr != NULL)
-		free (ptr);
-}
-
 gpointer
 g_memdup (gconstpointer mem, guint byte_size)
 {
@@ -51,3 +44,21 @@ g_memdup (gconstpointer mem, guint byte_size)
 	return ptr;
 }
 
+gchar*
+g_strdup (const gchar *str)
+{
+	if (str)
+	{
+		size_t size = strlen(str) + 1;
+		gchar* ptr = (gchar*)g_malloc (size);
+		if (ptr)
+		{
+			memcpy(ptr, str, size);
+		}
+		return ptr;
+	}
+	else
+	{
+		return NULL;
+	}
+}

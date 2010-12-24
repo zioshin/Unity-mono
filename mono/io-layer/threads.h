@@ -37,8 +37,10 @@ G_BEGIN_DECLS
 #define THREAD_DIRECT_IMPERSONATION	0x0200
 #define THREAD_ALL_ACCESS		(STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3ff)
 
+#ifndef _XBOX
 typedef guint32 (*WapiThreadStart)(gpointer);
 typedef guint32 (*WapiApcProc)(gpointer);
+#endif
 
 /* 
  * The 'tid' argument has a different type than in win32, which breaks on win64.

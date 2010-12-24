@@ -83,6 +83,9 @@ typedef struct GC_Thread_Rep {
 		/* Don't use local free lists for up to this much 	*/
 		/* allocation.						*/
 #   endif
+#ifdef SN_TARGET_PS3
+	  int original_thread_policy;
+#endif
 } * GC_thread;
 
 # define THREAD_TABLE_SZ 128	/* Must be power of 2	*/

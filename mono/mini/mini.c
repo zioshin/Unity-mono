@@ -91,6 +91,10 @@ static gboolean default_opt_set = FALSE;
 
 guint32 mono_jit_tls_id = -1;
 
+#if defined(HAVE_KW_THREAD) && defined(_XBOX)
+#	define __thread __declspec( thread )
+#endif
+
 #ifdef HAVE_KW_THREAD
 static __thread gpointer mono_jit_tls MONO_TLS_FAST;
 #endif
@@ -231,6 +235,7 @@ void mono_nacl_fix_patches(const guint8 *code, MonoJumpInfo *ji)
 gboolean
 mono_running_on_valgrind (void)
 {
+#ifdef HAVE_VALGRIND_MEMCHECK_H
 	if (RUNNING_ON_VALGRIND){
 #ifdef VALGRIND_JIT_REGISTER_MAP
 		valgrind_register = TRUE;
@@ -238,6 +243,9 @@ mono_running_on_valgrind (void)
 		return TRUE;
 	} else
 		return FALSE;
+#else
+	return FALSE;
+#endif
 }
 
 typedef struct {
@@ -5035,7 +5043,21 @@ mono_jit_compile_method_with_opt (MonoMethod *method, guint32 opt, MonoException
 	if (!code)
 		return NULL;
 
+
+#if defined (SN_TARGET_PS3)
+	if (method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) {
+		MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);
+		if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) && mono_method_needs_wrapperless_icall (wrapped)) {
+			p = code;
+		}
+		else
+			p = mono_create_ftnptr (target_domain, code);
+	}
+	else
+		p = mono_create_ftnptr (target_domain, code);
+#else
 	p = mono_create_ftnptr (target_domain, code);
+#endif
 
 	if (callinfo) {
 		mono_jit_lock ();
@@ -5461,7 +5483,7 @@ SIG_HANDLER_SIGNATURE (mono_sigsegv_signal_handler)
 	}
 #endif
 
-#if !defined(HOST_WIN32) && defined(HAVE_SIG_INFO)
+#if (!(defined (HOST_WIN32)) || defined (_XBOX) || defined (SN_TARGET_PS3)) && defined(HAVE_SIG_INFO)
 	if (mono_aot_is_pagefault (info->si_addr)) {
 		mono_aot_handle_pagefault (info->si_addr);
 		return;
@@ -5775,8 +5797,10 @@ mini_free_jit_domain_info (MonoDomain *domain)
 	g_hash_table_destroy (info->seq_points);
 	g_hash_table_destroy (info->arch_seq_points);
 
+#ifndef _XBOX
 	if (info->agent_info)
 		mono_debugger_agent_free_domain_info (domain);
+#endif
 
 	g_free (domain->runtime_info);
 	domain->runtime_info = NULL;
@@ -5877,7 +5901,9 @@ mini_init (const char *filename, const char *runtime_version)
 	if (default_opt & MONO_OPT_AOT)
 		mono_aot_init ();
 
+#ifndef _XBOX
 	mono_debugger_agent_init ();
+#endif
 
 #ifdef MONO_ARCH_GSHARED_SUPPORTED
 	mono_set_generic_sharing_supported (TRUE);
@@ -6296,7 +6322,9 @@ mini_cleanup (MonoDomain *domain)
 
 	mono_domain_free (domain, TRUE);
 
+#ifndef _XBOX
 	mono_debugger_cleanup ();
+#endif
 
 #ifdef ENABLE_LLVM
 	if (mono_use_llvm)

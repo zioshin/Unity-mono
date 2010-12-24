@@ -65,6 +65,8 @@
 #define SHARED_EXT ".dll"
 #elif ((defined(__ppc__) || defined(__powerpc__) || defined(__ppc64__)) || defined(__MACH__)) && !defined(__linux__)
 #define SHARED_EXT ".dylib"
+#elif defined(_XBOX)
+#define SHARED_EXT ".xex"
 #else
 #define SHARED_EXT ".so"
 #endif
@@ -854,7 +856,7 @@ load_aot_module_from_cache (MonoAssembly *assembly, char **aot_name)
 
 			res = g_spawn_command_line_sync (cmd, &out, &err, &exit_status, NULL);
 
-#if !defined(HOST_WIN32) && !defined(__ppc__) && !defined(__ppc64__) && !defined(__powerpc__)
+#if !defined(HOST_WIN32) && !defined(__ppc__) && !defined(__ppc64__) && !defined(__powerpc__) && !defined(_XBOX)
 			if (res) {
 				if (!WIFEXITED (exit_status) && (WEXITSTATUS (exit_status) == 0))
 					mono_trace (G_LOG_LEVEL_MESSAGE, MONO_TRACE_AOT, "AOT failed: %s.", err);
@@ -2741,6 +2743,35 @@ find_extra_method (MonoMethod *method, MonoAotModule **out_amodule)
 	return index;
 }
 
+gboolean
+mono_method_needs_wrapperless_icall (MonoMethod *method) {
+	MonoCustomAttrInfo* ainfo = mono_custom_attrs_from_method (method);
+
+	// PS3 crosscompiler & runtime needs to return false here.
+#if !defined(MONO_AOT_XENON_CPU) && !defined(_XBOX)
+	return FALSE;
+#endif
+
+
+	if (ainfo == NULL) {
+		return FALSE;
+	} else {
+		gboolean result = FALSE;
+		int i;
+		MonoClass *klass;
+
+		for (i = 0; i < ainfo->num_attrs; ++i) {
+			klass = ainfo->attrs [i].ctor->klass;
+			if (! strcmp (klass->name, "WrapperlessIcall")) {
+				result = TRUE;
+				break;
+			}
+		}
+		mono_custom_attrs_free (ainfo);
+		return result;
+	}
+}
+
 /*
  * mono_aot_get_method:
  *
@@ -2776,6 +2807,16 @@ mono_aot_get_method (MonoDomain *domain, MonoMethod *method)
 		(method->iflags & METHOD_IMPL_ATTRIBUTE_RUNTIME) ||
 		(method->flags & METHOD_ATTRIBUTE_ABSTRACT))
 		return NULL;
+
+	if (method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) {
+		MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);
+		if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) && mono_method_needs_wrapperless_icall (wrapped)) {
+#if defined (PLATFORM_IPHONE)
+			if (wrapped->signature->ret->type != MONO_TYPE_R4)
+#endif
+				return mono_lookup_internal_call (wrapped);
+		}
+	}
 
 	/*
 	 * Use the original method instead of its invoke-with-check wrapper.

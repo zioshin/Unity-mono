@@ -46,7 +46,7 @@ mono_counters_register (const char* name, int type, void *addr)
 	MonoCounter *counter;
 	if (!(type & valid_mask))
 		return;
-	counter = malloc (sizeof (MonoCounter));
+	counter = g_malloc_d (sizeof (MonoCounter));
 	if (!counter)
 		return;
 	counter->name = name;
@@ -196,7 +196,7 @@ mono_counters_cleanup (void)
 	while (counter) {
 		MonoCounter *tmp = counters;
 		counter = counter->next;
-		free (tmp);
+		g_free_d (tmp);
 	}
 	counters = NULL;
 }

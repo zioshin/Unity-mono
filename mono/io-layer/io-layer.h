@@ -42,6 +42,8 @@
 #include <ddk/ntapi.h>
 #endif /* _MSC_VER */
 #endif /* !HAVE_GETPROCESSID */
+#elif defined(_XBOX)
+#include <Xtl.h>
 #else	/* EVERYONE ELSE */
 #include "mono/io-layer/wapi.h"
 #include "mono/io-layer/uglify.h"

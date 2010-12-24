@@ -12,6 +12,12 @@
 #ifndef __MONO_IMAGE_WRITER_H__
 #define __MONO_IMAGE_WRITER_H__
 
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+#define LOCAL_LABEL_PREFIX "local_"
+#else
+#define LOCAL_LABEL_PREFIX ".L"
+#endif
+
 #include "config.h"
 
 #include <glib.h>
@@ -28,7 +34,7 @@ typedef struct _MonoImageWriter MonoImageWriter;
 
 gboolean bin_writer_supported (void) MONO_INTERNAL;
 
-MonoImageWriter* img_writer_create (FILE *fp, gboolean use_bin_writer) MONO_INTERNAL;
+MonoImageWriter* img_writer_create (FILE *fp, gboolean use_bin_writer, const char *def_file_name) MONO_INTERNAL;
 
 void img_writer_destroy (MonoImageWriter *w) MONO_INTERNAL;
 

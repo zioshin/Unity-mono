@@ -33,7 +33,7 @@
 #include <mono/metadata/gc-internal.h>
 #include <mono/metadata/marshal.h>
 #include <mono/io-layer/io-layer.h>
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 #include <mono/io-layer/threads.h>
 #endif
 #include <mono/metadata/object-internals.h>
@@ -44,6 +44,12 @@
 #include <mono/utils/mono-time.h>
 
 #include <mono/metadata/gc-internal.h>
+
+
+
+#if defined(_XBOX)
+#	define __thread __declspec( thread )
+#endif
 
 /*#define THREAD_DEBUG(a) do { a; } while (0)*/
 #define THREAD_DEBUG(a)
@@ -932,7 +938,7 @@ mono_thread_get_stack_bounds (guint8 **staddr, size_t *stsize)
 	*staddr = (guint8*)((gssize)*staddr & ~(mono_pagesize () - 1));
 	return;
 	/* FIXME: simplify the mess below */
-#elif !defined(HOST_WIN32)
+#elif !defined(HOST_WIN32) && !defined(_XBOX)
 	pthread_attr_t attr;
 	guint8 *current = (guint8*)&attr;
 
@@ -2259,7 +2265,7 @@ mono_thread_get_abort_signal (void)
 #endif /* HOST_WIN32 */
 }
 
-#ifdef HOST_WIN32
+#if defined(HOST_WIN32) || defined(_XBOX)
 static void CALLBACK interruption_request_apc (ULONG_PTR param)
 {
 	MonoException* exc = mono_thread_request_interruption (FALSE);
@@ -2282,7 +2288,7 @@ static void signal_thread_state_change (MonoInternalThread *thread)
 			mono_raise_exception (exc);
 	}
 
-#ifdef HOST_WIN32
+#if defined(HOST_WIN32) || defined(_XBOX)
 	QueueUserAPC ((PAPCFUNC)interruption_request_apc, thread->handle, NULL);
 #else
 	/* fixme: store the state somewhere */
@@ -2299,8 +2305,10 @@ static void signal_thread_state_change (MonoInternalThread *thread)
 	 * functions in the io-layer until the signal handler calls QueueUserAPC which will
 	 * make it return.
 	 */
+#ifndef _XBOX
 	wapi_interrupt_thread (thread->handle);
-#endif /* HOST_WIN32 */
+#endif
+#endif /* PLATFORM_WIN32 */
 }
 
 void
@@ -2684,7 +2692,9 @@ void mono_thread_cleanup (void)
 	 * anything in the documentation that would let me do this
 	 * here yet still be safe to call on windows.
 	 */
+#ifndef _XBOX
 	_wapi_thread_signal_self (mono_environment_exitcode_get ());
+#endif
 #endif
 
 #if 0
@@ -3057,7 +3067,7 @@ void mono_thread_manage (void)
 	 * to get correct user and system times from getrusage/wait/time(1)).
 	 * This could be removed if we avoid pthread_detach() and use pthread_join().
 	 */
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 	sched_yield ();
 #endif
 }
@@ -3932,7 +3942,7 @@ static MonoException* mono_thread_execute_interruption (MonoInternalThread *thre
 		/* this will consume pending APC calls */
 		WaitForSingleObjectEx (GetCurrentThread(), 0, TRUE);
 		InterlockedDecrement (&thread_interruption_requested);
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 		/* Clear the interrupted flag of the thread so it can wait again */
 		wapi_clear_interruption ();
 #endif

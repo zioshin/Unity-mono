@@ -167,6 +167,9 @@ static gpointer resolve_object (MonoImage *image, MonoObject *obj, MonoClass **h
 static guint32 mono_image_get_methodref_token_for_methodbuilder (MonoDynamicImage *assembly, MonoReflectionMethodBuilder *method);
 static guint32 encode_generic_method_sig (MonoDynamicImage *assembly, MonoGenericContext *context);
 static gpointer register_assembly (MonoDomain *domain, MonoReflectionAssembly *res, MonoAssembly *assembly);
+
+static gboolean is_sre_type_builder (MonoClass *class);
+
 static void reflection_methodbuilder_from_method_builder (ReflectionMethodBuilder *rmb, MonoReflectionMethodBuilder *mb);
 static void reflection_methodbuilder_from_ctor_builder (ReflectionMethodBuilder *rmb, MonoReflectionCtorBuilder *mb);
 static guint32 create_generic_typespec (MonoDynamicImage *assembly, MonoReflectionTypeBuilder *tb);
@@ -186,7 +189,6 @@ static MonoReflectionType* mono_reflection_type_resolve_user_types (MonoReflecti
 static gboolean is_sre_array (MonoClass *class);
 static gboolean is_sre_byref (MonoClass *class);
 static gboolean is_sre_pointer (MonoClass *class);
-static gboolean is_sre_type_builder (MonoClass *class);
 static gboolean is_sre_method_builder (MonoClass *class);
 static gboolean is_sre_ctor_builder (MonoClass *class);
 static gboolean is_sre_field_builder (MonoClass *class);
@@ -1733,7 +1735,7 @@ encode_constant (MonoDynamicImage *assembly, MonoObject *val, guint32 *ret_type)
 	char* buf;
 	guint32 idx = 0, len = 0, dummy = 0;
 #ifdef ARM_FPU_FPA
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 	guint32 fpa_double [2];
 	guint32 *fpa_p;
 #endif
@@ -1772,7 +1774,7 @@ handle_enum:
 	case MONO_TYPE_R8:
 		len = 8;
 #ifdef ARM_FPU_FPA
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 		fpa_p = (guint32*)box_val;
 		fpa_double [0] = fpa_p [1];
 		fpa_double [1] = fpa_p [0];
@@ -9398,7 +9400,7 @@ handle_enum:
 		p += 4;
 		break;
 	case MONO_TYPE_R8:
-#if defined(ARM_FPU_FPA) && G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if defined(ARM_FPU_FPA) && ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 		p [0] = argval [4];
 		p [1] = argval [5];
 		p [2] = argval [6];

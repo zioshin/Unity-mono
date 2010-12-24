@@ -473,7 +473,7 @@ size_t GC_get_total_bytes GC_PROTO(())
 
 int GC_get_suspend_signal GC_PROTO(())
 {
-#if defined(SIG_SUSPEND) && defined(GC_PTHREADS) && !defined(GC_MACOSX_THREADS)
+#if defined(SIG_SUSPEND) && defined(GC_PTHREADS) && !defined(GC_MACOSX_THREADS) && !defined(SN_TARGET_PS3)
 	return SIG_SUSPEND;
 #else
 	return -1;
@@ -505,13 +505,6 @@ void GC_init()
 	  InitializeCriticalSection (&GC_allocate_ml);
     }
 #endif /* MSWIN32 */
-#if defined(SN_TARGET_PS3)
-	pthread_mutexattr_init (&mattr);
-		
-	pthread_mutex_init (&GC_allocate_ml, &mattr);
-	pthread_mutexattr_destroy (&mattr);
-		
-#endif
 
     LOCK();
     GC_init_inner();
@@ -871,10 +864,10 @@ out:
 }
 
 
-#if defined(MSWIN32) || defined(MSWINCE)
+#if defined(MSWIN32) || defined(MSWINCE) 
 # define LOG_FILE _T("gc.log")
 
-  HANDLE GC_stdout = 0;
+HANDLE GC_stdout = 0;
 
   void GC_deinit()
   {
@@ -1003,7 +996,11 @@ long a, b, c, d, e, f;
     buf[1024] = 0x15;
     (void) sprintf(buf, format, a, b, c, d, e, f);
     if (buf[1024] != 0x15) ABORT("GC_printf clobbered stack");
-    if (WRITE(GC_stdout, buf, strlen(buf)) < 0) ABORT("write to stdout failed");
+#if defined(_XBOX) || defined (SN_TARGET_PS3)
+	printf(buf);
+#else
+	if (WRITE(GC_stdout, buf, strlen(buf)) < 0) ABORT("write to stdout failed");
+#endif
 }
 
 void GC_err_printf(format, a, b, c, d, e, f)
@@ -1081,7 +1078,7 @@ GC_warn_proc GC_current_warn_proc = GC_default_warn_proc;
 void GC_abort(msg)
 GC_CONST char * msg;
 {
-#   if defined(MSWIN32)
+#   if defined(MSWIN32) && !defined(_XBOX)
       (void) MessageBoxA(NULL, msg, "Fatal error in gc", MB_ICONERROR|MB_OK);
 #   else
       GC_err_printf1("%s\n", msg);

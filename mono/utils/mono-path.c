@@ -44,7 +44,7 @@ mono_path_canonicalize (const char *path)
 		g_free (tmpdir);
 	}
 
-#ifdef HOST_WIN32
+#if defined(HOST_WIN32) || defined(_XBOX)
 	g_strdelimit (abspath, "/", '\\');
 #endif
 	abspath = g_strreverse (abspath);
@@ -73,7 +73,7 @@ mono_path_canonicalize (const char *path)
 		pos = strchr (lastpos, G_DIR_SEPARATOR);
 	}
 
-#ifdef HOST_WIN32 /* For UNC paths the first '\' is removed. */
+#if defined(HOST_WIN32) || defined(_XBOX) /* For UNC paths the first '\' is removed. */
 	if (*(lastpos-1) == G_DIR_SEPARATOR && *(lastpos-2) == G_DIR_SEPARATOR)
 		lastpos = lastpos-1;
 #endif

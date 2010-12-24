@@ -20,7 +20,7 @@ mono_signbit_double (double x)
 
 	u.d = x;
 
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 	return u.i [1] < 0;
 #else
 	return u.i [0] < 0;

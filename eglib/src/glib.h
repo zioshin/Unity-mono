@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <limits.h>
 
+#ifndef _XBOX
 #ifdef _MSC_VER
 #pragma include_alias(<eglib-config.h>, <eglib-config.hw>)
 #else
@@ -16,6 +17,7 @@
 /* For pid_t */
 #ifndef WIN32
 #include <unistd.h>
+#endif
 #endif
 #endif
 
@@ -122,24 +124,65 @@ typedef int32_t        gboolean;
 /*
  * Allocation
  */
-void g_free (void *ptr);
-static inline gpointer g_realloc (gpointer obj, gsize size) { if (!size) {g_free (obj); return 0;} return  realloc (obj, size);}
-static inline gpointer g_malloc (gsize x) {if (x) return malloc (x); else return 0;}
-static inline gpointer g_malloc0 (gsize x) {if (x) return calloc(1,x); else return 0;}
-#define g_try_malloc(x)         g_malloc(x)
-#define g_try_realloc(obj,size) g_realloc((obj),(size))
+#if defined(_XBOX) || defined(SN_TARGET_PS3)
+	#define G_USE_MALLOC 0 // Use external allocators
+#else
+	#define G_USE_MALLOC 1
+#endif
 
+#if G_USE_MALLOC
+
+static inline void g_free (void *ptr) {if (ptr) free(ptr);}
 #define g_new(type,size)        ((type *) g_malloc (sizeof (type) * (size)))
 #define g_new0(type,size)       ((type *) g_malloc0 (sizeof (type)* (size)))
 #define g_newa(type,size)       ((type *) alloca (sizeof (type) * (size)))
-
+static inline gpointer g_realloc (gpointer obj, gsize size) { if (!size) {g_free (obj); return 0;} return  realloc (obj, size);}
+static inline gpointer g_malloc (gsize x) {if (x) return malloc (x); else return 0;}
+static inline gpointer g_malloc0 (gsize x) {if (x) return calloc(1,x); else return 0;}
+#define g_calloc(n,x)			calloc(n,x)
+#define g_try_malloc(x)         g_malloc(x)
+#define g_try_realloc(obj,size) g_realloc((obj),(size))
 #define g_memmove(dest,src,len) memmove (dest, src, len)
 #define g_renew(struct_type, mem, n_structs) g_realloc (mem, sizeof (struct_type) * n_structs)
-#define g_alloca(size)		alloca (size)
+#define g_alloca(size)			alloca (size)
 
-gpointer g_memdup (gconstpointer mem, guint byte_size);
-static inline gchar   *g_strdup (const gchar *str) { if (str) {return strdup (str);} return NULL; }
+#define g_malloc_d(x)           g_malloc(x)
+#define g_calloc_d(n,x)         g_calloc(n,x)
+#define g_free_d(x)				g_free(x)
+
+#else
+
+#define g_new(type,size)        ((type *) console_g_malloc (sizeof (type) * (size)))
+#define g_new0(type,size)       ((type *) console_g_calloc (sizeof (type), (size)))
+#define g_newa(type,size)       ((type *) alloca (sizeof (type) * (size)))
+#define g_realloc(obj,size)     console_g_realloc((obj), (size))
+#define g_malloc(x)             console_g_malloc(x)
+#define g_malloc0(x)            console_g_calloc(1,x)
+#define g_calloc(n,x)			console_g_calloc(n,x)
+#define g_try_malloc(x)         console_g_malloc(x)
+#define g_try_realloc(obj,size) console_g_realloc((obj),(size))
+#define g_memmove(dest,src,len) memmove (dest, src, len)
+#define g_renew(struct_type, mem, n_structs) console_g_realloc (mem, sizeof (struct_type) * n_structs)
+#define g_alloca(size)			alloca (size)
+static inline void g_free (void *ptr) { console_g_free(ptr);}
+
+#define g_malloc_d(x)           g_malloc(x)
+#define g_calloc_d(n,x)         g_calloc(n,x)
+#define g_free_d(x)				g_free(x)
+
+#endif
+
+
+gpointer				g_memdup (gconstpointer mem, guint byte_size);
+gchar*					g_strdup (const gchar *str);
 gchar **g_strdupv (gchar **str_array);
+#define g_strdup_d		g_strdup
+
+
+#ifdef _XBOX
+	#define alloca _alloca
+#endif
+
 
 typedef struct {
 	gpointer (*malloc)      (gsize    n_bytes);
@@ -886,7 +929,7 @@ glong     g_utf8_strlen        (const gchar *str, gssize max);
 
 				  
  
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if ((G_BYTE_ORDER == G_LITTLE_ENDIAN))
 #   define GUINT32_TO_LE(x) (x)
 #   define GUINT64_TO_LE(x) (x)
 #   define GUINT16_TO_LE(x) (x)

@@ -219,7 +219,7 @@ extern char *MALLOC();
 extern void *MALLOC(size_t);
 #endif
 #else
-#define MALLOC malloc
+#define MALLOC g_malloc_d
 #endif
 
 #define Omit_Private_Memory

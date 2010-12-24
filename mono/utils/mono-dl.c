@@ -38,7 +38,7 @@ static const char suffixes [][1] = {
 #define SOPREFIX "lib"
 static const char suffixes [][4] = {
 	".so"
-};
+}; 
 #endif
 
 #ifdef TARGET_WIN32
@@ -79,6 +79,15 @@ convert_flags (int flags)
 		lflags |= RTLD_NOW;
 	return lflags;
 }
+
+#elif defined(_XBOX)
+
+#define SO_HANDLE_TYPE void*
+#define LL_SO_OPEN(file,flags) xenon_dlopen ((file), (flags))
+#define LL_SO_CLOSE(module) xenon_dlclose ((module)->handle)
+#define LL_SO_SYMBOL(module, name) xenon_dlsym ((module)->handle, (name))
+#define LL_SO_TRFLAGS(flags) (flags)
+#define LL_SO_ERROR() xenon_so_error ()
 
 #elif EMBEDDED_PINVOKE
 #define SO_HANDLE_TYPE void*
@@ -344,7 +353,7 @@ mono_dl_open (const char *name, int flags, char **error_msg)
 	if (error_msg)
 		*error_msg = NULL;
 
-	module = malloc (sizeof (MonoDl));
+	module = g_malloc_d (sizeof (MonoDl));
 	if (!module) {
 		if (error_msg)
 			*error_msg = g_strdup ("Out of memory");
@@ -359,7 +368,7 @@ mono_dl_open (const char *name, int flags, char **error_msg)
 		const char *ext;
 		/* This platform does not support dlopen */
 		if (name == NULL) {
-			free (module);
+			g_free_d (module);
 			return NULL;
 		}
 		
@@ -378,7 +387,7 @@ mono_dl_open (const char *name, int flags, char **error_msg)
 			if (error_msg) {
 				*error_msg = LL_SO_ERROR ();
 			}
-			free (module);
+			g_free_d (module);
 			return NULL;
 		}
 	}
@@ -404,16 +413,16 @@ mono_dl_symbol (MonoDl *module, const char *name, void **symbol)
 
 #if MONO_DL_NEED_USCORE
 	{
-		char *usname = malloc (strlen (name) + 2);
+		char *usname = g_malloc_d (strlen (name) + 2);
 		*usname = '_';
 		strcpy (usname + 1, name);
 		sym = LL_SO_SYMBOL (module, usname);
-		free (usname);
+		g_free_d (usname);
 	}
 #else
 	sym = LL_SO_SYMBOL (module, name);
 #endif
-#ifndef PLATFORM_WIN32
+#if ! (defined (PLATFORM_WIN32) || defined (SN_TARGET_PS3))
        // lookup in static table                                                                                                                                                                  
        if (!sym && module->handle == RTLD_DEFAULT)                                                                                                                                               
        {                                                                                                                                                                                         
@@ -443,7 +452,7 @@ void
 mono_dl_close (MonoDl *module)
 {
 	LL_SO_CLOSE (module);
-	free (module);
+	g_free_d (module);
 }
 
 /**
@@ -518,7 +527,7 @@ mono_dl_build_path (const char *directory, const char *name, void **iter)
 	return res;
 }
 
-#if EMBEDDED_PINVOKE
+#if EMBEDDED_PINVOKE && !defined(_XBOX)
 static GHashTable *mono_dls;
 static char *ll_last_error = "";
 

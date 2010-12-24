@@ -45,6 +45,7 @@
  */
 static guint32 appdomain_thread_id = -1;
 
+
 /* 
  * Avoid calling TlsSetValue () if possible, since in the io-layer, it acquires
  * a global lock (!) so it is a contention point.
@@ -54,6 +55,10 @@ static guint32 appdomain_thread_id = -1;
 #endif
  
 #ifdef HAVE_KW_THREAD
+
+#	ifdef _XBOX
+#		define __thread __declspec(thread)
+#	endif
 
 static __thread MonoDomain * tls_appdomain MONO_TLS_FAST;
 

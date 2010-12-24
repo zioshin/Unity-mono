@@ -69,17 +69,29 @@
 #define AS_STRING_DIRECTIVE ".string"
 #endif
 
+#if defined (MONO_AOT_EMIT_XBOX_ASM)
+#define AS_INT32_DIRECTIVE "DD"
+#define AS_INT64_DIRECTIVE "DQ"
+#else
 #define AS_INT32_DIRECTIVE ".long"
 #define AS_INT64_DIRECTIVE ".quad"
+#endif
+
 
 #if (defined(TARGET_AMD64) || defined(TARGET_POWERPC64)) && !defined(__mono_ilp32__)
 #define AS_POINTER_DIRECTIVE ".quad"
 #else
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+#define AS_POINTER_DIRECTIVE "DD"
+#else
 #define AS_POINTER_DIRECTIVE ".long"
+#endif
 #endif
 
 #if defined(TARGET_ASM_APPLE)
 #define AS_INT16_DIRECTIVE ".short"
+#elif defined(MONO_AOT_EMIT_XBOX_ASM)
+#define AS_INT16_DIRECTIVE "DW"
 #elif defined(TARGET_ASM_GAS)
 #define AS_INT16_DIRECTIVE ".hword"
 #else
@@ -171,6 +183,11 @@ struct _MonoImageWriter {
 	int mode; /* emit mode */
 	int col_count; /* bytes emitted per .byte line */
 	int label_gen;
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	char current_section_name [256];
+	FILE *def_fp;
+	int symbol_index;
+#endif
 };
 
 static G_GNUC_UNUSED int
@@ -1495,11 +1512,22 @@ asm_writer_emit_start (MonoImageWriter *acfg)
 #endif
 }
 
+static void
+asm_writer_emit_line (MonoImageWriter *acfg);
+
 static int
 asm_writer_emit_writeout (MonoImageWriter *acfg)
 {
 #if defined(TARGET_ARM) && defined(__APPLE__) 
 	fprintf (acfg->fp, "#endif\n");
+#endif
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	asm_writer_emit_line (acfg);
+	if (acfg->current_section_name [0] != 0) {
+		fprintf (acfg->fp, "_%s\tENDS\n", &(acfg->current_section_name [0]));
+		acfg->current_section_name [0] = 0;
+	}
+	fprintf (acfg->fp, "END\n");
 #endif
 	fclose (acfg->fp);
 
@@ -1518,6 +1546,21 @@ asm_writer_emit_unset_mode (MonoImageWriter *acfg)
 static void
 asm_writer_emit_section_change (MonoImageWriter *acfg, const char *section_name, int subsection_index)
 {
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	asm_writer_emit_line (acfg);
+	if (acfg->current_section_name [0] != 0) {
+		fprintf (acfg->fp, "_%s\tENDS\n", &(acfg->current_section_name [0]));
+	}
+	strcpy (&(acfg->current_section_name [0]), section_name);
+	if (acfg->current_section_name [0] == '.') {
+		int i;
+		for (i = 1; acfg->current_section_name [i] != 0; i++) {
+			acfg->current_section_name [i - 1] = acfg->current_section_name [i];
+		}
+		acfg->current_section_name [i - 1] = '\0';
+	}
+	fprintf (acfg->fp, "_%s\tSEGMENT PARA '%s'\n", &(acfg->current_section_name [0]), &(acfg->current_section_name [0]));
+#else
 	asm_writer_emit_unset_mode (acfg);
 #if defined(TARGET_ASM_APPLE)
 	if (strcmp(section_name, ".bss") == 0)
@@ -1545,6 +1588,7 @@ asm_writer_emit_section_change (MonoImageWriter *acfg, const char *section_name,
 		fprintf (acfg->fp, ".subsection %d\n", subsection_index);
 	}
 #endif
+#endif
 }
 
 static inline
@@ -1569,7 +1613,7 @@ asm_writer_emit_symbol_type (MonoImageWriter *acfg, const char *name, gboolean f
 		stype = "object";
 
 	asm_writer_emit_unset_mode (acfg);
-#if defined(TARGET_ASM_APPLE)
+#if defined(TARGET_ASM_APPLE) || defined (MONO_AOT_EMIT_XBOX_ASM)
 
 #elif defined(TARGET_ARM)
 	fprintf (acfg->fp, "\t.type %s,#%s\n", name, stype);
@@ -1586,7 +1630,15 @@ asm_writer_emit_global (MonoImageWriter *acfg, const char *name, gboolean func)
     // mach-o always uses a '_' prefix.
 	fprintf (acfg->fp, "\t.globl _%s\n", name);
 #else
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "\tPUBLIC %s\n", name);
+	if (acfg->def_fp != NULL) {
+		acfg->symbol_index ++;
+		fprintf (acfg->def_fp, "\t%s\t@%d\n", name, acfg->symbol_index);
+	}
+#else
 	fprintf (acfg->fp, "\t.globl %s\n", name);
+#endif
 #endif
 
 	asm_writer_emit_symbol_type (acfg, name, func);
@@ -1597,7 +1649,7 @@ asm_writer_emit_local_symbol (MonoImageWriter *acfg, const char *name, const cha
 {
 	asm_writer_emit_unset_mode (acfg);
 
-#ifndef TARGET_ASM_APPLE
+#if ! (defined (TARGET_ASM_APPLE) || (defined (MONO_AOT_EMIT_XBOX_ASM)))
 	fprintf (acfg->fp, "\t.local %s\n", name);
 #endif
 
@@ -1609,7 +1661,7 @@ asm_writer_emit_symbol_size (MonoImageWriter *acfg, const char *name, const char
 {
 	asm_writer_emit_unset_mode (acfg);
 
-#ifndef TARGET_ASM_APPLE
+#if ! (defined(TARGET_ASM_APPLE) || defined(MONO_AOT_EMIT_XBOX_ASM))
 	fprintf (acfg->fp, "\t.size %s,%s-%s\n", name, end_label, name);
 #endif
 }
@@ -1634,7 +1686,15 @@ static void
 asm_writer_emit_string (MonoImageWriter *acfg, const char *value)
 {
 	asm_writer_emit_unset_mode (acfg);
+#if defined (MONO_AOT_EMIT_XBOX_ASM)
+	if (*value != '\0') {
+		fprintf (acfg->fp, "\tDB \"%s\",0\n", value);
+	} else {
+		fprintf (acfg->fp, "\tDB 0\n");
+	}
+#else
 	fprintf (acfg->fp, "\t%s \"%s\"\n", AS_STRING_DIRECTIVE, value);
+#endif
 }
 
 static void
@@ -1648,7 +1708,9 @@ static void
 asm_writer_emit_alignment (MonoImageWriter *acfg, int size)
 {
 	asm_writer_emit_unset_mode (acfg);
-#if defined(TARGET_ARM)
+#if defined(MONO_AOT_EMIT_XBOX_ASM)
+	fprintf (acfg->fp, "\tALIGN %d\n", size);
+#elif defined(TARGET_ARM)
 	fprintf (acfg->fp, "\t.align %d\n", ilog2 (size));
 #elif defined(__ppc__) && defined(TARGET_ASM_APPLE)
 	// the mach-o assembler specifies alignments as powers of 2.
@@ -1711,7 +1773,11 @@ asm_writer_emit_bytes (MonoImageWriter *acfg, const guint8* buf, int size)
 
 	for (i = 0; i < size; ++i, ++acfg->col_count) {
 		if ((acfg->col_count % 32) == 0)
+#if defined(MONO_AOT_EMIT_XBOX_ASM)
+			fprintf (acfg->fp, "\n\tDB %d", buf [i]);
+#else
 			fprintf (acfg->fp, "\n\t.byte %d", buf [i]);
+#endif
 		else
 			fputs (byte_to_str + (buf [i] * 8), acfg->fp);
 	}
@@ -1794,7 +1860,11 @@ static void
 asm_writer_emit_zero_bytes (MonoImageWriter *acfg, int num)
 {
 	asm_writer_emit_unset_mode (acfg);
+#if defined(MONO_AOT_EMIT_XBOX_ASM)
+	fprintf (acfg->fp, "\tDB %d DUP(0)\n", num);
+#else
 	fprintf (acfg->fp, "\t%s %d\n", AS_SKIP_DIRECTIVE, num);
+#endif
 }
 
 /* EMIT FUNCTIONS */
@@ -2145,7 +2215,7 @@ bin_writer_supported (void)
  * img_writer_get_output ().
  */
 MonoImageWriter*
-img_writer_create (FILE *fp, gboolean use_bin_writer)
+img_writer_create (FILE *fp, gboolean use_bin_writer, const char *def_file_name)
 {
 	MonoImageWriter *w = g_new0 (MonoImageWriter, 1);
 	
@@ -2160,12 +2230,31 @@ img_writer_create (FILE *fp, gboolean use_bin_writer)
 	w->use_bin_writer = use_bin_writer;
 	w->mempool = mono_mempool_new ();
 
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	if (def_file_name != NULL) {
+		w->def_fp = fopen (def_file_name, "w");
+		g_assert (w->def_fp != NULL);
+		fprintf (w->def_fp, "EXPORTS\n");
+	} else {
+		w->def_fp  = NULL;
+	}
+
+	w->current_section_name [0] = '\0';
+	w->symbol_index = 0;
+#endif
+
 	return w;
 }
 
 void
 img_writer_destroy (MonoImageWriter *w)
 {
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	if (w->def_fp != NULL) {
+		fclose (w->def_fp);
+		w->def_fp = NULL;
+	}
+#endif
 	// FIXME: Free all the stuff
 	mono_mempool_destroy (w->mempool);
 	g_free (w);
@@ -2190,5 +2279,9 @@ img_writer_get_fp (MonoImageWriter *acfg)
 const char *
 img_writer_get_temp_label_prefix (MonoImageWriter *acfg)
 {
-	return AS_TEMP_LABEL_PREFIX;
+#ifdef TARGET_ASM_APPLE
+	return "L";
+#else
+	return LOCAL_LABEL_PREFIX;
+#endif
 }

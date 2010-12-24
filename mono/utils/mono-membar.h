@@ -126,6 +126,23 @@ static inline void mono_memory_write_barrier (void)
 	__asm__ __volatile__ ("eieio" : : : "memory");
 }
 
+#elif defined(_XBOX)
+#include <Xtl.h>
+
+static inline void mono_memory_barrier (void)
+{
+	__sync();
+}
+
+static inline void mono_memory_read_barrier (void)
+{
+	mono_memory_barrier ();
+}
+
+static inline void mono_memory_write_barrier (void)
+{
+	__eieio();
+}
 #elif defined(__arm__)
 static inline void mono_memory_barrier (void)
 {

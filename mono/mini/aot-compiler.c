@@ -112,12 +112,13 @@ typedef struct MonoAotOptions {
 	char *tool_prefix;
 	gboolean autoreg;
 #if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
-       gboolean ficall;                                                                                                                                                                           
+	gboolean ficall;
 #endif 
+	gboolean fail_if_methods_are_skipped;
 } MonoAotOptions;
 
 typedef struct MonoAotStats {
-	int ccount, mcount, lmfcount, abscount, gcount, ocount, genericcount;
+	int ccount, mcount, lmfcount, abscount, gcount, ocount, genericcount, wrapper_runtime_invoke_skipped;
 	int code_size, info_size, ex_info_size, unwind_info_size, got_size, class_info_size, got_info_size;
 	int methods_without_got_slots, direct_calls, all_calls, llvm_count;
 	int got_slots, offsets_size;
@@ -462,7 +463,7 @@ encode_sleb128 (gint32 value, guint8 *buf, guint8 **endbuf)
 
 /* ARCHITECTURE SPECIFIC CODE */
 
-#if defined(TARGET_X86) || defined(TARGET_AMD64) || defined(TARGET_ARM) || defined(TARGET_POWERPC)
+#if defined(TARGET_X86) || defined(TARGET_AMD64) || defined(TARGET_ARM) || (defined(TARGET_POWERPC) && ! defined(MONO_AOT_EMIT_XBOX_ASM))
 #define EMIT_DWARF_INFO 1
 #endif
 
@@ -593,9 +594,14 @@ arch_emit_got_offset (MonoAotCompile *acfg, guint8 *code, int *code_size)
 	 * unsupported relocations. So we store the got address into the .Lgot_addr
 	 * symbol which is in the text segment, compute its address, and load it.
 	 */
-	fprintf (acfg->fp, ".L%d:\n", acfg->label_generator);
-	fprintf (acfg->fp, "lis 0, (.Lgot_addr + 4 - .L%d)@h\n", acfg->label_generator);
-	fprintf (acfg->fp, "ori 0, 0, (.Lgot_addr + 4 - .L%d)@l\n", acfg->label_generator);
+	fprintf (acfg->fp, "%s%d:\n", LOCAL_LABEL_PREFIX, acfg->label_generator);
+#ifdef MONO_AOT_EMIT_XBOX_ASM 
+	fprintf (acfg->fp, "lis 0, HIGHWORD (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+	fprintf (acfg->fp, "ori 0, 0, LOWWORD (%sgot_addr + 4 - %s%d)\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+#else
+	fprintf (acfg->fp, "lis 0, (%sgot_addr + 4 - %s%d)@h\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+	fprintf (acfg->fp, "ori 0, 0, (%sgot_addr + 4 - %s%d)@l\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, acfg->label_generator);
+#endif
 	fprintf (acfg->fp, "add 30, 30, 0\n");
 	fprintf (acfg->fp, "%s 30, 0(30)\n", PPC_LD_OP);
 	acfg->label_generator ++;
@@ -740,8 +746,13 @@ arch_emit_plt_entry (MonoAotCompile *acfg, int index)
 		/* The GOT address is guaranteed to be in r30 by OP_LOAD_GOTADDR */
 		g_assert (!acfg->use_bin_writer);
 		img_writer_emit_unset_mode (acfg->w);
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+		fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", offset);
+		fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", offset);
+#else
 		fprintf (acfg->fp, "lis 11, %d@h\n", offset);
 		fprintf (acfg->fp, "ori 11, 11, %d@l\n", offset);
+#endif
 		fprintf (acfg->fp, "add 11, 11, 30\n");
 		fprintf (acfg->fp, "%s 11, 0(11)\n", PPC_LD_OP);
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
@@ -832,8 +843,13 @@ arch_emit_specific_trampoline (MonoAotCompile *acfg, int offset, int *tramp_size
 	/* Load mscorlib got address */
 	fprintf (acfg->fp, "%s 0, %d(30)\n", PPC_LD_OP, (int)sizeof (gpointer));
 	/* Load generic trampoline address */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)(offset * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)(offset * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)(offset * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s 11, 11, 0\n", PPC_LDX_OP);
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
 	fprintf (acfg->fp, "%s 11, 0(11)\n", PPC_LD_OP);
@@ -841,8 +857,13 @@ arch_emit_specific_trampoline (MonoAotCompile *acfg, int offset, int *tramp_size
 	fprintf (acfg->fp, "mtctr 11\n");
 	/* Load trampoline argument */
 	/* On ppc, we pass it normally to the generic trampoline */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)((offset + 1) * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)((offset + 1) * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s 0, 11, 0\n", PPC_LDX_OP);
 	/* Branch to generic trampoline */
 	fprintf (acfg->fp, "bctr\n");
@@ -1027,12 +1048,22 @@ arch_emit_static_rgctx_trampoline (MonoAotCompile *acfg, int offset, int *tramp_
 	/* Load mscorlib got address */
 	fprintf (acfg->fp, "%s 0, %d(30)\n", PPC_LD_OP, (int)sizeof (gpointer));
 	/* Load rgctx */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)(offset * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)(offset * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)(offset * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)(offset * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s %d, 11, 0\n", PPC_LDX_OP, MONO_ARCH_RGCTX_REG);
 	/* Load target address */
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	fprintf (acfg->fp, "lis 11, HIGHWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
+	fprintf (acfg->fp, "ori r11, r11, LOWWORD (%d)\n", (int)((offset + 1) * sizeof (gpointer)));
+#else
 	fprintf (acfg->fp, "lis 11, %d@h\n", (int)((offset + 1) * sizeof (gpointer)));
 	fprintf (acfg->fp, "ori 11, 11, %d@l\n", (int)((offset + 1) * sizeof (gpointer)));
+#endif
 	fprintf (acfg->fp, "%s 11, 11, 0\n", PPC_LDX_OP);
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
 	fprintf (acfg->fp, "%s 2, %d(11)\n", PPC_LD_OP, (int)sizeof (gpointer));
@@ -1316,7 +1347,14 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 #if defined(TARGET_POWERPC) && defined(__mono_ilp32__)
 	/* Based on code generated by gcc */
 	img_writer_emit_unset_mode (acfg->w);
-
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	emit_section_change (acfg, ".text", 0);
+	fprintf (acfg->fp,
+			"EXTERN	mono_aot_register_module : NEAR PROC\n"
+			"PUBLIC %s\n"
+			"ALIGN 8\n"
+			"%s:\n", symbol, symbol);
+#else
 	fprintf (acfg->fp,
 #if defined(_MSC_VER) || defined(MONO_CROSS_COMPILE) 
 			 ".section	.ctors,\"aw\",@progbits\n"
@@ -1347,28 +1385,35 @@ arch_emit_autoreg (MonoAotCompile *acfg, char *symbol)
 			 ".align 2\n"
 			 ".%1$s:\n", symbol);
 #endif
-
-
+#endif // MONO_AOT_EMIT_XBOX_ASM
 	fprintf (acfg->fp,
 			 "stdu 1,-128(1)\n"
 			 "mflr 0\n"
 			 "std 31,120(1)\n"
 			 "std 0,144(1)\n"
 
-			 ".Lautoreg:\n"
-			 "lis 3, .Lglobals@h\n"
-			 "ori 3, 3, .Lglobals@l\n"
+			 "%sautoreg:\n"
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+			 "lis 3, HIGHWORD (%sglobals)\n"
+			 "ori r3, r3, LOWWORD (%sglobals)\n"
+			 "bl mono_aot_register_module\n"
+#else
+			 "lis 3, %sglobals@h\n"
+			 "ori 3, 3, %sglobals@l\n"
 			 "bl .mono_aot_register_module\n"
+#endif
 			 "ld 11,0(1)\n"
 			 "ld 0,16(11)\n"
 			 "mtlr 0\n"
 			 "ld 31,-8(11)\n"
 			 "mr 1,11\n"
-			 "blr\n"
+			 "blr\n", LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX, LOCAL_LABEL_PREFIX
 			 );
 #if defined(_MSC_VER) || defined(MONO_CROSS_COMPILE) 
+#ifndef MONO_AOT_EMIT_XBOX_ASM
 		fprintf (acfg->fp,
 			 ".size	.%s,.-.%s\n", symbol, symbol);
+#endif
 #else
 	fprintf (acfg->fp,
 			 ".size	.%1$s,.-.%1$s\n", symbol);
@@ -3090,7 +3135,7 @@ get_debug_sym (MonoMethod *method, const char *prefix, GHashTable *cache)
 		
 	name1 = mono_method_full_name (method, TRUE);
 	len = strlen (name1);
-	name2 = malloc (strlen (prefix) + len + 16);
+	name2 = g_malloc_d (strlen (prefix) + len + 16);
 	memcpy (name2, prefix, strlen (prefix));
 	j = strlen (prefix);
 	for (i = 0; i < len; ++i) {
@@ -3108,6 +3153,50 @@ get_debug_sym (MonoMethod *method, const char *prefix, GHashTable *cache)
 	name2 [j] = '\0';
 
 	g_free (name1);
+
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+	/* This assembler has a length limitation on symbols of about 240 chars... */
+#define MAX_XBOX_ASM_SYMBOL_LENGTH 220
+	len = strlen(name2);
+	if (len > MAX_XBOX_ASM_SYMBOL_LENGTH) {
+		char *short_name = malloc (MAX_XBOX_ASM_SYMBOL_LENGTH + 1);
+		int source_length = strlen (name2);
+		int source_i = 0;
+		int destination_i = 0;
+		int saved_characters = 0;
+		int saving_target = source_length - MAX_XBOX_ASM_SYMBOL_LENGTH;
+
+		while (source_i < source_length) {
+			if (saved_characters >= saving_target) {
+				/* Check if we are done, just copy the remaining characters */
+				strcpy (short_name + destination_i, name2 + source_i);
+				source_i = source_length;
+			} else if (destination_i == MAX_XBOX_ASM_SYMBOL_LENGTH) {
+				/* If we have no more space, truncate the name here */
+				short_name [destination_i] = '\0';
+				source_i = source_length;
+			} else {
+				/* Copy the character only if it's not a lowercase vowel */
+				char c = name2 [source_i];
+				if ((c != 'a') && (c != 'e') && (c != 'i') && (c != 'o') && (c != 'u')) {
+					short_name [destination_i] = c;
+					destination_i++;
+				} else {
+					saved_characters ++;
+				}
+
+				source_i++;
+			}
+		}
+
+		//printf ("Symbol \"%s\" is has length %d (saving_target %d)\n", name2, source_length, saving_target);
+		//printf ("  Replacing with \"%s\" (length %d)\n", short_name, strlen (short_name));
+
+		free (name2);
+		name2 = short_name;
+	}
+#undef MAX_XBOX_ASM_SYMBOL_LENGTH
+#endif
 
 	count = 0;
 	while (g_hash_table_lookup (cache, name2)) {
@@ -3789,7 +3878,7 @@ emit_plt (MonoAotCompile *acfg)
 			 */
 			if (ji && is_direct_callable (acfg, NULL, ji) && !acfg->use_bin_writer) {
 				MonoCompile *callee_cfg = g_hash_table_lookup (acfg->method_to_cfg, ji->data.method);
-				fprintf (acfg->fp, "\n.set %s, %s\n", label, callee_cfg->asm_symbol);
+				fprintf (acfg->fp, "\n.set %s, %sm_%x\n", label, LOCAL_LABEL_PREFIX, get_method_index (acfg, callee_cfg->orig_method));
 				continue;
 			}
 		}
@@ -4185,6 +4274,8 @@ mono_aot_parse_options (const char *aot_options, MonoAotOptions *opts)
 			opts->print_skipped_methods = TRUE;
 		} else if (str_begins_with (arg, "stats")) {
 			opts->stats = TRUE;
+		} else if (str_begins_with (arg, "fail-if-methods-are-skipped")) {
+			opts->fail_if_methods_are_skipped = TRUE;
 		} else {
 			fprintf (stderr, "AOT : Unknown argument '%s'.\n", arg);
 			exit (1);
@@ -4294,6 +4385,9 @@ can_encode_patch (MonoAotCompile *acfg, MonoJumpInfo *patch_info)
 static void
 add_generic_class (MonoAotCompile *acfg, MonoClass *klass);
 
+gboolean
+mono_method_needs_wrapperless_icall (MonoMethod *method);
+
 /*
  * compile_method:
  *
@@ -4308,6 +4402,16 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 	gboolean skip;
 	int index, depth;
 	MonoMethod *wrapped;
+
+	if (method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) {
+		MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);
+		if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) && mono_method_needs_wrapperless_icall (wrapped)) {
+#if defined(PLATFORM_IPHONE_XCOMP)
+			if (wrapped->signature->ret->type != MONO_TYPE_R4)
+#endif
+				return;
+		}
+	}
 
 #if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
         if (acfg->aot_opts.ficall && method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE)                                                                                                       
@@ -4370,6 +4474,8 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 	}
 	if (cfg->exception_type != MONO_EXCEPTION_NONE) {
 		/* Let the exception happen at runtime */
+		if (acfg->aot_opts.print_skipped_methods)
+			printf ("Skip (cfg->exception_type != MONO_EXCEPTION_NONE): %s (exception type %d)\n", mono_method_full_name (method, TRUE), cfg->exception_type);
 		return;
 	}
 
@@ -4377,6 +4483,8 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 		if (acfg->aot_opts.print_skipped_methods)
 			printf ("Skip (disabled): %s\n", mono_method_full_name (method, TRUE));
 		InterlockedIncrement (&acfg->stats.ocount);
+		if (cfg->method->wrapper_type == MONO_WRAPPER_RUNTIME_INVOKE)
+			InterlockedIncrement (&acfg->stats.wrapper_runtime_invoke_skipped);
 		mono_destroy_compile (cfg);
 		return;
 	}
@@ -4725,7 +4833,7 @@ mono_aot_get_plt_symbol (MonoJumpInfoType type, gconstpointer data)
 
 	plt_entry = get_plt_entry (llvm_acfg, ji);
 
-	return g_strdup_printf (plt_entry->symbol);
+	return g_strdup_printf ("%sp_%d", LOCAL_LABEL_PREFIX, offset);
 }
 
 MonoJumpInfo*
@@ -4842,7 +4950,7 @@ emit_code (MonoAotCompile *acfg)
 	GList *l;
 
 #if defined(TARGET_POWERPC64)
-	sprintf (symbol, ".Lgot_addr");
+	sprintf (symbol, "%sgot_addr", LOCAL_LABEL_PREFIX);
 	emit_section_change (acfg, ".text", 0);
 	emit_alignment (acfg, 8);
 	emit_label (acfg, symbol);
@@ -5040,7 +5148,7 @@ mono_aot_method_hash (MonoMethod *method)
 	sig = mono_method_signature (method);
 
 	hashes_count = sig->param_count + 5;
-	hashes_start = malloc (hashes_count * sizeof (guint32));
+	hashes_start = g_malloc_d (hashes_count * sizeof (guint32));
 	hashes = hashes_start;
 
 	/* Some wrappers are assigned to random classes */
@@ -5093,7 +5201,7 @@ mono_aot_method_hash (MonoMethod *method)
 		break;
 	}
 	
-	free (hashes_start);
+	g_free_d (hashes_start);
 	
 	return c;
 }
@@ -5688,7 +5796,7 @@ emit_globals_table (MonoAotCompile *acfg)
 	}
 
 	/* Emit the table */
-	sprintf (symbol, ".Lglobals_hash");
+	sprintf (symbol, "%sglobals_hash", LOCAL_LABEL_PREFIX);
 	emit_section_change (acfg, RODATA_SECT, 0);
 	emit_alignment (acfg, 8);
 	emit_label (acfg, symbol);
@@ -5722,7 +5830,7 @@ emit_globals_table (MonoAotCompile *acfg)
 	}
 
 	/* Emit the globals table */
-	sprintf (symbol, ".Lglobals");
+	sprintf (symbol, "%sglobals", LOCAL_LABEL_PREFIX);
 	emit_section_change (acfg, ".data", 0);
 	/* This is not a global, since it is accessed by the init function */
 	emit_alignment (acfg, 8);
@@ -6228,7 +6336,7 @@ int
 mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 {
 	MonoImage *image = ass->image;
-	int i, res;
+	int i, res, return_code;
 	MonoAotCompile *acfg;
 	char *outfile_name, *tmp_outfile_name, *p;
 	TV_DECLARE (atv);
@@ -6396,19 +6504,25 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 			return 1;
 		}
 
-		acfg->w = img_writer_create (acfg->fp, TRUE);
+		acfg->w = img_writer_create (acfg->fp, TRUE, NULL);
 		acfg->use_bin_writer = TRUE;
 	} else {
+		char *def_file_name = NULL;
+
 		if (acfg->llvm) {
 			/* Append to the .s file created by llvm */
 			/* FIXME: Use multiple files instead */
 			acfg->fp = fopen (acfg->tmpfname, "a+");
 		} else {
 			if (acfg->aot_opts.asm_only) {
-				if (acfg->aot_opts.outfile)
+				if (acfg->aot_opts.outfile) {
 					acfg->tmpfname = g_strdup_printf ("%s", acfg->aot_opts.outfile);
-				else
+				} else {
 					acfg->tmpfname = g_strdup_printf ("%s.s", acfg->image->name);
+#ifdef MONO_AOT_EMIT_XBOX_ASM
+					def_file_name = g_strdup_printf ("%s.def", acfg->image->name);
+#endif
+				}
 				acfg->fp = fopen (acfg->tmpfname, "w+");
 			} else {
 				int i = g_file_open_tmp ("mono_aot_XXXXXX", &acfg->tmpfname, NULL);
@@ -6416,7 +6530,10 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 			}
 			g_assert (acfg->fp);
 		}
-		acfg->w = img_writer_create (acfg->fp, FALSE);
+		acfg->w = img_writer_create (acfg->fp, FALSE, def_file_name);
+		if (def_file_name != NULL) {
+			g_free (def_file_name);
+		}
 		
 		tmp_outfile_name = NULL;
 		outfile_name = NULL;
@@ -6538,9 +6655,21 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 
 	printf ("JIT time: %d ms, Generation time: %d ms, Assembly+Link time: %d ms.\n", acfg->stats.jit_time / 1000, acfg->stats.gen_time / 1000, acfg->stats.link_time / 1000);
 
+	if (acfg->aot_opts.fail_if_methods_are_skipped) {
+		if (acfg->stats.ccount + acfg->stats.wrapper_runtime_invoke_skipped < acfg->stats.mcount) {
+			printf ("Compilation failed: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
+			return_code = 1;
+		} else {
+			return_code = 0;
+			printf ("Compilation ok: %d skipped methods\n", acfg->stats.mcount - acfg->stats.ccount);
+		}
+	} else {
+		return_code = 0;
+	}
+
 	acfg_free (acfg);
-	
-	return 0;
+
+	return return_code;
 }
 
 #if defined(PLATFORM_ANDROID)

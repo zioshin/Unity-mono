@@ -203,6 +203,10 @@ mono_gc_enable (void)
 gboolean
 mono_gc_is_gc_thread (void)
 {
+#ifdef SN_TARGET_PS3
+	return GC_thread_is_registered ();
+#endif
+
 #if GC_VERSION_MAJOR >= 7
 	return TRUE;
 #elif defined(USE_INCLUDED_LIBGC)
@@ -217,6 +221,11 @@ extern int GC_thread_register_foreign (void *base_addr);
 gboolean
 mono_gc_register_thread (void *baseptr)
 {
+
+#ifdef SN_TARGET_PS3
+	return GC_thread_register_foreign (baseptr);
+#endif
+
 #if GC_VERSION_MAJOR >= 7
 	struct GC_stack_base sb;
 	int res;

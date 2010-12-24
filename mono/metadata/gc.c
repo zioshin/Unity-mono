@@ -29,7 +29,7 @@
 #include <mono/metadata/attach.h>
 #include <mono/utils/mono-semaphore.h>
 
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 #include <pthread.h>
 #endif
 
@@ -274,8 +274,11 @@ object_register_finalizer (MonoObject *obj, void (*callback)(void *, void*))
 	domain = obj->vtable->domain;
 
 #ifndef GC_DEBUG
+#ifndef _XBOX
+//mircea@FIXME
 	/* This assertion is not valid when GC_DEBUG is defined */
 	g_assert (GC_base (obj) == (char*)obj - offset);
+#endif
 #endif
 
 	if (mono_domain_is_unloading (domain) && (callback != NULL))
@@ -965,6 +968,9 @@ mono_gc_finalize_notify (void)
 
 #ifdef MONO_HAS_SEMAPHORES
 	MONO_SEM_POST (&finalizer_sem);
+#ifdef SN_TARGET_PS3
+	WaitForSingleObjectEx (pending_done_event, INFINITE, TRUE);
+#endif
 #else
 	SetEvent (finalizer_event);
 #endif

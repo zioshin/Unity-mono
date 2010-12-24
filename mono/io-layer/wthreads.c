@@ -311,6 +311,8 @@ static void *thread_start_routine (gpointer args)
  *
  * Return value: a new handle, or NULL
  */
+static int _threadCount = 0;
+
 gpointer CreateThread(WapiSecurityAttributes *security G_GNUC_UNUSED, guint32 stacksize,
 		      WapiThreadStart start, gpointer param, guint32 create,
 		      gsize *tid) 
@@ -324,6 +326,14 @@ gpointer CreateThread(WapiSecurityAttributes *security G_GNUC_UNUSED, guint32 st
 	int i, unrefs = 0;
 	gpointer ct_ret = NULL;
 	
+#ifdef SN_TARGET_PS3
+	if(_threadCount) {
+		g_assert(!"Mono threads are not supported on this platform");
+		return(NULL);
+	}
+	_threadCount++;
+#endif
+
 	mono_once (&thread_hash_once, thread_hash_init);
 	mono_once (&thread_ops_once, thread_ops_init);
 	
@@ -372,7 +382,8 @@ gpointer CreateThread(WapiSecurityAttributes *security G_GNUC_UNUSED, guint32 st
 	 */
 	thr_ret = pthread_attr_init(&attr);
 	g_assert (thr_ret == 0);
-	
+	attr.name = "_MONO_";
+
 	/* defaults of 2Mb for 32bits and 4Mb for 64bits */
 	/* temporarily changed to use 1 MB: this allows more threads
 	 * to be used, as well as using less virtual memory and so
