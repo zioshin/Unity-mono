@@ -14,7 +14,7 @@ if ($ENV{UNITY_THISISABUILDMACHINE})
 }
 
 
-CompileVCProj("$root/../ps3/ps3.sln","PS3 Debug",0);
+CompileVCProj("$root/../ps3/ps3-mono-2-8.sln","PS3 Debug",0);
 my $remove = "$root/builds/embedruntimes/win32/libmono.bsc";
 if (-e $remove)
 {
