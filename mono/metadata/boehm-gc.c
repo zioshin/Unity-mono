@@ -1006,7 +1006,7 @@ mono_gc_wbarrier_value_copy_bitmap (gpointer _dest, gpointer _src, int size, uns
  * These will call the redefined versions in libgc.
  */
 
-#ifndef HOST_WIN32
+#if !(defined (HOST_WIN32) || defined (XBOX))
 
 int
 mono_gc_pthread_create (pthread_t *new_thread, const pthread_attr_t *attr, void *(*start_routine)(void *), void *arg)

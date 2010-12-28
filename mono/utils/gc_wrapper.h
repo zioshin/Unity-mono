@@ -61,7 +61,7 @@
 #else /* not Boehm and not sgen GC */
 #endif
 
-#if !defined(HOST_WIN32)
+#if !(defined(HOST_WIN32) || defined(_XBOX))
 
 /*
  * Both Boehm and SGEN needs to intercept some thread operations. So instead of the
