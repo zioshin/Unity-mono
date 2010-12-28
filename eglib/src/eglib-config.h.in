@@ -19,6 +19,11 @@
 #define GINT_TO_POINTER(v)     @GINT_TO_POINTER@
 #define GUINT_TO_POINTER(v)    @GUINT_TO_POINTER@
 
+#if (defined (TARGET_PS3) || defined (TARGET_XBOX)) && defined (HOST_WIN32)
+#undef G_BREAKPOINT
+#define G_BREAKPOINT()
+#endif
+
 typedef unsigned @GSIZE@ gsize;
 typedef signed   @GSIZE@ gssize;
 

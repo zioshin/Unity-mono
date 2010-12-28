@@ -7,7 +7,7 @@
 /**
  *	Custom exit function, called instead of system exit()
  */
-#ifndef WIN32
+#if defined (HOST_WIN32) && ! defined (TARGET_WIN32)
 void unity_mono_exit( int code );
 #else
 _CRTIMP __declspec(noreturn) void __cdecl unity_mono_exit(_In_ int code);
@@ -16,7 +16,7 @@ _CRTIMP __declspec(noreturn) void __cdecl unity_mono_exit(_In_ int code);
 /**
  *	Redirects mono output where we want it.
  */
-void unity_mono_redirect_output( const char *fout, const char *ferr );
+void unity_mono_redirect_output( HANDLE handle );
 
 /**
  *	Closes redirected output files.

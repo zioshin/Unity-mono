@@ -58,9 +58,9 @@ libeglib_static_la_CFLAGS = $(libeglib_la_CFLAGS)
 
 INCLUDES = -I$(srcdir)
 
-if HOST_WIN32
-libeglib_la_LIBADD = -lm -liconv -lpsapi
-endif
+#if HOST_WIN32
+#libeglib_la_LIBADD = -lm -liconv -lpsapi
+#endif
 
 libeglib_static_la_LIBADD = $(libeglib_la_LIBADD)
 libeglib_static_la_LDFLAGS = -static

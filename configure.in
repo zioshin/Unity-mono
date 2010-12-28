@@ -109,7 +109,9 @@ case "$host" in
 			export CXX
 		else
 			target_win32=yes
-			AC_DEFINE(TARGET_WIN32,1,[Target OS is Win32/MinGW])
+			if test ! "x$target" = "xpowerpc64-ps3-linux-gnu" -a ! "x$target" = "xpowerpc64-ps3-linux-gnu"; then
+				AC_DEFINE(TARGET_WIN32,1,[Target OS is Win32/MinGW])
+			fi
 			AC_DEFINE(MINGW_CROSS_COMPILE,1,[Cross-compiling using MinGW])
 		fi
 		HOST_CC="gcc"
@@ -307,8 +309,13 @@ if test x$need_link_unlink = xyes; then
    AC_DEFINE(NEED_LINK_UNLINK, 1, [Define if Unix sockets cannot be created in an anonymous namespace])
 fi
 
+if test "x$target" = "xpowerpc64-ps3-linux-gnu" -o "x$target" = "xpowerpc64-xbox-linux-gnu"; then
+AM_CONDITIONAL(HOST_WIN32, 1)
+AM_CONDITIONAL(TARGET_WIN32, 0)
+else
 AM_CONDITIONAL(HOST_WIN32, test x$host_win32 = xyes)
 AM_CONDITIONAL(TARGET_WIN32, test x$target_win32 = xyes)
+fi
 AM_CONDITIONAL(PLATFORM_LINUX, echo x$target_os | grep -q linux)
 AM_CONDITIONAL(PLATFORM_DARWIN, test x$platform_darwin = xyes)
 AM_CONDITIONAL(PLATFORM_SIGPOSIX, test x$use_sigposix = xyes)

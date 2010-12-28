@@ -30,6 +30,13 @@
 #include "mini.h"
 #include "mini-ppc.h"
 
+#if defined (HOST_WIN32) && defined (MONO_CROSS_COMPILE)
+#include <windows.h>
+LPTOP_LEVEL_EXCEPTION_FILTER old_win32_toplevel_exception_filter;
+guint64 win32_chained_exception_filter_result;
+gboolean win32_chained_exception_filter_didrun;
+#endif
+
 /*
 
 struct sigcontext {
@@ -772,6 +779,7 @@ handle_signal_exception (gpointer obj, gboolean test_only)
 static void
 setup_ucontext_return (void *uc, gpointer func)
 {
+#ifndef MONO_CROSS_COMPILE
 	UCONTEXT_REG_LNK(uc) = UCONTEXT_REG_NIP(uc);
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
 	{
@@ -782,6 +790,7 @@ setup_ucontext_return (void *uc, gpointer func)
 	}
 #else
 	UCONTEXT_REG_NIP(uc) = (unsigned long)func;
+#endif
 #endif
 }
 #endif

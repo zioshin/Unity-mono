@@ -1,11 +1,11 @@
-#include "unity_utils.h"
-#include <stdio.h>
-#include <stdlib.h>
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
 #include <fcntl.h>
 #endif
+#include "unity_utils.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <mono/metadata/object.h>
 #include <glib.h>
 

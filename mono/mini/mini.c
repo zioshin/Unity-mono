@@ -2332,7 +2332,7 @@ mono_get_jit_tls_key (void)
 gint32
 mono_get_jit_tls_offset (void)
 {
-#ifdef HAVE_KW_THREAD
++#if defined (HAVE_KW_THREAD) && !(defined (HOST_WIN32) && (defined (TARGET_PS3) || defined (TARGET_XBOX)))
 	int offset;
 	MONO_THREAD_VAR_OFFSET (mono_jit_tls, offset);
 	return offset;
@@ -2356,9 +2356,13 @@ mono_get_lmf_tls_offset (void)
 gint32
 mono_get_lmf_addr_tls_offset (void)
 {
+#if !(defined (HOST_WIN32) && (defined (TARGET_PS3) || defined (TARGET_XBOX)))
 	int offset;
 	MONO_THREAD_VAR_OFFSET(mono_lmf_addr,offset);
 	return offset;
+#else
+	return -1;
+#endif
 }
 
 MonoLMF *
