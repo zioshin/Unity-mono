@@ -5670,7 +5670,7 @@ setup_tls_access (void)
 		conf_size = confstr ( _CS_GNU_LIBPTHREAD_VERSION, confbuf, sizeof(confbuf));
 		if ((conf_size > 4) && (strncmp (confbuf, "NPTL", 4) == 0))
 			tls_mode = TLS_MODE_NPTL;
-#elif !defined(TARGET_PS3)
+#elif !(defined(TARGET_PS3) || defined(TARGET_XBOX360))
 		ins = (guint32*)pthread_getspecific;
 		/* uncond branch to the real method */
 		if ((*ins >> 26) == 18) {
