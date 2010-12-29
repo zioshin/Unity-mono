@@ -5744,7 +5744,7 @@ setup_tls_access (void)
 		}
 #endif
 	}
-#if !defined(TARGET_PS3) && !defined(_XBOX)
+#if !defined(TARGET_PS3) && !defined(_XBOX) && !defined(TARGET_XBOX360)
 	if (tls_mode == TLS_MODE_DETECT)
 		tls_mode = TLS_MODE_FAILED;
 	if (tls_mode == TLS_MODE_FAILED)
