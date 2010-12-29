@@ -2332,7 +2332,7 @@ mono_get_jit_tls_key (void)
 gint32
 mono_get_jit_tls_offset (void)
 {
-+#if defined (HAVE_KW_THREAD) && !(defined (HOST_WIN32) && (defined (TARGET_PS3) || defined (TARGET_XBOX)))
+#if defined (HAVE_KW_THREAD) && !(defined (HOST_WIN32) && (defined (TARGET_PS3) || defined (TARGET_XBOX)))
 	int offset;
 	MONO_THREAD_VAR_OFFSET (mono_jit_tls, offset);
 	return offset;

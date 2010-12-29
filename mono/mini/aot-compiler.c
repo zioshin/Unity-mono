@@ -4833,7 +4833,7 @@ mono_aot_get_plt_symbol (MonoJumpInfoType type, gconstpointer data)
 
 	plt_entry = get_plt_entry (llvm_acfg, ji);
 
-	return g_strdup_printf ("%sp_%d", LOCAL_LABEL_PREFIX, offset);
+	return g_strdup_printf (plt_entry->symbol);
 }
 
 MonoJumpInfo*

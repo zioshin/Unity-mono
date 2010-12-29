@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <mono/metadata/object.h>
 
+#include "config.h"
+#if defined HOST_WIN32 && ! defined HANDLE
+typedef void *HANDLE;
+#endif
+
 /**
  *	Custom exit function, called instead of system exit()
  */

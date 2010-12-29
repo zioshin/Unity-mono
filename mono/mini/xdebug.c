@@ -149,7 +149,7 @@ mono_xdebug_init (char *options)
 	unlink ("xdb.s");
 	xdebug_fp = fopen ("xdb.s", "w");
 	
-	w = img_writer_create (xdebug_fp, FALSE);
+	w = img_writer_create (xdebug_fp, FALSE, NULL);
 
 	img_writer_emit_start (w);
 
@@ -168,7 +168,7 @@ xdebug_begin_emit (MonoImageWriter **out_w, MonoDwarfWriter **out_dw)
 	MonoImageWriter *w;
 	MonoDwarfWriter *dw;
 
-	w = img_writer_create (NULL, TRUE);
+	w = img_writer_create (NULL, TRUE, NULL);
 
 	img_writer_emit_start (w);
 
