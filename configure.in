@@ -109,7 +109,7 @@ case "$host" in
 			export CXX
 		else
 			target_win32=yes
-			if test ! "x$target" = "xpowerpc64-ps3-linux-gnu" -a ! "x$target" = "xpowerpc64-ps3-linux-gnu"; then
+			if test ! "x$target" = "xpowerpc64-ps3-linux-gnu" -a ! "x$target" = "xpowerpc64-xbox360-linux-gnu"; then
 				AC_DEFINE(TARGET_WIN32,1,[Target OS is Win32/MinGW])
 			fi
 			AC_DEFINE(MINGW_CROSS_COMPILE,1,[Cross-compiling using MinGW])
