@@ -5,8 +5,12 @@
 #include <mono/metadata/object.h>
 
 #include "config.h"
-#if defined HOST_WIN32 && ! defined HANDLE
+#if ! defined HANDLE
+#if defined HOST_WIN32
 typedef void *HANDLE;
+#else
+#include "io-layer/io-layer.h"
+#endif
 #endif
 
 /**
