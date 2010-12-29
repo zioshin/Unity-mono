@@ -2351,6 +2351,8 @@ if test "x$host" != "x$target"; then
 		AC_DEFINE(MONO_CROSS_COMPILE,1,[The runtime is compiled for cross-compiling mode])
 		# It would be better to just use TARGET_POWERPC64, but lots of code already
 		# uses this define
+		AC_DEFINE(__mono_ppc64__, 1, [...])
+		AC_DEFINE(__mono_ilp32__, 1, [64 bit mode with 4 byte longs and pointers])
 		sizeof_register=8
 		target_byte_order=G_BIG_ENDIAN
 		;;
