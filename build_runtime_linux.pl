@@ -54,8 +54,6 @@ if (not $skipbuild)
 		$ENV{CFLAGS} = "-Os"  #optimize for size
 	}
 
-	chdir("$root/mono") eq 1 or die ("failed to chdir 2");
-	
 	#this will fail on a fresh working copy, so don't die on it.
 	system("make distclean");
 	#were going to tell autogen to use a specific cache file, that we purposely remove before starting.
@@ -69,7 +67,6 @@ if (not $skipbuild)
 	# system("make distclean");
 	# system("autoreconf -i") eq 0 or die ("Failed autoreconfing eglib");
 
-	chdir("$root/mono") eq 1 or die ("failed to chdir 2");
 	system("autoreconf -i") eq 0 or die ("Failed autoreconfing mono");
 	my @autogenparams = ();
 	unshift(@autogenparams, "--cache-file=linux.cache");
