@@ -12,7 +12,7 @@ typedef void *HANDLE;
 /**
  *	Custom exit function, called instead of system exit()
  */
-#if defined (HOST_WIN32) && ! defined (TARGET_WIN32)
+#if ! defined (TARGET_WIN32)
 void unity_mono_exit( int code );
 #else
 _CRTIMP __declspec(noreturn) void __cdecl unity_mono_exit(_In_ int code);
