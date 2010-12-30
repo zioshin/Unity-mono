@@ -8,7 +8,8 @@ make || exit 1
 
 rm -rf builds
 mkdir builds
-mkdir builds/xenon
+mkdir builds/crosscompiler
+mkdir builds/crosscompiler/xenon
 
 echo Copying build result
-cp mono/mini/mono.exe builds/xenon/mono-xenon-crosscompiler.exe || exit 1
+cp mono/mini/mono.exe builds/crosscompiler/xenon/mono-xcompiler.exe || exit 1

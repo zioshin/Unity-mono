@@ -8,7 +8,8 @@ make || exit 1
 
 rm -rf builds
 mkdir builds
-mkdir builds/ps3
+mkdir builds/crosscompiler
+mkdir builds/crosscompiler/ps3
 
 echo Copying build result
-cp mono/mini/mono.exe builds/ps3/mono-ps3-crosscompiler.exe || exit 1
+cp mono/mini/mono.exe builds/crosscompiler/ps3/mono-xcompiler.exe || exit 1
