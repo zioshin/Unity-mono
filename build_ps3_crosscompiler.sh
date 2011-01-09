@@ -12,4 +12,6 @@ mkdir builds/crosscompiler
 mkdir builds/crosscompiler/ps3
 
 echo Copying build result
-cp mono/mini/mono.exe builds/crosscompiler/ps3/mono-xcompiler.exe || exit 1
+cp mono/mini/.libs/mono.exe builds/crosscompiler/ps3/mono-xcompiler.exe || exit 1
+cp mono/mini/.libs/libmono-2.0.dll builds/crosscompiler/ps3 || exit 1
+
