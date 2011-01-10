@@ -19,17 +19,27 @@
 void *
 mono_mach_arch_get_ip (thread_state_t state)
 {
+#if defined (arm_thread_state_t)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 
 	return (void *) arch_state->__pc;
+#else
+	g_assert_not_reached ();
+	return NULL;
+#endif
 }
 
 void *
 mono_mach_arch_get_sp (thread_state_t state)
 {
+#if defined (arm_thread_state_t)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 
 	return (void *) arch_state->__sp;
+#else
+	g_assert_not_reached ();
+	return NULL;
+#endif
 }
 
 #if defined (mcontext_t)
