@@ -52,22 +52,32 @@ mono_mach_arch_get_mcontext_size ()
 void
 mono_mach_arch_thread_state_to_mcontext (thread_state_t state, mcontext_t context)
 {
+#if defined (arm_thread_state_t)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 	struct __darwin_mcontext *ctx = (struct __darwin_mcontext *) context;
 
 	ctx->__ss = *arch_state;
+#else
+	g_assert_not_reached ();
+#endif
 }
 #endif
 
 int
 mono_mach_arch_get_thread_state_size ()
 {
+#if defined (arm_thread_state_t)
 	return sizeof (arm_thread_state_t);
+#else
+	g_assert_not_reached ();
+	return 0;
+#endif
 }
 
 kern_return_t
 mono_mach_arch_get_thread_state (thread_port_t thread, thread_state_t state, mach_msg_type_number_t *count)
 {
+#if defined (arm_thread_state_t)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 	kern_return_t ret;
 
@@ -76,6 +86,10 @@ mono_mach_arch_get_thread_state (thread_port_t thread, thread_state_t state, mac
 	ret = thread_get_state (thread, ARM_THREAD_STATE_COUNT, (thread_state_t) arch_state, count);
 
 	return ret;
+#else
+	g_assert_not_reached ();
+	return (kern_return_t) 0;
+#endif
 }
 
 void *
