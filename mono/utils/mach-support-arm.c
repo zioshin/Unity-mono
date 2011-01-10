@@ -32,6 +32,7 @@ mono_mach_arch_get_sp (thread_state_t state)
 	return (void *) arch_state->__esp;
 }
 
+#if defined (mcontext_t)
 int
 mono_mach_arch_get_mcontext_size ()
 {
@@ -46,6 +47,7 @@ mono_mach_arch_thread_state_to_mcontext (thread_state_t state, mcontext_t contex
 
 	ctx->__ss = *arch_state;
 }
+#endif
 
 int
 mono_mach_arch_get_thread_state_size ()

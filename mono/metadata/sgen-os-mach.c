@@ -81,8 +81,14 @@ mono_sgen_thread_handshake (int signum)
 					continue;
 				}
 
+#if defined (mcontext_t)
 				state = (thread_state_t) alloca (mono_mach_arch_get_thread_state_size ());
 				ret = mono_mach_arch_get_thread_state (t, state, &num_state);
+#else
+				state = NULL;
+				ret = KERN_SUCCESS;
+				g_assert_not_reached ();
+#endif
 				if (ret != KERN_SUCCESS) {
 					mach_port_deallocate (task, t);
 					continue;
