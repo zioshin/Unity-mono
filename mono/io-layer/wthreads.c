@@ -382,7 +382,7 @@ gpointer CreateThread(WapiSecurityAttributes *security G_GNUC_UNUSED, guint32 st
 	 */
 	thr_ret = pthread_attr_init(&attr);
 	g_assert (thr_ret == 0);
-#ifndef PLATFORM_MACOSX
+#if ! (defined (PLATFORM_MACOSX) || defined (LINUX))
 	attr.name = "_MONO_";
 #endif
 
