@@ -1762,7 +1762,7 @@ mono_cleanup (void)
 	 * This should be called last as TlsGetValue ()/TlsSetValue () can be called during
 	 * shutdown.
 	 */
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 	_wapi_cleanup ();
 #endif
 }
