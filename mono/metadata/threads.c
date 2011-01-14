@@ -1290,7 +1290,7 @@ ves_icall_System_Threading_Thread_GetDomainID (void)
 gboolean 
 ves_icall_System_Threading_Thread_Yield (void)
 {
-#ifdef HOST_WIN32
+#if defined(HOST_WIN32) || defined(_XBOX)
 	return SwitchToThread ();
 #else
 	return sched_yield () == 0;
