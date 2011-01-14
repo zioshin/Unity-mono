@@ -4090,7 +4090,7 @@ mono_thread_resume_interruption (void)
 		return NULL;
 	InterlockedIncrement (&thread_interruption_requested);
 
-#ifndef HOST_WIN32
+#if !defined(HOST_WIN32) && !defined(_XBOX)
 	wapi_self_interrupt ();
 #endif
 	return mono_thread_execute_interruption (thread);
