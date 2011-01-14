@@ -1438,6 +1438,7 @@ mono_main (int argc, char* argv[])
 			opt = parse_optimizations (argv [i] + 11);
 		} else if (strncmp (argv [i], "-O=", 3) == 0) {
 			opt = parse_optimizations (argv [i] + 3);
+#if !defined(_XBOX)
 		} else if (strcmp (argv [i], "--gc=sgen") == 0) {
 			if (!strcmp (mono_gc_get_gc_name (), "boehm")) {
 				GString *path = g_string_new (argv [0]);
@@ -1457,6 +1458,7 @@ mono_main (int argc, char* argv[])
 				argv [0] = p;
 				execvp (p, argv);
 			}
+#endif
 		} else if (strcmp (argv [i], "--config") == 0) {
 			if (i +1 >= argc){
 				fprintf (stderr, "error: --config requires a filename argument\n");
