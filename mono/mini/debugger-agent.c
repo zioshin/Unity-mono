@@ -1198,11 +1198,9 @@ stop_debugger_thread ()
 		if (!debugger_thread_exited)
 		{
 #ifdef HOST_WIN32
-			if (WAIT_TIMEOUT == WaitForSingleObject(debugger_thread_exited_cond, 0)) {
-				mono_mutex_unlock (&debugger_thread_exited_mutex);
-				Sleep(0);
-				mono_mutex_lock (&debugger_thread_exited_mutex);
-			}
+			mono_mutex_unlock (&debugger_thread_exited_mutex);
+			WaitForSingleObject(debugger_thread_exited_cond, INFINITE);
+			mono_mutex_lock (&debugger_thread_exited_mutex);
 #else
 			mono_cond_wait (&debugger_thread_exited_cond, &debugger_thread_exited_mutex);
 #endif
@@ -2309,16 +2307,9 @@ suspend_current (void)
 
 	while (suspend_count - tls->resume_count > 0) {
 #ifdef HOST_WIN32
-		/* FIXME: https://bugzilla.novell.com/show_bug.cgi?id=587470 */
-		if (WAIT_TIMEOUT == WaitForSingleObject(suspend_cond, 0))
-		{
-			mono_mutex_unlock (&suspend_mutex);
-			Sleep(0);
-			mono_mutex_lock (&suspend_mutex);
-		}
-		else
-		{
-		}
+		mono_mutex_unlock (&suspend_mutex);
+		WaitForSingleObject(suspend_cond, INFINITE);
+		mono_mutex_lock (&suspend_mutex);
 #else
 		err = mono_cond_wait (&suspend_cond, &suspend_mutex);
 		g_assert (err == 0);
@@ -6943,21 +6934,16 @@ debugger_thread (void *arg)
 
 	mono_set_is_debugger_attached (FALSE);
 	
-#ifdef TARGET_WIN32
-	if (! (vm_death_event_sent || mono_runtime_is_shutting_down ())) 
-#endif
-	{
-		mono_mutex_lock (&debugger_thread_exited_mutex);
-		debugger_thread_exited = TRUE;
-		mono_cond_signal (&debugger_thread_exited_cond);
-		mono_mutex_unlock (&debugger_thread_exited_mutex);
+	mono_mutex_lock (&debugger_thread_exited_mutex);
+	debugger_thread_exited = TRUE;
+	mono_cond_signal (&debugger_thread_exited_cond);
+	mono_mutex_unlock (&debugger_thread_exited_mutex);
 
-		DEBUG (1, printf ("[dbg] Debugger thread exited.\n"));
-		
-		if (command_set == CMD_SET_VM && command == CMD_VM_DISPOSE && !(vm_death_event_sent || mono_runtime_is_shutting_down () || attach_failed)) {
-			DEBUG (2, fprintf (log_file, "[dbg] Detached - restarting clean debugger thread.\n"));
-			start_debugger_thread ();
-		}
+	DEBUG (1, printf ("[dbg] Debugger thread exited.\n"));
+	
+	if (command_set == CMD_SET_VM && command == CMD_VM_DISPOSE && !(vm_death_event_sent || mono_runtime_is_shutting_down () || attach_failed)) {
+		DEBUG (2, fprintf (log_file, "[dbg] Detached - restarting clean debugger thread.\n"));
+		start_debugger_thread ();
 	}
 	
 	return 0;
