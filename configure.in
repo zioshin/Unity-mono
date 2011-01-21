@@ -309,6 +309,10 @@ if test x$need_link_unlink = xyes; then
    AC_DEFINE(NEED_LINK_UNLINK, 1, [Define if Unix sockets cannot be created in an anonymous namespace])
 fi
 
+if test "x$target" = "xpowerpc64-xbox360-linux-gnu"; then
+   AC_DEFINE(MONO_AOT_XENON_CPU, 1, [Defining MONO_AOT_XENON_CPU])
+fi
+
 if test "x$target" = "xpowerpc64-ps3-linux-gnu" -o "x$target" = "xpowerpc64-xbox360-linux-gnu"; then
 AM_CONDITIONAL(HOST_WIN32, true)
 AM_CONDITIONAL(TARGET_WIN32, false)
