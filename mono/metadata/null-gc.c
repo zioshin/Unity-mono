@@ -226,7 +226,11 @@ mono_gc_get_managed_allocator_types (void)
 const char *
 mono_gc_get_gc_name (void)
 {
+#if defined (MINGW_CROSS_COMPILE) && (defined (TARGET_PS3) || defined (TARGET_XBOX360))
+	return "bohem";
+#else
 	return "null";
+#endif
 }
 
 void
