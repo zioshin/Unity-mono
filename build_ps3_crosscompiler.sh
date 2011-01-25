@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo Configuring build...
-./autogen.sh --target=powerpc64-ps3-linux-gnu --disable-nls --disable-mcs-build --with-gc=none --disable-embed-check --with-libgc-threads=win32 --with-profile4=yes --host=i586-mingw32msvc || exit 1
+./autogen.sh --target=powerpc64-ps3-linux-gnu --disable-nls --disable-mcs-build --with-gc=bohem --disable-embed-check --with-libgc-threads=win32 --with-profile4=yes --host=i586-mingw32msvc || exit 1
 
 echo Building...
 make || exit 1
