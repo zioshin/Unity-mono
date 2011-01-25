@@ -227,7 +227,7 @@ const char *
 mono_gc_get_gc_name (void)
 {
 #if defined (MINGW_CROSS_COMPILE) && (defined (TARGET_PS3) || defined (TARGET_XBOX360))
-	return "bohem";
+	return "boehm";
 #else
 	return "null";
 #endif
