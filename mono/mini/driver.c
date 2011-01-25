@@ -1438,7 +1438,7 @@ mono_main (int argc, char* argv[])
 			opt = parse_optimizations (argv [i] + 11);
 		} else if (strncmp (argv [i], "-O=", 3) == 0) {
 			opt = parse_optimizations (argv [i] + 3);
-#if !defined(_XBOX)
+#if !(defined (_XBOX) || defined (TARGET_PS3))
 		} else if (strcmp (argv [i], "--gc=sgen") == 0) {
 			if (!strcmp (mono_gc_get_gc_name (), "boehm")) {
 				GString *path = g_string_new (argv [0]);
