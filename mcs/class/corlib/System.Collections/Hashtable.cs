@@ -242,7 +242,7 @@ namespace System.Collections {
 		{
 		}
 
-#if NET_2_1 && !MONOTOUCH
+#if UNITY
 		public // for serialization to work under the coreclr security model
 #else
 		protected
