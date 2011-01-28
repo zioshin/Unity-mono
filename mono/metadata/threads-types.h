@@ -215,8 +215,8 @@ void mono_thread_abort_all_other_threads (void) MONO_INTERNAL;
 void mono_thread_suspend_all_other_threads (void) MONO_INTERNAL;
 gboolean mono_threads_abort_appdomain_threads (MonoDomain *domain, int timeout) MONO_INTERNAL;
 
-void mono_thread_push_appdomain_ref (MonoDomain *domain) MONO_INTERNAL;
-void mono_thread_pop_appdomain_ref (void) MONO_INTERNAL;
+void mono_thread_push_appdomain_ref (MonoDomain *domain);
+void mono_thread_pop_appdomain_ref (void);
 gboolean mono_thread_has_appdomain_ref (MonoThread *thread, MonoDomain *domain) MONO_INTERNAL;
 
 void mono_threads_clear_cached_culture (MonoDomain *domain) MONO_INTERNAL;

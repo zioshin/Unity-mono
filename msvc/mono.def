@@ -890,3 +890,8 @@ mono_win32_compat_ZeroMemory
 
 mono_runtime_unhandled_exception_policy_get
 mono_runtime_unhandled_exception_policy_set
+
+mono_assembly_name_parse
+mono_thread_push_appdomain_ref
+mono_thread_pop_appdomain_ref
+
