@@ -597,7 +597,7 @@ gboolean
 mono_runtime_get_no_exec (void) MONO_INTERNAL;
 
 gboolean
-mono_assembly_name_parse (const char *name, MonoAssemblyName *aname) MONO_INTERNAL;
+mono_assembly_name_parse (const char *name, MonoAssemblyName *aname) /*MONO_INTERNAL*/;
 
 MonoImage *mono_assembly_open_from_bundle (const char *filename,
 					   MonoImageOpenStatus *status,
