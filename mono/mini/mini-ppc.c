@@ -4601,7 +4601,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			g_assert (ins->inst_offset == 0);
 
 #if defined(MONO_AOT_XENON_CPU)
-			ppc_mfmsr( code, ins->dreg);
+			ppc_mfmsr( code, ppc_r12 );
 			ppc_mtmsree( code, ppc_r13 );
 #endif
 
@@ -4616,7 +4616,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				ppc_stdcxd (code, ppc_r0, 0, ins->inst_basereg);
 
 #if defined(MONO_AOT_XENON_CPU)
-			ppc_mtmsree( code, ins->dreg );
+			ppc_mtmsree( code, ppc_r12 );
 #endif
 
 			branch = code;
@@ -4650,7 +4650,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			start = code;
 
 #if defined(MONO_AOT_XENON_CPU)
-			ppc_mfmsr( code, ins->dreg);
+			ppc_mfmsr( code, ppc_r12 );
 			ppc_mtmsree( code, ppc_r13 );
 #endif
 
@@ -4672,7 +4672,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 #endif
 
 #if defined(MONO_AOT_XENON_CPU)
-			ppc_mtmsree( code, ins->dreg );
+			ppc_mtmsree( code, ppc_r12 );
 #endif
 
 			lost_reservation = code;
