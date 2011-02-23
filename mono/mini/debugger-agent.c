@@ -569,9 +569,6 @@ static gboolean embedding;
 
 static FILE *log_file;
 
-/* Classes whose class load event has been sent */
-static GHashTable *loaded_classes;
-
 /* Assemblies whose assembly load event has no been sent yet */
 static GPtrArray *pending_assembly_loads;
 static GPtrArray *pending_type_loads;
@@ -856,7 +853,6 @@ mono_debugger_agent_init (void)
 	tid_to_thread_obj = mono_g_hash_table_new_type (NULL, NULL, MONO_HASH_VALUE_GC);
 	MONO_GC_REGISTER_ROOT (tid_to_thread_obj);
 
-	loaded_classes = g_hash_table_new (mono_aligned_addr_hash, NULL);
 	pending_assembly_loads = g_ptr_array_new ();
 	pending_type_loads = g_ptr_array_new ();
 	domains = g_hash_table_new (mono_aligned_addr_hash, NULL);
@@ -1693,6 +1689,8 @@ typedef struct {
 typedef struct {
 	/* Maps runtime structure -> Id */
 	GHashTable *val_to_id [ID_NUM];
+	/* Classes whose class load event has been sent */
+	GHashTable *loaded_classes;
 } AgentDomainInfo;
 
 /* Maps id -> Id */
@@ -1732,6 +1730,7 @@ mono_debugger_agent_free_domain_info (MonoDomain *domain)
 		for (i = 0; i < ID_NUM; ++i)
 			if (info->val_to_id [i])
 				g_hash_table_destroy (info->val_to_id [i]);
+		g_hash_table_destroy (info->loaded_classes);
 		g_free (info);
 	}
 
@@ -1770,8 +1769,24 @@ mono_debugger_agent_on_attach (void)
 	g_hash_table_foreach (domains, emit_appdomain_load, NULL);
 	mono_g_hash_table_foreach (tid_to_thread, emit_thread_start, NULL);
 	mono_assembly_foreach (emit_assembly_load, NULL);
-	g_hash_table_foreach (loaded_classes, emit_type_load, NULL);
 	mono_loader_unlock ();
+}
+
+static AgentDomainInfo* get_agent_domain_info (MonoDomain *domain)
+{
+	AgentDomainInfo *info = NULL;
+
+	mono_domain_lock (domain);
+
+	info = domain_jit_info (domain)->agent_info;
+	if (!info) {
+		info = domain_jit_info (domain)->agent_info = g_new0 (AgentDomainInfo, 1);
+		info->loaded_classes = g_hash_table_new (mono_aligned_addr_hash, NULL);
+	}
+
+	mono_domain_unlock (domain);
+
+	return info;
 }
 
 static int
@@ -1785,11 +1800,10 @@ get_id (MonoDomain *domain, IdType type, gpointer val)
 
 	mono_loader_lock ();
 
+	info = get_agent_domain_info (domain);
+
 	mono_domain_lock (domain);
 
-	if (!domain_jit_info (domain)->agent_info)
-		domain_jit_info (domain)->agent_info = g_new0 (AgentDomainInfo, 1);
-	info = domain_jit_info (domain)->agent_info;
 	if (info->val_to_id [type] == NULL)
 		info->val_to_id [type] = g_hash_table_new (mono_aligned_addr_hash, NULL);
 
@@ -2807,6 +2821,7 @@ static void
 emit_appdomain_load (gpointer key, gpointer value, gpointer user_data)
 {
 	process_profiler_event (EVENT_KIND_APPDOMAIN_CREATE, value);
+	g_hash_table_foreach (get_agent_domain_info (value)->loaded_classes, emit_type_load, NULL);
 }
 
 /*
@@ -3286,7 +3301,6 @@ appdomain_unload (MonoProfiler *prof, MonoDomain *domain)
 	/* Flush loaded and pending classes */
 	while (pending_type_loads->len)
 		g_ptr_array_remove_index (pending_type_loads, 0);
-	g_hash_table_remove_all (loaded_classes);
 	g_hash_table_remove (domains, domain);
 	mono_loader_unlock ();
 }
@@ -3384,12 +3398,19 @@ static void
 send_type_load (MonoClass *klass)
 {
 	gboolean type_load = FALSE;
+	MonoDomain *domain = mono_domain_get ();
+	AgentDomainInfo *info = NULL;
 
 	mono_loader_lock ();
-	if (!g_hash_table_lookup (loaded_classes, klass)) {
+	info = get_agent_domain_info (domain);
+	mono_domain_lock (domain);
+
+	if (!g_hash_table_lookup (info->loaded_classes, klass)) {
 		type_load = TRUE;
-		g_hash_table_insert (loaded_classes, klass, klass);
+		g_hash_table_insert (info->loaded_classes, klass, klass);
 	}
+
+	mono_domain_unlock (domain);
 	mono_loader_unlock ();
 	if (type_load)
 		emit_type_load (klass, klass, NULL);
@@ -5116,8 +5137,12 @@ type_comes_from_assembly (gpointer klass, gpointer also_klass, gpointer assembly
 static void
 clear_types_for_assembly (MonoAssembly *assembly)
 {
+	MonoDomain *domain = mono_domain_get ();
+	AgentDomainInfo *info = NULL;
+
 	mono_loader_lock ();
-	g_hash_table_foreach_remove (loaded_classes, type_comes_from_assembly, assembly);
+	info = get_agent_domain_info (domain);
+	g_hash_table_foreach_remove (info->loaded_classes, type_comes_from_assembly, assembly);
 	mono_loader_unlock ();
 }
 
