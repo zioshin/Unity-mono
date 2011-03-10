@@ -6,6 +6,7 @@ basic_SUBDIRS := build jay mcs class tools
 net_2_0_SUBDIRS := build class nunit24 ilasm tools tests errors mcs
 moonlight_raw_SUBDIRS := build class tools mcs
 moonlight_SUBDIRS := tools
+unity_SUBDIRS := build class mcs
 monodroid_SUBDIRS := build class mcs
 monotouch_SUBDIRS := build class mcs
 net_3_5_SUBDIRS := build class tools/xbuild
