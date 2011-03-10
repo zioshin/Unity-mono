@@ -65,6 +65,8 @@ else
 al_profile = net_2_0
 endif
 
+build_profiles += unity
+
 if INSTALL_MONODROID
 build_profiles += monodroid
 endif
