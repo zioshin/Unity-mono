@@ -131,6 +131,8 @@ static MonoAssembly*
 mono_assembly_invoke_search_hook_internal (MonoAssemblyName *aname, gboolean refonly, gboolean postload);
 static MonoBoolean
 mono_assembly_is_in_gac (const gchar *filanem);
+static gboolean
+build_assembly_name (const char *name, const char *version, const char *culture, const char *token, const char *key, guint32 flags, MonoAssemblyName *aname, gboolean save_public_key);
 
 static gchar*
 encode_public_tok (const guchar *token, gint32 len)
@@ -851,6 +853,12 @@ mono_assembly_load_reference (MonoImage *image, int index)
 		return;
 
 	mono_assembly_get_assemblyref (image, index, &aname);
+	
+	
+	// HACK to support dreamtools assembly renaming
+	if (!strcmp (aname.name, "UnityEngine")) {
+		build_assembly_name ("Engine", "1.0.0.0", aname.culture, NULL, aname.flags, NULL, &aname, FALSE);
+	}
 
 	if (image->assembly && image->assembly->ref_only) {
 		/* We use the loaded corlib */
