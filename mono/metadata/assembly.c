@@ -836,6 +836,7 @@ mono_assembly_load_reference (MonoImage *image, int index)
 	MonoAssembly *reference;
 	MonoAssemblyName aname;
 	MonoImageOpenStatus status;
+	int attempts = 0;
 
 	/*
 	 * image->references is shared between threads, so we need to access
@@ -855,30 +856,36 @@ mono_assembly_load_reference (MonoImage *image, int index)
 	mono_assembly_get_assemblyref (image, index, &aname);
 	
 	
-	// HACK to support dreamtools assembly renaming
-	if (!strcmp (aname.name, "UnityEngine")) {
-		build_assembly_name ("Engine", "1.0.0.0", aname.culture, NULL, aname.flags, NULL, &aname, FALSE);
-	}
-
-	if (image->assembly && image->assembly->ref_only) {
-		/* We use the loaded corlib */
-		if (!strcmp (aname.name, "mscorlib"))
-			reference = mono_assembly_load_full (&aname, image->assembly->basedir, &status, FALSE);
-		else {
-			reference = mono_assembly_loaded_full (&aname, TRUE);
+	while (attempts < 2) {
+		++attempts;
+		
+		if (image->assembly && image->assembly->ref_only) {
+			/* We use the loaded corlib */
+			if (!strcmp (aname.name, "mscorlib"))
+				reference = mono_assembly_load_full (&aname, image->assembly->basedir, &status, FALSE);
+			else {
+				reference = mono_assembly_loaded_full (&aname, TRUE);
+				if (!reference)
+					/* Try a postload search hook */
+					reference = mono_assembly_invoke_search_hook_internal (&aname, TRUE, TRUE);
+			}
+	
+			/*
+			 * Here we must advice that the error was due to
+			 * a non loaded reference using the ReflectionOnly api
+			*/
 			if (!reference)
-				/* Try a postload search hook */
-				reference = mono_assembly_invoke_search_hook_internal (&aname, TRUE, TRUE);
+				reference = REFERENCE_MISSING;
+		} else
+			reference = mono_assembly_load (&aname, image->assembly? image->assembly->basedir: NULL, &status);
+		
+		// HACK to support dreamtools assembly renaming
+		if (!strcmp (aname.name, "UnityEngine")) {
+			build_assembly_name ("Engine", "1.0.0.0", aname.culture, NULL, aname.flags, NULL, &aname, FALSE);
+		} else {
+			++attempts;
 		}
-
-		/*
-		 * Here we must advice that the error was due to
-		 * a non loaded reference using the ReflectionOnly api
-		*/
-		if (!reference)
-			reference = REFERENCE_MISSING;
-	} else
-		reference = mono_assembly_load (&aname, image->assembly? image->assembly->basedir: NULL, &status);
+	}
 
 	if (reference == NULL){
 		char *extra_msg;
