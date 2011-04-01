@@ -82,9 +82,9 @@ get_pw_data (void)
 #ifdef HAVE_GETPWUID_R
 	struct passwd pw;
 	struct passwd *result;
-	char buf [4096];
+			char buf [4096];
 #endif
-
+			
 	if (user_name != NULL)
 		return;
 
@@ -92,30 +92,30 @@ get_pw_data (void)
 	if (user_name != NULL) {
 		pthread_mutex_unlock (&pw_lock);
 		return;
-	}
+				}
 #ifdef HAVE_GETPWUID_R
 	if (getpwuid_r (getuid (), &pw, buf, 4096, &result) == 0) {
 		home_dir = g_strdup (pw.pw_dir);
 		user_name = g_strdup (pw.pw_name);
-	}
+			}
 #endif
-	if (home_dir == NULL)
-		home_dir = g_getenv ("HOME");
+			if (home_dir == NULL)
+				home_dir = g_getenv ("HOME");
 
 	if (user_name == NULL) {
 		user_name = g_getenv ("USER");
 		if (user_name == NULL)
 			user_name = "somebody";
-	}
+		}
 	pthread_mutex_unlock (&pw_lock);
-}
+	}
 
 /* Give preference to /etc/passwd than HOME */
 const gchar *
 g_get_home_dir (void)
 {
 	get_pw_data ();
-	return home_dir;
+	return home_dir == NULL ? "/" : home_dir;
 }
 
 const char *
