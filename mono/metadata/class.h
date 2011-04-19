@@ -110,6 +110,12 @@ mono_class_is_assignable_from (MonoClass *klass, MonoClass *oklass);
 void*
 mono_ldtoken               (MonoImage *image, uint32_t token, MonoClass **retclass, MonoGenericContext *context);
 
+mono_bool
+mono_class_is_generic (MonoClass *klass);
+
+mono_bool
+mono_class_is_inflated (MonoClass *klass);
+
 char*         
 mono_type_get_name         (MonoType *type);
 
