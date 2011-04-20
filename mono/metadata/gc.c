@@ -377,15 +377,15 @@ mono_domain_finalize (MonoDomain *domain, guint32 timeout)
 		timeout = INFINITE;
 
 	while (TRUE) {
-		res = WaitForSingleObjectEx (done_event, timeout, FALSE);
+	res = WaitForSingleObjectEx (done_event, timeout, FALSE);
 		/* printf ("WAIT RES: %d.\n", res); */
 
 		if (res == WAIT_IO_COMPLETION) {
 			if ((thread->state & (ThreadState_StopRequested | ThreadState_SuspendRequested)) != 0)
 				return FALSE;
 		} else if (res == WAIT_TIMEOUT) {
-			/* We leak the handle here */
-			return FALSE;
+		/* We leak the handle here */
+		return FALSE;
 		} else {
 			break;
 		}
@@ -1195,12 +1195,6 @@ mono_gc_cleanup (void)
 					 * state the finalizer thread depends on will vanish.
 					 */
 					g_warning ("Shutting down finalizer thread timed out.");
-				} else {
-					/*
-					 * FIXME: On unix, when the above wait returns, the thread 
-					 * might still be running io-layer code, or pthreads code.
-					 */
-					Sleep (100);
 				}
 			} else {
 				int ret;
@@ -1211,6 +1205,11 @@ mono_gc_cleanup (void)
 
 				mono_thread_join ((gpointer)gc_thread->tid);
 			}
+			/*
+			 * FIXME: When the above wait returns, the thread 
+			 * might still be running io-layer code, or pthreads code.
+			 */
+			Sleep (100);
 		}
 		gc_thread = NULL;
 #ifdef HAVE_BOEHM_GC
