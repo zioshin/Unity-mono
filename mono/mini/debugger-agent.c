@@ -120,6 +120,7 @@ typedef struct {
 	char *launch;
 	gboolean embedding;
 	gboolean defer;
+	int keepalive;
 } AgentConfig;
 
 typedef struct
@@ -289,7 +290,8 @@ typedef enum {
 	EVENT_KIND_BREAKPOINT = 10,
 	EVENT_KIND_STEP = 11,
 	EVENT_KIND_TYPE_LOAD = 12,
-	EVENT_KIND_EXCEPTION = 13
+	EVENT_KIND_EXCEPTION = 13,
+	EVENT_KIND_KEEPALIVE = 14
 } EventKind;
 
 typedef enum {
@@ -363,7 +365,8 @@ typedef enum {
 	CMD_VM_DISPOSE = 6,
 	CMD_VM_INVOKE_METHOD = 7,
 	CMD_VM_SET_PROTOCOL_VERSION = 8,
-	CMD_VM_ABORT_INVOKE = 9
+	CMD_VM_ABORT_INVOKE = 9,
+	CMD_VM_SET_KEEPALIVE = 10
 } CmdVM;
 
 typedef enum {
@@ -675,6 +678,8 @@ static void finish_agent_init (gboolean on_startup);
 
 static void invalidate_frames (DebuggerTlsData *tls);
 
+static void process_profiler_event (EventKind event, gpointer arg);
+
 static int
 parse_address (char *address, char **host, int *port)
 {
@@ -704,6 +709,7 @@ print_usage (void)
 	fprintf (stderr, "  suspend=y/n\t\t\tWhether to suspend after startup.\n");
 	fprintf (stderr, "  timeout=<n>\t\t\tTimeout for connecting in milliseconds.\n");
 	fprintf (stderr, "  defer=y/n\t\t\tWhether to allow deferred client attaching.\n");
+	fprintf (stderr, "  keepalive=<n>\t\t\tSend keepalive events every n milliseconds.\n");
 	fprintf (stderr, "  help\t\t\t\tPrint this help.\n");
 }
 
@@ -783,6 +789,8 @@ mono_debugger_agent_parse_options (char *options)
 					agent_config.address = g_strdup_printf ("0.0.0.0:%u", 56000 + (GetCurrentProcessId () % 1000));
 				}
 			}
+		} else if (strncmp (arg, "keepalive=", 10) == 0) {
+			agent_config.keepalive = atoi (arg + 10);
 		} else {
 			print_usage ();
 			exit (1);
@@ -965,11 +973,32 @@ recv_length (int fd, void *buf, int len, int flags)
 	int total = 0;
 
 	do {
+	again:
 		res = recv (fd, (char *) buf + total, len - total, flags);
 		if (res > 0)
 			total += res;
+		if (agent_config.keepalive && res == -1 && errno == EWOULDBLOCK) {
+			process_profiler_event (EVENT_KIND_KEEPALIVE, NULL);
+			goto again;
+		}
 	} while ((res > 0 && total < len) || (res == -1 && errno == EINTR));
 	return total;
+}
+
+static void
+set_keepalive (void)
+{
+	struct timeval tv;
+	int result;
+
+	if (!agent_config.keepalive)
+		return;
+
+	tv.tv_sec = agent_config.keepalive / 1000;
+	tv.tv_usec = (agent_config.keepalive % 1000) * 1000;
+
+	result = setsockopt (conn_fd, SOL_SOCKET, SO_RCVTIMEO, (char *) &tv, sizeof(struct timeval));
+	g_assert (result >= 0);
 }
 
 static gboolean
@@ -1022,6 +1051,8 @@ transport_handshake (void)
 			return FALSE;
 		}
 	}
+
+	set_keepalive ();
 	
 	return TRUE;
 }
@@ -2920,6 +2951,7 @@ event_to_string (EventKind event)
 	case EVENT_KIND_STEP: return "STEP";
 	case EVENT_KIND_TYPE_LOAD: return "TYPE_LOAD";
 	case EVENT_KIND_EXCEPTION: return "EXCEPTION";
+	case EVENT_KIND_KEEPALIVE: return "KEEPALIVE";
 	default:
 		g_assert_not_reached ();
 	}
@@ -2969,12 +3001,16 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 		DEBUG (2, fprintf (log_file, "Debugger client is not connected: dropping %s\n", event_to_string (event)));
 		return;
 	}
-	
-	if (events == NULL) {
-		DEBUG (2, fprintf (log_file, "Empty events list: dropping %s\n", event_to_string (event)));
-		return;
+
+	if (event == EVENT_KIND_KEEPALIVE)
+		suspend_policy = SUSPEND_POLICY_NONE;
+	else {
+		if (events == NULL) {
+			DEBUG (2, fprintf (log_file, "Empty events list: dropping %s\n", event_to_string (event)));
+			return;
+		}
 	}
-	
+
 	if (debugger_thread_id == current_thread_id)
 		thread = main_thread;
 	else
@@ -3029,6 +3065,9 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 			buffer_add_objid (&buf, ei->exc);
 			break;
 		}
+		case EVENT_KIND_KEEPALIVE:
+			suspend_policy = SUSPEND_POLICY_NONE;
+			break;
 		default:
 			g_assert_not_reached ();
 		}
@@ -5594,6 +5633,13 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 
 		ves_icall_System_Threading_Thread_Abort (THREAD_TO_INTERNAL (thread), NULL);
 		mono_loader_unlock ();
+		break;
+	}
+
+	case CMD_VM_SET_KEEPALIVE: {
+		int timeout = decode_int (p, &p, end);
+		agent_config.keepalive = timeout;
+		set_keepalive ();
 		break;
 	}
 
