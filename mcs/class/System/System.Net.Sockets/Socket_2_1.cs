@@ -600,6 +600,8 @@ namespace System.Net.Sockets {
 							result = mconnect;
 						result.Sock.seed_endpoint = ep;
 						result.Sock.connected = true;
+						result.Sock.isbound = true;
+						result.Sock.connect_in_progress = false;
 						result.error = 0;
 						result.Complete ();
 						if (is_mconnect)
@@ -608,6 +610,7 @@ namespace System.Net.Sockets {
 					}
 
 					if (!is_mconnect) {
+						result.Sock.connect_in_progress = false;
 						result.Complete (new SocketException (error_code));
 						return;
 					}
@@ -618,10 +621,9 @@ namespace System.Net.Sockets {
 							mconnect.DoMConnectCallback ();
 						return;
 					}
-#if !MOONLIGHT
 					mconnect.Sock.BeginMConnect (mconnect);
-#endif
 				} catch (Exception e) {
+					result.Sock.connect_in_progress = false;
 					if (is_mconnect)
 						result = mconnect;
 					result.Complete (e);
@@ -876,6 +878,7 @@ namespace System.Net.Sockets {
 		/* true if we called Close_internal */
 		private bool closed;
 		internal bool disposed;
+		bool connect_in_progress;
 
 		/*
 		 * This EndPoint is used when creating new endpoints. Because
@@ -1405,42 +1408,6 @@ namespace System.Net.Sockets {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		extern static bool Poll_internal (IntPtr socket, SelectMode mode, int timeout, out int error);
 
-		/* This overload is needed as the async Connect method
-		 * also needs to check the socket error status, but
-		 * getsockopt(..., SO_ERROR) clears the error.
-		 */
-		internal bool Poll (int time_us, SelectMode mode, out int socket_error)
-		{
-			if (disposed && closed)
-				throw new ObjectDisposedException (GetType ().ToString ());
-
-			if (mode != SelectMode.SelectRead &&
-			    mode != SelectMode.SelectWrite &&
-			    mode != SelectMode.SelectError)
-				throw new NotSupportedException ("'mode' parameter is not valid.");
-
-			int error;
-			bool result = Poll_internal (socket, mode, time_us, out error);
-			if (error != 0)
-				throw new SocketException (error);
-
-			socket_error = (int)GetSocketOption (SocketOptionLevel.Socket, SocketOptionName.Error);
-			
-			if (mode == SelectMode.SelectWrite && result) {
-				/* Update the connected state; for
-				 * non-blocking Connect()s this is
-				 * when we can find out that the
-				 * connect succeeded.
-				 */
-				if (socket_error == 0) {
-					connected = true;
-					isbound = true;
-				}
-			}
-			
-			return result;
-		}
-
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern static int Receive_internal(IntPtr sock,
 							   byte[] buffer,
@@ -1608,6 +1575,16 @@ namespace System.Net.Sockets {
 			}
 
 			int error = 0;
+			if (connect_in_progress) {
+				// This could happen when multiple IPs are used
+				// Calling connect() again will reset the connection attempt and cause
+				// an error. Better to just close the socket and move on.
+				connect_in_progress = false;
+				Close_internal (socket, out error);
+				socket = Socket_internal (address_family, socket_type, protocol_type, out error);
+				if (error != 0)
+					throw new SocketException (error);
+			}
 			bool blk = blocking;
 			if (blk)
 				Blocking = false;
@@ -1618,6 +1595,7 @@ namespace System.Net.Sockets {
 			if (error == 0) {
 				// succeeded synch
 				connected = true;
+				isbound = true;
 				req.Complete (true);
 				return req;
 			}
@@ -1625,12 +1603,15 @@ namespace System.Net.Sockets {
 			if (error != (int) SocketError.InProgress && error != (int) SocketError.WouldBlock) {
 				// error synch
 				connected = false;
+				isbound = false;
 				req.Complete (new SocketException (error), true);
 				return req;
 			}
 
 			// continue asynch
 			connected = false;
+			isbound = false;
+			connect_in_progress = true;
 			socket_pool_queue (Worker.Dispatcher, req);
 			return req;
 		}
