@@ -1772,7 +1772,8 @@ mono_debugger_agent_on_attach (void)
 	mono_loader_unlock ();
 }
 
-static AgentDomainInfo* get_agent_domain_info (MonoDomain *domain)
+static AgentDomainInfo*
+get_agent_domain_info (MonoDomain *domain)
 {
 	AgentDomainInfo *info = NULL;
 
@@ -3026,6 +3027,20 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 			DEBUG (2, fprintf (log_file, "Empty events list: dropping %s\n", event_to_string (event)));
 			return;
 		}
+
+		if (agent_config.defer) {
+			/* Make sure the thread id is always set when doing deferred debugging */
+			if (debugger_thread_id == GetCurrentThreadId ()) {
+				/* Don't suspend on events from the debugger thread */
+				suspend_policy = SUSPEND_POLICY_NONE;
+				thread = mono_thread_get_main ();
+			}
+			else thread = mono_thread_current ();
+		} else {
+			if (debugger_thread_id == GetCurrentThreadId () && event != EVENT_KIND_VM_DEATH)
+				// FIXME: Send these with a NULL thread, don't suspend the current thread
+				return;
+		}
 	}
 
 	if (debugger_thread_id == current_thread_id)
@@ -3422,6 +3437,25 @@ static void send_pending_types ()
 	g_ptr_array_foreach (pending_type_loads, send_type_load, NULL);
 	while (pending_type_loads->len)
 		g_ptr_array_remove_index (pending_type_loads, 0);
+	mono_loader_unlock ();
+}
+
+/*
+ * Emit load events for all types currently loaded in the domain.
+ * Takes the loader and domain locks.
+ * user_data is unused.
+ */
+static void
+send_types_for_domain (MonoDomain *domain, void *user_data)
+{
+	AgentDomainInfo *info = NULL;
+
+	mono_loader_lock ();
+	mono_domain_lock (domain);
+	info =  get_agent_domain_info (domain);
+	g_assert (info);
+	g_hash_table_foreach (info->loaded_classes, emit_type_load, NULL);
+	mono_domain_unlock (domain);
 	mono_loader_unlock ();
 }
 
@@ -5826,6 +5860,30 @@ event_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 		mono_loader_lock ();
 		g_ptr_array_add (event_requests, req);
+
+		if (agent_config.defer) {
+			/* Transmit cached data to the client on receipt of the event request */
+			switch (req->event_kind) {
+			case EVENT_KIND_APPDOMAIN_CREATE:
+				/* Emit load events for currently loaded domains */
+				g_hash_table_foreach (domains, emit_appdomain_load, NULL);
+				break;
+			case EVENT_KIND_ASSEMBLY_LOAD:
+				/* Emit load events for currently loaded assemblies */
+				mono_assembly_foreach (emit_assembly_load, NULL);
+				break;
+			case EVENT_KIND_THREAD_START:
+				/* Emit start events for currently started threads */
+				mono_g_hash_table_foreach (tid_to_thread, emit_thread_start, NULL);
+				break;
+			case EVENT_KIND_TYPE_LOAD:
+				/* Emit type load events for currently loaded types */
+				mono_domain_foreach (send_types_for_domain, NULL);
+				break;
+			default:
+				break;
+			}
+		}
 		mono_loader_unlock ();
 
 		buffer_add_int (buf, req->id);
