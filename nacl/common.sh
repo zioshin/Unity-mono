@@ -49,11 +49,13 @@ fi
 
 # locate default nacl_sdk toolchain
 # TODO: no arm support
-readonly NACL_SDK=${NACL_SDK_PATH:-/usr/local/google/elijahtaylor/naclports_svn}
-readonly NACL_DEV=${NACL_PATH:-/usr/local/google/elijahtaylor/nacl_svn}
-readonly NACL_NATIVE_CLIENT=${NACL_SDK}/src
-readonly NACL_SDK_BASE=${NACL_SDK_BASE:-\
-${NACL_NATIVE_CLIENT}/toolchain/${OS_SUBDIR_SHORT}_x86}
+#readonly NACL_SDK=${NACL_SDK_PATH}
+#readonly NACL_DEV=${NACL_PATH}
+#readonly NACL_NATIVE_CLIENT=${NACL_SDK}/src
+
+readonly NACL_NATIVE_CLIENT=/usr/local/google/elijahtaylor/nacl_git/native_client
+
+readonly NACL_SDK_BASE=${NACL_NATIVE_CLIENT}/toolchain/${OS_SUBDIR_SHORT}_x86_newlib
 
 readonly NACL_BIN_PATH=${NACL_SDK_BASE}/bin
 readonly NACLCC=${NACL_SDK_BASE}/bin/nacl${TARGET_BIT_PREFIX}-gcc
