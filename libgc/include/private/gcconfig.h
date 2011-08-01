@@ -241,6 +241,9 @@
 # if defined(LINUX) && (defined(i386) || defined(__i386__))
 #    define I386
 #    define mach_type_known
+
+     /* Unity: Don't scan data segments */
+#    define GC_DONT_REGISTER_MAIN_STATIC_DATA
 # endif
 # if defined(OPENBSD) && defined(__amd64__)
 #    define X86_64
@@ -249,6 +252,9 @@
 # if defined(LINUX) && defined(__x86_64__)
 #    define X86_64
 #    define mach_type_known
+
+     /* Unity: Don't scan data segments */
+#    define GC_DONT_REGISTER_MAIN_STATIC_DATA
 # endif
 # if defined(LINUX) && (defined(__ia64__) || defined(__ia64))
 #    define IA64
@@ -257,6 +263,9 @@
 # if defined(LINUX) && defined(__arm__)
 #    define ARM32
 #    define mach_type_known
+
+     /* Unity: Don't scan data segments */
+#    define GC_DONT_REGISTER_MAIN_STATIC_DATA
 # endif
 # if defined(LINUX) && defined(__cris__)
 #    ifndef CRIS
@@ -318,6 +327,9 @@
 #   define mach_type_known
 # endif
 # ifdef DARWIN
+     /* Unity: Don't scan data segments */
+#    define GC_DONT_REGISTER_MAIN_STATIC_DATA
+
 #    include "TargetConditionals.h"
 #   if defined(__ppc__)  || defined(__ppc64__)
 #    define POWERPC
@@ -328,7 +340,7 @@
 #    define DARWIN_DONT_PARSE_STACK
 #    define OS_TYPE "DARWIN"
 #    if TARGET_IPHONE_SIMULATOR == 0
-#     define DYNAMIC_LOADING
+#    define DYNAMIC_LOADING
 #    endif
      /* XXX: see get_end(3), get_etext() and get_end() should not be used.
         These aren't used when dyld support is enabled (it is by default) */
@@ -1131,13 +1143,13 @@
 #     define CPP_WORDSZ 32
 #     define ALIGNMENT 4
 #   else
-#     define MACH_TYPE "I386"
-#     if defined(__LP64__) || defined(_WIN64)
-#       define CPP_WORDSZ 64
-#       define ALIGNMENT 8
-#     else
-#       define CPP_WORDSZ 32
-#       define ALIGNMENT 4
+#   define MACH_TYPE "I386"
+#   if defined(__LP64__) || defined(_WIN64)
+#     define CPP_WORDSZ 64
+#     define ALIGNMENT 8
+#   else
+#     define CPP_WORDSZ 32
+#     define ALIGNMENT 4
 #     endif
 			/* Appears to hold for all "32 bit" compilers	*/
 			/* except Borland.  The -a4 option fixes 	*/
@@ -1920,9 +1932,9 @@
 	extern int __data_start[] __attribute__((weak));
 #       define DATASTART ((ptr_t)(__data_start))
         extern int _end[] __attribute__((weak));
-#       define DATAEND (_end)
-#       define CACHE_LINE_SIZE 256
-#       define GETPAGESIZE() 4096
+#   define DATAEND (_end)
+#   define CACHE_LINE_SIZE 256
+#   define GETPAGESIZE() 4096
 #   endif
 # endif
 
