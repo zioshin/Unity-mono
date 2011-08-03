@@ -1810,9 +1810,11 @@ emit_call (MonoCompile *cfg, guint8 *code, guint32 patch_type, gconstpointer dat
 	/*The address must be 4 bytes aligned to avoid spanning multiple cache lines.
 	This is required for code patching to be safe on SMP machines.
 	*/
+#ifndef __native_client_codegen__
 	guint32 pad_size = (guint32)(code + 1 - cfg->native_code) & 0x3;
 	if (pad_size)
 		x86_padding (code, pad_size);
+#endif
 
 	mono_add_patch_info (cfg, code - cfg->native_code, patch_type, data);
 	x86_call_code (code, 0);
