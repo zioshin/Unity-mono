@@ -103,7 +103,7 @@ namespace Microsoft.Build.Tasks {
 
 			if (ResponseFiles != null)
 				foreach (ITaskItem item in ResponseFiles) 
-					commandLine.AppendSwitchIfNotNull ("@", item.ItemSpec);
+					commandLine.AppendSwitchIfNotNull ("@", QuotePath(item.ItemSpec));
 
 			if (Bag ["WarningLevel"] != null)
 				commandLine.AppendSwitchIfNotNull ("/warn:", WarningLevel.ToString ());
@@ -114,6 +114,11 @@ namespace Microsoft.Build.Tasks {
 
 			if (Win32Resource != null)
 				commandLine.AppendSwitchIfNotNull ("/win32res:", Win32Resource);
+		}
+
+		static string QuotePath(string path)
+		{
+			return "\"" + path + "\"";
 		}
 
 		[MonoTODO]
