@@ -139,22 +139,25 @@ g_get_user_name (void)
 
 static const char *tmp_dir;
 
+static const char* g_calculate_tmp_dir()
+{
+	TCHAR shorttemp[MAX_PATH];
+	TCHAR longtemp[MAX_PATH*2];
+	DWORD result;
+	const char* fallback = "C:\\temp";
+
+	result = GetTempPath(MAX_PATH,shorttemp);
+	if (result == 0) return fallback;
+	result = GetLongPathName(shorttemp, longtemp, MAX_PATH*2);
+	if (result == 0) return fallback;
+
+	return u16to8(longtemp);
+}
+
 const gchar *
 g_get_tmp_dir (void)
 {
-	if (tmp_dir == NULL){
-		if (tmp_dir == NULL){
-			tmp_dir = g_getenv ("TMPDIR");
-			if (tmp_dir == NULL){
-				tmp_dir = g_getenv ("TMP");
-				if (tmp_dir == NULL){
-					tmp_dir = g_getenv ("TEMP");
-					if (tmp_dir == NULL)
-						tmp_dir = "C:\\temp";
-				}
-			}
-		}
-	}
+	if (tmp_dir == NULL)
+		tmp_dir = g_calculate_tmp_dir();
 	return tmp_dir;
 }
-
