@@ -39,7 +39,7 @@ run-eglib: all
 
 if HAVE_GLIB
 
-noinst_PROGRAMS = test-glib test-eglib
+noinst_PROGRAMS = test-eglib
 
 test_glib_SOURCES = $(SOURCES)
 
