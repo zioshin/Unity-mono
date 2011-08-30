@@ -27,7 +27,7 @@ void mono_unity_write_to_unity_log(MonoString* str);
 FILE* unity_fopen( const char *name, const char *mode );
 #endif
 
-extern gboolean mono_unity_socket_security_enabled_get ();
-extern void mono_unity_socket_security_enabled_set (gboolean enabled);
+extern mono_bool mono_unity_socket_security_enabled_get ();
+extern void mono_unity_socket_security_enabled_set (mono_bool enabled);
 
 #endif
