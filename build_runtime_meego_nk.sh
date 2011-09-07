@@ -2,7 +2,7 @@ PREFIX=`pwd`/builds/meego
 
 OUTDIR=builds/embedruntimes/meego
 
-CXXFLAGS="-g -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3 -mtune=cortex-a8 -lsoftlibm";
+CXXFLAGS="-O2 -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3 -mtune=cortex-a8 -lsoftlibm";
 
 LDFLAGS="-L`pwd`/unity"
 
