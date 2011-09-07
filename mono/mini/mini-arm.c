@@ -688,12 +688,19 @@ mono_arch_regalloc_cost (MonoCompile *cfg, MonoMethodVar *vmv)
 #define __GNUC_PREREQ(maj, min) (0)
 #endif
 
+#if !defined(__QNXNTO__)
+#define CLEAR_CACHE(__beg, __end) __clear_cache(__beg, __end
+#else
+# include <sys/mman.h>
+# define CLEAR_CACHE(__beg, __end) msync(__beg, (__end) - (__beg), MS_INVALIDATE_ICACHE)
+#endif
+
 void
 mono_arch_flush_icache (guint8 *code, gint size)
 {
 #if __APPLE__
 	sys_icache_invalidate (code, size);
-#elif __GNUC_PREREQ(4, 1)
+#elif __GNUC_PREREQ(4, 1) 
 	__clear_cache (code, code + size);
 #elif defined(PLATFORM_ANDROID)
 	const int syscall = 0xf0002;
@@ -707,6 +714,8 @@ mono_arch_flush_icache (guint8 *code, gint size)
 		:	"r" (code), "r" (code + size), "r" (syscall)
 		:	"r0", "r1", "r7", "r2"
 		);
+#elif __QNXNTO__
+       CLEAR_CACHE(code, code + size);
 #else
 	__asm __volatile ("mov r0, %0\n"
 			"mov r1, %1\n"

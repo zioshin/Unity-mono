@@ -85,7 +85,7 @@ typedef struct ucontext {
  * We define our own version here and use it instead.
  */
 
-#if __APPLE__
+#if __APPLE__ || __QNXNTO__
 #define my_ucontext ucontext_t
 #else
 typedef struct my_ucontext {
