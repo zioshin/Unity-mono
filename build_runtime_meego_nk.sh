@@ -26,7 +26,8 @@ CONFIG_OPTS="\
 --disable-nls \
 mono_cv_uscore=yes"
 
-/scratchbox/login -k -d $BUILDDIR make clean && make distclean
+/scratchbox/login -k -d $BUILDDIR rm Makefile
+#/scratchbox/login -k -d $BUILDDIR make clean && make distclean
 
 /scratchbox/login -k -d $BUILDDIR rm meego_cross.cache
 
