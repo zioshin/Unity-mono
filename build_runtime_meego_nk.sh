@@ -1,3 +1,5 @@
+#!/bin/bash
+
 PREFIX=`pwd`/builds/meego
 
 if [ -z $UNITY_THISISABUILDMACHINE ] ; then
