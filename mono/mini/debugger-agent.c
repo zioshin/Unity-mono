@@ -1122,6 +1122,7 @@ transport_connect (const char *host, int port)
 				fprintf (stderr, "debugger-agent: Unable to setup listening socket: %s\n", strerror (errno));
 				exit (1);
 			}
+			listen_fd = sfd;
 
 			addrlen = sizeof (addr);
 			memset (&addr, 0, sizeof (addr));
@@ -1149,6 +1150,7 @@ transport_connect (const char *host, int port)
 				res = listen (sfd, 16);
 				if (res == -1)
 					continue;
+				listen_fd = sfd;
 				break;
 			}
 
