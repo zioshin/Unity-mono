@@ -1,7 +1,11 @@
 #ifndef __MONO_JIT_ICALLS_H__
 #define __MONO_JIT_ICALLS_H__
 
+#ifdef __ARM_PCS_VFP
+#include "libm.funcs.h"
+#else
 #include <math.h>
+#endif
 
 #include "mini.h"
 

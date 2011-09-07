@@ -16,7 +16,11 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#ifdef __ARM_PCS_VFP
+#include "libm.funcs.h"
+#else
 #include <math.h>
+#endif
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -5518,7 +5522,11 @@ mini_init (const char *filename, const char *runtime_version)
 	mono_register_opcode_emulation (OP_LCONV_TO_R_UN, "__emul_lconv_to_r8_un", "double long", mono_lconv_to_r8_un, FALSE);
 #endif
 #ifdef MONO_ARCH_EMULATE_FREM
+#ifdef __ARM_PCS_VFP
+	mono_register_opcode_emulation (OP_FREM, "__emul_frem", "double double double", soft_fmod, FALSE);
+#else
 	mono_register_opcode_emulation (OP_FREM, "__emul_frem", "double double double", fmod, FALSE);
+#endif
 #endif
 
 #ifdef MONO_ARCH_SOFT_FLOAT

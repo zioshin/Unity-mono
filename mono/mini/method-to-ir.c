@@ -15,7 +15,12 @@
 #include <unistd.h>
 #endif
 
+#ifdef __ARM_PCS_VFP
+#include "libm.funcs.h"
+#else
 #include <math.h>
+#endif
+
 #include <string.h>
 #include <ctype.h>
 

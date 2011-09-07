@@ -9,7 +9,11 @@
 
 #include <string.h>
 #include <stdio.h>
+#ifdef __ARM_PCS_VFP
+#include "libm.funcs.h"
+#else
 #include <math.h>
+#endif
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif

@@ -154,9 +154,17 @@
 #endif /* _MSC_VER */
 
 #if !defined(PLATFORM_WIN32) && !defined(PLATFORM_SOLARIS) && HAVE_VISIBILITY_HIDDEN
+#ifdef __ARM_PCS_VFP
+#define MONO_INTERNAL __attribute__ ((visibility ("hidden")))  __attribute__((pcs("aapcs")))
+#else
 #define MONO_INTERNAL __attribute__ ((visibility ("hidden")))
+#endif
+#else
+#ifdef __ARM_PCS_VFP
+#define MONO_INTERNAL  __attribute__((pcs("aapcs")))
 #else
 #define MONO_INTERNAL 
+#endif
 #endif
 
 #endif /* __UTILS_MONO_COMPILER_H__*/

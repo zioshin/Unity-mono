@@ -17,7 +17,11 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#ifdef __ARM_PCS_VFP
+#include "libm.funcs.h"
+#else
 #include <math.h>
+#endif
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
