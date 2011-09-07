@@ -36,4 +36,7 @@ mkdir -p $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR
 
 # Clean up for next build
+cd ..
 make clean && make distclean
+rm Makefile
+
