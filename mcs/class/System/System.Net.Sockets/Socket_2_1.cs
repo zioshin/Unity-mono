@@ -1834,7 +1834,15 @@ namespace System.Net.Sockets {
 		}
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
-		static extern void socket_pool_queue (SocketAsyncCall d, SocketAsyncResult r);
+		static extern void socket_pool_queue_internal (SocketAsyncCall d, SocketAsyncResult r);
+		
+		static void socket_pool_queue (SocketAsyncCall d, SocketAsyncResult r) {
+			if (d == null)
+				throw new ArgumentNullException ("d");
+			if (r == null)
+				throw new ArgumentNullException ("r");
+			socket_pool_queue_internal (d, r);
+		}
 	}
 }
 
