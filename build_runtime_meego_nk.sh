@@ -31,21 +31,21 @@ fi
 
 LDFLAGS="-L$BUILDDIR/unity"
 
-/scratchbox/login -k -d $BUILDDIR rm Makefile
-#/scratchbox/login -k -d $BUILDDIR make clean && make distclean
+/scratchbox/login -d $BUILDDIR rm Makefile
+#/scratchbox/login -d $BUILDDIR make clean && make distclean
 
-/scratchbox/login -k -d $BUILDDIR rm meego_cross.cache
+/scratchbox/login -d $BUILDDIR rm meego_cross.cache
 
 pushd eglib
-/scratchbox/login -k -d $BUILDDIR autoreconf -i
+/scratchbox/login -d $BUILDDIR autoreconf -i
 popd
-/scratchbox/login -k -d $BUILDDIR autoreconf -i
+/scratchbox/login -d $BUILDDIR autoreconf -i
 
 # Run configure
-/scratchbox/login -k -d $BUILDDIR ./configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS"
+/scratchbox/login -d $BUILDDIR ./configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS"
 
 # Run Make
-/scratchbox/login -k -d $BUILDDIR make && echo "Build SUCCESS!" || exit 1
+/scratchbox/login -d $BUILDDIR make && echo "Build SUCCESS!" || exit 1
 
 rm -rf $OUTDIR
 
@@ -53,4 +53,4 @@ mkdir -p $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR
 
 # Clean up for next build
-/scratchbox/login -k -d $BUILDDIR make clean && make distclean
+/scratchbox/login -d $BUILDDIR make clean && make distclean
