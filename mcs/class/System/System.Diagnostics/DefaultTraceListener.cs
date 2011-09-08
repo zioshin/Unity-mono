@@ -239,7 +239,11 @@ namespace System.Diagnostics {
 				Console.Error.Write (message);
 				break;
 			default:
-				WriteLogFile (message, MonoTraceFile);
+				try {
+					WriteLogFile (message, MonoTraceFile);
+				} catch {
+					// UNITY don't care
+				}
 				break;
 			}
 		}
@@ -263,7 +267,11 @@ namespace System.Diagnostics {
 			if (Debugger.IsLogging())
 				Debugger.Log (0, null, message);
 
-			WriteLogFile (message, LogFileName);
+			try {
+				WriteLogFile (message, LogFileName);
+			} catch {
+				// UNITY don't care
+			}
 		}
 
 		private void WriteLogFile (string message, string logFile)
