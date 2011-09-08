@@ -3,8 +3,8 @@
 # Set up QNX dev environment
 # Taken from/opt/bbndk/NativeSDK-env-1_0_7.2942.sh
 
-QNX_TARGET="/opt/bbndk/target-1.0.7.2670/qnx6"
-QNX_HOST="/opt/bbndk/host-0.9.2/linux/x86"
+QNX_TARGET="/opt/bbndk/target-1_0_7.2942/qnx6"
+QNX_HOST="/opt/bbndk/host-0.9.3/linux/x86"
 QNX_CONFIGURATION="/opt/bbndk/install/qnx"
 MAKEFLAGS="-I$QNX_TARGET/usr/include"
 LD_LIBRARY_PATH="$QNX_HOST/usr/lib:$LD_LIBRARY_PATH"
