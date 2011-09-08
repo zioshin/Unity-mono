@@ -1,23 +1,12 @@
 #!/bin/bash
 
-PREFIX=`pwd`/builds/meego
+PREFIX="$PWD/builds/meego"
 
 if [ -z $UNITY_THISISABUILDMACHINE ] ; then
 BUILDDIR=/$PWD
-else
-BUILDDIR=/work/`basename $PWD`
-unset TEMP
-unset TMP
-TEMP=/var/tmp
-TMP=/var/tmp
-export TEMP TMP
-fi
-
 OUTDIR=builds/embedruntimes/meego
-
 CXXFLAGS="-O2 -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3 -mtune=cortex-a8 -lsoftlibm";
 CFLAGS="$CXXFLAGS"
-
 LDFLAGS="-L$BUILDDIR/unity"
 
 CONFIG_OPTS="\
@@ -32,6 +21,9 @@ CONFIG_OPTS="\
 --with-glib=embedded \
 --disable-nls \
 mono_cv_uscore=yes"
+else
+BUILDDIR=/work/`basename $PWD`
+fi
 
 /scratchbox/login -k -d $BUILDDIR rm Makefile
 #/scratchbox/login -k -d $BUILDDIR make clean && make distclean
