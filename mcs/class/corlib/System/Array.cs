@@ -1264,6 +1264,9 @@ namespace System
 
 			if (keys.Rank > 1 || items.Rank > 1)
 				throw new RankException (Locale.GetText ("Only single dimension arrays are supported."));
+				
+			if (items.Length < keys.Length)
+				throw new ArgumentException (Locale.GetText ("items must be at least as long as keys"), "items");
 
 			SortImpl (keys, items, keys.GetLowerBound (0), keys.GetLength (0), comparer);
 		}
