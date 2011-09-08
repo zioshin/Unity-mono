@@ -64,9 +64,13 @@ namespace System.Xml
 #endif
 
 			if (absoluteUri.Scheme == "file") {
+#if (NET_2_1 && UNITY && !DISABLE_SECURITY)
+				throw new System.Security.SecurityException ("file:// URIs not allowed");
+#else
 				if (absoluteUri.AbsolutePath == String.Empty)
 					throw new ArgumentException ("uri must be absolute.", "absoluteUri");
-				return new FileStream (UnescapeRelativeUriBody (absoluteUri.LocalPath), FileMode.Open, FileAccess.Read, FileShare.Read);
+				return new FileStream (UnescapeRelativeUriBody (absoluteUri.LocalPath), FileMode.Open, FileAccess.Read, FileShare.Read);				
+#endif
 			}
 
 			// (MS documentation says) parameter role isn't used yet.
