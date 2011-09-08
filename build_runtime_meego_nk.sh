@@ -4,6 +4,11 @@ PREFIX=`pwd`/builds/meego
 
 if [ -z $UNITY_THISISABUILDMACHINE ] ; then
 BUILDDIR=/$PWD
+unset TEMP
+unset TMP
+TEMP=/var/tmp
+TMP=/var/tmp
+export TEMP TMP
 else
 BUILDDIR=/work/`basename $PWD`
 fi
