@@ -20,7 +20,7 @@ OUTDIR=../builds/embedruntimes/qnx
 
 make clean && make distclean
 
-rm -r *.cache config.status nto-arm-le-v7 libgc/config.status
+rm -r *.cache config.status nto-arm-le-v7 libgc/config.status autom4te.cache Makefile
 
 NOCONFIGURE=1 ./autogen.sh
 cd eglib; NOCONFIGURE=1 ./autogen.sh
