@@ -11,7 +11,7 @@ CFLAGS="$CXXFLAGS"
 CONFIG_OPTS="\
 --prefix=$PREFIX \
 --cache-file=meego_cross.cache \
---host=arm-unknown-linux-gnueabi \
+--host=arm-none-linux-gnueabi \
 --disable-mcs-build \
 --disable-parallel-mark \
 --disable-shared-handles \
@@ -31,8 +31,12 @@ fi
 
 LDFLAGS="-L$BUILDDIR/unity"
 
-/scratchbox/login -d $BUILDDIR rm Makefile
-#/scratchbox/login -d $BUILDDIR make clean && make distclean
+/scratchbox/login -d $BUILDDIR rm -r Makefile builds
+/scratchbox/login -d $BUILDDIR find . -name .libs | xargs rm -r
+/scratchbox/login -d $BUILDDIR find . -name *.a | xargs rm
+/scratchbox/login -d $BUILDDIR find . -name *.la | xargs rm
+/scratchbox/login -d $BUILDDIR find . -name *.o | xargs rm
+/scratchbox/login -d $BUILDDIR find . -name *.lo | xargs rm
 
 /scratchbox/login -d $BUILDDIR rm meego_cross.cache
 

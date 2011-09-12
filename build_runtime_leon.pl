@@ -39,5 +39,4 @@ make && echo "Build SUCCESS!" || exit 1
 rm -rf $OUTDIR
 
 mkdir -p $OUTDIR	
-cp -f mono/mini/.libs/libmono.a $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR
