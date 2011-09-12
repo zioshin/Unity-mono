@@ -370,7 +370,8 @@ common_sources = \
 	debug-debugger.h	\
 	xdebug.c			\
 	mini-llvm.h			\
-	mini-llvm-cpp.h
+	mini-llvm-cpp.h			\
+	../../unity/unity_utils.c
 
 test_sources = 			\
 	basic-calls.cs 		\
