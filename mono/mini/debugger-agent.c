@@ -2946,7 +2946,6 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 	GSList *l;
 	MonoDomain *domain = mono_domain_get ();
 	MonoThread *thread = NULL;
-	gboolean send_success = FALSE;
 
 	if (!inited)
 		return;
@@ -2969,27 +2968,15 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 	
 	if (agent_config.defer) {
 		/* Make sure the thread id is always set when doing deferred debugging */
-		if (debugger_thread_id == GetCurrentThreadId ())
+		if (debugger_thread_id == GetCurrentThreadId ()) {
 			thread = mono_thread_get_main ();
+			suspend_policy = SUSPEND_POLICY_NONE;
+		}
 		else thread = mono_thread_current ();
 	} else {
 		if (debugger_thread_id == GetCurrentThreadId () && event != EVENT_KIND_VM_DEATH)
 			// FIXME: Send these with a NULL thread, don't suspend the current thread
 			return;
-
-		if (agent_config.defer) {
-			/* Make sure the thread id is always set when doing deferred debugging */
-			if (debugger_thread_id == GetCurrentThreadId ()) {
-				/* Don't suspend on events from the debugger thread */
-				suspend_policy = SUSPEND_POLICY_NONE;
-				thread = mono_thread_get_main ();
-			}
-			else thread = mono_thread_current ();
-		} else {
-			if (debugger_thread_id == GetCurrentThreadId () && event != EVENT_KIND_VM_DEATH)
-				// FIXME: Send these with a NULL thread, don't suspend the current thread
-				return;
-		}
 	}
 
 	buffer_init (&buf, 128);
@@ -3076,15 +3063,10 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 	g_slist_free (events);
 	events = NULL;
 
-	if (!send_success) {
-		DEBUG (2, fprintf (log_file, "Sending command %s failed.\n", event_to_string (event)));
-		return;
-	}
-	
 	if (event == EVENT_KIND_VM_START) {
 		vm_start_event_sent = TRUE;
 	}
-	
+
 	DEBUG (1, fprintf (log_file, "[%p] Sent event %s, suspend=%d.\n", (gpointer)GetCurrentThreadId (), event_to_string (event), suspend_policy));
 
 	buffer_free (&buf);
