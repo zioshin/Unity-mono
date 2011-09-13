@@ -529,11 +529,8 @@ mono_gc_register_root (char *start, size_t size, void *descr, MonoGCRootSource s
 void
 mono_gc_deregister_root (char* addr)
 {
-#ifndef HOST_WIN32
-	/* FIXME: libgc doesn't define this work win32 for some reason */
 	/* FIXME: No size info */
 	GC_remove_roots (addr, addr + sizeof (gpointer) + 1);
-#endif
 }
 
 static void
