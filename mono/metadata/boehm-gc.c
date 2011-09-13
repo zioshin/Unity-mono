@@ -426,7 +426,7 @@ on_gc_notification (GCEventType event)
 		MONO_GC_BEGIN (1);
 #ifndef DISABLE_PERFCOUNTERS
 		if (mono_perfcounters)
-			mono_perfcounters->gc_collections0++;
+		mono_perfcounters->gc_collections0++;
 #endif
 		gc_stats.major_gc_count ++;
 		gc_start_time = mono_100ns_ticks ();
@@ -443,12 +443,12 @@ on_gc_notification (GCEventType event)
 
 #ifndef DISABLE_PERFCOUNTERS
 		if (mono_perfcounters) {
-			guint64 heap_size = GC_get_heap_size ();
-			guint64 used_size = heap_size - GC_get_free_bytes ();
-			mono_perfcounters->gc_total_bytes = used_size;
-			mono_perfcounters->gc_committed_bytes = heap_size;
-			mono_perfcounters->gc_reserved_bytes = heap_size;
-			mono_perfcounters->gc_gen0size = heap_size;
+		guint64 heap_size = GC_get_heap_size ();
+		guint64 used_size = heap_size - GC_get_free_bytes ();
+		mono_perfcounters->gc_total_bytes = used_size;
+		mono_perfcounters->gc_committed_bytes = heap_size;
+		mono_perfcounters->gc_reserved_bytes = heap_size;
+		mono_perfcounters->gc_gen0size = heap_size;
 		}
 #endif
 		gc_stats.major_gc_time_usecs += (mono_100ns_ticks () - gc_start_time) / 10;
@@ -465,9 +465,9 @@ on_gc_heap_resize (size_t new_size)
 	guint64 heap_size = GC_get_heap_size ();
 #ifndef DISABLE_PERFCOUNTERS
 	if (mono_perfcounters) {
-		mono_perfcounters->gc_committed_bytes = heap_size;
-		mono_perfcounters->gc_reserved_bytes = heap_size;
-		mono_perfcounters->gc_gen0size = heap_size;
+	mono_perfcounters->gc_committed_bytes = heap_size;
+	mono_perfcounters->gc_reserved_bytes = heap_size;
+	mono_perfcounters->gc_gen0size = heap_size;
 	}
 #endif
 	mono_profiler_gc_heap_resize (new_size);
@@ -501,7 +501,7 @@ mono_gc_register_root (char *start, size_t size, void *descr)
 void
 mono_gc_deregister_root (char* addr)
 {
-#ifndef HOST_WIN32
+#ifndef HOST_WIN32 || UNITY_USE_REASONABLE_LOOKING_GCROOTS_CODEPATH_ON_WINDOWS
 	/* FIXME: libgc doesn't define this work win32 for some reason */
 	/* FIXME: No size info */
 	GC_remove_roots (addr, addr + sizeof (gpointer) + 1);
@@ -516,7 +516,7 @@ mono_gc_weak_link_add (void **link_addr, MonoObject *obj, gboolean track)
 	if (track)
 		GC_REGISTER_LONG_LINK (link_addr, obj);
 	else
-		GC_GENERAL_REGISTER_DISAPPEARING_LINK (link_addr, obj);
+	GC_GENERAL_REGISTER_DISAPPEARING_LINK (link_addr, obj);
 }
 
 void
@@ -525,7 +525,7 @@ mono_gc_weak_link_remove (void **link_addr, gboolean track)
 	if (track)
 		GC_unregister_long_link (link_addr);
 	else
-		GC_unregister_disappearing_link (link_addr);
+	GC_unregister_disappearing_link (link_addr);
 	*link_addr = NULL;
 }
 
