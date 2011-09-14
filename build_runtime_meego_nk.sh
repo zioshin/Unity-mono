@@ -45,7 +45,7 @@ popd
 # Run Make
 /scratchbox/login -d $BUILDDIR make && echo "Build SUCCESS!" || exit 1
 
-rm -rf $OUTDIR
+rm -rf $PWD/builds
 
 mkdir -p $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR

@@ -62,7 +62,7 @@ autoreconf -i
 # Run Make
 make && echo "Build SUCCESS!" || exit 1
 
-rm -rf $OUTDIR
+rm -rf builds
 
 mkdir -p $OUTDIR	
 cp -f mono/mini/.libs/libmono.a $OUTDIR
