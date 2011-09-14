@@ -37,7 +37,9 @@ rm -rf ../builds
 mkdir -p $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR
 
-rm -r builds/monodistribution
+if [ -d ../builds/monodistribution ] ; then
+rm -r ../builds/monodistribution
+fi
 
 # Clean up for next build
 cd ..

@@ -53,6 +53,9 @@ cp -f mono/mini/.libs/libmono.so $OUTDIR
 # Clean up for next build
 /scratchbox/login -d $BUILDDIR make clean && make distclean
 
+if [ -d builds/monodistribution ] ; then
 rm -r builds/monodistribution
+fi
+
 
 

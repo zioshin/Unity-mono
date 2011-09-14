@@ -41,6 +41,9 @@ rm -rf builds
 mkdir -p $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR
 
+if [ -d builds/monodistribution ] ; then
 rm -r builds/monodistribution
+fi
+
 
 
