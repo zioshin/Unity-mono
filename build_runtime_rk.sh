@@ -67,3 +67,6 @@ rm -rf $OUTDIR
 mkdir -p $OUTDIR	
 cp -f mono/mini/.libs/libmono.a $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR
+
+rm -r $OUTDIR/monodistribution
+
