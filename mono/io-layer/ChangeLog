@@ -1,3 +1,34 @@
+2010-06-29  Geoff Norton  <gnorton@novell.com>
+
+	* atomics.h: Implement armv6+ variants of our atomics.
+
+2010-06-25  Zoltan Varga  <vargaz@gmail.com>
+
+	* Makefile: Don't build an sgen aware version, it is no longer needed.
+
+	* wait.c handles.c wthreads.c: Call the mono_gc_ wrapper functions of some pthread
+	apis. This breaks the compile time dependency between io-layer and the GC.
+
+2010-06-23  Miguel de Icaza  <miguel@novell.com>
+
+	* Makefile.am: Add support for building a sgen-aware versions of
+	the library: libwapisgen.la libmonoruntimesgen-static it shares
+	all the components of the default, but use a differen set of
+	CFLAGS to enable SGEN instead.
+
+2010-06-01  Geoff Norton  <gnorton@novell.com>
+
+	* sockets.c: Don't call poll directly, use mono_poll.
+
+2010-04-29  Geoff Norton  <gnorton@novell.com>
+
+	* mono-spinlock.h: Remove
+	* wthreads.c: Don't spinlock here, use a mutex instead
+
+2010-04-26  Geoff Norton  <gnorton@novell.com>
+
+	* processes.c: Fix this for 64-bit darwin.
+
 2010-04-20  Jonathan Pryor  <jpryor@novell.com>
 
 	* collection.c: Cleanup platform checks around
