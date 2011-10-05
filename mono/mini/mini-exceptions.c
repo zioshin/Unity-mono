@@ -1530,6 +1530,14 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gboolean resume,
 		 * obj = mono_get_exception_stack_overflow ();
 		 */
 		stack_overflow = TRUE;
+#ifdef TARGET_WIN32
+		/* 
+		 Need to call this to restore guard page at end of stack. Without this, the next
+		 stack overflow exception will result in an access violation. 
+		 See: http://msdn.microsoft.com/en-us/library/89f73td2%28v=vs.80%29.aspx	
+		 */
+		_resetstkoflw ();
+#endif
 	}
 	else if (obj == domain->null_reference_ex) {
 		obj = mono_get_exception_null_reference ();
@@ -1572,7 +1580,7 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gboolean resume,
 			g_free (from_name);
 			g_free (to_name);
 			g_free (msg);
-		}
+	}
 	}
 
 	if (!call_filter)

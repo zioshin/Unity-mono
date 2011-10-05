@@ -137,6 +137,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	DWORD page_size;
 	MonoDomain *domain = mono_domain_get ();
 	MonoJitInfo rji;
+	MonoJitInfo *ji;
 	MonoJitTlsData *jit_tls = mono_native_tls_get_value (mono_jit_tls_id);
 	MonoLMF *lmf = jit_tls->lmf;		
 	MonoContext initial_ctx;
@@ -156,6 +157,8 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	 */
 	memset (&rji, 0, sizeof (rji));
 
+	ji = mono_jit_info_table_find (domain, MONO_CONTEXT_GET_IP(&ctx));
+
 	initial_ctx = ctx;
 	free_stack = (guint8*)(MONO_CONTEXT_GET_BP (&ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&initial_ctx));
 
@@ -163,7 +166,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	do {
 		MonoContext new_ctx;
 
-		mono_arch_find_jit_info (domain, jit_tls, &rji, &ctx, &new_ctx, &lmf, NULL, &frame);
+		mono_arch_find_jit_info (domain, jit_tls, ji, &ctx, &new_ctx, &lmf, NULL, &frame);
 		if (!frame.ji) {
 			g_warning ("Exception inside function without unwind info");
 			g_assert_not_reached ();
@@ -246,16 +249,16 @@ LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep)
 		*/
 		res = EXCEPTION_CONTINUE_SEARCH;
 	} else {
-		/* Copy context back */
-		ctx->Eax = sctx->eax;
-		ctx->Ebx = sctx->ebx;
-		ctx->Ecx = sctx->ecx;
-		ctx->Edx = sctx->edx;
-		ctx->Ebp = sctx->ebp;
-		ctx->Esp = sctx->esp;
-		ctx->Esi = sctx->esi;
-		ctx->Edi = sctx->edi;
-		ctx->Eip = sctx->eip;
+	/* Copy context back */
+	ctx->Eax = sctx->eax;
+	ctx->Ebx = sctx->ebx;
+	ctx->Ecx = sctx->ecx;
+	ctx->Edx = sctx->edx;
+	ctx->Ebp = sctx->ebp;
+	ctx->Esp = sctx->esp;
+	ctx->Esi = sctx->esi;
+	ctx->Edi = sctx->edi;
+	ctx->Eip = sctx->eip;
 	}
 
 	/* TODO: Find right place to free this in stack overflow case */
@@ -629,13 +632,13 @@ get_throw_trampoline (const char *name, gboolean rethrow, gboolean llvm, gboolea
 	if (resume_unwind)
 		x86_mov_reg_imm (code, X86_EAX, 0);
 	else
-		x86_mov_reg_membase (code, X86_EAX, X86_ESP, stack_size + 4, 4);
+	x86_mov_reg_membase (code, X86_EAX, X86_ESP, stack_size + 4, 4);
 	x86_mov_membase_reg (code, X86_ESP, arg_offsets [1], X86_EAX, 4);
 	/* Set arg3 == eip */
 	if (llvm_abs)
 		x86_alu_reg_reg (code, X86_XOR, X86_EAX, X86_EAX);
 	else
-		x86_mov_reg_membase (code, X86_EAX, X86_ESP, stack_size, 4);
+	x86_mov_reg_membase (code, X86_EAX, X86_ESP, stack_size, 4);
 	x86_mov_membase_reg (code, X86_ESP, arg_offsets [2], X86_EAX, 4);
 	/* Set arg4 == rethrow/pc_offset */
 	if (resume_unwind) {
@@ -679,7 +682,7 @@ get_throw_trampoline (const char *name, gboolean rethrow, gboolean llvm, gboolea
 		for (l = unwind_ops; l; l = l->next)
 			g_free (l->data);
 		g_slist_free (unwind_ops);
-	}
+}
 
 	return start;
 }
@@ -782,7 +785,7 @@ mono_arch_exceptions_init (void)
 gboolean
 mono_arch_find_jit_info (MonoDomain *domain, MonoJitTlsData *jit_tls, 
 							 MonoJitInfo *ji, MonoContext *ctx, 
-							 MonoContext *new_ctx, MonoLMF **lmf,
+							 MonoContext *new_ctx, MonoLMF **lmf, 
 							 mgreg_t **save_locations,
 							 StackFrameInfo *frame)
 {
@@ -845,8 +848,8 @@ mono_arch_find_jit_info (MonoDomain *domain, MonoJitTlsData *jit_tls,
 				/* In non-trampoline frames, ebp is the frame pointer */
 				lmf_esp = (gpointer)(*lmf)->ebp;
 			if (MONO_CONTEXT_GET_SP (ctx) >= lmf_esp)
-				/* remove any unused lmf */
-				*lmf = (gpointer)(((gsize)(*lmf)->previous_lmf) & ~3);
+			/* remove any unused lmf */
+			*lmf = (gpointer)(((gsize)(*lmf)->previous_lmf) & ~3);
 		}
 
 		/* Pop arguments off the stack */
@@ -955,7 +958,7 @@ void
 mono_arch_monoctx_to_sigctx (MonoContext *mctx, void *sigctx)
 {
 	mono_monoctx_to_sigctx (mctx, sigctx);
-}
+}	
 
 gpointer
 mono_arch_ip_from_context (void *sigctx)
@@ -970,7 +973,7 @@ mono_arch_ip_from_context (void *sigctx)
 #else
 	struct sigcontext *ctx = sigctx;
 	return (gpointer)ctx->SC_EIP;
-#endif
+#endif	
 #endif	/* __native_client__ */
 }
 
@@ -1139,8 +1142,8 @@ altstack_handle_and_restore (MonoContext *ctx, gpointer obj, gboolean stack_ovf)
 	mctx = *ctx;
 
 	mono_handle_exception (&mctx, obj);
-	if (stack_ovf)
-		prepare_for_guard_pages (&mctx);
+		if (stack_ovf)
+			prepare_for_guard_pages (&mctx);
 	mono_restore_context (&mctx);
 }
 
