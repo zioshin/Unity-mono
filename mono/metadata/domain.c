@@ -2128,7 +2128,12 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 	DeleteCriticalSection (&domain->lock);
 	domain->setup = NULL;
 
+#ifdef BOEHM_GC
+	mono_gc_deregister_root_size ((char*)&(domain->MONO_DOMAIN_FIRST_GC_TRACKED), G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_LAST_GC_TRACKED) - G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_FIRST_GC_TRACKED));
+#else
+	// TODO UNITY: Implement deregister_root_size for sgen?
 	mono_gc_deregister_root ((char*)&(domain->MONO_DOMAIN_FIRST_GC_TRACKED));
+#endif
 
 	/* FIXME: anything else required ? */
 
