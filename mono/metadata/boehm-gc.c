@@ -529,8 +529,19 @@ mono_gc_register_root (char *start, size_t size, void *descr, MonoGCRootSource s
 void
 mono_gc_deregister_root (char* addr)
 {
+#if !defined(HOST_WIN32) || (UNITY_USE_REASONABLE_LOOKING_GCROOTS_CODEPATH_ON_WINDOWS == 1)
 	/* FIXME: No size info */
 	GC_remove_roots (addr, addr + sizeof (gpointer) + 1);
+#endif
+}
+
+void
+mono_gc_deregister_root_size (char* addr, size_t size)
+{
+#if !defined(HOST_WIN32) || (UNITY_USE_REASONABLE_LOOKING_GCROOTS_CODEPATH_ON_WINDOWS == 1)
+	/* FIXME: libgc doesn't define this on win32 for some reason */
+	GC_remove_roots (addr, addr + size + 1);
+#endif
 }
 
 static void
