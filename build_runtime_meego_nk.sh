@@ -4,7 +4,7 @@ PREFIX="$PWD/builds/meego"
 
 if [ -z $UNITY_THISISABUILDMACHINE ] ; then
 BUILDDIR=/$PWD
-OUTDIR=builds/embedruntimes/meego
+OUTDIR=builds/embedruntimes/meego-armv7
 CXXFLAGS="-O2 -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfloat-abi=hard -mfpu=vfpv3 -mtune=cortex-a8 -lsoftlibm";
 CFLAGS="$CXXFLAGS"
 
