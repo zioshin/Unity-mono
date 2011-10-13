@@ -31,7 +31,7 @@ system("cp incomingbuilds/osx-i386/embedruntimes/osx/libmono.0.dylib collectedbu
 system("cp incomingbuilds/osx-i386/embedruntimes/osx/libmono.a collectedbuilds/embedruntimes/osx/libmono.a") && die("failed running lipo on libmono.a");
 #system("lipo -create incomingbuilds/osx-i386/embedruntimes/osx/libmono.a incomingbuilds/osx-ppc/embedruntimes/osx/libmono.a -output collectedbuilds/embedruntimes/osx/libmono.a") && die("failed running lipo on libmono.a");
 
-InstallNameTool("collectedbuilds/embedruntimes/osx/libmono.0.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/libmono.0.dylib");
+#InstallNameTool("collectedbuilds/embedruntimes/osx/libmono.0.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/libmono.0.dylib");
 
 chdir("collectedbuilds");
 
