@@ -1230,6 +1230,11 @@
 	       extern int _etext[];
 #              define DATASTART ((ptr_t)((((word) (_etext)) + 0xfff) & ~0xfff))
 #	     endif
+#      if defined(PLATFORM_ANDROID)
+		// temporary fix : android x86 cannot handle these root notes - and we don't use it anyway
+#        define DATASTART 0
+#	     define DATAEND 0
+#      else
 #	     include <features.h>
 #	     if defined(__GLIBC__) && __GLIBC__ >= 2
 #		 define SEARCH_FOR_DATA_START
@@ -1247,6 +1252,7 @@
 #	     endif
 	     extern int _end[];
 #	     define DATAEND (_end)
+#      endif
 #	else
 	     extern int etext[];
 #            define DATASTART ((ptr_t)((((word) (etext)) + 0xfff) & ~0xfff))

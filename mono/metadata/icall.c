@@ -7044,6 +7044,10 @@ mono_ArgIterator_IntGetNextArg (MonoArgIterator *iter)
 
 	res.type = iter->sig->params [i];
 	res.klass = mono_class_from_mono_type (res.type);
+	arg_size = mono_type_stack_size (res.type, &align);
+#if defined(__arm__)
+	iter->args = (guint8*)(((gsize)iter->args + (align) - 1) & ~(align - 1));
+#endif
 	res.value = iter->args;
 	arg_size = mono_type_stack_size (res.type, &align);
 #if G_BYTE_ORDER != G_LITTLE_ENDIAN
@@ -7079,6 +7083,10 @@ mono_ArgIterator_IntGetNextArgT (MonoArgIterator *iter, MonoType *type)
 		res.type = iter->sig->params [i];
 		res.klass = mono_class_from_mono_type (res.type);
 		/* FIXME: endianess issue... */
+		arg_size = mono_type_stack_size (res.type, &align);
+#if defined(__arm__)
+		iter->args = (guint8*)(((gsize)iter->args + (align) - 1) & ~(align - 1));
+#endif
 		res.value = iter->args;
 		arg_size = mono_type_stack_size (res.type, &align);
 		iter->args = (char*)iter->args + arg_size;

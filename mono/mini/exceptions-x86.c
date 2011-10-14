@@ -10,6 +10,9 @@
 #include <config.h>
 #include <glib.h>
 #include <signal.h>
+#if !defined(MONO_ARCH_USE_SIGACTION) && defined(PLATFORM_ANDROID)
+	#include <asm/sigcontext.h>
+#endif
 #include <string.h>
 
 #include <mono/arch/x86/x86-codegen.h>
@@ -118,6 +121,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	DWORD page_size;
 	MonoDomain *domain = mono_domain_get ();
 	MonoJitInfo rji;
+	MonoJitInfo *ji;
 	MonoJitTlsData *jit_tls = TlsGetValue (mono_jit_tls_id);
 	MonoLMF *lmf = jit_tls->lmf;		
 	MonoContext initial_ctx;
@@ -136,6 +140,8 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	 * the needed stack space (if possible)
 	 */
 	memset (&rji, 0, sizeof (rji));
+	
+	ji = mono_jit_info_table_find (domain, MONO_CONTEXT_GET_IP(&ctx));
 
 	initial_ctx = ctx;
 	free_stack = (guint8*)(MONO_CONTEXT_GET_BP (&ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&initial_ctx));
@@ -144,7 +150,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	do {
 		MonoContext new_ctx;
 
-		mono_arch_find_jit_info_ext (domain, jit_tls, &rji, &ctx, &new_ctx, &lmf, &frame);
+		mono_arch_find_jit_info_ext (domain, jit_tls, ji, &ctx, &new_ctx, &lmf, &frame);
 		if (!frame.ji) {
 			g_warning ("Exception inside function without unwind info");
 			g_assert_not_reached ();
@@ -1389,3 +1395,18 @@ mono_tasklets_arch_restore (void)
 }
 #endif
 
+/*
+ * mono_arch_setup_resume_sighandler_ctx:
+ *
+ *   Setup CTX so execution continues at FUNC.
+ */
+void
+mono_arch_setup_resume_sighandler_ctx (MonoContext *ctx, gpointer func)
+{
+	int align = (((gint32)MONO_CONTEXT_GET_SP (ctx)) % MONO_ARCH_FRAME_ALIGNMENT + 4);
+
+	if (align != 0)
+		MONO_CONTEXT_SET_SP (ctx, (long)MONO_CONTEXT_GET_SP (ctx) - align);
+
+	MONO_CONTEXT_SET_IP (ctx, func);
+}

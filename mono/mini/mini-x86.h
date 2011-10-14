@@ -44,8 +44,13 @@ LONG CALLBACK seh_handler(EXCEPTION_POINTERS* ep);
 
 #endif /* PLATFORM_WIN32 */
 
+<<<<<<< HEAD
 #if defined( __linux__) || defined(__sun) || defined(__APPLE__) || defined(__NetBSD__) || \
        defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__QNXNTO__)
+=======
+#if defined( __linux__) && !defined(ANDROID) || defined(__sun) || defined(__APPLE__) || defined(__NetBSD__) || \
+       defined(__FreeBSD__) || defined(__OpenBSD__)
+>>>>>>> 3.x-merge
 #define MONO_ARCH_USE_SIGACTION
 #endif
 
@@ -278,6 +283,7 @@ typedef struct {
 #define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
 #define MONO_ARCH_HAVE_FIND_JIT_INFO_EXT 1
 #define MONO_ARCH_HAVE_EXCEPTIONS_INIT 1
+#define MONO_ARCH_HAVE_SETUP_RESUME_FROM_SIGNAL_HANDLER_CTX 1
 
 /* Used for optimization, not complete */
 #define MONO_ARCH_IS_OP_MEMBASE(opcode) ((opcode) == OP_X86_PUSH_MEMBASE)

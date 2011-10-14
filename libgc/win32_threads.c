@@ -341,18 +341,19 @@ ptr_t GC_current_stackbottom()
 #   define GC_get_stack_min(s) \
         ((ptr_t)(((DWORD)(s) - 1) & 0xFFFF0000))
 # else
-    static ptr_t GC_get_stack_min(ptr_t s)
-    {
+	static ptr_t GC_get_stack_min(ptr_t s)
+	{
 	ptr_t bottom;
 	MEMORY_BASIC_INFORMATION info;
 	VirtualQuery(s, &info, sizeof(info));
+
 	do {
-	    bottom = info.BaseAddress;
-	    VirtualQuery(bottom - 1, &info, sizeof(info));
+		bottom = info.BaseAddress;
+		VirtualQuery(bottom - 1, &info, sizeof(info));
 	} while ((info.Protect & PAGE_READWRITE)
 		 && !(info.Protect & PAGE_GUARD));
 	return(bottom);
-    }
+	}
 # endif
 
 void GC_push_all_stacks()

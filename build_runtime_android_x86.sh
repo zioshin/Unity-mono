@@ -1,10 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 # NB! Prereq : ANDROID_NDK_ROOT=/usr/local/android-ndk-xxx or similar
 # Todo: set appropriate ARM flags for hard floats
 
 export ANDROID_PLATFORM=android-5
-GCC_PREFIX=arm-linux-androideabi-
 GCC_VERSION=4.4.3
 OUTDIR=builds/embedruntimes/android
 PREFIX=`pwd`/builds/android
@@ -33,26 +32,28 @@ case "$HOST_ENV" in
 		;;
 esac
 
-PLATFORM_ROOT=$NDK_ROOT/platforms/$ANDROID_PLATFORM/arch-arm
-TOOLCHAIN=$NDK_ROOT/toolchains/$GCC_PREFIX$GCC_VERSION/prebuilt/$HOST_ENV
+PLATFORM_ROOT=$NDK_ROOT/platforms/$ANDROID_PLATFORM/arch-x86
+TOOLCHAIN=$NDK_ROOT/toolchains/x86-$GCC_VERSION/prebuilt/$HOST_ENV
 
 if [ ! -a $TOOLCHAIN -o ! -a $PLATFORM_ROOT ]; then
 	NDK_NAME=`basename $NDK_ROOT`
-	echo "Failed to locate toolchain/platform; $NDK_NAME | $HOST_ENV | $GCC_PREFIX$GCC_VERSION | $ANDROID_PLATFORM"
+	echo "Failed to locate toolchain/platform; $NDK_NAME | $HOST_ENV | $GCC_VERSION | $ANDROID_PLATFORM"
+	echo "Toolchain = $TOOLCHAIN"
+	echo "Platform = $PLATFORM_ROOT"
 	exit 1
 fi
 
 PATH="$TOOLCHAIN/bin:$PATH"
-CC="$TOOLCHAIN/bin/${GCC_PREFIX}gcc -nostdlib"
-CXX="$TOOLCHAIN/bin/${GCC_PREFIX}g++ -nostdlib"
-CPP="$TOOLCHAIN/bin/${GCC_PREFIX}cpp"
-CXXCPP="$TOOLCHAIN/bin/${GCC_PREFIX}cpp"
+CC="$TOOLCHAIN/bin/i686-android-linux-gcc -nostdlib"
+CXX="$TOOLCHAIN/bin/i686-android-linux-g++ -nostdlib"
+CPP="$TOOLCHAIN/bin/i686-android-linux-cpp"
+CXXCPP="$TOOLCHAIN/bin/i686-android-linux-cpp"
 CPATH="$PLATFORM_ROOT/usr/include"
-LD=$TOOLCHAIN/bin/${GCC_PREFIX}ld
-AS=$TOOLCHAIN/bin/${GCC_PREFIX}as
-AR=$TOOLCHAIN/bin/${GCC_PREFIX}ar
-RANLIB=$TOOLCHAIN/bin/${GCC_PREFIX}ranlib
-STRIP=$TOOLCHAIN/bin/${GCC_PREFIX}strip
+LD=$TOOLCHAIN/bin/i686-android-linux-ld
+AS=$TOOLCHAIN/bin/i686-android-linux-as
+AR=$TOOLCHAIN/bin/i686-android-linux-ar
+RANLIB=$TOOLCHAIN/bin/i686-android-linux-ranlib
+STRIP=$TOOLCHAIN/bin/i686-android-linux-strip
 CFLAGS="\
 -DANDROID -DPLATFORM_ANDROID -DLINUX -D__linux__ \
 -DHAVE_USR_INCLUDE_MALLOC_H -DPAGE_SIZE=0x1000 \
@@ -65,12 +66,12 @@ LDFLAGS="\
 -Wl,--no-undefined \
 -L$PLATFORM_ROOT/usr/lib \
 -Wl,-rpath-link=$PLATFORM_ROOT/usr/lib \
--ldl -lm -llog -lc"
+-ldl -lm -llog -lc -lsupc++ -lgcc"
 
 CONFIG_OPTS="\
 --prefix=$PREFIX \
 --cache-file=android_cross.cache \
---host=arm-eabi-linux \
+--host=i686-unknown-linux \
 --disable-mcs-build \
 --disable-parallel-mark \
 --with-sigaltstack=no \
@@ -111,23 +112,15 @@ function clean_build
 	cp mono/mini/.libs/libmono.so $3
 }
 
-CCFLAGS_ARMv5_CPU="-DARM_FPU_NONE=1 -march=armv5te -mtune=xscale -msoft-float"
-CCFLAGS_ARMv6_VFP="-DARM_FPU_VFP=1  -march=armv6 -mtune=xscale -msoft-float -mfloat-abi=softfp -mfpu=vfp -DHAVE_ARMV6=1"
-CCFLAGS_ARMv7_VFP="-DARM_FPU_VFP=1  -march=armv7-a                            -mfloat-abi=softfp -mfpu=vfp -DHAVE_ARMV6=1"
-LDFLAGS_ARMv5=""
-LDFLAGS_ARMv7="-Wl,--fix-cortex-a8"
-
 rm -rf $OUTDIR
 
-clean_build "$CCFLAGS_ARMv5_CPU" "$LDFLAGS_ARMv5" "$OUTDIR/armv5"
-clean_build "$CCFLAGS_ARMv6_VFP" "$LDFLAGS_ARMv5" "$OUTDIR/armv6_vfp"
-clean_build "$CCFLAGS_ARMv7_VFP" "$LDFLAGS_ARMv7" "$OUTDIR/armv7a"
+clean_build "" "" "$OUTDIR/x86"
 
 NUM_LIBS_BUILT=`ls -AlR $OUTDIR | grep libmono | wc -l`
-if [ $NUM_LIBS_BUILT -eq 6 ]; then
+if [ $NUM_LIBS_BUILT -eq 2 ]; then
 	echo "Android STATIC/SHARED libraries are found here: $OUTDIR"
 else
 	echo "Build failed? Android STATIC/SHARED library cannot be found... Found $NUM_LIBS_BUILT libs under $OUTDIR"
-	ls -Al $OUTDIR
+	ls -AlR $OUTDIR
 	exit 1
 fi
