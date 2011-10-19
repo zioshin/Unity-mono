@@ -49,6 +49,7 @@ rm -rf $PWD/builds
 
 mkdir -p $OUTDIR
 cp -f mono/mini/.libs/libmono.so $OUTDIR
+cp -f unity/libsoftlibm.a $OUTDIR
 
 # Clean up for next build
 /scratchbox/login -d $BUILDDIR make clean && make distclean
