@@ -10,6 +10,7 @@ VER_1 {
               GC_notify_event;
               g_free;
               __nacl_suspend_thread_if_needed;
+              __nacl_thread_suspension_needed;
               nacl_mono_path;
       local:
               *;
