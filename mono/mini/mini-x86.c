@@ -664,6 +664,7 @@ mono_x86_tail_call_supported (MonoMethodSignature *caller_sig, MonoMethodSignatu
 	return res;
 }
 
+#if !defined(__native_client__)
 static const guchar cpuid_impl [] = {
 	0x55,                   	/* push   %ebp */
 	0x89, 0xe5,                	/* mov    %esp,%ebp */
@@ -684,6 +685,28 @@ static const guchar cpuid_impl [] = {
 	0xc9,                   	/* leave   */
 	0xc3,                   	/* ret     */
 };
+#else
+static const guchar cpuid_impl [] = {
+	0x55,                   		/* push   %ebp */
+	0x89, 0xe5,                		/* mov    %esp,%ebp */
+	0x53,                   		/* push   %ebx */
+	0x8b, 0x45, 0x08,             		/* mov    0x8(%ebp),%eax */
+	0x0f, 0xa2,                		/* cpuid   */
+	0x50,                   		/* push   %eax */
+	0x8b, 0x45, 0x10,             		/* mov    0x10(%ebp),%eax */
+	0x89, 0x18,                		/* mov    %ebx,(%eax) */
+	0x8b, 0x45, 0x14,             		/* mov    0x14(%ebp),%eax */
+	0x89, 0x08,                		/* mov    %ecx,(%eax) */
+	0x8b, 0x45, 0x18,             		/* mov    0x18(%ebp),%eax */
+	0x89, 0x10,                		/* mov    %edx,(%eax) */
+	0x58,                   		/* pop    %eax */
+	0x8b, 0x55, 0x0c,             		/* mov    0xc(%ebp),%edx */
+	0x89, 0x02,                		/* mov    %eax,(%edx) */
+	0x5b,                   		/* pop    %ebx */
+	0xc9,                   		/* leave   */
+	0x59, 0x83, 0xe1, 0xe0, 0xff, 0xe1	/* naclret */
+};
+#endif
 
 typedef void (*CpuidFunc) (int id, int* p_eax, int* p_ebx, int* p_ecx, int* p_edx);
 
@@ -691,12 +714,16 @@ static int
 cpuid (int id, int* p_eax, int* p_ebx, int* p_ecx, int* p_edx)
 {
 #if defined(__native_client__)
-	/* Taken from below, the bug listed in the comment is */
-	/* only valid for non-static cases.                   */
-	__asm__ __volatile__ ("cpuid"
-		: "=a" (*p_eax), "=b" (*p_ebx), "=c" (*p_ecx), "=d" (*p_edx)
-		: "a" (id));
-	return 1;
+	static CpuidFunc func = NULL;
+	void *ptr, *end_ptr;
+	if (!func) {
+		ptr = mono_global_codeman_reserve (sizeof (cpuid_impl));
+		memcpy(ptr, cpuid_impl, sizeof(cpuid_impl));
+		end_ptr = ptr + sizeof(cpuid_impl);
+		nacl_global_codeman_validate (&ptr, sizeof(cpuid_impl), &end_ptr);
+		func = (CpuidFunc)ptr;
+	}
+	func (id, p_eax, p_ebx, p_ecx, p_edx);
 #else
 	int have_cpuid = 0;
 #ifndef _MSC_VER
@@ -1803,12 +1830,28 @@ if (ins->inst_true_bb->native_offset) { \
 static guint8*
 emit_call (MonoCompile *cfg, guint8 *code, guint32 patch_type, gconstpointer data)
 {
+	gboolean needs_paddings = TRUE;
+	guint32 pad_size;
+
+	if (cfg->abs_patches && g_hash_table_lookup (cfg->abs_patches, data)) {
+	} else {
+		MonoJitICallInfo *info = mono_find_jit_icall_by_addr (data);
+		if (info) {
+			if ((cfg->method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) && strstr (cfg->method->name, info->name))
+				needs_paddings = FALSE; /* A call to the wrapped function */
+		}
+	}
+
+	if (cfg->compile_aot)
+		needs_paddings = FALSE;
 	/*The address must be 4 bytes aligned to avoid spanning multiple cache lines.
 	This is required for code patching to be safe on SMP machines.
 	*/
-	guint32 pad_size = (guint32)(code + 1 - cfg->native_code) & 0x3;
-	if (pad_size)
+	pad_size = (guint32)(code + 1 - cfg->native_code) & 0x3;
+#ifndef __native_client_codegen__
+	if (needs_paddings && pad_size)
 		x86_padding (code, pad_size);
+#endif
 
 	mono_add_patch_info (cfg, code - cfg->native_code, patch_type, data);
 	x86_call_code (code, 0);
@@ -2333,6 +2376,7 @@ x86_pop_reg (code, X86_EAX);
 #ifndef DISABLE_JIT
 
 #if defined(__native_client__) || defined(__native_client_codegen__)
+extern int nacl_park_threads_now;
 void
 mono_nacl_gc()
 {
@@ -4738,8 +4782,17 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			break;
 		}
 		case OP_NACL_GC_SAFE_POINT: {
-#if defined(__native_client_codegen__)
+#if defined(__native_client_codegen__) && defined(__native_client_gc__)
+			if (cfg->compile_aot)
 			code = emit_call (cfg, code, MONO_PATCH_INFO_ABS, (gpointer)mono_nacl_gc);
+			else {
+				guint8 *br [1];
+
+				x86_test_mem_imm8 (code, (gpointer)&nacl_park_threads_now, 0xFFFFFFFF);
+				br[0] = code; x86_branch8 (code, X86_CC_EQ, 0, FALSE);
+				code = emit_call (cfg, code, MONO_PATCH_INFO_ABS, (gpointer)mono_nacl_gc);
+				x86_patch (br[0], code);
+			}
 #endif
 			break;
 		}
