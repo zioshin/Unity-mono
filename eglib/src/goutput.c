@@ -111,6 +111,14 @@ g_log_set_fatal_mask (const gchar *log_domain, GLogLevelFlags fatal_mask)
 	return fatal_mask;
 }
 
+/* Explicitly trigger a segfault to invoke Unity's crash handler */
+static void
+explicitly_abort_from_unity ()
+{
+	char **segv = NULL;
+	free (*segv);
+}
+
 void
 g_logv (const gchar *log_domain, GLogLevelFlags log_level, const gchar *format, va_list args)
 {
@@ -133,7 +141,7 @@ g_logv (const gchar *log_domain, GLogLevelFlags log_level, const gchar *format, 
 	}
 #endif
 	if (log_level & fatal){
-		abort ();
+		explicitly_abort_from_unity ();
 	}
 }
 
