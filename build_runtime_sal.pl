@@ -2,7 +2,7 @@ PREFIX=`pwd`/builds/sal
 
 OUTDIR=builds/embedruntimes/sal
 
-CXXFLAGS="-g -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=vfpv3 -mtune=cortex-a9";
+CXXFLAGS="-DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=vfpv3 -mtune=cortex-a9 -fPIC";
 CC="arm-v7a8-linux-gnueabi-gcc"
 CXX="arm-v7a8-linux-gnueabi-g++"
 AR="arm-v7a8-linux-gnueabi-ar"
@@ -39,7 +39,7 @@ make && echo "Build SUCCESS!" || exit 1
 rm -rf builds
 
 mkdir -p $OUTDIR
-cp -f mono/mini/.libs/libmono.so $OUTDIR
+cp -f mono/mini/.libs/libmono.a $OUTDIR
 
 if [ -d builds/monodistribution ] ; then
 rm -r builds/monodistribution
