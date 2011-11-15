@@ -160,8 +160,10 @@ namespace Mono.XBuild.CommandLine {
 			}
 			
 			finally {
-				if (engine != null)
+				if (engine != null) {
 					engine.UnregisterAllLoggers ();
+					result = result && engine.BuildSuccess;
+				}
 
 				Environment.Exit (result ? 0 : 1);
 			}

@@ -56,6 +56,8 @@ namespace Microsoft.Build.BuildEngine {
 		// the key here represents the project+target+global_properties set
 		Dictionary <string, ITaskItem[]> builtTargetsOutputByName;
 		Stack<Project> currentlyBuildingProjectsStack;
+		
+		public bool BuildSuccess{ get; set; }
 
 		static Engine		globalEngine;
 		static Version		version;
@@ -103,6 +105,7 @@ namespace Microsoft.Build.BuildEngine {
 			this.builtTargetsOutputByName = new Dictionary<string, ITaskItem[]> ();
 			this.currentlyBuildingProjectsStack = new Stack<Project> ();
 			this.Toolsets = new ToolsetCollection ();
+			this.BuildSuccess = true;
 			LoadDefaultToolsets ();
 			defaultTasksTableByToolsVersion = new Dictionary<string, TaskDatabase> ();
 		}
@@ -430,6 +433,8 @@ namespace Microsoft.Build.BuildEngine {
 							"INTERNAL ERROR: Project finishing is not the same as the one on top " +
 							"of the stack. Project: {0} Top of stack: {1}",
 							project.FullFileName, top_project.FullFileName));
+							
+			BuildSuccess = BuildSuccess && succeeded;
 
 			if (currentlyBuildingProjectsStack.Count == 0 ||
 				String.Compare (top_project.FullFileName, currentlyBuildingProjectsStack.Peek ().FullFileName) != 0)
