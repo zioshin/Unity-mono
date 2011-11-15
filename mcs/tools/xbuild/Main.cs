@@ -156,8 +156,10 @@ namespace Mono.XBuild.CommandLine {
 				ErrorUtilities.ReportError(cle.ErrorCode, show_stacktrace ? cle.ToString() : cle.Message);
 			}
 			finally {
-				if (engine != null)
+				if (engine != null) {
 					engine.UnregisterAllLoggers ();
+					result = result && engine.BuildSuccess;
+				}
 
 				Environment.Exit (result ? 0 : 1);
 			}
