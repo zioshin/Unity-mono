@@ -39,7 +39,7 @@ make && echo "Build SUCCESS!" || exit 1
 rm -rf builds
 
 mkdir -p $OUTDIR
-cp -f mono/mini/.libs/libmono.a $OUTDIR
+cp -f mono/mini/.libs/libmono.so $OUTDIR
 
 if [ -d builds/monodistribution ] ; then
 rm -r builds/monodistribution
