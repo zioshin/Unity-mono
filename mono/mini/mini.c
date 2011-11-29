@@ -256,13 +256,13 @@ void mono_nacl_fix_patches(const guint8 *code, MonoJumpInfo *ji)
 gboolean
 mono_running_on_valgrind (void)
 {
-	if (RUNNING_ON_VALGRIND){
+		if (RUNNING_ON_VALGRIND){
 #ifdef VALGRIND_JIT_REGISTER_MAP
-		valgrind_register = TRUE;
+			valgrind_register = TRUE;
 #endif
-		return TRUE;
-	} else
-		return FALSE;
+			return TRUE;
+		} else
+			return FALSE;
 }
 
 typedef struct {
@@ -295,7 +295,7 @@ get_method_from_ip (void *ip)
 	MonoDomain *domain = mono_domain_get ();
 	MonoDebugSourceLocation *location;
 	FindTrampUserData user_data;
-
+	
 	if (!domain)
 		domain = mono_get_root_domain ();
 
@@ -395,7 +395,7 @@ mono_print_method_from_ip (void *ip)
 			}
 		}
 
-		g_print ("No method at %p\n", ip);
+			g_print ("No method at %p\n", ip);
 		fflush (stdout);
 		return;
 	}
@@ -962,7 +962,7 @@ handle_enum:
 		if (mini_type_var_is_vt (cfg, type))
 			return OP_STOREV_MEMBASE;
 		else
-			return OP_STORE_MEMBASE_REG;
+		return OP_STORE_MEMBASE_REG;
 	default:
 		g_error ("unknown type 0x%02x in type_to_store_membase", type->type);
 	}
@@ -1027,7 +1027,7 @@ mono_type_to_load_membase (MonoCompile *cfg, MonoType *type)
 		if (mini_type_var_is_vt (cfg, type))
 			return OP_LOADV_MEMBASE;
 		else
-			return OP_LOAD_MEMBASE;
+		return OP_LOAD_MEMBASE;
 	default:
 		g_error ("unknown type 0x%02x in type_to_load_membase", type->type);
 	}
@@ -1042,8 +1042,8 @@ mini_type_to_ldind (MonoCompile* cfg, MonoType *type)
 			if (mini_type_var_is_vt (cfg, type))
 				return CEE_LDOBJ;
 			else
-				return CEE_LDIND_REF;
-		}
+			return CEE_LDIND_REF;
+	}
 	}
 	return mono_type_to_ldind (type);
 }
@@ -1060,8 +1060,8 @@ mini_type_to_stind (MonoCompile* cfg, MonoType *type)
 			if (mini_type_var_is_vt (cfg, type))
 				return CEE_STOBJ;
 			else
-				return CEE_STIND_REF;
-		}
+			return CEE_STIND_REF;
+	}
 	}
 	return mono_type_to_stind (type);
 }
@@ -1280,9 +1280,9 @@ mono_compile_create_var_for_vreg (MonoCompile *cfg, MonoType *type, int opcode, 
 
 #if SIZEOF_REGISTER == 4
 	if (mono_arch_is_soft_float ()) {
-		regpair = mono_type_is_long (type) || mono_type_is_float (type);
+	regpair = mono_type_is_long (type) || mono_type_is_float (type);
 	} else {
-		regpair = mono_type_is_long (type);
+	regpair = mono_type_is_long (type);
 	}
 #else
 	regpair = FALSE;
@@ -1542,8 +1542,8 @@ mono_get_array_new_va_signature (int arity)
 
 	res->pinvoke = 1;
 	if (ARCH_VARARG_ICALLS)
-		/* Only set this only some archs since not all backends can handle varargs+pinvoke */
-		res->call_convention = MONO_CALL_VARARG;
+	/* Only set this only some archs since not all backends can handle varargs+pinvoke */
+	res->call_convention = MONO_CALL_VARARG;
 
 #ifdef TARGET_WIN32
 	res->call_convention = MONO_CALL_C;
@@ -1635,7 +1635,7 @@ mini_method_verify (MonoCompile *cfg, MonoMethod *method, gboolean fail_compile)
 
 	if ((error = mono_loader_get_last_error ())) {
 		if (fail_compile)
-			cfg->exception_type = error->exception_type;
+		cfg->exception_type = error->exception_type;
 		else
 			mono_loader_clear_error ();
 		if (res)
@@ -1649,8 +1649,8 @@ mini_method_verify (MonoCompile *cfg, MonoMethod *method, gboolean fail_compile)
 			if (info->info.status == MONO_VERIFY_ERROR) {
 				if (fail_compile) {
 				char *method_name = mono_method_full_name (method, TRUE);
-					cfg->exception_type = info->exception_type;
-					cfg->exception_message = g_strdup_printf ("Error verifying %s: %s", method_name, info->info.message);
+				cfg->exception_type = info->exception_type;
+				cfg->exception_message = g_strdup_printf ("Error verifying %s: %s", method_name, info->info.message);
 					g_free (method_name);
 				}
 				mono_free_verify_list (res);
@@ -1658,9 +1658,9 @@ mini_method_verify (MonoCompile *cfg, MonoMethod *method, gboolean fail_compile)
 			}
 			if (info->info.status == MONO_VERIFY_NOT_VERIFIABLE && (!is_fulltrust || info->exception_type == MONO_EXCEPTION_METHOD_ACCESS || info->exception_type == MONO_EXCEPTION_FIELD_ACCESS)) {
 				if (fail_compile) {
-					char *method_name = mono_method_full_name (method, TRUE);
-					cfg->exception_type = info->exception_type;
-					cfg->exception_message = g_strdup_printf ("Error verifying %s: %s", method_name, info->info.message);
+				char *method_name = mono_method_full_name (method, TRUE);
+				cfg->exception_type = info->exception_type;
+				cfg->exception_message = g_strdup_printf ("Error verifying %s: %s", method_name, info->info.message);
 					g_free (method_name);
 				}
 				mono_free_verify_list (res);
@@ -1904,8 +1904,8 @@ mono_allocate_stack_slots2 (MonoCompile *cfg, gboolean backward, guint32 *stack_
 		case MONO_TYPE_I8:
 #endif
 			if (cfg->disable_ref_noref_stack_slot_share) {
-				slot_info = &scalar_stack_slots [MONO_TYPE_I];
-				break;
+			slot_info = &scalar_stack_slots [MONO_TYPE_I];
+			break;
 			}
 			/* Fall through */
 
@@ -2205,8 +2205,8 @@ mono_allocate_stack_slots (MonoCompile *cfg, gboolean backward, guint32 *stack_s
 			case MONO_TYPE_I8:
 #endif
 				if (cfg->disable_ref_noref_stack_slot_share) {
-					slot_info = &scalar_stack_slots [MONO_TYPE_I];
-					break;
+				slot_info = &scalar_stack_slots [MONO_TYPE_I];
+				break;
 				}
 				/* Fall through */
 
@@ -2798,7 +2798,7 @@ mono_jit_set_domain (MonoDomain *domain)
 {
 	if (domain)
 		mono_domain_set (domain, TRUE);
-}
+}	
 
 /**
  * mono_thread_abort:
@@ -2980,13 +2980,13 @@ static MonoInst*
 mono_create_tls_get_offset (MonoCompile *cfg, int offset)
 {
 	MonoInst* ins;
-
+	
 	if (!MONO_ARCH_HAVE_TLS_GET)
 		return NULL;
 
 	if (offset == -1)
 		return NULL;
-
+	
 	MONO_INST_NEW (cfg, ins, OP_TLS_GET);
 	ins->dreg = mono_alloc_preg (cfg);
 	ins->inst_offset = offset;
@@ -3022,7 +3022,7 @@ mono_create_tls_get (MonoCompile *cfg, MonoTlsKey key)
 			ins->sreg1 = c->dreg;
 			return ins;
 		} else {
-			return NULL;
+	return NULL;
 		}
 	}
 
@@ -3699,9 +3699,9 @@ mono_add_seq_point (MonoCompile *cfg, MonoBasicBlock *bb, MonoInst *ins, int nat
 	ins->inst_offset = native_offset;
 	g_ptr_array_add (cfg->seq_points, ins);
 	if (bb) {
-		bb->seq_points = g_slist_prepend_mempool (cfg->mempool, bb->seq_points, ins);
-		bb->last_seq_point = ins;
-	}
+	bb->seq_points = g_slist_prepend_mempool (cfg->mempool, bb->seq_points, ins);
+	bb->last_seq_point = ins;
+}
 }
 
 void
@@ -3790,7 +3790,7 @@ mono_compile_create_vars (MonoCompile *cfg)
 		lmf_var->flags |= MONO_INST_VOLATILE;
 		lmf_var->flags |= MONO_INST_LMF;
 		cfg->lmf_var = lmf_var;
-	}
+}
 }
 
 void
@@ -3819,16 +3819,16 @@ mono_postprocess_patches (MonoCompile *cfg)
 			 */
 			if (info) {
 				//printf ("TEST %s %p\n", info->name, patch_info->data.target);
-				/* for these array methods we currently register the same function pointer
-				 * since it's a vararg function. But this means that mono_find_jit_icall_by_addr ()
-				 * will return the incorrect one depending on the order they are registered.
-				 * See tests/test-arr.cs
-				 */
-				if (strstr (info->name, "ves_array_new_va_") == NULL && strstr (info->name, "ves_array_element_address_") == NULL) {
-					patch_info->type = MONO_PATCH_INFO_INTERNAL_METHOD;
-					patch_info->data.name = info->name;
+					/* for these array methods we currently register the same function pointer
+					 * since it's a vararg function. But this means that mono_find_jit_icall_by_addr ()
+					 * will return the incorrect one depending on the order they are registered.
+					 * See tests/test-arr.cs
+					 */
+					if (strstr (info->name, "ves_array_new_va_") == NULL && strstr (info->name, "ves_array_element_address_") == NULL) {
+						patch_info->type = MONO_PATCH_INFO_INTERNAL_METHOD;
+						patch_info->data.name = info->name;
+					}
 				}
-			}
 
 			if (patch_info->type == MONO_PATCH_INFO_ABS) {
 				if (cfg->abs_patches) {
@@ -3986,9 +3986,9 @@ mono_save_seq_point_info (MonoCompile *cfg)
 			MonoBasicBlock *bb2;
 			MonoInst *endfinally_seq_point = NULL;
 
-			/*
+				/* 
 			 * The ENDFINALLY branches are not represented in the cfg, so link it with all seq points starting bbs.
-			 */
+				 */
 			l = g_slist_last (bb->seq_points);
 			if (l) {
 				endfinally_seq_point = l->data;
@@ -4001,10 +4001,10 @@ mono_save_seq_point_info (MonoCompile *cfg)
 
 						if (!(ins->inst_imm == METHOD_ENTRY_IL_OFFSET || ins->inst_imm == METHOD_EXIT_IL_OFFSET) && ins != endfinally_seq_point)
 							next [endfinally_seq_point->backend.size] = g_slist_append (next [endfinally_seq_point->backend.size], GUINT_TO_POINTER (ins->backend.size));
-					}
 				}
 			}
 		}
+	}
 	}
 
 	if (cfg->verbose_level > 2) {
@@ -4039,11 +4039,11 @@ mono_save_seq_point_info (MonoCompile *cfg)
 
 	// FIXME: dynamic methods
 	if (!cfg->compile_aot) {
-		mono_domain_lock (domain);
+	mono_domain_lock (domain);
 		// FIXME: How can the lookup succeed ?
 		if (!g_hash_table_lookup (domain_jit_info (domain)->seq_points, cfg->method_to_register))
-			g_hash_table_insert (domain_jit_info (domain)->seq_points, cfg->method_to_register, info);
-		mono_domain_unlock (domain);
+	g_hash_table_insert (domain_jit_info (domain)->seq_points, cfg->method_to_register, info);
+	mono_domain_unlock (domain);
 	}
 
 	g_ptr_array_free (cfg->seq_points, TRUE);
@@ -4159,7 +4159,7 @@ mono_codegen (MonoCompile *cfg)
 			/* See the comment for cfg->code_domain */
 			code = mono_domain_code_reserve (code_domain, cfg->code_size + unwindlen);
 		else
-			code = mono_code_manager_reserve (cfg->dynamic_info->code_mp, cfg->code_size + unwindlen);
+		code = mono_code_manager_reserve (cfg->dynamic_info->code_mp, cfg->code_size + unwindlen);
 	} else {
 		guint unwindlen = 0;
 #ifdef MONO_ARCH_HAVE_UNWIND_TABLE
@@ -4221,7 +4221,7 @@ if (valgrind_register){
 #ifdef MONO_ARCH_HAVE_SAVE_UNWIND_INFO
 	mono_arch_save_unwind_info (cfg);
 #endif
-
+	
 #if defined(__native_client_codegen__) && defined(__native_client__)
 	if (!cfg->compile_aot) {
 		if (cfg->method->dynamic) {
@@ -4242,7 +4242,7 @@ if (valgrind_register){
 		if (mono_using_xdebug)
 			mono_domain_code_commit (code_domain, cfg->native_code, cfg->code_size, cfg->code_len);
 		else
-			mono_code_manager_commit (cfg->dynamic_info->code_mp, cfg->native_code, cfg->code_size, cfg->code_len);
+		mono_code_manager_commit (cfg->dynamic_info->code_mp, cfg->native_code, cfg->code_size, cfg->code_len);
 	} else {
 		mono_domain_code_commit (code_domain, cfg->native_code, cfg->code_size, cfg->code_len);
 	}
@@ -4924,7 +4924,7 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 		mono_profiler_method_jit (method);
 	if (MONO_METHOD_COMPILE_BEGIN_ENABLED ())
 		MONO_PROBE_METHOD_COMPILE_BEGIN (method);
-
+ 
 	if (compile_aot)
 		/* 
 		 * We might get passed the original generic method definition or
@@ -4966,12 +4966,12 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 	if (method_is_gshared) {
 		method_to_compile = method;
 	} else {
-		if (try_generic_shared) {
+	if (try_generic_shared) {
 			method_to_compile = mini_get_shared_method (method);
-			g_assert (method_to_compile);
-		} else {
-			method_to_compile = method;
-		}
+		g_assert (method_to_compile);
+	} else {
+		method_to_compile = method;
+	}
 	}
 
 	cfg = g_new0 (MonoCompile, 1);
@@ -5056,7 +5056,7 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 		} else {
 			cfg->exception_type = MONO_EXCEPTION_INVALID_PROGRAM;
 			cfg->exception_message = g_strdup_printf ("Missing or incorrect header for method %s", cfg->method->name);
-		}
+	}
 		if (MONO_METHOD_COMPILE_END_ENABLED ())
 			MONO_PROBE_METHOD_COMPILE_END (method, FALSE);
 		return cfg;
@@ -5515,7 +5515,7 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 
 #ifdef MONO_ARCH_SOFT_FLOAT_FALLBACK
 	if (COMPILE_SOFT_FLOAT (cfg))
-		mono_decompose_soft_float (cfg);
+	mono_decompose_soft_float (cfg);
 #endif
 	if (COMPILE_LLVM (cfg))
 		mono_decompose_vtype_opts_llvm (cfg);
@@ -5710,7 +5710,7 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 #endif
 
 	if (!cfg->compile_aot)
-		mono_save_xdebug_info (cfg);
+	mono_save_xdebug_info (cfg);
 
 	mini_gc_create_gc_map (cfg);
  
@@ -6198,7 +6198,7 @@ mono_jit_compile_method_inner (MonoMethod *method, MonoDomain *target_domain, in
 				mono_profiler_method_end_jit (mono_marshal_method_from_wrapper (method), jinfo, MONO_PROFILE_OK);
 			}
 		}
-		mono_profiler_method_end_jit (method, jinfo, MONO_PROFILE_OK);
+			mono_profiler_method_end_jit (method, jinfo, MONO_PROFILE_OK);
 		if (prof_method != method) {
 			mono_profiler_method_end_jit (prof_method, jinfo, MONO_PROFILE_OK);
 		}
@@ -6548,7 +6548,7 @@ mono_jit_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObjec
 				wrapper = mono_marshal_get_array_accessor_wrapper (method);
 				invoke = mono_marshal_get_runtime_invoke (wrapper, FALSE);
 				callee = wrapper;
-			} else {
+		} else {
 				callee = NULL;
 			}
 		}
@@ -6830,8 +6830,8 @@ SIG_HANDLER_FUNC (, mono_sigsegv_signal_handler)
 		ABS ((guint8*)fault_addr - ((guint8*)jit_tls->end_of_stack - jit_tls->stack_size)) < 8192 * sizeof (gpointer)) {
 		/*
 		 * The hard-guard page has been hit: there is not much we can do anymore
-		 * Print a hopefully clear message and abort.
-		 */
+	 * Print a hopefully clear message and abort.
+	 */
 		mono_handle_hard_stack_ovf (jit_tls, ji, ctx, (guint8*)info->si_addr);
 		g_assert_not_reached ();
 	} else {
@@ -6922,7 +6922,7 @@ mini_get_vtable_trampoline (int slot_index)
 			mono_memory_barrier ();
 			vtable_trampolines = new_table;
 			vtable_trampolines_size = new_size;
-		}
+}
 		mono_jit_unlock ();
 	}
 
@@ -7012,12 +7012,12 @@ mini_create_ftnptr (MonoDomain *domain, gpointer addr)
 
 	if ((desc = g_hash_table_lookup (domain->ftnptrs_hash, addr)))
 		return desc;
-#	ifdef __ia64__
+#ifdef __ia64__
 	desc = mono_domain_code_reserve (domain, 2 * sizeof (gpointer));
 
 	desc [0] = addr;
 	desc [1] = NULL;
-#	elif defined(__ppc64__) || defined(__powerpc64__)
+#elif defined(__ppc64__) || defined(__powerpc64__)
 
 	desc = mono_domain_alloc0 (domain, 3 * sizeof (gpointer));
 
@@ -7085,7 +7085,7 @@ class_method_pair_hash (gconstpointer data)
 
 	return (gsize)pair->klass ^ (gsize)pair->method;
 }
-
+ 
 static void
 mini_create_jit_domain_info (MonoDomain *domain)
 {
@@ -7156,8 +7156,8 @@ mini_free_jit_domain_info (MonoDomain *domain)
 {
 	MonoJitDomainInfo *info = domain_jit_info (domain);
 
-	g_hash_table_foreach (info->jump_target_hash, delete_jump_list, NULL);
-	g_hash_table_destroy (info->jump_target_hash);
+		g_hash_table_foreach (info->jump_target_hash, delete_jump_list, NULL);
+		g_hash_table_destroy (info->jump_target_hash);
 	if (info->jump_target_got_slot_hash) {
 		g_hash_table_foreach (info->jump_target_got_slot_hash, delete_got_slot_list, NULL);
 		g_hash_table_destroy (info->jump_target_got_slot_hash);
@@ -7247,7 +7247,7 @@ mini_init (const char *filename, const char *runtime_version)
 #endif
 
 	mono_install_callbacks (&callbacks);
-
+	
 	memset (&ticallbacks, 0, sizeof (ticallbacks));
 	ticallbacks.setup_async_callback = mono_setup_async_callback;
 	ticallbacks.thread_state_init_from_sigctx = mono_thread_state_init_from_sigctx;
@@ -7289,7 +7289,7 @@ mini_init (const char *filename, const char *runtime_version)
 		}
 	}
 	if (mono_use_llvm)
-		mono_llvm_init ();
+	mono_llvm_init ();
 #endif
 
 	mono_trampolines_init ();
@@ -7541,10 +7541,10 @@ mini_init (const char *filename, const char *runtime_version)
 		register_opcode_emulation (OP_FCLT, "__emul_fcmp_clt", "uint32 double double", mono_fclt, "mono_fclt", FALSE);
 		register_opcode_emulation (OP_FCLT_UN, "__emul_fcmp_clt_un", "uint32 double double", mono_fclt_un, "mono_fclt_un", FALSE);
 
-		register_icall (mono_fload_r4, "mono_fload_r4", "double ptr", FALSE);
-		register_icall (mono_fstore_r4, "mono_fstore_r4", "void double ptr", FALSE);
-		register_icall (mono_fload_r4_arg, "mono_fload_r4_arg", "uint32 double", FALSE);
-		register_icall (mono_isfinite, "mono_isfinite", "uint32 double", FALSE);
+	register_icall (mono_fload_r4, "mono_fload_r4", "double ptr", FALSE);
+	register_icall (mono_fstore_r4, "mono_fstore_r4", "void double ptr", FALSE);
+	register_icall (mono_fload_r4_arg, "mono_fload_r4_arg", "uint32 double", FALSE);
+	register_icall (mono_isfinite, "mono_isfinite", "uint32 double", FALSE);
 	}
 #endif
 
@@ -7735,7 +7735,7 @@ mini_cleanup (MonoDomain *domain)
 
 #ifdef ENABLE_LLVM
 	if (mono_use_llvm)
-		mono_llvm_cleanup ();
+	mono_llvm_cleanup ();
 #endif
 
 	mono_aot_cleanup ();
@@ -7765,6 +7765,10 @@ mini_cleanup (MonoDomain *domain)
 
 	if (mono_inject_async_exc_method)
 		mono_method_desc_free (mono_inject_async_exc_method);
+
+#if defined(PLATFORM_WIN32) && defined(HAVE_BOEHM_GC)
+	GC_win32_free_heap ();
+#endif
 
 	mono_native_tls_free (mono_jit_tls_id);
 
@@ -7811,7 +7815,7 @@ mono_set_verbose_level (guint32 level)
 /**
  * mono_get_runtime_build_info:
  *
- * Return the runtime version + build date in string format.
+ *   Return the runtime version + build date in string format.
  * The returned string is owned by the caller. The returned string
  * format is "VERSION (FULL_VERSION BUILD_DATE)" and build date is optional.
  */
