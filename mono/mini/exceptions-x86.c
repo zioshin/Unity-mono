@@ -117,6 +117,34 @@ mono_win32_get_handle_stackoverflow (void)
 	return start;
 }
 
+typedef struct
+{
+	guint32 free_stack;
+	MonoContext initial_ctx;
+	MonoContext ctx;
+} MonoWin32StackOverflowData;
+
+gboolean win32_stack_overflow_walk (StackFrameInfo *frame, MonoContext *ctx, gpointer data)
+{
+	MonoWin32StackOverflowData* walk_data = (MonoWin32StackOverflowData*)data;
+
+	if (!frame->ji) {
+		g_warning ("Exception inside function without unwind info");
+		g_assert_not_reached ();
+	}
+
+	if (frame->ji != (gpointer)-1) {
+		walk_data->free_stack = (guint8*)(MONO_CONTEXT_GET_BP (ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&walk_data->initial_ctx));
+	} else {
+		g_warning ("Exception inside function without unwind info");
+		g_assert_not_reached ();
+	}
+
+	walk_data->ctx = *ctx;
+
+	return !(walk_data->free_stack < 64 * 1024 && frame->ji != (gpointer) -1);
+}
+
 /* Special hack to workaround the fact that the
  * when the SEH handler is called the stack is
  * to small to recover.
@@ -144,6 +172,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	MonoContext ctx;
 	guint32 free_stack = 0;
 	StackFrameInfo frame;
+	MonoWin32StackOverflowData stack_overflow_data;
 
 	/* convert sigcontext to MonoContext (due to reuse of stack walking helpers */
 	mono_arch_sigctx_to_monoctx (sctx, &ctx);
@@ -156,34 +185,19 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	 * the needed stack space (if possible)
 	 */
 	memset (&rji, 0, sizeof (rji));
-
+	memset (&stack_overflow_data, 0, sizeof (stack_overflow_data));
+	
 	ji = mono_jit_info_table_find (domain, MONO_CONTEXT_GET_IP(&ctx));
 
-	initial_ctx = ctx;
-	free_stack = (guint8*)(MONO_CONTEXT_GET_BP (&ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&initial_ctx));
+	stack_overflow_data.initial_ctx = ctx;
 
 	/* try to free 64kb from our stack */
-	do {
-		MonoContext new_ctx;
-
-		mono_arch_find_jit_info (domain, jit_tls, ji, &ctx, &new_ctx, &lmf, NULL, &frame);
-		if (!frame.ji) {
-			g_warning ("Exception inside function without unwind info");
-			g_assert_not_reached ();
-		}
-
-		if (frame.ji != (gpointer)-1) {
-			free_stack = (guint8*)(MONO_CONTEXT_GET_BP (&ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&initial_ctx));
-		}
-
-		/* todo: we should call abort if ji is -1 */
-		ctx = new_ctx;
-	} while (free_stack < 64 * 1024 && frame.ji != (gpointer) -1);
+	mono_jit_walk_stack_from_ctx_in_thread (win32_stack_overflow_walk, domain, &ctx, FALSE, mono_thread_current (), lmf, &stack_overflow_data);
 
 	/* convert into sigcontext to be used in mono_arch_handle_exception */
 	mono_arch_monoctx_to_sigctx (&ctx, sctx);
 
-	/* todo: install new stack-guard page */
+	/* the new stack-guard page is installed in mono_handle_exception_internal using _resetstkoflw */
 
 	/* use the new stack and call mono_arch_handle_exception () */
 	restore_stack (sctx);
@@ -263,7 +277,7 @@ LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep)
 
 	/* TODO: Find right place to free this in stack overflow case */
 	if (er->ExceptionCode != EXCEPTION_STACK_OVERFLOW)
-		g_free (sctx);
+	g_free (sctx);
 
 	return res;
 }
