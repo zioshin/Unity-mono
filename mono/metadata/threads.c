@@ -947,7 +947,7 @@ mono_thread_detach (MonoThread *thread)
 	g_return_if_fail (thread != NULL);
 
 	THREAD_DEBUG (g_message ("%s: mono_thread_detach for %p (%"G_GSIZE_FORMAT")", __func__, thread, (gsize)thread->internal_thread->tid));
-	
+
 	mono_profiler_thread_end (thread->internal_thread->tid);
 	
 	thread_cleanup (thread->internal_thread);
@@ -3365,7 +3365,9 @@ mono_thread_pop_appdomain_ref (void)
 	if (thread) {
 		/* printf ("POP REF: %"G_GSIZE_FORMAT" -> %s.\n", (gsize)thread->tid, ((MonoDomain*)(thread->appdomain_refs->data))->friendly_name); */
 		SPIN_LOCK (thread->lock_thread_id);
-		ref_stack_pop (thread->appdomain_refs);
+		/* Check for null, as we may unload an appdomain immediately after creating a thread and not yet havecalled mono_thread_push_appdomain_ref */
+		if (thread->appdomain_refs)
+			ref_stack_pop (thread->appdomain_refs);
 		SPIN_UNLOCK (thread->lock_thread_id);
 	}
 }
@@ -3375,7 +3377,9 @@ mono_thread_internal_has_appdomain_ref (MonoInternalThread *thread, MonoDomain *
 {
 	gboolean res;
 	SPIN_LOCK (thread->lock_thread_id);
-	res = ref_stack_find (thread->appdomain_refs, domain);
+	/* Check for null, as we may unload an appdomain immediately after creating a thread and not yet havecalled mono_thread_push_appdomain_ref */
+	if (thread->appdomain_refs)
+		res = ref_stack_find (thread->appdomain_refs, domain);
 	SPIN_UNLOCK (thread->lock_thread_id);
 	return res;
 }
