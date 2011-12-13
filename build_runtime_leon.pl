@@ -2,11 +2,11 @@ PREFIX=`pwd`/builds/leon
 
 OUTDIR=builds/embedruntimes/leon
 
-CXXFLAGS="-g -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=vfpv3 -mtune=cortex-a9";
-CC="arm-none-linux-gnueabi-gcc"
-CXX="arm-none-linux-gnueabi-g++"
-AR="arm-none-linux-gnueabi-ar"
-LD="arm-none-linux-gnueabi-ld"
+CXXFLAGS="-Os -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=vfpv3 -mtune=cortex-a9";
+CC="arm-lg1152-linux-gnueabi-gcc"
+CXX="arm-lg1152-linux-gnueabi-g++"
+AR="arm-lg1152-linux-gnueabi-ar"
+LD="arm-lg1152-linux-gnueabi-ld"
 LDFLAGS=""
 
 CONFIG_OPTS="\
