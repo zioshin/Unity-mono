@@ -2,7 +2,7 @@ PREFIX=`pwd`/builds/leon
 
 OUTDIR=builds/embedruntimes/leon
 
-CXXFLAGS="-g -DARM_FPU_VFP=0 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=neon -mtune=cortex-a9";
+CXXFLAGS="-Os -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=vfpv3 -mtune=cortex-a9";
 CC="arm-lg1152-linux-gnueabi-gcc"
 CXX="arm-lg1152-linux-gnueabi-g++"
 AR="arm-lg1152-linux-gnueabi-ar"
@@ -12,7 +12,7 @@ LDFLAGS=""
 CONFIG_OPTS="\
 --prefix=$PREFIX \
 --cache-file=leon_cross.cache \
---host=arm-lg1152-linux-gnueabi \
+--host=arm-unknown-linux-gnueabi \
 --disable-mcs-build \
 --disable-parallel-mark \
 --disable-shared-handles \
