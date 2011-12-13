@@ -375,6 +375,15 @@ static void thread_cleanup (MonoInternalThread *thread)
 	thread->current_appcontext = NULL;
 
 	/*
+	 * thread->synch_cs can be NULL if this was called after
+	 * ves_icall_System_Threading_InternalThread_Thread_free_internal.
+	 * This can happen only during shutdown.
+	 * The shutting_down flag is not always set, so we can't assert on it.
+	 */
+	if (thread->synch_cs)
+		LOCK_THREAD (thread);
+
+	/*
 	 * This is necessary because otherwise we might have
 	 * cross-domain references which will not get cleaned up when
 	 * the target domain is unloaded.
@@ -383,16 +392,9 @@ static void thread_cleanup (MonoInternalThread *thread)
 		int i;
 		for (i = 0; i < NUM_CACHED_CULTURES * 2; ++i)
 			mono_array_set (thread->cached_culture_info, MonoObject*, i, NULL);
-	}
 
-	/*
-	 * thread->synch_cs can be NULL if this was called after
-	 * ves_icall_System_Threading_InternalThread_Thread_free_internal.
-	 * This can happen only during shutdown.
-	 * The shutting_down flag is not always set, so we can't assert on it.
-	 */
-	if (thread->synch_cs)
-		LOCK_THREAD (thread);
+		thread->cached_culture_info = NULL;
+	}
 
 	thread->state |= ThreadState_Stopped;
 	thread->state &= ~ThreadState_Background;
