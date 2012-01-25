@@ -45,10 +45,7 @@ mono_arch_patch_callsite (guint8 *method_start, guint8 *code_ptr, guint8 *addr)
 		return;
 	}
 
-//#if defined(__QNX__)
-//#else
 	g_assert_not_reached ();
-//#endif
 }
 
 void
@@ -144,8 +141,8 @@ mono_arch_create_trampoline_code (MonoTrampolineType tramp_type)
 	guint32 code_size;
 	guchar *code;
 	GSList *unwind_ops, *l;
-	
-        code = mono_arch_create_trampoline_code_full (tramp_type, &code_size, &ji, &unwind_ops, FALSE);
+
+	code = mono_arch_create_trampoline_code_full (tramp_type, &code_size, &ji, &unwind_ops, FALSE);
 
 	mono_save_trampoline_xdebug_info ("<generic_trampoline>", code, code_size, unwind_ops);
 
@@ -365,7 +362,7 @@ mono_arch_create_trampoline_code_full (MonoTrampolineType tramp_type, guint32 *c
 
 	/* Sanity check */
 	g_assert ((code - buf) <= GEN_TRAMP_SIZE);
-         
+
 	*code_size = code - buf;
 
 	if (tramp_type == MONO_TRAMPOLINE_CLASS_INIT) {
