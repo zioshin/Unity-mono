@@ -40,7 +40,7 @@ popd
 /scratchbox/login -d $BUILDDIR autoreconf -i
 
 # Run configure
-/scratchbox/login -d $BUILDDIR ./configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS"
+/scratchbox/login -d $BUILDDIR -e CFLAGS="$CXXFLAGS" -e CXXFLAGS="$CXXFLAGS" -e LDFLAGS="$LDFLAGS" ./configure $CONFIG_OPTS 
 
 # Run Make
 /scratchbox/login -d $BUILDDIR make && echo "Build SUCCESS!" || exit 1
@@ -48,7 +48,7 @@ popd
 rm -rf $PWD/builds
 
 mkdir -p $OUTDIR
-cp -f mono/mini/.libs/libmono.so $OUTDIR
+cp -f mono/mini/.libs/libmono.a $OUTDIR
 cp -f unity/libsoftlibm.a $OUTDIR
 
 # Clean up for next build
