@@ -700,7 +700,7 @@ mono_arch_flush_icache (guint8 *code, gint size)
 {
 #if __APPLE__
 	sys_icache_invalidate (code, size);
-#elif __GNUC_PREREQ(4, 1)
+#elif __GNUC_PREREQ(4, 1) 
 	__clear_cache (code, code + size);
 #elif defined(PLATFORM_ANDROID)
 	const int syscall = 0xf0002;

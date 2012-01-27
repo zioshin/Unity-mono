@@ -3582,6 +3582,7 @@ emit_trampolines (MonoAotCompile *acfg)
 		 * method.
 		 */
 		for (tramp_type = 0; tramp_type < MONO_TRAMPOLINE_NUM; ++tramp_type) {
+                        printf("Calling mono_arch_create_tramp..\n");
 			code = mono_arch_create_trampoline_code_full (tramp_type, &code_size, &ji, &unwind_ops, TRUE);
 
 			/* Emit trampoline code */
