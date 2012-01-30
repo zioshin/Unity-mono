@@ -2574,6 +2574,20 @@ inflated_signature_in_image (gpointer key, gpointer value, gpointer data)
 }	
 
 static void
+remove_generic_class_from_szarray_cache (gpointer key, gpointer value, gpointer user_data)
+{
+	MonoGenericClass* gclass = (MonoGenericClass*)user_data;
+	MonoImage* image = value;
+
+	if (gclass_in_image (gclass, image))
+	{
+		EnterCriticalSection (&image->szarray_cache_lock);
+		g_hash_table_remove (image->szarray_cache, gclass->cached_class);
+		LeaveCriticalSection (&image->szarray_cache_lock);
+	}
+}
+
+static void
 check_gmethod (gpointer key, gpointer value, gpointer data)
 {
 	MonoMethodInflated *method = key;
@@ -2635,6 +2649,15 @@ mono_metadata_clean_for_image (MonoImage *image)
 		g_hash_table_foreach_steal (set->ginst_cache, steal_ginst_in_image, &ginst_data);
 		g_hash_table_foreach_remove (set->gmethod_cache, inflated_method_in_image, image);
 		g_hash_table_foreach_remove (set->gsignature_cache, inflated_signature_in_image, image);
+	}
+
+	/* Do this before we free the data below*/
+	for (l = gclass_data.list; l; l = l->next)
+	{
+		/* remove any of the generic classes to be delete from the array cache */
+		/* TODO: This needs to be done for all loaded images, but we don't have 
+		 * easy access to that. Just do corlib for now as that is causing our problem. */
+		remove_generic_class_from_szarray_cache (NULL, mono_defaults.corlib, l->data);
 	}
 
 	/* Delete the removed items */
@@ -4292,15 +4315,15 @@ mono_type_size (MonoType *t, int *align)
 		return 4;
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8:
-#if defined(TARGET_ARM)
-		*align = 4;
+#if defined(TARGET_ARM)                                                                                                                                                                                                                                               
+                *align = 4;                                                                                                                                                                                                                                            
 #else
 		*align = abi__alignof__(gint64);
 #endif
 		return 8;		
 	case MONO_TYPE_R8:
-#if defined(TARGET_ARM)
-		*align = 4;
+#if defined(TARGET_ARM)                                                                                                                                                                                                                                               
+                *align = 4;                                                                                                                                                                                                                                            
 #else
 		*align = abi__alignof__(double);
 #endif
