@@ -1,6 +1,7 @@
 #ifndef __UNITY_MONO_UTILS_H
 #define __UNITY_MONO_UTILS_H
 
+#include <glib.h>
 #include <stdio.h>
 #include <mono/metadata/object.h>
 
@@ -29,5 +30,6 @@ FILE* unity_fopen( const char *name, const char *mode );
 
 extern mono_bool mono_unity_socket_security_enabled_get ();
 extern void mono_unity_socket_security_enabled_set (mono_bool enabled);
+void mono_unity_set_vprintf_func(vprintf_func func);
 
 #endif

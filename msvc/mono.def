@@ -63,6 +63,7 @@ mono_object_get_size
 ;mono_image_open_raw
 ;g_list_prepend
 set_vprintf_func
+mono_unity_set_vprintf_func
 
 ;Original Mono Exports
 mono_add_internal_call
