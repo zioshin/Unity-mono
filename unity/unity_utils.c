@@ -120,3 +120,7 @@ mono_unity_class_is_abstract (MonoClass* klass)
 {
 	return (klass->flags & TYPE_ATTRIBUTE_ABSTRACT);
 }
+void mono_unity_set_vprintf_func (vprintf_func func)
+{
+	set_vprintf_func (func);
+}

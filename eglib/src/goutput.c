@@ -33,7 +33,6 @@ static GLogLevelFlags fatal = G_LOG_LEVEL_ERROR;
 
 
 
-typedef void (*vprintf_func)(const char* msg, va_list args);
 static vprintf_func our_vprintf = vprintf;
 
 void set_vprintf_func(vprintf_func func)

@@ -291,6 +291,8 @@ gint         g_snprintf        (gchar *string, gulong n, gchar const *format, ..
 #define g_vasprintf vasprintf
 
 gsize       g_strlcpy          (gchar *dest, const gchar *src, gsize dest_size);
+typedef void (*vprintf_func)(const char* msg, va_list args);
+void set_vprintf_func(vprintf_func func);
 
 gchar   g_ascii_tolower      (gchar c);
 gchar  *g_ascii_strdown      (const gchar *str, gssize len);
