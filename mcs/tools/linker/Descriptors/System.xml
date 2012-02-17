@@ -15,7 +15,9 @@
 		<type fullname="System.Net.SocketAddress" />
 		<type fullname="System.Net.Sockets.LingerOption" />
 		<type fullname="System.Net.Sockets.Socket" />
-		<type fullname="System.Net.Sockets.SocketException" /> -->
+		<type fullname="System.Net.Sockets.Socket/SocketAsyncResult" preserve="fields" />
+		<type fullname="System.Net.Sockets.SocketException" />
+-->
 		
 		<type fullname="System.Net.Sockets.SocketPolicyClient" />
 	</assembly>
