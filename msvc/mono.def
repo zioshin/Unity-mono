@@ -862,4 +862,4 @@ mono_set_assemblies_path
 mono_gchandle_is_in_domain
 mono_thread_push_appdomain_ref
 mono_thread_pop_appdomain_ref
-monoeg_g_free
+;monoeg_g_free
