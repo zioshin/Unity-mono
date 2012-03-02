@@ -2,7 +2,7 @@ thisdir = class/System.Transactions
 SUBDIRS = 
 include ../../build/rules.make
 
-MOBILE_PROFILE := $(filter monotouch monodroid, $(PROFILE))
+MOBILE_PROFILE := $(filter monotouch monodroid unity, $(PROFILE))
 
 LIBRARY = System.Transactions.dll
 ifdef MOBILE_PROFILE
