@@ -6,12 +6,12 @@ export __SECURITY_BOOTSTRAP_DB=$(topdir)/class/corlib
 ifdef MICRO
 LIBRARY = microcorlib.dll
 LIBRARY_NAME = mscorlib.dll
+LIB_MCS_FLAGS = $(corlib_flags) $(RESOURCE_FILES:%=-resource:%)
 else
 LIBRARY = corlib.dll
 LIBRARY_NAME = mscorlib.dll
 LIB_MCS_FLAGS = $(RESOURCE_FILES:%=-resource:%)
 endif
-LIB_MCS_FLAGS = $(corlib_flags) $(RESOURCE_FILES:%=-resource:%)
 LIBRARY_USE_INTERMEDIATE_FILE = yes
 
 ifeq (4.0, $(FRAMEWORK_VERSION))
@@ -35,8 +35,8 @@ DEFAULT_REFERENCES =
 corlib_flags = -unsafe -nostdlib
 ifdef MICRO
 MICRO_FLAGS = -d:MICRO_LIB -d:DISABLE_SECURITY -d:DISABLE_REMOTING
-endif
 LOCAL_MCS_FLAGS = -nowarn:612,618 -d:INSIDE_CORLIB $(MICRO_FLAGS)
+endif
 
 # System.IO/DirectoryInfoTest.cs needs Mono.Posix
 TEST_MCS_FLAGS = -debug+ -debug:full -nowarn:168,219,618,672 -unsafe -r:$(topdir)/class/lib/$(PROFILE)/Mono.Posix.dll -define:MONO_DATACONVERTER_STATIC_METHODS
