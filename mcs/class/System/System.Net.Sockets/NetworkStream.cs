@@ -148,7 +148,7 @@ namespace System.Net.Sockets
 //adding hacky Timeout class here, as our profile doesn't pull in System.Threading.Timeout
 public static class Timeout
 {
-  public static readonly float Infinite = -1;
+  public static readonly int Infinite = -1;
 }
 #endif
 
