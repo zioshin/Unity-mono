@@ -106,7 +106,6 @@ net_2_0_dirs := \
 	System.ComponentModel.DataAnnotations	\
 	System.Web.DynamicData		\
 	System.ServiceModel.Web		\
-	System.Web.Mvc			\
 	System.Web.Mvc2			\
 	Mono.C5				\
 	Mono.Management			\
@@ -124,7 +123,8 @@ net_2_0_only_dirs := \
 	Compat.ICSharpCode.SharpZipLib	\
 	WindowsBase			\
 	System.Data.Services.Client	\
-	System.Data.Services
+	System.Data.Services		\
+	System.Web.Mvc			
 
 moonlight_raw_dirs := \
 	corlib			\
@@ -192,7 +192,8 @@ net_4_0_only_dirs := \
 
 net_4_5_dirs := \
 	System.Threading.Tasks.Dataflow \
-	System.ComponentModel.Composition.4.5
+	System.ComponentModel.Composition.4.5 \
+	System.Net.Http
 
 net_2_0_SUBDIRS := $(common_dirs) $(net_2_0_dirs) $(net_2_0_only_dirs) aot-compiler
 moonlight_raw_SUBDIRS := $(moonlight_raw_dirs)

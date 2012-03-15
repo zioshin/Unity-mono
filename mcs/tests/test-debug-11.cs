@@ -40,6 +40,14 @@ class C
 		{
 		}
 	}
+
+	void Using_4 ()
+	{
+		using (var ms = new System.IO.MemoryStream ())
+		{
+			Console.WriteLine ("a");
+		}
+	}
 	
 	void Lock ()
 	{
@@ -227,8 +235,9 @@ class C
 	
 	void ForEach (int[] args)
 	{
-		foreach (var a
-			in args)
+		foreach (
+		var a
+		in args)
 		{
 		}
 	}
@@ -249,6 +258,15 @@ class C
 		(var a
 		in
 		args)
+		{
+		}
+	}
+	
+	void ForEach_4 (int[,] args)
+	{
+		foreach (
+		var a
+		in args)
 		{
 		}
 	}

@@ -734,15 +734,6 @@ namespace Mono.CSharp
 			this.member = member;
 		}
 
-		//
-		// When a return type is known not to be dynamic
-		//
-		public DynamicInvocation (ATypeNameExpression member, Arguments args, TypeSpec type, Location loc)
-			: this (member, args, loc)
-		{
-			this.type = type;
-		}
-
 		public static DynamicInvocation CreateSpecialNameInvoke (ATypeNameExpression member, Arguments args, Location loc)
 		{
 			return new DynamicInvocation (member, args, loc) {
@@ -958,7 +949,7 @@ namespace Mono.CSharp
 	sealed class DynamicSiteClass : HoistedStoreyClass
 	{
 		public DynamicSiteClass (TypeDefinition parent, MemberBase host, TypeParameters tparams)
-			: base (parent, MakeMemberName (host, "DynamicSite", parent.DynamicSitesCounter, tparams, Location.Null), tparams, Modifiers.STATIC)
+			: base (parent, MakeMemberName (host, "DynamicSite", parent.DynamicSitesCounter, tparams, Location.Null), tparams, Modifiers.STATIC, MemberKind.Class)
 		{
 			parent.DynamicSitesCounter++;
 		}

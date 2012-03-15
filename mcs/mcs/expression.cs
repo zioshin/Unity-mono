@@ -5042,11 +5042,11 @@ namespace Mono.CSharp
 		}
 
 		public override bool IsRef {
-			get { return (pi.Parameter.ModFlags & Parameter.Modifier.ISBYREF) != 0; }
+			get { return (pi.Parameter.ModFlags & Parameter.Modifier.RefOutMask) != 0; }
 		}
 
 		bool HasOutModifier {
-			get { return pi.Parameter.ModFlags == Parameter.Modifier.OUT; }
+			get { return (pi.Parameter.ModFlags & Parameter.Modifier.OUT) != 0; }
 		}
 
 		public override HoistedVariable GetHoistedVariable (AnonymousExpression ae)
@@ -5235,6 +5235,12 @@ namespace Mono.CSharp
 				return expr;
 			}
 		}
+
+		public MethodGroupExpr MethodGroup {
+			get {
+				return mg;
+			}
+		}
 		#endregion
 
 		protected override void CloneTo (CloneContext clonectx, Expression t)
@@ -5406,16 +5412,6 @@ namespace Mono.CSharp
 		protected virtual MethodGroupExpr DoResolveOverload (ResolveContext ec)
 		{
 			return mg.OverloadResolve (ec, ref arguments, null, OverloadResolver.Restrictions.None);
-		}
-
-		static MetaType[] GetVarargsTypes (MethodSpec mb, Arguments arguments)
-		{
-			AParametersCollection pd = mb.Parameters;
-
-			Argument a = arguments[pd.Count - 1];
-			Arglist list = (Arglist) a.Expr;
-
-			return list.ArgumentTypes;
 		}
 
 		public override string GetSignatureForError ()
@@ -8396,8 +8392,11 @@ namespace Mono.CSharp
 				return new IndexerExpr (indexers, type, this);
 			}
 
-			ec.Report.Error (21, loc, "Cannot apply indexing with [] to an expression of type `{0}'",
-				type.GetSignatureForError ());
+			if (type != InternalType.ErrorType) {
+				ec.Report.Error (21, loc, "Cannot apply indexing with [] to an expression of type `{0}'",
+					type.GetSignatureForError ());
+			}
+
 			return null;
 		}
 

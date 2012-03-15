@@ -458,7 +458,7 @@ namespace System.Net
 					exc = e;
 				}
 
-				if (exc != null) {
+				if (exc != null || pos == -1) {
 					cnc.HandleError (WebExceptionStatus.ServerProtocolViolation, exc, "ReadDone4");
 					return;
 				}
@@ -800,7 +800,7 @@ namespace System.Net
 			}
 
 			IAsyncResult result = null;
-			if (!chunkedRead || chunkStream.WantMore) {
+			if (!chunkedRead || (!chunkStream.DataAvailable && chunkStream.WantMore)) {
 				try {
 					result = s.BeginRead (buffer, offset, size, cb, state);
 					cb = null;

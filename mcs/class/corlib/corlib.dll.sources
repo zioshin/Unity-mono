@@ -622,6 +622,9 @@ System.Runtime.CompilerServices/CallConvCdecl.cs
 System.Runtime.CompilerServices/CallConvFastcall.cs
 System.Runtime.CompilerServices/CallConvThiscall.cs
 System.Runtime.CompilerServices/CallConvStdcall.cs
+System.Runtime.CompilerServices/CallerFilePathAttribute.cs
+System.Runtime.CompilerServices/CallerLineNumberAttribute.cs
+System.Runtime.CompilerServices/CallerMemberNameAttribute.cs
 System.Runtime.CompilerServices/CompilationRelaxations.cs
 System.Runtime.CompilerServices/CompilationRelaxationsAttribute.cs
 System.Runtime.CompilerServices/CompilerGeneratedAttribute.cs
@@ -641,9 +644,12 @@ System.Runtime.CompilerServices/ExtensionAttribute.cs
 System.Runtime.CompilerServices/FixedAddressValueTypeAttribute.cs
 System.Runtime.CompilerServices/FixedBufferAttribute.cs
 System.Runtime.CompilerServices/HasCopySemanticsAttribute.cs
+System.Runtime.CompilerServices/IAsyncStateMachine.cs
+System.Runtime.CompilerServices/ICriticalNotifyCompletion.cs
 System.Runtime.CompilerServices/IDispatchConstantAttribute.cs
 System.Runtime.CompilerServices/IUnknownConstantAttribute.cs
 System.Runtime.CompilerServices/IndexerNameAttribute.cs
+System.Runtime.CompilerServices/INotifyCompletion.cs
 System.Runtime.CompilerServices/InternalsVisibleToAttribute.cs
 System.Runtime.CompilerServices/IsBoxed.cs
 System.Runtime.CompilerServices/IsByValue.cs
