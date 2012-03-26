@@ -367,6 +367,7 @@ AC_SUBST(HOST_CC)
 AC_SUBST(BUILD_EXEEXT)
 
 AM_CONDITIONAL(CROSS_COMPILING, [test x$cross_compiling = xyes])
+AM_CONDITIONAL(IPHONE_XCOMP, [test x$PLATFORM_IPHONE_XCOMP = x1])
 AM_CONDITIONAL(USE_BATCH_FILES, [test x$host_win32 = xyes -a x$cross_compiling = xyes])
 
 # Set STDC_HEADERS
