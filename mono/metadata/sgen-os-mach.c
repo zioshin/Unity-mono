@@ -52,6 +52,7 @@ mono_sgen_resume_thread (SgenThreadInfo *info)
 gboolean
 mono_sgen_suspend_thread (SgenThreadInfo *info)
 {
+#ifndef PLATFORM_IPHONE_XCOMP
 	mach_msg_type_number_t num_state;
 	thread_state_t state;
 	kern_return_t ret;
@@ -98,6 +99,9 @@ mono_sgen_suspend_thread (SgenThreadInfo *info)
 		mono_gc_get_gc_callbacks ()->thread_suspend_func (info->runtime_data, &ctx);
 
 	return TRUE;
+#else
+	return FALSE;
+#endif
 }
 
 void
