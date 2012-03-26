@@ -111,8 +111,12 @@ if AMD64
 arch_sources += mach-support-amd64.c
 endif
 
+if IPHONE_XCOMP 
+arch_sources += mach-support-x86.c
+else
 if ARM
 arch_sources += mach-support-arm.c
+endif
 endif
 
 libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources)
