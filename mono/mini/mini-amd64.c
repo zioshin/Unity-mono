@@ -7905,11 +7905,13 @@ mono_arch_setup_jit_tls_data (MonoJitTlsData *tls)
 		lmf_tls_offset = mono_get_jit_tls_key ();
 		lmf_addr_tls_offset = mono_get_jit_tls_key ();
 
-		/* Only 64 tls entries can be accessed using inline code */
-		if (appdomain_tls_offset >= 64)
-			appdomain_tls_offset = -1;
-		if (lmf_tls_offset >= 64)
-			lmf_tls_offset = -1;
+	/* Only 64 tls entries can be accessed using inline code */
+	if (appdomain_tls_offset >= 64)
+		appdomain_tls_offset = -1;
+	if (lmf_tls_offset >= 64)
+		lmf_tls_offset = -1;
+	if (lmf_addr_tls_offset >= 64)
+		lmf_addr_tls_offset = -1;
 #else
 		tls_offset_inited = TRUE;
 #ifdef MONO_XEN_OPT
