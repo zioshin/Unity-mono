@@ -82,6 +82,7 @@ mono_runtime_cleanup_handlers (void)
  * should be the same as for a signal handler. Returns TRUE if the original handler
  * was called, false otherwise.
  */
+int (*gUnhandledExceptionHandler)(EXCEPTION_POINTERS*);
 gboolean
 SIG_HANDLER_SIGNATURE (mono_chain_signal)
 {
@@ -91,6 +92,12 @@ SIG_HANDLER_SIGNATURE (mono_chain_signal)
 	if (mono_old_win_toplevel_exception_filter) {
 		mono_win_chained_exception_filter_didrun = TRUE;
 		mono_win_chained_exception_filter_result = (*mono_old_win_toplevel_exception_filter)(info);
+		return TRUE;
+	}
+	if (gUnhandledExceptionHandler)
+	{
+		win32_chained_exception_filter_didrun = TRUE;
+		win32_chained_exception_filter_result = (*gUnhandledExceptionHandler)(info);
 		return TRUE;
 	}
 	return FALSE;
