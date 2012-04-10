@@ -101,3 +101,9 @@ mono_unity_socket_security_enabled_set (gboolean enabled)
 {
 	socket_security_enabled = enabled;
 }
+
+void mono_unity_g_free (void *ptr)
+{
+	g_free (ptr);
+}
+

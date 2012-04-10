@@ -29,5 +29,5 @@ FILE* unity_fopen( const char *name, const char *mode );
 
 extern gboolean mono_unity_socket_security_enabled_get (void);
 extern void mono_unity_socket_security_enabled_set (gboolean enabled);
-
+void mono_unity_g_free (void *ptr);
 #endif
