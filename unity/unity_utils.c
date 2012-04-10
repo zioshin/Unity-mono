@@ -106,3 +106,9 @@ void mono_unity_set_vprintf_func (vprintf_func func)
 {
 	set_vprintf_func (func);
 }
+
+void mono_unity_g_free (void *ptr)
+{
+	g_free (ptr);
+}
+
