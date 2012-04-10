@@ -161,3 +161,9 @@ unsigned mono_unity_get_all_classes_with_name_case (MonoImage *image, const char
 		*length_ref = length;
 	return length;
 }
+
+void mono_unity_g_free (void *ptr)
+{
+	g_free (ptr);
+}
+

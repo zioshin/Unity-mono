@@ -30,4 +30,5 @@ mono_bool mono_unity_class_is_interface (MonoClass* klass);
 FILE* unity_fopen( const char *name, const char *mode );
 #endif
 
+void mono_unity_g_free (void *ptr);
 #endif
