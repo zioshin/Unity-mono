@@ -46,6 +46,11 @@ extern uint32_t mono_threads_get_default_stacksize (void);
 
 void mono_threads_request_thread_dump (void);
 
+/* private functions unity exports to access */
+void mono_thread_suspend_all_other_threads (void);
+void mono_thread_push_appdomain_ref (MonoDomain *domain);
+void mono_thread_pop_appdomain_ref (void);
+
 MONO_END_DECLS
 
 #endif /* _MONO_METADATA_THREADS_H_ */
