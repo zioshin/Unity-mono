@@ -3634,7 +3634,7 @@ thread_end (MonoProfiler *prof, uintptr_t tid)
 			tls->thread = NULL;
 
 			/* FIXME Unity: Safe to free this? */
-			TlsSetValue (debugger_tls_id, NULL);
+			mono_native_tls_set_value (debugger_tls_id, NULL);
 			g_free(tls);
 		}
 	}
