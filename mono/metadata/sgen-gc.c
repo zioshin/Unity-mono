@@ -4913,6 +4913,13 @@ mono_gc_deregister_root (char* addr)
 	UNLOCK_GC;
 }
 
+void
+mono_gc_deregister_root_size (char* addr, size_t size)
+{
+	/* FIXME */
+	mono_gc_deregister_root (addr);
+}
+
 /*
  * ######################################################################
  * ########  Thread handling (stop/start code)

@@ -109,6 +109,11 @@ mono_gc_deregister_root (char* addr)
 }
 
 void
+mono_gc_deregister_root_size (char* addr, size_t size)
+{
+}
+
+void
 mono_gc_weak_link_add (void **link_addr, MonoObject *obj, gboolean track)
 {
 	*link_addr = obj;
