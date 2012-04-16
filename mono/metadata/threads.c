@@ -3150,7 +3150,7 @@ print_thread_dump (MonoInternalThread *thread, MonoThreadInfo *info)
 
 	fprintf (stdout, "%s", text->str);
 
-#if PLATFORM_WIN32 && TARGET_WIN32 && _DEBUG
+#if HOST_WIN32 && TARGET_WIN32 && _DEBUG
 	OutputDebugStringA(text->str);
 #endif
 
