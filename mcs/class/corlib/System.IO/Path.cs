@@ -356,8 +356,7 @@ namespace System.IO {
 						if (++start == path.Length || path [start] == DirectorySeparatorChar || path [start] == AltDirectorySeparatorChar)
 							break;
 					}
-					// Unity - always canonicalize to fix path issue on Windows with forward slashes
-					//canonicalize = start > 0;
+					canonicalize = start > 0;
 					
 					path = Directory.GetCurrentDirectory () + DirectorySeparatorStr + path;
 				} else if (DirectorySeparatorChar == '\\' &&
