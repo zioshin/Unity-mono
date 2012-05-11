@@ -1,4 +1,4 @@
-#if NET_2_0 && (!NET_2_1 || MONOTOUCH)
+#if NET_2_0 && (!NET_2_1 || MONOTOUCH || UNITY)
 
 namespace System.Net.Sockets
 {

@@ -49,6 +49,7 @@ System.Net/HttpListenerRequest.cs
 System.Net/HttpListenerResponse.cs
 System.Net.Security/LocalCertificateSelectionCallback.cs
 System.Net.Security/SslStream.cs
+System.Net.Sockets/SocketPolicyClient.cs
 System.Security.Cryptography/AsnEncodedData.cs
 System.Security.Cryptography/Oid.cs
 System.Security.Cryptography/OidCollection.cs
