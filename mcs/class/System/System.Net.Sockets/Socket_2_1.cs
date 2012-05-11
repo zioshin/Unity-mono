@@ -1565,7 +1565,7 @@ namespace System.Net.Sockets {
 #endif
 		IAsyncResult BeginConnect(EndPoint end_point, AsyncCallback callback, object state)
 		{
-			return BeginConnect(end_point,callback,state,false);
+			return BeginConnect(end_point,callback,state,true);
 		}
 
 		internal IAsyncResult BeginConnect(EndPoint end_point, AsyncCallback callback, object state, bool bypassSocketSecurity)
