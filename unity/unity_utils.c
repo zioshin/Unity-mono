@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #endif
 #include <mono/metadata/object.h>
+#include <mono/metadata/metadata.h>
 
 #ifdef WIN32
 #define UTF8_2_WIDE(src,dst) MultiByteToWideChar( CP_UTF8, 0, src, -1, dst, MAX_PATH )
@@ -107,3 +108,8 @@ void mono_unity_g_free (void *ptr)
 	g_free (ptr);
 }
 
+gboolean
+mono_unity_class_is_interface (MonoClass* klass)
+{
+	return MONO_CLASS_IS_INTERFACE(klass);
+}
