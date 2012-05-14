@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #endif
 #include <mono/metadata/object.h>
+#include <mono/metadata/metadata.h>
+
 #include <glib.h>
 
 #ifdef WIN32
@@ -112,3 +114,8 @@ void mono_unity_g_free (void *ptr)
 	g_free (ptr);
 }
 
+void
+mono_unity_class_is_interface (MonoClass* klass)
+{
+	return MONO_CLASS_IS_INTERFACE(klass);
+}
