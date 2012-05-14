@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef WIN32
-#include <windows.h>
-#include <io.h>
 #include <fcntl.h>
 #endif
 #include <mono/metadata/object.h>
 #include <mono/metadata/metadata.h>
+#include <mono/metadata/tabledefs.h>
+#include "mono/metadata/class-internals.h"
 
 #ifdef WIN32
 #define UTF8_2_WIDE(src,dst) MultiByteToWideChar( CP_UTF8, 0, src, -1, dst, MAX_PATH )
@@ -102,6 +102,7 @@ mono_unity_socket_security_enabled_set (gboolean enabled)
 {
 	socket_security_enabled = enabled;
 }
+
 
 void mono_unity_g_free (void *ptr)
 {
