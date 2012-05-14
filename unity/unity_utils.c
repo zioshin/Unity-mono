@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #endif
 #include <mono/metadata/object.h>
+#include <mono/metadata/metadata.h>
+
 #include <glib.h>
 
 #ifdef WIN32
@@ -62,6 +64,19 @@ FILE* unity_fopen( const char *name, const char *mode )
 	return _wfopen( wideName, wideMode );
 }
 
+LONG CALLBACK seh_handler(EXCEPTION_POINTERS* ep);
+LONG mono_unity_seh_handler(EXCEPTION_POINTERS* ep)
+{
+	return seh_handler(ep);
+}
+
+int (*gUnhandledExceptionHandler)(EXCEPTION_POINTERS*) = NULL;
+
+void mono_unity_set_unhandled_exception_handler(void* handler)
+{
+	gUnhandledExceptionHandler = handler;
+}
+
 #endif //Win32
 
 GString* gEmbeddingHostName = 0;
@@ -88,3 +103,13 @@ MonoString* mono_unity_get_embeddinghostname()
 	return mono_string_new_wrapper(gEmbeddingHostName->str);
 }
 
+void mono_unity_set_vprintf_func (vprintf_func func)
+{
+	set_vprintf_func (func);
+}
+
+void
+mono_unity_class_is_interface (MonoClass* klass)
+{
+	return MONO_CLASS_IS_INTERFACE(klass);
+}
