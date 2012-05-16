@@ -140,7 +140,8 @@ namespace System.Net
 			this.actualUri = uri;
 			this.proxy = GlobalProxySelection.Select;
 			this.webHeaders = new WebHeaderCollection (WebHeaderCollection.HeaderInfo.Request);
-		}		
+			ThrowOnError = true;
+		}
 		
 		[Obsolete ("Serialization is obsoleted for this type", false)]
 		protected HttpWebRequest (SerializationInfo serializationInfo, StreamingContext streamingContext) 
@@ -271,6 +272,8 @@ namespace System.Net
 		internal long InternalContentLength {
 			set { contentLength = value; }
 		}
+			
+		internal bool ThrowOnError { get; set; }
 		
 		public override string ContentType { 
 			get { return webHeaders ["Content-Type"]; }
@@ -553,7 +556,18 @@ namespace System.Net
 		public ServicePoint ServicePoint {
 			get { return GetServicePoint (); }
 		}
-		
+
+		internal ServicePoint ServicePointNoLock {
+			get { return servicePoint; }
+		}
+#if NET_4_5 || MOBILE
+		[MonoTODO ("for portable library support")]
+		public bool SupportsCookieContainer { 
+			get {
+				throw new NotImplementedException ();
+			}
+		}
+#endif
 		public override int Timeout { 
 			get { return timeout; }
 			set {
@@ -815,8 +829,18 @@ namespace System.Net
 
 		void CheckIfForceWrite ()
 		{
-			if (writeStream == null || writeStream.RequestWritten || (contentLength < 0 && writeStream.CanWrite == true) || !InternalAllowBuffering)
+			if (writeStream == null || writeStream.RequestWritten || !InternalAllowBuffering)
 				return;
+#if NET_4_0
+			if (contentLength < 0 && writeStream.CanWrite == true && writeStream.WriteBufferLength <= 0)
+				return;
+
+			if (contentLength < 0 && writeStream.WriteBufferLength > 0)
+				InternalContentLength = writeStream.WriteBufferLength;
+#else
+			if (contentLength < 0 && writeStream.CanWrite == true)
+				return;
+#endif
 
 			// This will write the POST/PUT if the write stream already has the expected
 			// amount of bytes in it (ContentLength) (bug #77753) or if the write stream
@@ -1487,13 +1511,16 @@ namespace System.Net
 							bodyBuffer = null;
 							return true;
 						}
-						
+
+						if (!ThrowOnError)
+							return false;
+							
 						writeStream.InternalClose ();
 						writeStream = null;
 						webResponse.Close ();
 						webResponse = null;
 						bodyBuffer = null;
-
+							
 						throw new WebException ("This request requires buffering " +
 									"of data for authentication or " +
 									"redirection to be sucessful.");
@@ -1527,6 +1554,8 @@ namespace System.Net
 						bodyBufferLength = writeStream.WriteBufferLength;
 					}
 					b = Redirect (result, code);
+					if (b && ntlm_auth_state != 0)
+						ntlm_auth_state = 0;
 				}
 
 				if (resp != null && c >= 300 && c != 304)
@@ -1534,6 +1563,9 @@ namespace System.Net
 
 				return b;
 			}
+				
+			if (!ThrowOnError)
+				return false;
 
 			if (writeStream != null) {
 				writeStream.InternalClose ();

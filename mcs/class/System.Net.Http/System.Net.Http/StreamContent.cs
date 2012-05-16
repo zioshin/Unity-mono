@@ -53,6 +53,11 @@ namespace System.Net.Http
 			this.bufferSize = bufferSize;
 		}
 
+		protected override Task<Stream> CreateContentReadStreamAsync ()
+		{
+			return Task.FromResult (content);
+		}
+
 		protected override void Dispose (bool disposing)
 		{
 			if (disposing) {
@@ -62,7 +67,7 @@ namespace System.Net.Http
 			base.Dispose (disposing);
 		}
 
-		protected override Task SerializeToStreamAsync (Stream stream, TransportContext context)
+		protected internal override Task SerializeToStreamAsync (Stream stream, TransportContext context)
 		{
 			return content.CopyToAsync (stream, bufferSize);
 		}

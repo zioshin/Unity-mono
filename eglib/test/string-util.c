@@ -296,27 +296,37 @@ test_split_set ()
 RESULT
 test_strreverse ()
 {
+	RESULT res = OK;
 	gchar *a = g_strdup ("onetwothree");
 	gchar *a_target = "eerhtowteno";
 	gchar *b = g_strdup ("onetwothre");
 	gchar *b_target = "erhtowteno";
+	gchar *c = g_strdup ("");
+	gchar *c_target = "";
 
 	g_strreverse (a);
 	if (strcmp (a, a_target)) {
-		g_free (b);
-		g_free (a);
-		return FAILED("strreverse failed. Expecting: '%s' and got '%s'\n", a, a_target);
+		res = FAILED("strreverse failed. Expecting: '%s' and got '%s'\n", a, a_target);
+		goto cleanup;
 	}
 
 	g_strreverse (b);
 	if (strcmp (b, b_target)) {
-		g_free (b);
-		g_free (a);
-		return FAILED("strreverse failed. Expecting: '%s' and got '%s'\n", b, b_target);
+		res = FAILED("strreverse failed. Expecting: '%s' and got '%s'\n", b, b_target);
+		goto cleanup;
 	}
+
+	g_strreverse (c);
+	if (strcmp (c, c_target)) {
+		res = FAILED("strreverse failed. Expecting: '%s' and got '%s'\n", b, b_target);
+		goto cleanup;
+	}
+
+cleanup:
+	g_free (c);
 	g_free (b);
 	g_free (a);
-	return OK;
+	return res;
 }
 
 RESULT
@@ -404,6 +414,8 @@ test_strstrip ()
 RESULT
 test_filename_to_uri ()
 {
+#ifdef G_OS_WIN32
+#else
 	char *s;
 
 	urit ("/a", "file:///a");
@@ -422,6 +434,7 @@ test_filename_to_uri ()
 	urit ("/@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", "file:///@ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 	errit ("a");
 	errit ("./hola");
+#endif
 	
 	return OK;
 }
@@ -433,6 +446,8 @@ test_filename_to_uri ()
 RESULT
 test_filename_from_uri ()
 {
+#ifdef G_OS_WIN32
+#else
 	char *s;
 
 	fileit ("file:///a", "/a");
@@ -446,6 +461,7 @@ test_filename_from_uri ()
 	ferrit ("file:///%");
 	ferrit ("file:///%0");
 	ferrit ("file:///%jj");
+#endif
 	
 	return OK;
 }

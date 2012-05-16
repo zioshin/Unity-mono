@@ -170,6 +170,7 @@ public class Tests : TestsBase
 	double field_double;
 	Thread field_class;
 	IntPtr field_intptr;
+	int? field_nullable;
 	static int static_i = 55;
 	static string static_s = "A";
 	public const int literal_i = 56;
@@ -304,6 +305,7 @@ public class Tests : TestsBase
 			ss6 (b);
 		} catch {
 		}
+		ss7 ();
 		ss_regress_654694 ();
 	}
 
@@ -350,13 +352,32 @@ public class Tests : TestsBase
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void ss6 (bool b) {
 		if (b) {
-			ss7 ();
+			ss6_2 ();
 			throw new Exception ();
 		}
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static void ss6_2 () {
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void ss7 () {
+		try {
+			ss7_2 ();
+			ss7_3 ();
+		} catch {
+		}
+		ss7_2 ();
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static void ss7_2 () {
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static void ss7_3 () {
+		throw new Exception ();
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
@@ -470,8 +491,9 @@ public class Tests : TestsBase
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void locals () {
+		string s = null;
 		locals1 (null);
-		locals2<string> (null, 5, "ABC");
+		locals2<string> (null, 5, "ABC", ref s);
 		locals3 ();
 		locals6 ();
 	}
@@ -486,7 +508,7 @@ public class Tests : TestsBase
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
-	public static void locals2<T> (string[] args, int arg, T t) {
+	public static void locals2<T> (string[] args, int arg, T t, ref string rs) {
 		long i = 42;
 		string s = "AB";
 
@@ -496,6 +518,7 @@ public class Tests : TestsBase
 			if (t != null)
 				i ++;
 		}
+		rs = "A";
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]

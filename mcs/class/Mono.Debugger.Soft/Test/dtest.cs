@@ -502,7 +502,25 @@ public class DebuggerTests
 		e = GetNextEvent ();
 		Assert.IsTrue (e is StepEvent);
 		Assert.AreEqual ("ss6", (e as StepEvent).Method.Name);
+		req.Disable ();
 
+		// Check that a step over stops at an EH clause
+		e = run_until ("ss7_2");
+		req = vm.CreateStepRequest (e.Thread);
+		req.Depth = StepDepth.Out;
+		req.Enable ();
+		vm.Resume ();
+		e = GetNextEvent ();
+		Assert.IsTrue (e is StepEvent);
+		Assert.AreEqual ("ss7", (e as StepEvent).Method.Name);
+		req.Disable ();
+		req = vm.CreateStepRequest (e.Thread);
+		req.Depth = StepDepth.Over;
+		req.Enable ();
+		vm.Resume ();
+		e = GetNextEvent ();
+		Assert.IsTrue (e is StepEvent);
+		Assert.AreEqual ("ss7", (e as StepEvent).Method.Name);
 		req.Disable ();
 	}
 
@@ -867,7 +885,6 @@ public class DebuggerTests
 		AssertValue (Int32.MaxValue - 5, (f as StructMirror).Fields [0]);
 
 		// enums
-
 		FieldInfoMirror field = o.Type.GetField ("field_enum");
 		f = o.GetValue (field);
 		(f as EnumMirror).Value = 5;
@@ -884,6 +901,20 @@ public class DebuggerTests
 		field = o.Type.GetField ("generic_field_struct");
 		f = o.GetValue (field);
 		o.SetValue (field, f);
+
+		// nullables
+		field = o.Type.GetField ("field_nullable");
+		f = o.GetValue (field);
+		AssertValue (0, (f as StructMirror).Fields [0]);
+		AssertValue (false, (f as StructMirror).Fields [1]);
+		o.SetValue (field, vm.CreateValue (6));
+		f = o.GetValue (field);
+		AssertValue (6, (f as StructMirror).Fields [0]);
+		AssertValue (true, (f as StructMirror).Fields [1]);
+		o.SetValue (field, vm.CreateValue (null));
+		f = o.GetValue (field);
+		AssertValue (0, (f as StructMirror).Fields [0]);
+		AssertValue (false, (f as StructMirror).Fields [1]);
 
 		// Argument checking
 		AssertThrows<ArgumentNullException> (delegate () {
@@ -1376,8 +1407,8 @@ public class DebuggerTests
 		StackFrame frame = e.Thread.GetFrames () [0];
 
 		var locals = frame.Method.GetLocals ();
-		Assert.AreEqual (6, locals.Length);
-		for (int i = 0; i < 6; ++i) {
+		Assert.AreEqual (7, locals.Length);
+		for (int i = 0; i < 7; ++i) {
 			if (locals [i].Name == "args") {
 				Assert.IsTrue (locals [i].IsArg);
 				Assert.AreEqual ("String[]", locals [i].Type.Name);
@@ -1395,6 +1426,9 @@ public class DebuggerTests
 				Assert.AreEqual ("String", locals [i].Type.Name);
 			} else if (locals [i].Name == "t") {
 				// gshared
+				Assert.IsTrue (locals [i].IsArg);
+				Assert.AreEqual ("String", locals [i].Type.Name);
+			} else if (locals [i].Name == "rs") {
 				Assert.IsTrue (locals [i].IsArg);
 				Assert.AreEqual ("String", locals [i].Type.Name);
 			} else {
@@ -1563,7 +1597,7 @@ public class DebuggerTests
 	public void Dispose () {
 		run_until ("Main");
 
-		vm.Dispose ();
+		vm.Detach ();
 
 		var e = GetNextEvent ();
 		Assert.IsInstanceOfType (typeof (VMDisconnectEvent), e);
@@ -1665,7 +1699,7 @@ public class DebuggerTests
 
 	[Test]
 	public void Suspend () {
-		vm.Dispose ();
+		vm.Detach ();
 
 		Start (new string [] { "dtest-app.exe", "suspend-test" });
 
@@ -1807,11 +1841,27 @@ public class DebuggerTests
 		m = t.GetMethod ("invoke_return_nullable");
 		v = this_obj.InvokeMethod (e.Thread, m, null);
 		Assert.IsInstanceOfType (typeof (StructMirror), v);
+		var s = v as StructMirror;
+		AssertValue (42, s.Fields [0]);
+		AssertValue (true, s.Fields [1]);
+
+		// pass nullable as this
+		//m = vm.RootDomain.Corlib.GetType ("System.Object").GetMethod ("ToString");
+		m = s.Type.GetMethod ("ToString");
+		v = s.InvokeMethod (e.Thread, m, null);
 
 		// return nullable null
 		m = t.GetMethod ("invoke_return_nullable_null");
 		v = this_obj.InvokeMethod (e.Thread, m, null);
-		AssertValue (null, v);
+		Assert.IsInstanceOfType (typeof (StructMirror), v);
+		s = v as StructMirror;
+		AssertValue (0, s.Fields [0]);
+		AssertValue (false, s.Fields [1]);
+
+		// pass nullable as this
+		//m = vm.RootDomain.Corlib.GetType ("System.Object").GetMethod ("ToString");
+		m = s.Type.GetMethod ("ToString");
+		v = s.InvokeMethod (e.Thread, m, null);
 
 		// pass primitive
 		m = t.GetMethod ("invoke_pass_primitive");
@@ -2028,7 +2078,7 @@ public class DebuggerTests
 
 	[Test]
 	public void InvokeSingleThreaded () {
-		vm.Dispose ();
+		vm.Detach ();
 
 		Start (new string [] { "dtest-app.exe", "invoke-single-threaded" });
 
@@ -2125,6 +2175,11 @@ public class DebuggerTests
 		p = frame.Method.GetParameters ()[2];
 		frame.SetValue (p, vm.RootDomain.CreateString ("DEF"));
 		AssertValue ("DEF", frame.GetValue (p));
+
+		// byref
+		p = frame.Method.GetParameters ()[3];
+		frame.SetValue (p, vm.RootDomain.CreateString ("DEF2"));
+		AssertValue ("DEF2", frame.GetValue (p));
 
 		// argument checking
 
@@ -2350,7 +2405,7 @@ public class DebuggerTests
 
 	[Test]
 	public void ExceptionFilter2 () {
-		vm.Dispose ();
+		vm.Detach ();
 
 		Start (new string [] { "dtest-excfilter.exe" });
 
@@ -2450,7 +2505,7 @@ public class DebuggerTests
 
 	[Test]
 	public void Domains () {
-		vm.Dispose ();
+		vm.Detach ();
 
 		Start (new string [] { "dtest-app.exe", "domain-test" });
 
@@ -2545,7 +2600,7 @@ public class DebuggerTests
 
 	[Test]
 	public void RefEmit () {
-		vm.Dispose ();
+		vm.Detach ();
 
 		Start (new string [] { "dtest-app.exe", "ref-emit-test" });
 
@@ -2581,7 +2636,7 @@ public class DebuggerTests
 	[Test]
 	public void StackTraceInNative () {
 		// Check that stack traces can be produced for threads in native code
-		vm.Dispose ();
+		vm.Detach ();
 
 		Start (new string [] { "dtest-app.exe", "frames-in-native" });
 

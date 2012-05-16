@@ -130,7 +130,8 @@ namespace System.Net
 		
 		public void Write (byte [] buffer, int offset, int size)
 		{
-			InternalWrite (buffer, ref offset, size);
+			if (offset < size)
+				InternalWrite (buffer, ref offset, size);
 		}
 		
 		void InternalWrite (byte [] buffer, ref int offset, int size)
@@ -185,7 +186,7 @@ namespace System.Net
 					if (ch == null || ch.Bytes == null)
 						continue;
 					if (ch.Bytes.Length > 0 && ch.Offset < ch.Bytes.Length)
-						return true;
+						return (state != State.Body);
 				}
 				return false;
 			}

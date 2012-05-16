@@ -70,6 +70,12 @@ namespace Mono.CSharp
 			}
 		}
 
+		public Dictionary<string, MemberCore> DefinedNames {
+			get {
+				return defined_names;
+			}
+		}
+
 		public TypeDefinition PartialContainer {
 			get {
 				return main_container;
@@ -85,14 +91,13 @@ namespace Mono.CSharp
 			}
 		}
 
-#if FULL_AST
 		//
-		// Any unattached attributes during parsing get added here.
+		// Any unattached attributes during parsing get added here. User
+		// by FULL_AST mode
 		//
 		public Attributes UnattachedAttributes {
 			get; set;
 		}
-#endif
 
 		public virtual void AddCompilerGeneratedClass (CompilerGeneratedContainer c)
 		{
@@ -2379,16 +2384,6 @@ namespace Mono.CSharp
 			}
 
 			base.AddNameToContainer (symbol, name);
-		}
-
-		public override void VerifyMembers ()
-		{
-			base.VerifyMembers ();
-
-			if (containers != null) {
-				foreach (var t in containers)
-					t.VerifyMembers ();
-			}
 		}
 
 		public override void ApplyAttributeBuilder (Attribute a, MethodSpec ctor, byte[] cdata, PredefinedAttributes pa)

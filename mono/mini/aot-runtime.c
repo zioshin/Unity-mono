@@ -804,7 +804,8 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 				kind = decode_value (p, &p);
 
 				/* Can't decode this */
-				g_assert (target);
+				if (!target)
+					return FALSE;
 				if (target->wrapper_type == MONO_WRAPPER_STELEMREF) {
 					info = mono_marshal_get_wrapper_info (target);
 
@@ -840,7 +841,8 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 				if (!klass)
 					return FALSE;
 
-				g_assert (target);
+				if (!target)
+					return FALSE;
 				if (klass != target->klass)
 					return FALSE;
 
@@ -853,6 +855,12 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 						return FALSE;
 					ref->method = mono_marshal_get_struct_to_ptr (klass);
 				}
+			} else if (subtype == WRAPPER_SUBTYPE_SYNCHRONIZED_INNER) {
+				MonoMethod *m = decode_resolve_method_ref (module, p, &p);
+
+				if (!m)
+					return FALSE;
+				ref->method = mono_marshal_get_synchronized_inner_wrapper (m);
 			} else {
 				if (subtype == WRAPPER_SUBTYPE_FAST_MONITOR_ENTER)
 					desc = mono_method_desc_new ("Monitor:Enter", FALSE);
@@ -885,7 +893,8 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 				if (!m)
 					return FALSE;
 
-				g_assert (target);
+				if (!target)
+					return FALSE;
 				g_assert (target->wrapper_type == MONO_WRAPPER_MANAGED_TO_MANAGED);
 
 				info = mono_marshal_get_wrapper_info (target);
@@ -902,7 +911,8 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 			char *name;
 
 			if (subtype == WRAPPER_SUBTYPE_ICALL_WRAPPER) {
-				g_assert (target);
+				if (!target)
+					return FALSE;
 
 				name = (char*)p;
 				if (strcmp (target->name, name) != 0)
@@ -915,7 +925,8 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 					return FALSE;
 
 				/* This should only happen when looking for an extra method */
-				g_assert (target);
+				if (!target)
+					return FALSE;
 				if (mono_marshal_method_from_wrapper (target) == m)
 					ref->method = target;
 				else
@@ -937,7 +948,8 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 		case MONO_WRAPPER_RUNTIME_INVOKE: {
 			int subtype = decode_value (p, &p);
 
-			g_assert (target);
+			if (!target)
+				return FALSE;
 
 			if (subtype == WRAPPER_SUBTYPE_RUNTIME_INVOKE_DYNAMIC) {
 				if (strcmp (target->name, "runtime_invoke_dynamic") != 0)
@@ -972,7 +984,8 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 			 * These wrappers are associated with a signature, not with a method.
 			 * Since we can't decode them into methods, they need a target method.
 			 */
-			g_assert (target);
+			if (!target)
+				return FALSE;
 
 			if (sig_matches_target (module, target, p, &p))
 				ref->method = target;
@@ -1933,7 +1946,7 @@ decode_llvm_mono_eh_frame (MonoAotModule *amodule, MonoDomain *domain,
 	guint8 *fde, *cie, *code_start, *code_end;
 	int version, fde_count;
 	gint32 *table;
-	int i, j, pos, left, right, offset, offset1, offset2, code_len;
+	int i, j, pos, left, right, offset, offset1, offset2, code_len, func_encoding;
 	MonoJitExceptionInfo *ei;
 	guint32 fde_len, ei_len, nested_len, nindex;
 	gpointer *type_info;
@@ -1948,8 +1961,14 @@ decode_llvm_mono_eh_frame (MonoAotModule *amodule, MonoDomain *domain,
 
 	/* Header */
 	version = *p;
-	g_assert (version == 1);
+	g_assert (version == 1 || version == 2);
 	p ++;
+	if (version == 2) {
+		func_encoding = *p;
+		p ++;
+	} else {
+		func_encoding = DW_EH_PE_pcrel;
+	}
 	p = ALIGN_PTR_TO (p, 4);
 
 	fde_count = *(guint32*)p;
@@ -1968,11 +1987,23 @@ decode_llvm_mono_eh_frame (MonoAotModule *amodule, MonoDomain *domain,
 		pos = (left + right) / 2;
 
 		offset1 = table [(pos * 2)];
-		if (pos + 1 == fde_count)
+		if (pos + 1 == fde_count) {
 			/* FIXME: */
 			offset2 = amodule->code_end - amodule->code;
-		else
+		} else {
+			/* Encoded as DW_EH_PE_pcrel, but relative to mono_eh_frame */
 			offset2 = table [(pos + 1) * 2];
+		}
+
+		if (func_encoding == DW_EH_PE_absptr) {
+			/*
+			 * Encoded as DW_EH_PE_absptr, because the ios linker can move functions inside object files to make thumb work,
+			 * so the offsets between two symbols in the text segment are not assembler constant.
+			 */
+			g_assert (sizeof(gpointer) == 4);
+			offset1 -= (gint32)(gsize)amodule->mono_eh_frame;
+			offset2 -= (gint32)(gsize)amodule->mono_eh_frame;
+		}
 
 		if (offset < offset1)
 			right = pos;
@@ -1982,12 +2013,21 @@ decode_llvm_mono_eh_frame (MonoAotModule *amodule, MonoDomain *domain,
 			break;
 	}
 
-	code_start = amodule->mono_eh_frame + table [(pos * 2)];
-	/* This won't overflow because there is +1 entry in the table */
-	code_end = amodule->mono_eh_frame + table [(pos * 2) + 2];
+	if (func_encoding == DW_EH_PE_absptr) {
+		code_start = (gpointer)(gsize)table [(pos * 2)];
+		code_end = (gpointer)(gsize)table [(pos * 2) + 2];
+	} else {
+		code_start = amodule->mono_eh_frame + table [(pos * 2)];
+		/* This won't overflow because there is +1 entry in the table */
+		code_end = amodule->mono_eh_frame + table [(pos * 2) + 2];
+	}
 	code_len = code_end - code_start;
 
 	g_assert (code >= code_start && code < code_end);
+
+	if (amodule->thumb_end && (guint8*)code_start < amodule->thumb_end)
+		/* Clear thumb flag */
+		code_start = (guint8*)(((mgreg_t)code_start) & ~1);
 
 	fde = amodule->mono_eh_frame + table [(pos * 2) + 1];	
 	/* This won't overflow because there is +1 entry in the table */
@@ -2478,6 +2518,9 @@ mono_aot_find_jit_info (MonoDomain *domain, MonoImage *image, gpointer addr)
 	code_offsets = amodule->sorted_code_offsets;
 	offsets_len = amodule->sorted_code_offsets_len;
 
+	if (offsets_len > 0 && (offset < code_offsets [0] || offset >= (amodule->code_end - amodule->code)))
+		return NULL;
+
 	/* Binary search in the sorted_code_offsets table */
 	left = 0;
 	right = offsets_len;
@@ -2550,9 +2593,14 @@ mono_aot_find_jit_info (MonoDomain *domain, MonoImage *image, gpointer addr)
 
 			p = amodule->blob + table [(pos * 2) + 1];
 			is_wrapper = decode_value (p, &p);
+			if (is_wrapper)
+				/* Happens when a random address is passed in which matches a not-yey called wrapper encoded using its name */
+				return NULL;
 			g_assert (!is_wrapper);
 			method = decode_resolve_method_ref (amodule, p, &p);
-			g_assert (method);
+			if (!method)
+				/* Ditto */
+				return NULL;
 		} else {
 			token = mono_metadata_make_token (MONO_TABLE_METHOD, method_index + 1);
 			method = mono_get_method (image, token, NULL);

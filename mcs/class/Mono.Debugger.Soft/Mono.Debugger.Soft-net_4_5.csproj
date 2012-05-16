@@ -54,6 +54,7 @@
    <Compile Include="Mono.Debugger.Soft\ILInstruction.cs" />
    <Compile Include="Mono.Debugger.Soft\InterfaceMappingMirror.cs" />
    <Compile Include="Mono.Debugger.Soft\PrimitiveValue.cs" />
+   <Compile Include="Mono.Debugger.Soft\PointerValue.cs" />
    <Compile Include="Mono.Debugger.Soft\VMDisconnectedException.cs" />
    <Compile Include="Mono.Debugger.Soft\Mirror.cs" />
    <Compile Include="Mono.Debugger.Soft\EnumMirror.cs" />
@@ -124,7 +125,7 @@
     <PreBuildEvent></PreBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-        <Reference Include="mscorlib.dll">
+    <Reference Include="mscorlib.dll">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>mscorlib.dll</HintPath>
     </Reference>

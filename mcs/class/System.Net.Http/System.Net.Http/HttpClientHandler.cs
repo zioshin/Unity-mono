@@ -46,6 +46,7 @@ namespace System.Net.Http
 		bool useCookies;
 		bool useDefaultCredentials;
 		bool useProxy;
+		ClientCertificateOption certificate;
 
 		public HttpClientHandler ()
 		{
@@ -71,6 +72,15 @@ namespace System.Net.Http
 			}
 			set {
 				automaticDecompression = value;
+			}
+		}
+
+		public ClientCertificateOption ClientCertificateOptions {
+			get {
+				return certificate;
+			}
+			set {
+				certificate = value;
 			}
 		}
 
@@ -130,6 +140,9 @@ namespace System.Net.Http
 				return proxy;
 			}
 			set {
+				if (!UseProxy)
+					throw new InvalidOperationException ();
+
 				proxy = value;
 			}
 		}
@@ -187,10 +200,8 @@ namespace System.Net.Http
 
 		HttpWebRequest CreateWebRequest (HttpRequestMessage request)
 		{
-			//var factory = Activator.CreateInstance (typeof (IWebRequestCreate).Assembly.GetType ("System.Net.HttpRequestCreator"), true) as IWebRequestCreate;
-			//var wr = (HttpWebRequest) factory.Create (request.RequestUri);
-
 			var wr = new HttpWebRequest (request.RequestUri);
+			wr.ThrowOnError = false;
 
 			wr.ConnectionGroupName = "HttpClientHandler";
 			wr.Method = request.Method.Method;
@@ -230,11 +241,10 @@ namespace System.Net.Http
 			var headers = wr.Headers;
 			foreach (var header in request.Headers) {
 				foreach (var value in header.Value) {
-					// TODO: Have to call simpler Add
-					headers.Add (header.Key, value);
+					headers.AddValue (header.Key, value);
 				}
 			}
-
+			
 			return wr;
 		}
 
@@ -264,10 +274,18 @@ namespace System.Net.Http
 			var wrequest = CreateWebRequest (request);
 
 			if (request.Content != null) {
-				throw new NotImplementedException ();
+				var headers = wrequest.Headers;
+				foreach (var header in request.Content.Headers) {
+					foreach (var value in header.Value) {
+						headers.AddValue (header.Key, value);
+					}
+				}
+				
+				var stream = wrequest.GetRequestStream ();
+				await request.Content.CopyToAsync (stream);
 			}
 
-			// FIXME: Why GetResponseAsync does not accept cancellationToken
+			// FIXME: GetResponseAsync does not accept cancellationToken
 			var wresponse = (HttpWebResponse) await wrequest.GetResponseAsync ().ConfigureAwait (false);
 			return CreateResponseMessage (wresponse, request);
 		}

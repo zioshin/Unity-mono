@@ -8,6 +8,7 @@
  *
  * Copyright 2001-2003 Ximian, Inc (http://www.ximian.com)
  * Copyright 2004-2009 Novell, Inc (http://www.novell.com)
+ * Copyright 2012 Xamarin Inc
  */
 #undef ASSEMBLY_LOAD_DEBUG
 #include <config.h>
@@ -73,7 +74,7 @@
  * Changes which are already detected at runtime, like the addition
  * of icalls, do not require an increment.
  */
-#define MONO_CORLIB_VERSION 100
+#define MONO_CORLIB_VERSION 101
 
 typedef struct
 {

@@ -3171,10 +3171,16 @@ mono_resolve_patch_target (MonoMethod *method, MonoDomain *domain, guint8 *code,
 	case MONO_PATCH_INFO_ICALL_ADDR:
 		/* run_cctors == 0 -> AOT */
 		if (patch_info->data.method->flags & METHOD_ATTRIBUTE_PINVOKE_IMPL) {
+			const char *exc_class;
+			const char *exc_arg;
+
 			if (run_cctors) {
-				target = mono_lookup_pinvoke_call (patch_info->data.method, NULL, NULL);
-				if (!target)
+				target = mono_lookup_pinvoke_call (patch_info->data.method, &exc_class, &exc_arg);
+				if (!target) {
+					if (mono_aot_only)
+						mono_raise_exception (mono_exception_from_name_msg (mono_defaults.corlib, "System", exc_class, exc_arg));
 					g_error ("Unable to resolve pinvoke method '%s' Re-run with MONO_LOG_LEVEL=debug for more information.\n", mono_method_full_name (patch_info->data.method, TRUE));
+				}
 			} else {
 				target = NULL;
 			}
@@ -5470,6 +5476,14 @@ mono_jit_compile_method_with_opt (MonoMethod *method, guint32 opt, MonoException
 		target_domain = mono_get_root_domain ();
 	else 
 		target_domain = domain;
+
+	if (method->wrapper_type == MONO_WRAPPER_UNKNOWN) {
+		WrapperInfo *info = mono_marshal_get_wrapper_info (method);
+
+		g_assert (info);
+		if (info->subtype == WRAPPER_SUBTYPE_SYNCHRONIZED_INNER)
+			method = info->d.synchronized_inner.method;
+	}
 
 	info = lookup_method (target_domain, method);
 	if (info) {

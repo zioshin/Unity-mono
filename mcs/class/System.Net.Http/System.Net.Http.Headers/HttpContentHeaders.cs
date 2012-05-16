@@ -51,6 +51,15 @@ namespace System.Net.Http.Headers
 				return GetValues<string> ("Content-Encoding");
 			}
 		}
+		
+		public ContentDispositionHeaderValue ContentDisposition {
+			get {
+				return GetValue<ContentDispositionHeaderValue> ("Content-Disposition");
+			}
+			set {
+				AddOrRemove ("Content-Disposition", value);
+			}
+		}
 
 		public ICollection<string> ContentLanguage {
 			get {
@@ -116,7 +125,7 @@ namespace System.Net.Http.Headers
 				return GetValue<DateTimeOffset?> ("Expires");
 			}
 			set {
-				AddOrRemove ("Expires", value);
+				AddOrRemove ("Expires", value, Parser.DateTime.ToString);
 			}
 		}
 
@@ -125,7 +134,7 @@ namespace System.Net.Http.Headers
 				return GetValue<DateTimeOffset?> ("Last-Modified");
 			}
 			set {
-				AddOrRemove ("Last-Modified", value);
+				AddOrRemove ("Last-Modified", value, Parser.DateTime.ToString);
 			}
 		}
 	}

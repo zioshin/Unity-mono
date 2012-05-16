@@ -29,6 +29,7 @@
 using System.Threading;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace System.Net.Http
 {
@@ -252,10 +253,10 @@ namespace System.Net.Http
 				request.Headers.AddHeaders (headers);
 			}
 
-			return SendAsyncWorker (request, cancellationToken);
+			return SendAsyncWorker (request, completionOption, cancellationToken);
 		}
 
-		async Task<HttpResponseMessage> SendAsyncWorker (HttpRequestMessage request, CancellationToken cancellationToken)
+		async Task<HttpResponseMessage> SendAsyncWorker (HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken)
 		{
 			try {
 				if (cancellation_token == null)
@@ -264,16 +265,63 @@ namespace System.Net.Http
 				using (var cts = CancellationTokenSource.CreateLinkedTokenSource (cancellation_token.Token, cancellationToken)) {
 					cts.CancelAfter (timeout);
 
-					var response = await handler.SendAsync (request, cts.Token).ConfigureAwait (false);
+					var task = handler.SendAsync (request, cts.Token);
+					if (task == null)
+						throw new InvalidOperationException ("Handler failed to return a value");
+					
+					var response = await task.ConfigureAwait (false);
 					if (response == null)
 						throw new InvalidOperationException ("Handler failed to return a response");
 
+					//
+					// Read the content when default HttpCompletionOption.ResponseContentRead is set
+					//
+					if (response.Content != null && (completionOption & HttpCompletionOption.ResponseHeadersRead) == 0) {
+						await response.Content.LoadIntoBufferAsync (MaxResponseContentBufferSize).ConfigureAwait (false);
+					}
+					
 					return response;
 				}
 			} finally {
 				cancellation_token.Dispose ();
 				cancellation_token = null;
 			}
+		}
+
+		public async Task<byte[]> GetByteArrayAsync (string requestUri)
+		{
+			var resp = await GetAsync (requestUri, HttpCompletionOption.ResponseContentRead).ConfigureAwait (false);
+			return await resp.Content.ReadAsByteArrayAsync ().ConfigureAwait (false);
+		}
+
+		public async Task<byte[]> GetByteArrayAsync (Uri requestUri)
+		{
+			var resp = await GetAsync (requestUri, HttpCompletionOption.ResponseContentRead).ConfigureAwait (false);
+			return await resp.Content.ReadAsByteArrayAsync ().ConfigureAwait (false);
+		}
+
+		public async Task<Stream> GetStreamAsync (string requestUri)
+		{
+			var resp = await GetAsync (requestUri, HttpCompletionOption.ResponseContentRead).ConfigureAwait (false);
+			return await resp.Content.ReadAsStreamAsync ().ConfigureAwait (false);
+		}
+
+		public async Task<Stream> GetStreamAsync (Uri requestUri)
+		{
+			var resp = await GetAsync (requestUri, HttpCompletionOption.ResponseContentRead).ConfigureAwait (false);
+			return await resp.Content.ReadAsStreamAsync ().ConfigureAwait (false);
+		}
+
+		public async Task<string> GetStringAsync (string requestUri)
+		{
+			var resp = await GetAsync (requestUri, HttpCompletionOption.ResponseContentRead).ConfigureAwait (false);
+			return await resp.Content.ReadAsStringAsync ().ConfigureAwait (false);
+		}
+
+		public async Task<string> GetStringAsync (Uri requestUri)
+		{
+			var resp = await GetAsync (requestUri, HttpCompletionOption.ResponseContentRead).ConfigureAwait (false);
+			return await resp.Content.ReadAsStringAsync ().ConfigureAwait (false);
 		}
 	}
 }

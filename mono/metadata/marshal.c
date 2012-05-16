@@ -1466,11 +1466,7 @@ conv_to_icall (MonoMarshalConv conv)
 	case MONO_MARSHAL_CONV_LPWSTR_STR:
 		return mono_string_from_utf16;
 	case MONO_MARSHAL_CONV_LPTSTR_STR:
-#ifdef TARGET_WIN32
-		return mono_string_from_utf16;
-#else
 		return mono_string_new_wrapper;
-#endif
 	case MONO_MARSHAL_CONV_LPSTR_STR:
 		return mono_string_new_wrapper;
 	case MONO_MARSHAL_CONV_STR_LPTSTR:
@@ -6145,14 +6141,15 @@ emit_marshal_string (EmitMarshalContext *m, int argnum, MonoType *t,
 			mono_mb_emit_managed_call (mb, m, NULL);
 			mono_mb_emit_icall (mb, mono_string_new_len_wrapper);
 			mono_mb_emit_byte (mb, CEE_STIND_REF);
-		} else if (t->byref && (t->attrs & PARAM_ATTRIBUTE_OUT)) {
+		} else if (t->byref && (t->attrs & PARAM_ATTRIBUTE_OUT || !(t->attrs & PARAM_ATTRIBUTE_IN))) {
 			mono_mb_emit_ldarg (mb, argnum);
 			mono_mb_emit_ldloc (mb, conv_arg);
 			mono_mb_emit_icall (mb, conv_to_icall (conv));
 			mono_mb_emit_byte (mb, CEE_STIND_REF);
+			need_free = TRUE;
 		}
 
-		if (need_free || (t->byref && (t->attrs & PARAM_ATTRIBUTE_OUT))) {
+		if (need_free) {
 			mono_mb_emit_ldloc (mb, conv_arg);
 			if (conv == MONO_MARSHAL_CONV_BSTR_STR)
 				mono_mb_emit_icall (mb, mono_free_bstr);
@@ -6500,7 +6497,8 @@ emit_marshal_object (EmitMarshalContext *m, int argnum, MonoType *t,
 		} else if (klass == mono_defaults.stringbuilder_class) {
 			MonoMarshalNative encoding = mono_marshal_get_string_encoding (m->piinfo, spec);
 			MonoMarshalConv conv = mono_marshal_get_stringbuilder_to_ptr_conv (m->piinfo, spec);
-			
+
+#if 0			
 			if (t->byref) {
 				if (!(t->attrs & PARAM_ATTRIBUTE_OUT)) {
 					char *msg = g_strdup_printf ("Byref marshalling of stringbuilders is not implemented.");
@@ -6508,8 +6506,14 @@ emit_marshal_object (EmitMarshalContext *m, int argnum, MonoType *t,
 				}
 				break;
 			}
+#endif
+
+			if (t->byref && !t->attrs & PARAM_ATTRIBUTE_IN && t->attrs & PARAM_ATTRIBUTE_OUT)
+				break;
 
 			mono_mb_emit_ldarg (mb, argnum);
+			if (t->byref)
+				mono_mb_emit_byte (mb, CEE_LDIND_I);
 
 			if (conv != -1)
 				mono_mb_emit_icall (mb, conv_to_icall (conv));
@@ -6599,7 +6603,7 @@ emit_marshal_object (EmitMarshalContext *m, int argnum, MonoType *t,
 			g_assert (encoding != -1);
 
 			if (t->byref) {
-				g_assert ((t->attrs & PARAM_ATTRIBUTE_OUT));
+				//g_assert (!(t->attrs & PARAM_ATTRIBUTE_OUT));
 
 				need_free = TRUE;
 
@@ -8039,6 +8043,10 @@ emit_marshal (EmitMarshalContext *m, int argnum, MonoType *t,
 	/* Ensure that we have marshalling info for this param */
 	mono_marshal_load_type_info (mono_class_from_mono_type (t));
 
+#ifdef DISABLE_JIT
+	/* Not JIT support, no need to generate correct IL */
+	return conv_arg;
+#else
 	if (spec && spec->native == MONO_NATIVE_CUSTOM)
 		return emit_marshal_custom (m, argnum, t, spec, conv_arg, conv_arg_type, action);
 
@@ -8103,6 +8111,7 @@ emit_marshal (EmitMarshalContext *m, int argnum, MonoType *t,
 		else
 			return emit_marshal_object (m, argnum, t, spec, conv_arg, conv_arg_type, action);
 	}
+#endif
 
 	return conv_arg;
 }
@@ -9649,6 +9658,33 @@ mono_marshal_get_ptr_to_struct (MonoClass *klass)
 	mono_marshal_set_wrapper_info (res, info);
 
 	klass->marshal_info->ptr_to_str = res;
+	return res;
+}
+
+/*
+ * Return a dummy wrapper for METHOD which is called by synchronized wrappers.
+ * This is used to avoid infinite recursion since it is hard to determine where to
+ * replace a method with its synchronized wrapper, and where not.
+ * The runtime should execute METHOD instead of the wrapper.
+ * The wrapper info for the wrapper is a WrapperInfo structure.
+ */
+MonoMethod *
+mono_marshal_get_synchronized_inner_wrapper (MonoMethod *method)
+{
+	MonoMethodBuilder *mb;
+	WrapperInfo *info;
+	MonoMethodSignature *sig;
+	MonoMethod *res;
+
+	mb = mono_mb_new (method->klass, method->name, MONO_WRAPPER_UNKNOWN);
+	mono_mb_emit_exception_full (mb, "System", "ExecutionEngineException", "Shouldn't be called.");
+	mono_mb_emit_byte (mb, CEE_RET);
+	sig = signature_dup (method->klass->image, mono_method_signature (method));
+	res = mono_mb_create_method (mb, sig, 0);
+	mono_mb_free (mb);
+	info = mono_wrapper_info_create (res, WRAPPER_SUBTYPE_SYNCHRONIZED_INNER);
+	info->d.synchronized_inner.method = method;
+	mono_marshal_set_wrapper_info (res, info);
 	return res;
 }
 

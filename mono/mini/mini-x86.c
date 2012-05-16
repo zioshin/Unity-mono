@@ -801,6 +801,10 @@ mono_arch_init (void)
 void
 mono_arch_cleanup (void)
 {
+	if (ss_trigger_page)
+		mono_vfree (ss_trigger_page, mono_pagesize ());
+	if (bp_trigger_page)
+		mono_vfree (bp_trigger_page, mono_pagesize ());
 	DeleteCriticalSection (&mini_arch_mutex);
 }
 
@@ -2281,11 +2285,12 @@ mono_x86_have_tls_get (void)
 #ifdef __APPLE__
 	static gboolean have_tls_get = FALSE;
 	static gboolean inited = FALSE;
+	guint32 *ins;
 
 	if (inited)
 		return have_tls_get;
 
-	guint32 *ins = (guint32*)pthread_getspecific;
+	ins = (guint32*)pthread_getspecific;
 	/*
 	 * We're looking for these two instructions:
 	 *

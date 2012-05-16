@@ -1668,6 +1668,9 @@ namespace MonoTests.System.Xml.Linq
 			element.SetElementValue ("gaz", "gazonk");
 
 			Assert.AreEqual ("<foo><bar>babar</bar><baz>babaz</baz><gaz>gazonk</gaz></foo>", element.ToString (SaveOptions.DisableFormatting));
+
+			element.SetElementValue ("gaz", null);
+			Assert.AreEqual ("<foo><bar>babar</bar><baz>babaz</baz></foo>", element.ToString (SaveOptions.DisableFormatting));
 		}
 
 		[Test]
@@ -1703,6 +1706,21 @@ namespace MonoTests.System.Xml.Linq
 			} finally {
 				Thread.CurrentThread.CurrentCulture = bak;
 			}
+		}
+		
+		[Test] // bug #3972
+		public void UseGetPrefixOfNamespaceForToString ()
+		{
+			string xml = @"
+			<xsi:Event
+			  xsi1:type='xsi:SubscriptionEvent'
+			  xmlns:xsi='http://relevo.se/xsi'
+			  xmlns:xsi1='http://www.w3.org/2001/XMLSchema-instance'>
+			  <xsi:eventData xsi1:type='xsi:CallSubscriptionEvent'/>
+			</xsi:Event>";
+			var e = XElement.Parse (xml);
+			string expected = @"<xsi:eventData xsi1:type='xsi:CallSubscriptionEvent' xmlns:xsi1='http://www.w3.org/2001/XMLSchema-instance' xmlns:xsi='http://relevo.se/xsi' />".Replace ('\'', '"');
+			Assert.AreEqual (expected, e.Nodes ().First ().ToString (), "#1");
 		}
 	}
 }

@@ -71,19 +71,21 @@ namespace System.Globalization
 				/* This will build the ICU collator, and store
 				 * the pointer in ICU_collator
 				 */
+				/*
 				try {
 					this.construct_compareinfo (icu_name);
 				} catch {
 				//	ICU_collator=IntPtr.Zero;
 				}
+				*/
 			}
 		}
 
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		private extern void construct_compareinfo (string locale);
+		//[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		//private extern void construct_compareinfo (string locale);
 
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		private extern void free_internal_collator ();
+		//[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		//private extern void free_internal_collator ();
 
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		private extern int internal_compare (string str1, int offset1,
@@ -122,16 +124,18 @@ namespace System.Globalization
 
 		// Keep in synch with MonoCompareInfo in the runtime. 
 		private int culture;
-		[NonSerialized]
-		private string icu_name;
+//		[NonSerialized]
+//		private string icu_name;
 //		[NonSerialized]
 //		private IntPtr ICU_collator;
 
 #pragma warning disable 169		
 		private int win32LCID;	// Unused, but MS.NET serializes this
-		private string m_name; // Unused, but MS.NET serializes this
 #pragma warning restore 169
+		readonly string m_name; // MS.NET serializes this
 #if !MICRO_LIB
+
+
 		[NonSerialized]
 		SimpleCollator collator;
 #endif
@@ -142,12 +146,10 @@ namespace System.Globalization
 		// Protects access to 'collators'
 		private static object monitor = new Object ();
 		
-		/* Hide the .ctor() */
-		CompareInfo() {}
-		
 		internal CompareInfo (CultureInfo ci)
 		{
 			this.culture = ci.LCID;
+			this.m_name = ci.Name;
 			#if !MICRO_LIB
 			if (UseManagedCollation) {
 				lock (monitor) {
@@ -162,19 +164,23 @@ namespace System.Globalization
 			} else 
 			#endif 
 			{
+/*
 #if !MOONLIGHT
 				this.icu_name = ci.IcuName;
 				this.construct_compareinfo (icu_name);
 #endif
+*/
 			}
 		}
-
+/*
 		~CompareInfo ()
 		{
 #if !MOONLIGHT
 			free_internal_collator ();
 #endif
 		}
+*/
+
 		
 #if MICRO_LIB
 private int string_invariant_compare_char(char c1, char c2, CompareOptions options)
@@ -260,6 +266,7 @@ private int internal_compare_micro (string str1, int offset1,
 			return(string_invariant_compare_char(ustr1[pos], ustr2[pos], options));
 		}
 #endif
+
 
 #if !MOONLIGHT
 #if !MICRO_LIB
@@ -966,16 +973,15 @@ private int internal_compare_micro (string str1, int offset1,
 		 * shows it.  Some documentation about what it does
 		 * would be nice.
 		 */
-		public int LCID
-		{
+		public int LCID {
 			get {
-				return(culture);
+				return culture;
 			}
 		}
 
 		[ComVisible (false)]
 		public virtual string Name {
-			get { return icu_name; }
+			get { return m_name; }
 		}
 	}
 }

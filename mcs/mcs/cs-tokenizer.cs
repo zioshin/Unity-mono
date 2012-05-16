@@ -139,6 +139,11 @@ namespace Mono.CSharp
 				pos = 0;
 			}
 
+			public override string ToString ()
+			{
+				return string.Format ("Token '{0}' at {1},{2}", Value, row, column);
+			}
+			
 			public Location Location {
 				get { return new Location (row, column); }
 			}
@@ -1265,10 +1270,24 @@ namespace Mono.CSharp
 					int ntoken;
 					int interrs = 1;
 					int colons = 0;
+					int braces = 0;
 					//
 					// All shorcuts failed, do it hard way
 					//
 					while ((ntoken = xtoken ()) != Token.EOF) {
+						if (ntoken == Token.OPEN_BRACE) {
+							++braces;
+							continue;
+						}
+
+						if (ntoken == Token.CLOSE_BRACE) {
+							--braces;
+							continue;
+						}
+
+						if (braces != 0)
+							continue;
+
 						if (ntoken == Token.SEMICOLON)
 							break;
 						
@@ -1284,7 +1303,7 @@ namespace Mono.CSharp
 						}
 					}
 					
-					next_token = colons != interrs ? Token.INTERR_NULLABLE : Token.INTERR;
+					next_token = colons != interrs && braces == 0 ? Token.INTERR_NULLABLE : Token.INTERR;
 					break;
 				}
 			}
@@ -1796,13 +1815,10 @@ namespace Mono.CSharp
 		
 		public void putback (int c)
 		{
-			if (putback_char != -1){
-				Console.WriteLine ("Col: " + col);
-				Console.WriteLine ("Row: " + line);
-				Console.WriteLine ("Name: " + current_source.Name);
-				Console.WriteLine ("Current [{0}] putting back [{1}]  ", putback_char, c);
-				throw new Exception ("This should not happen putback on putback");
+			if (putback_char != -1) {
+				throw new InternalErrorException (string.Format ("Secondary putback [{0}] putting back [{1}] is not allowed", (char)putback_char, (char) c), Location);
 			}
+
 			if (c == '\n' || col == 0) {
 				// It won't happen though.
 				line--;

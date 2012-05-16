@@ -330,19 +330,18 @@ mono_loader_error_prepare_exception (MonoLoaderError *error)
 	}
 		
 	case MONO_EXCEPTION_MISSING_FIELD: {
-		char *cnspace = g_strdup ((error->klass && *error->klass->name_space) ? error->klass->name_space : "");
-		char *cname = g_strdup (error->klass ? error->klass->name : "");
+		char *class_name;
 		char *cmembername = g_strdup (error->member_name);
-                char *class_name;
+		if (error->klass)
+			class_name = mono_type_get_full_name (error->klass);
+		else
+			class_name = g_strdup ("");
 
 		mono_loader_clear_error ();
-		class_name = g_strdup_printf ("%s%s%s", cnspace, cnspace ? "." : "", cname);
 		
 		ex = mono_get_exception_missing_field (class_name, cmembername);
 		g_free (class_name);
-		g_free (cname);
 		g_free (cmembername);
-		g_free (cnspace);
 		break;
         }
 	
@@ -1181,10 +1180,31 @@ mono_dllmap_lookup (MonoImage *assembly, const char *dll, const char* func, cons
 	return mono_dllmap_lookup_list (global_dll_map, dll, func, rdll, rfunc);
 }
 
-/*
+/**
  * mono_dllmap_insert:
+ * @assembly: if NULL, this is a global mapping, otherwise the remapping of the dynamic library will only apply to the specified assembly
+ * @dll: The name of the external library, as it would be found in the DllImport declaration.  If prefixed with 'i:' the matching of the library name is done without case sensitivity
+ * @func: if not null, the mapping will only applied to the named function (the value of EntryPoint)
+ * @tdll: The name of the library to map the specified @dll if it matches.
+ * @tfunc: if func is not NULL, the name of the function that replaces the invocation
  *
  * LOCKING: Acquires the loader lock.
+ *
+ * This function is used to programatically add DllImport remapping in either
+ * a specific assembly, or as a global remapping.   This is done by remapping
+ * references in a DllImport attribute from the @dll library name into the @tdll
+ * name.    If the @dll name contains the prefix "i:", the comparison of the 
+ * library name is done without case sensitivity.
+ *
+ * If you pass @func, this is the name of the EntryPoint in a DllImport if specified
+ * or the name of the function as determined by DllImport.    If you pass @func, you
+ * must also pass @tfunc which is the name of the target function to invoke on a match.
+ *
+ * Example:
+ * mono_dllmap_insert (NULL, "i:libdemo.dll", NULL, relocated_demo_path, NULL);
+ *
+ * The above will remap DllImport statments for "libdemo.dll" and "LIBDEMO.DLL" to
+ * the contents of relocated_demo_path for all assemblies in the Mono process.
  *
  * NOTE: This can be called before the runtime is initialized, for example from
  * mono_config_parse ().
@@ -1381,6 +1401,18 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 #ifndef TARGET_WIN32
 			break;
 #endif
+		}
+
+		if (!module && g_path_is_absolute (file_name)) {
+			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+					"DllImport loading: '%s'.", file_name);
+			module = cached_module_load (file_name, MONO_DL_LAZY, &error_msg);
+			if (!module) {
+				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+						"DllImport error loading library '%s'.",
+						error_msg);
+				g_free (error_msg);
+			}
 		}
 
 		if (!module) {

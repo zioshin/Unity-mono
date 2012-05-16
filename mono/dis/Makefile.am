@@ -10,11 +10,15 @@ else
 runtime_lib=../interpreter/libmint.la
 endif
 
-if SUPPORT_BOEHM
+if DISABLE_EXECUTABLES
+bin_PROGRAMS =
+else
 if CROSS_COMPILING
 bin_PROGRAMS = 
 else
+if SUPPORT_BOEHM
 bin_PROGRAMS = monodis
+endif
 endif
 endif
 

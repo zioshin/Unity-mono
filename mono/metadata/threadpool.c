@@ -1374,7 +1374,7 @@ async_invoke_thread (gpointer data)
 
 	mono_profiler_thread_start (thread->tid);
 	name = (tp->is_io) ? "IO Threadpool worker" : "Threadpool worker";
-	ves_icall_System_Threading_Thread_SetName_internal (thread, mono_string_new (mono_domain_get (), name));
+	mono_thread_set_name_internal (thread, mono_string_new (mono_domain_get (), name), FALSE);
 
 	if (tp_start_func)
 		tp_start_func (tp_hooks_user_data);
@@ -1440,20 +1440,8 @@ async_invoke_thread (gpointer data)
 					exc = mono_async_invoke (tp, ar);
 					if (tp_item_end_func)
 						tp_item_end_func (tp_item_user_data);
-					if (exc && mono_runtime_unhandled_exception_policy_get () == MONO_UNHANDLED_POLICY_CURRENT) {
-						gboolean unloaded;
-						MonoClass *klass;
-
-						klass = exc->vtable->klass;
-						unloaded = is_appdomainunloaded_exception (exc->vtable->domain, klass);
-						if (!unloaded && klass != mono_defaults.threadabortexception_class) {
-							mono_unhandled_exception (exc);
-							if (mono_environment_exitcode_get () == 1)
-								exit (255);
-						}
-						if (klass == mono_defaults.threadabortexception_class)
-							mono_thread_internal_reset_abort (thread);
-					}
+					if (exc)
+						mono_internal_thread_unhandled_exception (exc);
 					if (is_socket && tp->is_io) {
 						MonoSocketAsyncResult *state = (MonoSocketAsyncResult *) data;
 
@@ -1485,9 +1473,18 @@ async_invoke_thread (gpointer data)
 		while (!must_die && !data && n_naps < 4) {
 			gboolean res;
 
+			InterlockedIncrement (&tp->waiting);
+
+			// Another thread may have added a job into its wsq since the last call to dequeue_or_steal
+			// Check all the queues again before entering the wait loop
+			dequeue_or_steal (tp, &data, wsq);
+			if (data) {
+				InterlockedDecrement (&tp->waiting);
+				break;
+			}
+
 			mono_gc_set_skip_thread (TRUE);
 
-			InterlockedIncrement (&tp->waiting);
 #if defined(__OpenBSD__)
 			while (mono_cq_count (tp->queue) == 0 && (res = mono_sem_wait (&tp->new_job, TRUE)) == -1) {// && errno == EINTR) {
 #else
@@ -1645,3 +1642,21 @@ mono_install_threadpool_item_hooks (MonoThreadPoolItemFunc begin_func, MonoThrea
 	tp_item_user_data = user_data;
 }
 
+void
+mono_internal_thread_unhandled_exception (MonoObject* exc)
+{
+	if (mono_runtime_unhandled_exception_policy_get () == MONO_UNHANDLED_POLICY_CURRENT) {
+		gboolean unloaded;
+		MonoClass *klass;
+
+		klass = exc->vtable->klass;
+		unloaded = is_appdomainunloaded_exception (exc->vtable->domain, klass);
+		if (!unloaded && klass != mono_defaults.threadabortexception_class) {
+			mono_unhandled_exception (exc);
+			if (mono_environment_exitcode_get () == 1)
+				exit (255);
+		}
+		if (klass == mono_defaults.threadabortexception_class)
+		 mono_thread_internal_reset_abort (mono_thread_internal_current ());
+	}
+}

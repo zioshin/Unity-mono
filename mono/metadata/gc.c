@@ -5,6 +5,7 @@
  *
  * Copyright 2002-2003 Ximian, Inc (http://www.ximian.com)
  * Copyright 2004-2009 Novell, Inc (http://www.novell.com)
+ * Copyright 2012 Xamarin Inc (http://www.xamarin.com)
  */
 
 #include <config.h>
@@ -23,6 +24,7 @@
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/mono-mlist.h>
 #include <mono/metadata/threadpool.h>
+#include <mono/metadata/threadpool-internals.h>
 #include <mono/metadata/threads-types.h>
 #include <mono/utils/mono-logger-internal.h>
 #include <mono/metadata/gc-internal.h>
@@ -224,9 +226,8 @@ mono_gc_run_finalize (void *obj, void *data)
 
 	runtime_invoke (o, NULL, &exc, NULL);
 
-	if (exc) {
-		/* fixme: do something useful */
-	}
+	if (exc)
+		mono_internal_thread_unhandled_exception (exc);
 
 	mono_domain_set_internal (caller_domain);
 }
@@ -1012,6 +1013,9 @@ finalize_domain_objects (DomainFinalizationReq *req)
 {
 	MonoDomain *domain = req->domain;
 
+	/* Process finalizers which are already in the queue */
+	mono_gc_invoke_finalizers ();
+
 #ifdef HAVE_BOEHM_GC
 	while (g_hash_table_size (domain->finalizable_objects_hash) > 0) {
 		int i;
@@ -1044,9 +1048,6 @@ finalize_domain_objects (DomainFinalizationReq *req)
 		}
 	}
 #endif
-
-	/* Process finalizers which are already in the queue */
-	mono_gc_invoke_finalizers ();
 
 	/* cleanup the reference queue */
 	reference_queue_clear_for_domain (domain);
@@ -1531,7 +1532,7 @@ mono_gc_bzero (void *dest, size_t size)
 {
 	char *p = (char*)dest;
 	char *end = p + size;
-	char *align_end = p + unaligned_bytes (p);
+	char *align_end = align_up (p);
 	char *word_end;
 
 	while (p < align_end)
