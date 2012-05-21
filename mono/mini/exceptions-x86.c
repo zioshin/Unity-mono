@@ -101,6 +101,34 @@ mono_win32_get_handle_stackoverflow (void)
 	return start;
 }
 
+typedef struct
+{
+	guint32 free_stack;
+	MonoContext initial_ctx;
+	MonoContext ctx;
+} MonoWin32StackOverflowData;
+
+gboolean win32_stack_overflow_walk (StackFrameInfo *frame, MonoContext *ctx, gpointer data)
+{
+	MonoWin32StackOverflowData* walk_data = (MonoWin32StackOverflowData*)data;
+
+	if (!frame->ji) {
+		g_warning ("Exception inside function without unwind info");
+		g_assert_not_reached ();
+	}
+
+	if (frame->ji != (gpointer)-1) {
+		walk_data->free_stack = (guint8*)(MONO_CONTEXT_GET_BP (ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&walk_data->initial_ctx));
+	} else {
+		g_warning ("Exception inside function without unwind info");
+		g_assert_not_reached ();
+	}
+
+	walk_data->ctx = *ctx;
+
+	return !(walk_data->free_stack < 64 * 1024 && frame->ji != (gpointer) -1);
+}
+
 /* Special hack to workaround the fact that the
  * when the SEH handler is called the stack is
  * to small to recover.
@@ -117,57 +145,35 @@ mono_win32_get_handle_stackoverflow (void)
 static void 
 win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx) 
 {
-	SYSTEM_INFO si;
-	DWORD page_size;
 	MonoDomain *domain = mono_domain_get ();
 	MonoJitInfo rji;
 	MonoJitInfo *ji;
 	MonoJitTlsData *jit_tls = TlsGetValue (mono_jit_tls_id);
-	MonoLMF *lmf = jit_tls->lmf;		
-	MonoContext initial_ctx;
+	MonoLMF *lmf = jit_tls->lmf;
 	MonoContext ctx;
-	guint32 free_stack = 0;
 	StackFrameInfo frame;
+	MonoWin32StackOverflowData stack_overflow_data;
 
 	/* convert sigcontext to MonoContext (due to reuse of stack walking helpers */
 	mono_arch_sigctx_to_monoctx (sctx, &ctx);
-	
-	/* get our os page size */
-	GetSystemInfo(&si);
-	page_size = si.dwPageSize;
 
 	/* Let's walk the stack to recover
 	 * the needed stack space (if possible)
 	 */
 	memset (&rji, 0, sizeof (rji));
+	memset (&stack_overflow_data, 0, sizeof (stack_overflow_data));
 	
 	ji = mono_jit_info_table_find (domain, MONO_CONTEXT_GET_IP(&ctx));
 
-	initial_ctx = ctx;
-	free_stack = (guint8*)(MONO_CONTEXT_GET_BP (&ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&initial_ctx));
+	stack_overflow_data.initial_ctx = ctx;
 
 	/* try to free 64kb from our stack */
-	do {
-		MonoContext new_ctx;
-
-		mono_arch_find_jit_info_ext (domain, jit_tls, ji, &ctx, &new_ctx, &lmf, &frame);
-		if (!frame.ji) {
-			g_warning ("Exception inside function without unwind info");
-			g_assert_not_reached ();
-		}
-
-		if (frame.ji != (gpointer)-1) {
-			free_stack = (guint8*)(MONO_CONTEXT_GET_BP (&ctx)) - (guint8*)(MONO_CONTEXT_GET_BP (&initial_ctx));
-		}
-
-		/* todo: we should call abort if ji is -1 */
-		ctx = new_ctx;
-	} while (free_stack < 64 * 1024 && frame.ji != (gpointer) -1);
+	mono_jit_walk_stack_from_ctx_in_thread (win32_stack_overflow_walk, domain, &ctx, FALSE, mono_thread_current (), lmf, &stack_overflow_data);
 
 	/* convert into sigcontext to be used in mono_arch_handle_exception */
 	mono_arch_monoctx_to_sigctx (&ctx, sctx);
 
-	/* todo: install new stack-guard page */
+	/* the new stack-guard page is installed in mono_handle_exception_internal using _resetstkoflw */
 
 	/* use the new stack and call mono_arch_handle_exception () */
 	restore_stack (sctx);
@@ -221,6 +227,7 @@ LONG CALLBACK seh_handler(EXCEPTION_POINTERS* ep)
 		W32_SEH_HANDLE_EX(fpe);
 		break;
 	default:
+		res = EXCEPTION_CONTINUE_SEARCH;
 		break;
 	}
 
@@ -250,6 +257,9 @@ void win32_seh_init()
 		restore_stack = mono_win32_get_handle_stackoverflow ();
 
 	old_win32_toplevel_exception_filter = SetUnhandledExceptionFilter(seh_handler);
+	/* use the following instead of SetUnhandledExceptionFilter to debug SEH in Visual Studio
+	 * AddVectoredExceptionHandler (1, seh_handler);
+	 */
 }
 
 void win32_seh_cleanup()
@@ -1278,13 +1288,13 @@ prepare_for_guard_pages (MonoContext *mctx)
 }
 
 static void
-altstack_handle_and_restore (void *sigctx, gpointer obj, gboolean stack_ovf)
+altstack_handle_and_restore (MonoContext *ctx, gpointer obj, gboolean stack_ovf)
 {
 	void (*restore_context) (MonoContext *);
 	MonoContext mctx;
 
 	restore_context = mono_get_restore_context ();
-	mono_arch_sigctx_to_monoctx (sigctx, &mctx);
+	mctx = *ctx;
 
 	if (mono_debugger_handle_exception (&mctx, (MonoObject *)obj)) {
 		if (stack_ovf)
@@ -1333,7 +1343,7 @@ mono_arch_handle_altstack_exception (void *sigctx, gpointer fault_addr, gboolean
 	 *   ctx arg
 	 *   return ip
 	 */
-	frame_size = sizeof (ucontext_t) + sizeof (gpointer) * 4;
+ 	frame_size = sizeof (MonoContext) + sizeof (gpointer) * 4;
 	frame_size += 15;
 	frame_size &= ~15;
 	sp = (gpointer)(UCONTEXT_REG_ESP (ctx) & ~15);
@@ -1345,8 +1355,7 @@ mono_arch_handle_altstack_exception (void *sigctx, gpointer fault_addr, gboolean
 	sp [0] = sp + 4;
 	sp [1] = exc;
 	sp [2] = (gpointer)stack_ovf;
-	/* may need to adjust pointers in the new struct copy, depending on the OS */
-	memcpy (sp + 4, ctx, sizeof (ucontext_t));
+	mono_arch_sigctx_to_monoctx (sigctx, (MonoContext*)(sp + 4));
 	/* at the return form the signal handler execution starts in altstack_handle_and_restore() */
 	UCONTEXT_REG_EIP (ctx) = (unsigned long)altstack_handle_and_restore;
 	UCONTEXT_REG_ESP (ctx) = (unsigned long)(sp - 1);
