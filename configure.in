@@ -2224,7 +2224,7 @@ case "$host" in
 		ACCESS_UNALIGNED="no"
 		JIT_SUPPORTED=yes
 		jit_wanted=true
-		CPPFLAGS="$CPPFLAGS -DARM_FPU_VFP=1 -D__ARM_EABI__"
+		CPPFLAGS="$CPPFLAGS -DARM_FPU_VFP=1 -D__ARM_EABI__ -DHAVE_ARMV6"
 		LDFLAGS="$LDFLAGS -Wl,--rpath,app/native/Data/Managed -L${QNX_TARGET}/armle-v7/lib/gcc/4.4.2"
 		;;
 	arm*-linux*)
