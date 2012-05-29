@@ -31,6 +31,9 @@ mono_unity_socket_security_enabled_set
 mono_set_ignore_version_and_key_when_finding_assemblies_already_loaded
 mono_class_is_generic
 mono_class_is_inflated
+mono_unity_seh_handler
+mono_unity_set_unhandled_exception_handler
+
 ;Exports that should have been here, but I dont understand why they're not.
 mono_security_enable_core_clr
 mono_security_set_mode
@@ -298,18 +301,15 @@ mono_free_verify_list
 mono_g_hash_table_destroy
 mono_g_hash_table_foreach
 mono_g_hash_table_foreach_remove
-mono_g_hash_table_foreach_steal
 mono_g_hash_table_insert
 mono_g_hash_table_lookup
 mono_g_hash_table_lookup_extended
 mono_g_hash_table_new
 mono_g_hash_table_new_full
 mono_g_hash_table_new_type
-mono_g_hash_table_remap
 mono_g_hash_table_remove
 mono_g_hash_table_replace
 mono_g_hash_table_size
-mono_g_hash_table_steal
 mono_gc_collect
 mono_gc_collection_count
 mono_gc_enable_events

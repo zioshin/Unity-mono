@@ -529,6 +529,11 @@ static void thread_cleanup (MonoThread *thread)
 	thread->abort_exc = NULL;
 	thread->current_appcontext = NULL;
 
+	/* if the thread is not in the hash it has been removed already */
+	if (!handle_remove (thread))
+		return;
+
+	EnterCriticalSection (thread->synch_cs);
 	/*
 	 * This is necessary because otherwise we might have
 	 * cross-domain references which will not get cleaned up when
@@ -538,11 +543,12 @@ static void thread_cleanup (MonoThread *thread)
 		int i;
 		for (i = 0; i < NUM_CACHED_CULTURES * 2; ++i)
 			mono_array_set (thread->cached_culture_info, MonoObject*, i, NULL);
+
+		thread->cached_culture_info = NULL;
 	}
 
-	/* if the thread is not in the hash it has been removed already */
-	if (!handle_remove (thread))
-		return;
+	LeaveCriticalSection (thread->synch_cs);
+
 	mono_release_type_locks (thread);
 
 	EnterCriticalSection (thread->synch_cs);
@@ -564,8 +570,6 @@ static void thread_cleanup (MonoThread *thread)
 		g_free (thread->serialized_ui_culture_info);
 
 	g_free (thread->name);
-
-	thread->cached_culture_info = NULL;
 
 	mono_gc_free_fixed (thread->static_data);
 	thread->static_data = NULL;
@@ -844,6 +848,9 @@ mono_thread_get_stack_bounds (guint8 **staddr, size_t *stsize)
 #if defined(HAVE_PTHREAD_GET_STACKSIZE_NP) && defined(HAVE_PTHREAD_GET_STACKADDR_NP)
 	*staddr = (guint8*)pthread_get_stackaddr_np (pthread_self ());
 	*stsize = pthread_get_stacksize_np (pthread_self ());
+
+	/* staddr points to the start of the stack, not the end */
+	*staddr -= *stsize;
 	*staddr = (guint8*)((gssize)*staddr & ~(mono_pagesize () - 1));
 	return;
 	/* FIXME: simplify the mess below */
@@ -3355,7 +3362,7 @@ mono_thread_pop_appdomain_ref (void)
 	if (thread) {
 		/* printf ("POP REF: %"G_GSIZE_FORMAT" -> %s.\n", (gsize)thread->tid, ((MonoDomain*)(thread->appdomain_refs->data))->friendly_name); */
 		mono_threads_lock ();
-		/* FIXME: How can the list be empty ? */
+		/* Check for null, as we may unload an appdomain immediately after creating a thread and not yet havecalled mono_thread_push_appdomain_ref */
 		if (thread->appdomain_refs)
 			thread->appdomain_refs = g_slist_remove (thread->appdomain_refs, thread->appdomain_refs->data);
 		mono_threads_unlock ();
@@ -3365,9 +3372,11 @@ mono_thread_pop_appdomain_ref (void)
 gboolean
 mono_thread_has_appdomain_ref (MonoThread *thread, MonoDomain *domain)
 {
-	gboolean res;
+	gboolean res = FALSE;
 	mono_threads_lock ();
-	res = g_slist_find (thread->appdomain_refs, domain) != NULL;
+	/* Check for null, as we may unload an appdomain immediately after creating a thread and not yet havecalled mono_thread_push_appdomain_ref */
+	if (thread->appdomain_refs)
+		res = g_slist_find (thread->appdomain_refs, domain) != NULL;
 	mono_threads_unlock ();
 	return res;
 }
@@ -3881,8 +3890,7 @@ static MonoException* mono_thread_execute_interruption (MonoThread *thread)
 
 		if (shutting_down) {
 			/* After we left the lock, the runtime might shut down so everything becomes invalid */
-			for (;;)
-				Sleep (1000);
+			mono_thread_exit ();
 		}
 		
 		WaitForSingleObject (thread->suspend_event, INFINITE);

@@ -2853,6 +2853,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 		switch (event) {
 		case EVENT_KIND_THREAD_START:
 		case EVENT_KIND_THREAD_DEATH:
+			suspend_policy = SUSPEND_POLICY_NONE;
 			break;
 		case EVENT_KIND_APPDOMAIN_CREATE:
 		case EVENT_KIND_APPDOMAIN_UNLOAD:
@@ -3018,8 +3019,10 @@ thread_startup (MonoProfiler *prof, gsize tid)
 	}
 
 	tls = TlsGetValue (debugger_tls_id);
-	g_assert (!tls);
-	// FIXME: Free this somewhere
+	if (tls) {
+		MONO_GC_UNREGISTER_ROOT (tls->thread);
+		g_free (tls);
+	}
 	tls = g_new0 (DebuggerTlsData, 1);
 	tls->resume_event = CreateEvent (NULL, FALSE, FALSE, NULL);
 	MONO_GC_REGISTER_ROOT (tls->thread);
@@ -4955,8 +4958,15 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke)
 		} else if (MONO_TYPE_IS_REFERENCE (sig->ret)) {
 			buffer_add_value (buf, sig->ret, &res, domain);
 		} else if (mono_class_from_mono_type (sig->ret)->valuetype) {
-			g_assert (res);
-			buffer_add_value (buf, sig->ret, mono_object_unbox (res), domain);
+			if (mono_class_is_nullable (mono_class_from_mono_type (sig->ret))) {
+				if (!res)
+					buffer_add_value (buf, &mono_defaults.object_class->byval_arg, &res, domain);
+				else
+					buffer_add_value (buf, sig->ret, mono_object_unbox (res), domain);
+			} else {
+				g_assert (res);
+				buffer_add_value (buf, sig->ret, mono_object_unbox (res), domain);
+			}
 		} else {
 			NOT_IMPLEMENTED;
 		}
@@ -5254,7 +5264,7 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 		 * resumed.
 		 */
 		if (tls->pending_invoke)
-			NOT_IMPLEMENTED;
+			return ERR_NOT_SUSPENDED;
 		tls->pending_invoke = g_new0 (InvokeData, 1);
 		tls->pending_invoke->id = id;
 		tls->pending_invoke->flags = flags;

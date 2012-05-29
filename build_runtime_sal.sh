@@ -1,8 +1,11 @@
+#!/bin/bash
+
 PREFIX=`pwd`/builds/sal
 
 OUTDIR=builds/embedruntimes/sal
 
-CXXFLAGS="-O2 -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=neon -mtune=cortex-a9 -fPIC";
+CXXFLAGS="-DARM_FPU_VFP=1 -DHAVE_ARMV6 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfpu=vfpv3 -mtune=cortex-a9 -fPIC"
+
 CC="arm-v7a8v2r2-linux-gnueabi-gcc"
 CXX="arm-v7a8v2r2-linux-gnueabi-g++"
 AR="arm-v7a8v2r2-linux-gnueabi-ar"

@@ -17,9 +17,23 @@ my $monoprefix = "$root/tmp/monoprefix";
 
 my $dependencyBranchToUse = "unity3.0";
 
+my $booCheckout = "external/boo";
+my $cecilCheckout = "mcs/class/Mono.Cecil";
+my $usCheckout = "external/unityscript";
+
 if ($ENV{UNITY_THISISABUILDMACHINE}) {
 	print "rmtree-ing $root/builds because we're on a buildserver, and want to make sure we don't include old artifacts\n";
 	rmtree("$root/builds");
+
+	# Force mono 2.6 for 1.1 profile bootstrapping
+	my $external_MONO_PREFIX='/Library/Frameworks/Mono.framework/Versions/2.6.7';
+	my $external_GNOME_PREFIX=$external_MONO_PREFIX;
+	$ENV{'DYLD_FALLBACK_LIBRARY_PATH'}="$external_MONO_PREFIX/lib:/lib:/usr/lib";
+	$ENV{'LD_LIBRARY_PATH'}="$external_MONO_PREFIX/lib";
+	$ENV{'C_INCLUDE_PATH'}="$external_MONO_PREFIX/include:$external_GNOME_PREFIX/include";
+	$ENV{'ACLOCAL_PATH'}="$external_MONO_PREFIX/share/aclocal";
+	$ENV{'PKG_CONFIG_PATH'}="$external_MONO_PREFIX/lib/pkgconfig:$external_GNOME_PREFIX/lib/pkgconfig";
+	$ENV{'PATH'}="$external_MONO_PREFIX/bin:$ENV{'PATH'}";
 } else {
 	print "not rmtree-ing $root/builds, as we're not on a buildmachine\n";
 }
@@ -200,8 +214,6 @@ sub UnityBooc
 
 sub BuildUnityScriptForUnity
 {
-	my $booCheckout = "external/boo";
-	
 	# TeamCity is handling this
 	if (!$ENV{UNITY_THISISABUILDMACHINE}) {
 		GitClone("git://github.com/Unity-Technologies/boo.git", $booCheckout);
@@ -218,7 +230,6 @@ sub BuildUnityScriptForUnity
 	UnityXBuild("$booCheckout/src/Boo.Lang/Boo.Lang.csproj", "Micro-Release");
 	cp("$booCheckout/src/Boo.Lang/bin/Micro-Release/Boo.Lang.dll $monodistroLibMono/micro/");
 	
-	my $usCheckout = "external/unityscript";
 	if (!$ENV{UNITY_THISISABUILDMACHINE}) {
 		GitClone("git://github.com/Unity-Technologies/unityscript.git", $usCheckout);
 	}
@@ -279,7 +290,6 @@ sub BuildCecilForUnity
 {
 	my $useCecilLight = 0;
 	
-	my $cecilCheckout = "mcs/class/Mono.Cecil";
 	
 	if ($useCecilLight) {
 		
@@ -364,6 +374,21 @@ if ($unity)
 
 #Overlaying files
 CopyIgnoringHiddenFiles("add_to_build_results/", "$root/builds/");
+
+if($ENV{UNITY_THISISABUILDMACHINE})
+{
+	my %checkouts = (
+		'mono-classlibs' => 'BUILD_VCS_NUMBER_Mono____Mono2_6_x_Unity3_x',
+		'boo' => 'BUILD_VCS_NUMBER_Boo',
+		'unityscript' => 'BUILD_VCS_NUMBER_UnityScript',
+		'cecil' => 'BUILD_VCS_NUMBER_Cecil'
+	);
+
+	system("echo '' > $root/builds/versions.txt");
+	for my $key (keys %checkouts) {
+		system("echo \"$key = $ENV{$checkouts{$key}}\" >> $root/builds/versions.txt");
+	}
+}
 
 #zip up the results for teamcity
 chdir("$root/builds");
