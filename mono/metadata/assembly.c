@@ -116,6 +116,16 @@ static const AssemblyVersionMap framework_assemblies [] = {
 static GList *loaded_assemblies = NULL;
 static MonoAssembly *corlib;
 
+static void *corlibData = NULL;
+static size_t corlibSize = 0;
+
+void
+mono_set_corlib_data (void *data, size_t size)
+{
+  corlibData = data;
+  corlibSize = size;
+}
+
 /* This protects loaded_assemblies and image->references */
 #define mono_assemblies_lock() EnterCriticalSection (&assemblies_mutex)
 #define mono_assemblies_unlock() LeaveCriticalSection (&assemblies_mutex)
@@ -2307,6 +2317,20 @@ mono_assembly_load_corlib (const MonoRuntimeInfo *runtime, MonoImageOpenStatus *
 	if (corlib) {
 		/* g_print ("corlib already loaded\n"); */
 		return corlib;
+	}
+
+	if (corlibData != NULL && corlibSize != 0) {
+		int status = 0;
+		/* First "FALSE" instructs mono not to make a copy. */
+		/* Second "FALSE" says this is not just a ref.      */
+		MonoImage* image = mono_image_open_from_data_full (corlibData, corlibSize, FALSE, &status, FALSE);
+		if (image == NULL || status != 0)
+			g_print("mono_image_open_from_data_full failed: %d\n", status);
+		corlib = mono_assembly_load_from_full (image, "mscorlib", &status, FALSE);
+		if (corlib == NULL || status != 0)
+			g_print ("mono_assembly_load_from_full failed: %d\n", status);
+		if (corlib)
+			return corlib;
 	}
 	
 	if (assemblies_path) {
