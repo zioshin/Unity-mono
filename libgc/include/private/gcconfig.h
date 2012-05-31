@@ -244,6 +244,7 @@
 
      /* Unity: Don't scan data segments */
 #    define GC_DONT_REGISTER_MAIN_STATIC_DATA
+#    define LARGE_CONFIG 1
 # endif
 # if defined(OPENBSD) && defined(__amd64__)
 #    define X86_64
@@ -255,6 +256,7 @@
 
      /* Unity: Don't scan data segments */
 #    define GC_DONT_REGISTER_MAIN_STATIC_DATA
+#    define LARGE_CONFIG 1
 # endif
 # if defined(LINUX) && (defined(__ia64__) || defined(__ia64))
 #    define IA64
@@ -329,6 +331,7 @@
 # ifdef DARWIN
      /* Unity: Don't scan data segments */
 #    define GC_DONT_REGISTER_MAIN_STATIC_DATA
+#    define LARGE_CONFIG 1
 
 #    include "TargetConditionals.h"
 #   if defined(__ppc__)  || defined(__ppc64__)
@@ -440,6 +443,7 @@
 # else
 #   if (defined(_MSDOS) || defined(_MSC_VER)) && (_M_IX86 >= 300) \
         || defined(_WIN32) && !defined(__CYGWIN32__) && !defined(__CYGWIN__)
+#     define LARGE_CONFIG 1
 #     if defined(__LP64__) || defined(_WIN64)
 #	define X86_64
 #     else
