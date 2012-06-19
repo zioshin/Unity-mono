@@ -87,7 +87,7 @@ sgen_suspend_thread (SgenThreadInfo *info)
 		mono_sigctx_to_monoctx (&ctx, &info->ctx);
 		info->monoctx = &info->ctx;
 #else
-		ARCH_COPY_SIGCTX_REGS (&info->regs, &ctx);
+		ARCH_COPY_SIGCTX_REGS (info->regs, &ctx);
 		info->stopped_regs = &info->regs;
 #endif
 	} else {
