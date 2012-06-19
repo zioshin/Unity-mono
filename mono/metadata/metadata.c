@@ -6044,6 +6044,7 @@ mono_type_get_modifiers (MonoType *type, gboolean *is_required, gpointer *iter)
 	return NULL;
 }
 
+/**
  * mono_type_is_struct:
  * @type: the MonoType operated on
  *
