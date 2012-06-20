@@ -232,7 +232,9 @@ LONG CALLBACK seh_handler(EXCEPTION_POINTERS* ep)
 	ctx->Edi = sctx->edi;
 	ctx->Eip = sctx->eip;
 
-	g_free (sctx);
+	/* TODO: Find right place to free this in stack overflow case */
+	if (er->ExceptionCode != EXCEPTION_STACK_OVERFLOW)
+		g_free (sctx);
 
 	if (mono_win_chained_exception_filter_didrun)
 		res = mono_win_chained_exception_filter_result;
