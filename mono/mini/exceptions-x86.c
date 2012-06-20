@@ -162,7 +162,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	} while (free_stack < 64 * 1024 && frame.ji != (gpointer) -1);
 
 	/* convert into sigcontext to be used in mono_arch_handle_exception */
-	mono_arch_monoctx_to_sigctx (&ctx, sctx);
+	mono_arch_monoctx_to_sigctx (&(stack_overflow_data.ctx), sctx);
 
 	/* todo: install new stack-guard page */
 
