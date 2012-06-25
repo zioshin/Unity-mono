@@ -18,7 +18,6 @@ ROKU_LINK_LIBS=" \
         -Wl,-Bdynamic  -lc \
         -Wl,-Bdynamic -lpthread \
         -Wl,-Bdynamic -lrt \
-        -Wl,-Bdynamic -llog \
         -Wl,--no-as-needed"
 
 LDFLAGS="-nodefaultlibs -Wl,--gc-sections $ROKU_LINK_LIBS"
