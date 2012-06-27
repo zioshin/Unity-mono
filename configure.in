@@ -62,6 +62,21 @@ no_version_script=no
 # Set to yes if Unix sockets cannot be created in an anonymous namespace
 need_link_unlink=no
 
+AC_ARG_WITH([macversion],
+	[  --with-macversion=<version>    Choose minimum macos version],
+	[], [with_macversion=10.4])
+
+if test -z $MACSDKOPTIONS; then
+MACSYSROOTBASE="-isysroot /Developer/SDKs"
+if [[ "$with_macversion" == "10.4" ]]; then
+  MACSYSROOT="$MACSYSROOTBASE/MacOSX10.4u.sdk"
+else
+  MACSYSROOT="$MACSYSROOTBASE/MacOSX""$with_macversion"".sdk"
+  MACSDKOPTIONS="-D_XOPEN_SOURCE"
+fi
+MACSDKOPTIONS="$MACSDKOPTIONS -mmacosx-version-min=$with_macversion $MACSYSROOT"
+fi
+
 # Thread configuration inspired by sleepycat's db
 AC_MSG_CHECKING([host platform characteristics])
 libgc_threads=no
@@ -235,6 +250,15 @@ case "$host" in
 		platform_darwin=yes
 		CPPFLAGS="$CPPFLAGS -no-cpp-precomp -D_THREAD_SAFE -DGC_MACOSX_THREADS -DPLATFORM_MACOSX -DUSE_MMAP -DUSE_MUNMAP"
 		CPPFLAGS="$CPPFLAGS -DGetCurrentProcess=MonoGetCurrentProcess -DGetCurrentThread=MonoGetCurrentThread -DCreateEvent=MonoCreateEvent"
+		
+		if [[ "$host" != "arm-apple-darwin9" ]]; then 
+			CPPFLAGS="$CPPFLAGS $MACSDKOPTIONS"
+			LDFLAGS="$LDFLAGS $MACSDKOPTIONS"
+			CPPFLAGS_FOR_EGLIB="$CPPFLAGS_FOR_EGLIB $MACSDKOPTIONS"
+			CFLAGS_FOR_EGLIB="$CFLAGS_FOR_EGLIB $MACSDKOPTIONS"
+			CPPFLAGS_FOR_LIBGC="$CPPFLAGS_FOR_LIBGC $MACSDKOPTIONS"
+			CFLAGS_FOR_LIBGC="$CFLAGS_FOR_LIBGC $MACSDKOPTIONS"
+		fi
 		libmono_cflags="-D_THREAD_SAFE"
 		LDFLAGS="$LDFLAGS -pthread"
 		libmono_ldflags="-pthread"
@@ -252,9 +276,9 @@ case "$host" in
 		dnl its gcc defaults to 64-bit mode.  They have also deprecated the usage of ucontext
 		dnl we need to set some flags to build our 32-bit binaries on 10.6 properly
 		case "$host" in
-			dnl Snow Leopard config.guess reports as this
-			i*86-*-darwin10*)
-				BROKEN_DARWIN_FLAGS="-arch i386 -D_XOPEN_SOURCE -mmacosx-version-min=10.5"
+			dnl Snow Leopard and newer config.guess reports as this
+			i*86-*-darwin*)
+				BROKEN_DARWIN_FLAGS="-arch i386"
 				CPPFLAGS="$CPPFLAGS $BROKEN_DARWIN_FLAGS"
 				CFLAGS="$CFLAGS $BROKEN_DARWIN_FLAGS"
 				CXXFLAGS="$CXXFLAGS $BROKEN_DARWIN_FLAGS"
@@ -565,7 +589,7 @@ AC_ARG_WITH([glib],
 	[  --with-glib=embedded|system    Choose glib API: system or embedded (default to embedded)],
 	[], [with_glib=embedded])
 
-ac_configure_args="$ac_configure_args \"CPPFLAGS_FOR_EGLIB=$EGLIB_CPPFLAGS\" \"CFLAGS_FOR_EGLIB=$CFLAGS_FOR_EGLIB\""
+ac_configure_args="$ac_configure_args \"CPPFLAGS_FOR_EGLIB=$CPPFLAGS_FOR_EGLIB\" \"CFLAGS_FOR_EGLIB=$CFLAGS_FOR_EGLIB\""
 AC_CONFIG_SUBDIRS(eglib)
 
 case $with_glib in
