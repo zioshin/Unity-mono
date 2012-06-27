@@ -20,40 +20,62 @@ void *
 mono_mach_arch_get_ip (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
-
+#if __DARWIN_UNIX03
 	return (void *) arch_state->__eip;
+#else
+	return (void *) arch_state->eip;
+#endif
 }
 
 void *
 mono_mach_arch_get_sp (thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
-
+#if __DARWIN_UNIX03
 	return (void *) arch_state->__esp;
+#else
+	return (void *) arch_state->esp;
+#endif
 }
 
 int
 mono_mach_arch_get_mcontext_size ()
 {
+#if __DARWIN_UNIX03
 	return sizeof (struct __darwin_mcontext32);
+#else
+	return sizeof (struct mcontext);
+#endif
 }
 
 void
 mono_mach_arch_thread_state_to_mcontext (thread_state_t state, mcontext_t context)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
+#if __DARWIN_UNIX03
 	struct __darwin_mcontext32 *ctx = (struct __darwin_mcontext32 *) context;
 
 	ctx->__ss = *arch_state;
+#else
+	struct mcontext *ctx = (struct mcontext *) context;
+
+	ctx->ss = *arch_state;
+#endif
 }
 
 void
 mono_mach_arch_mcontext_to_thread_state (mcontext_t context, thread_state_t state)
 {
 	x86_thread_state32_t *arch_state = (x86_thread_state32_t *) state;
+#if __DARWIN_UNIX03
 	struct __darwin_mcontext32 *ctx = (struct __darwin_mcontext32 *) context;
 
 	*arch_state = ctx->__ss;
+#else
+	struct mcontext *ctx = (struct mcontext *) context;
+
+	*arch_state = ctx->ss;
+#endif
 }
 
 int
