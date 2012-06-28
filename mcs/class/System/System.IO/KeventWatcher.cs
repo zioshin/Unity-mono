@@ -334,6 +334,8 @@ namespace System.IO {
 				return;
 
 			lock (fsw) {
+				if (changedFsi.FullName.StartsWith (fsw.FullPath, StringComparison.Ordinal))
+					filename = changedFsi.FullName.Substring (fsw.FullPath.Length + 1);
 				fsw.DispatchEvents (fa, filename, ref renamed);
 				if (fsw.Waiting) {
 					fsw.Waiting = false;

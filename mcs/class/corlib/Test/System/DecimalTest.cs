@@ -629,6 +629,7 @@ namespace MonoTests.System
 		}
 
 		[Test]
+		[SetCulture("en-US")]
 		public void TestConstructDouble ()
 		{
 			Decimal d;
@@ -1067,6 +1068,7 @@ namespace MonoTests.System
 		}
 
 		[Test]
+		[SetCulture("en-US")]
 		public void ToString_Defaults ()
 		{
 			Decimal d = 254.9m;
@@ -1375,6 +1377,7 @@ namespace MonoTests.System
 		}
 
 		[Test] // bug #59425
+		[SetCulture("en-US")]
 		public void ParseAndKeepPrecision ()
 		{
 			string value = "5";
@@ -1395,6 +1398,7 @@ namespace MonoTests.System
 		}
 
 		[Test]
+		[SetCulture("en-US")]
 		public void ToString_G ()
 		{
 			Assert.AreEqual ("1.0", (1.0m).ToString (), "00");
@@ -1449,6 +1453,84 @@ namespace MonoTests.System
 			Assert.AreEqual (-2.1M, Math.Round (-2.05M, 1, m), "#14");
 			Assert.AreEqual (-2.1M, Math.Round (-2.08M, 1, m), "#15");
 			Assert.AreEqual (-3.1M, Math.Round (-3.05M, 1, m), "#16");
+		}
+
+		[Test] // bug #4814
+		[SetCulture("")]
+		public void Parse_NumberGroupSeparatorIsEmpty_DoNotThrowIndexOutOfRangeException ()
+		{
+			NumberFormatInfo nf = new NumberFormatInfo ();
+			nf.NumberGroupSeparator = "";
+			Decimal.Parse ("1.5", nf);
+		}
+
+		[Test] // bug #4814
+		[SetCulture("")]
+		public void Parse_CurrencyGroupSeparatorIsEmpty_DoNotThrowIndexOutOfRangeException ()
+		{
+			NumberFormatInfo nf = new NumberFormatInfo ();
+			nf.CurrencyGroupSeparator = "";
+			Decimal.Parse ("\u00A41.5", NumberStyles.Currency, nf);
+		}
+
+		[Test] // bug #4814
+		[SetCulture("")]
+		public void Parse_LeadingSign_PositiveSignIsEmpty_DoNotThrowIndexOutOfRangeException ()
+		{
+			NumberFormatInfo nf = new NumberFormatInfo ();
+			nf.PositiveSign = "";
+			try {
+				Decimal.Parse ("+15", nf);
+			} catch (FormatException) {
+				return;
+			}
+
+			Assert.Fail ("Expected FormatException");
+		}
+
+		[Test] // bug #4814
+		[SetCulture("")]
+		public void Parse_LeadingSign_NegativeSignIsEmpty_DoNotThrowIndexOutOfRangeException ()
+		{
+			NumberFormatInfo nf = new NumberFormatInfo ();
+			nf.NegativeSign = "";
+			try {
+				Decimal.Parse ("-15", nf);
+			} catch (FormatException) {
+				return;
+			}
+
+			Assert.Fail ("Expected FormatException");
+		}
+
+		[Test] // bug #4814
+		[SetCulture("")]
+		public void Parse_TrailingSign_PositiveSignIsEmpty_DoNotThrowIndexOutOfRangeException ()
+		{
+			NumberFormatInfo nf = new NumberFormatInfo ();
+			nf.PositiveSign = "";
+			try {
+				Decimal.Parse ("15+", nf);
+			} catch (FormatException) {
+				return;
+			}
+
+			Assert.Fail ("Expected FormatException");
+		}
+
+		[Test] // bug #4814
+		[SetCulture("")]
+		public void Parse_TrailingSign_NegativeSignIsEmpty_DoNotThrowIndexOutOfRangeException ()
+		{
+			NumberFormatInfo nf = new NumberFormatInfo ();
+			nf.NegativeSign = "";
+			try {
+				Decimal.Parse ("15-", nf);
+			} catch (FormatException) {
+				return;
+			}
+
+			Assert.Fail ("Expected FormatException");
 		}
 	}
 }

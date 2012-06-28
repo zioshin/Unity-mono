@@ -415,10 +415,8 @@ namespace System.Runtime.Remoting.Channels
 				return null;
 			}
 			
-#if NET_1_1
 			if (RemotingConfiguration.CustomErrorsEnabled (IsLocalCall (msg)))
 				replySink = new ExceptionFilterSink (msg, replySink);
-#endif
 			
 			return _crossContextSink.AsyncProcessMessage (msg, replySink);		
 		}
@@ -441,7 +439,6 @@ namespace System.Runtime.Remoting.Channels
 
 		internal static IMessage CheckReturnMessage (IMessage callMsg, IMessage retMsg)
 		{
-#if NET_1_1
 			IMethodReturnMessage ret = retMsg as IMethodReturnMessage;
 			if (ret != null && ret.Exception != null)
 			{
@@ -451,7 +448,6 @@ namespace System.Runtime.Remoting.Channels
 					retMsg = new MethodResponse (ex, (IMethodCallMessage)callMsg);
 				}
 			}
-#endif
 			return retMsg;
 		}
 		

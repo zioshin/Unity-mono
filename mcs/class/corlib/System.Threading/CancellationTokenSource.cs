@@ -118,7 +118,12 @@ namespace System.Threading
 		{
 			CheckDisposed ();
 
+			if (canceled)
+				return;
+
+			Thread.MemoryBarrier ();
 			canceled = true;
+			
 			handle.Set ();
 			
 			List<Exception> exceptions = null;
@@ -229,9 +234,13 @@ namespace System.Threading
 		void Dispose (bool disposing)
 		{
 			if (disposing && !disposed) {
+				Thread.MemoryBarrier ();
 				disposed = true;
 
-				callbacks = null;
+				if (!canceled) {
+					Thread.MemoryBarrier ();
+					callbacks = null;
+				}
 #if NET_4_5
 				if (timer != null)
 					timer.Dispose ();
@@ -263,8 +272,13 @@ namespace System.Threading
 
 		internal void RemoveCallback (CancellationTokenRegistration reg)
 		{
+			// Ignore call if the source has been disposed
+			if (disposed)
+				return;
 			Action dummy;
-			callbacks.TryRemove (reg, out dummy);
+			var cbs = callbacks;
+			if (cbs != null)
+				cbs.TryRemove (reg, out dummy);
 		}
 	}
 }

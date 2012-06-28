@@ -32,7 +32,7 @@
 
 using System.IO;
 using System.Runtime.InteropServices;
-#if NET_2_0 && !NET_2_1
+#if !NET_2_1
 using System.Timers;
 using System.Threading;
 #endif
@@ -93,14 +93,12 @@ namespace System.Net.Sockets
 			}
 		}
 
-#if NET_2_0
 		public override bool CanTimeout
 		{
 			get {
 				return(true);
 			}
 		}
-#endif
 
 		public override bool CanWrite {
 			get {
@@ -152,7 +150,7 @@ public static class Timeout
 }
 #endif
 
-#if NET_2_0 && !NET_2_1 || UNITY
+#if !NET_2_1 || UNITY
 #if TARGET_JVM
 		[MonoNotSupported ("Not supported since Socket.ReceiveTimeout is not supported")]
 #endif
@@ -189,7 +187,7 @@ public static class Timeout
 			}
 		}
 
-#if NET_2_0 && !NET_2_1 || UNITY
+#if !NET_2_1 || UNITY
 #if TARGET_JVM
 		[MonoNotSupported ("Not supported since Socket.SendTimeout is not supported")]
 #endif
@@ -277,14 +275,8 @@ public static class Timeout
 			Dispose (false);
 		}
 		
-#if !NET_2_0
-		public override void Close ()
-		{
-			((IDisposable) this).Dispose ();
-		}
-#endif
 
-#if NET_2_0 && !NET_2_1
+#if !NET_2_1
 		public void Close (int timeout)
 		{
 			if (timeout < -1) {
@@ -307,13 +299,7 @@ public static class Timeout
 		}
 #endif
 
-		protected
-#if NET_2_0
-		override
-#else
-		virtual
-#endif
-		void Dispose (bool disposing)
+		protected override void Dispose (bool disposing)
 		{
 			if (disposed) 
 				return;
@@ -376,13 +362,6 @@ public static class Timeout
 		{
 			// network streams are non-buffered, this is a no-op
 		}
-
-#if !NET_2_0
-		void IDisposable.Dispose ()
-		{
-			Dispose (true);
-		}
-#endif
 
 		public override int Read ([In,Out] byte [] buffer, int offset, int size)
 		{

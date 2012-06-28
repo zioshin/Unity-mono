@@ -223,6 +223,14 @@ namespace System {
 				return IsCOMObjectImpl ();
 			}
 		}
+		
+#if NET_4_5
+		public virtual bool IsConstructedGenericType {
+			get {
+				throw new NotImplementedException ();
+			}
+		}
+#endif
 
 		public bool IsContextful {
 			get {
@@ -1359,6 +1367,14 @@ namespace System {
 				return _impl.Value != IntPtr.Zero;
 			}
 		}
+		
+#if NET_4_5
+		public virtual Type[] GenericTypeArguments {
+			get {
+				return IsGenericType ? GetGenericArguments () : EmptyTypes;
+			}
+		}
+#endif
 
 #if !DISABLE_SECURITY
 		public virtual Type[] GetGenericArguments ()
@@ -1387,7 +1403,7 @@ namespace System {
 			[MethodImplAttribute(MethodImplOptions.InternalCall)]
 			get;
 		}
-
+		
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		static extern Type MakeGenericType (Type gt, Type [] types);
 

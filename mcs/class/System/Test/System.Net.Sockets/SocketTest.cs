@@ -1737,6 +1737,7 @@ namespace MonoTests.System.Net.Sockets
 		}
 		
 		[Test]
+		[Category ("NotOnMac")]
 		public void BeginConnectMultiple ()
 		{
 			Socket sock = new Socket (AddressFamily.InterNetwork,
@@ -3341,6 +3342,7 @@ namespace MonoTests.System.Net.Sockets
 		
 #if NET_2_0
 		[Test]
+		[Category ("NotOnMac")]
                 public void ConnectedProperty ()
                 {
 			TcpListener listener = new TcpListener (IPAddress.Loopback, 23456);

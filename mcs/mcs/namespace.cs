@@ -209,10 +209,16 @@ namespace Mono.CSharp {
 				ns_parent = this;
 			}
 
+			return ns_parent.TryAddNamespace (name.Basename);
+		}
+
+		Namespace TryAddNamespace (string name)
+		{
 			Namespace ns;
-			if (!ns_parent.namespaces.TryGetValue (name.Basename, out ns)) {
-				ns = new Namespace (ns_parent, name.Basename);
-				ns_parent.namespaces.Add (name.Basename, ns);
+
+			if (!namespaces.TryGetValue (name, out ns)) {
+				ns = new Namespace (this, name);
+				namespaces.Add (name, ns);
 			}
 
 			return ns;
@@ -1180,11 +1186,23 @@ namespace Mono.CSharp {
 
 					entry.Define (this);
 
+					//
+					// It's needed for repl only, when using clause cannot be resolved don't hold it in
+					// global list which is resolved for each evaluation
+					//
+					if (entry.ResolvedExpression == null) {
+						clauses.RemoveAt (i--);
+						continue;
+					}
+
 					Namespace using_ns = entry.ResolvedExpression as Namespace;
 					if (using_ns == null)
 						continue;
 
 					if (list.Contains (using_ns)) {
+						// Ensure we don't report the warning multiple times in repl
+						clauses.RemoveAt (i--);
+
 						Compiler.Report.Warning (105, 3, entry.Location,
 							"The using directive for `{0}' appeared previously in this namespace", using_ns.GetSignatureForError ());
 					} else {

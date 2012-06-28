@@ -41,6 +41,7 @@ using System.Security.Permissions;
 #endif
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace System {
 
@@ -59,7 +60,7 @@ namespace System {
 		 * of icalls, do not require an increment.
 		 */
 #pragma warning disable 169
-		private const int mono_corlib_version = 101;
+		private const int mono_corlib_version = 103;
 #pragma warning restore 169
 
 		[ComVisible (true)]
@@ -172,6 +173,14 @@ namespace System {
 				Directory.SetCurrentDirectory (value);
 			}
 		}
+		
+#if NET_4_5
+		public static int CurrentManagedThreadId {
+			get {
+				return Thread.CurrentThread.ManagedThreadId;
+			}
+		}
+#endif
 
 		/// <summary>
 		/// Gets or sets the exit code of this process

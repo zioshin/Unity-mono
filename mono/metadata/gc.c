@@ -485,6 +485,13 @@ ves_icall_System_GC_WaitForPendingFinalizers (void)
 		/* Avoid deadlocks */
 		return;
 
+	/*
+	If the finalizer thread is not live, lets pretend no finalizers are pending since the current thread might
+	be the one responsible for starting it up.
+	*/
+	if (gc_thread == NULL)
+		return;
+
 	ResetEvent (pending_done_event);
 	mono_gc_finalize_notify ();
 	/* g_print ("Waiting for pending finalizers....\n"); */
@@ -1013,6 +1020,12 @@ finalize_domain_objects (DomainFinalizationReq *req)
 {
 	MonoDomain *domain = req->domain;
 
+#if HAVE_SGEN_GC
+#define NUM_FOBJECTS 64
+	MonoObject *to_finalize [NUM_FOBJECTS];
+	int count;
+#endif
+
 	/* Process finalizers which are already in the queue */
 	mono_gc_invoke_finalizers ();
 
@@ -1038,9 +1051,6 @@ finalize_domain_objects (DomainFinalizationReq *req)
 		g_ptr_array_free (objs, TRUE);
 	}
 #elif defined(HAVE_SGEN_GC)
-#define NUM_FOBJECTS 64
-	MonoObject *to_finalize [NUM_FOBJECTS];
-	int count;
 	while ((count = mono_gc_finalizers_for_domain (domain, to_finalize, NUM_FOBJECTS))) {
 		int i;
 		for (i = 0; i < count; ++i) {

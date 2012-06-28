@@ -215,6 +215,10 @@ public class Tests : TestsBase
 		if (args.Length > 0 && args [0] == "suspend-test")
 			/* This contains an infinite loop, so execute it conditionally */
 			suspend ();
+		if (args.Length >0 && args [0] == "unhandled-exception") {
+			unhandled_exception ();
+			return 0;
+		}
 		breakpoints ();
 		single_stepping ();
 		arguments ();
@@ -788,6 +792,14 @@ public class Tests : TestsBase
 		}
 	}
 
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static void unhandled_exception () {
+		ThreadPool.QueueUserWorkItem (delegate {
+				throw new InvalidOperationException ();
+			});
+		Thread.Sleep (10000);
+	}
+
 	internal static Delegate create_filter_delegate (Delegate dlg, MethodInfo filter_method)
 	{
 		if (dlg == null)
@@ -887,6 +899,8 @@ public class Tests : TestsBase
 		CrossDomain o = (CrossDomain)domain.CreateInstanceAndUnwrap (
 				   typeof (CrossDomain).Assembly.FullName, "CrossDomain");
 
+		domains_2 (o, new CrossDomain ());
+
 		o.invoke_2 ();
 
 		o.invoke ();
@@ -895,11 +909,15 @@ public class Tests : TestsBase
 
 		AppDomain.Unload (domain);
 
-		domains_2 ();
+		domains_3 ();
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
-	public static void domains_2 () {
+	public static void domains_2 (object o, object o2) {
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static void domains_3 () {
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
@@ -1035,6 +1053,10 @@ public class CrossDomain : MarshalByRefObject
 	public void invoke_2 () {
 		Tests.invoke_in_domain_2 ();
 	}
+
+	public int invoke_3 () {
+		return 42;
+	}
 }	
 
 public class Foo
@@ -1047,6 +1069,7 @@ public class LineNumbers
 {
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void ln1 () {
+		// Column 3
 		ln2 ();
 		ln3 ();
 	}

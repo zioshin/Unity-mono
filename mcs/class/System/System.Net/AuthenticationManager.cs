@@ -61,8 +61,7 @@ namespace System.Net
 		#if !UNITY
 				modules.Add (new NtlmClient ());
 		#endif
-#else
-#if CONFIGURATION_DEP
+#elif CONFIGURATION_DEP
 				object cfg = ConfigurationManager.GetSection ("system.net/authenticationModules");
 				AuthenticationModulesSection s = cfg as AuthenticationModulesSection;
 				if (s != null) {
@@ -77,7 +76,6 @@ namespace System.Net
 				}
 #else
 				ConfigurationSettings.GetConfig ("system.net/authenticationModules");
-#endif
 #endif
 			}
 		}

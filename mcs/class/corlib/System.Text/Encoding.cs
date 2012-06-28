@@ -44,6 +44,8 @@ public abstract class Encoding : ICloneable
 	internal int codePage;
 	internal int windows_code_page;
 	bool is_readonly = true;
+	
+	protected static readonly byte[] empty = new byte[0];
 
 	// Constructor.
 	protected Encoding ()
@@ -246,10 +248,10 @@ public abstract class Encoding : ICloneable
 			throw new ArgumentNullException ("s");
 
 		if (s.Length == 0)
-			return new byte [0];
+			return empty;
 		int byteCount = GetByteCount (s);
 		if (byteCount == 0)
-			return new byte [0];
+			return empty;
 		unsafe {
 			fixed (char* cptr = s) {
 				byte [] bytes = new byte [byteCount];
@@ -705,7 +707,7 @@ public abstract class Encoding : ICloneable
 	// Get the identifying preamble for this encoding.
 	public virtual byte[] GetPreamble ()
 	{
-		return new byte [0];
+		return empty;
 	}
 
 	// Decode a buffer of bytes into a string.

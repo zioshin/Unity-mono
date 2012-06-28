@@ -113,6 +113,7 @@ struct _SgenThreadInfo {
 #endif
 	int skip;
 	volatile int in_critical_region;
+	gboolean joined_stw;
 	gboolean doing_handshake;
 	gboolean thread_is_dying;
 	gboolean gc_disabled;
@@ -552,9 +553,8 @@ sgen_nursery_is_to_space (char *object)
 	int byte = idx / 8;
 	int bit = idx & 0x7;
 
-	/* FIXME put those asserts under a non default level */
-	g_assert (sgen_ptr_in_nursery (object));
-	g_assert (byte < sgen_space_bitmap_size);
+	DEBUG (4, g_assert (sgen_ptr_in_nursery (object)));
+	DEBUG (4, g_assert (byte < sgen_space_bitmap_size));
 
 	return (sgen_space_bitmap [byte] & (1 << bit)) != 0;
 }
@@ -656,6 +656,8 @@ struct _SgenMajorCollector {
 	void* (*alloc_worker_data) (void);
 	void (*init_worker_thread) (void *data);
 	void (*reset_worker_data) (void *data);
+	gboolean (*is_valid_object) (char *object);
+	gboolean (*describe_pointer) (char *pointer);
 };
 
 extern SgenMajorCollector major_collector;
@@ -823,6 +825,8 @@ void sgen_los_iterate_live_block_ranges (sgen_cardtable_block_callback callback)
 void sgen_los_scan_card_table (SgenGrayQueue *queue) MONO_INTERNAL;
 void sgen_major_collector_scan_card_table (SgenGrayQueue *queue) MONO_INTERNAL;
 FILE *sgen_get_logfile (void) MONO_INTERNAL;
+gboolean sgen_los_is_valid_object (char *object) MONO_INTERNAL;
+gboolean mono_sgen_los_describe_pointer (char *ptr) MONO_INTERNAL;
 
 /* nursery allocator */
 
@@ -870,8 +874,8 @@ typedef struct {
 #define SGEN_HASH_TABLE_ENTRY_SIZE(data_size)			((data_size) + sizeof (SgenHashTableEntry*) + sizeof (gpointer))
 
 gpointer sgen_hash_table_lookup (SgenHashTable *table, gpointer key) MONO_INTERNAL;
-gboolean sgen_hash_table_replace (SgenHashTable *table, gpointer key, gpointer data) MONO_INTERNAL;
-gboolean sgen_hash_table_set_value (SgenHashTable *table, gpointer key, gpointer data) MONO_INTERNAL;
+gboolean sgen_hash_table_replace (SgenHashTable *table, gpointer key, gpointer new_value, gpointer old_value) MONO_INTERNAL;
+gboolean sgen_hash_table_set_value (SgenHashTable *table, gpointer key, gpointer new_value, gpointer old_value) MONO_INTERNAL;
 gboolean sgen_hash_table_set_key (SgenHashTable *hash_table, gpointer old_key, gpointer new_key) MONO_INTERNAL;
 gboolean sgen_hash_table_remove (SgenHashTable *table, gpointer key, gpointer data_return) MONO_INTERNAL;
 
@@ -983,6 +987,8 @@ extern __thread long *store_remset_buffer_index_addr;
 extern GCMemSection *nursery_section;
 extern int stat_major_gcs;
 extern guint32 collect_before_allocs;
+extern guint32 verify_before_allocs;
+extern gboolean has_per_allocation_action;
 extern int degraded_mode;
 extern int default_nursery_size;
 extern guint32 tlab_size;
@@ -1021,7 +1027,8 @@ gboolean sgen_is_managed_allocator (MonoMethod *method);
 
 void sgen_check_consistency (void);
 void sgen_check_major_refs (void);
-
+void sgen_check_whole_heap (void);
+void sgen_check_whole_heap_stw (void) MONO_INTERNAL;
 
 /* Write barrier support */
 
