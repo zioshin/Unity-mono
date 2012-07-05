@@ -72,7 +72,7 @@ need_link_unlink=no
 
 AC_ARG_WITH([macversion],
 	[  --with-macversion=<version>    Choose minimum macos version],
-	[], [with_macversion=10.4])
+	[], [with_macversion=10.5])
 
 if test -z $MACSDKOPTIONS; then
 MACSYSROOTBASE="-isysroot /Developer/SDKs"
