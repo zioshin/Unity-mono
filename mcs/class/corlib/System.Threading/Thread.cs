@@ -1072,6 +1072,7 @@ namespace System.Threading {
 		#endif
 		[Obsolete ("see CompressedStack class")]
 		public
+		CompressedStack GetCompressedStack ()
 		{
 			// Note: returns null if no CompressedStack has been set.
 			// However CompressedStack.GetCompressedStack returns an 
@@ -1093,6 +1094,7 @@ namespace System.Threading {
 		#endif
 		[Obsolete ("see CompressedStack class")]
 		public
+		void SetCompressedStack (CompressedStack stack)
 		{
 			#if !DISABLE_SECURITY
 			ExecutionContext.SecurityContext.CompressedStack = stack;
@@ -1121,7 +1123,5 @@ namespace System.Threading {
               {
                       throw new NotImplementedException ();
               }
-#endif
-
 	}
 }
