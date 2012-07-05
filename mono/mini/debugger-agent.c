@@ -1495,7 +1495,11 @@ transport_handshake (void)
 	do {
 		res = transport_send (handshake_msg, strlen (handshake_msg));
 	} while (res == -1 && get_last_sock_error () == MONO_EINTR);
-	g_assert (res != -1);
+	/* g_assert (res != -1); */
+	if (-1 == res) {
+		fprintf (stderr, "debugger-agent: DWP handshake failed.\n");
+		return FALSE;
+	}
 
 	/* Read answer */
 	res = transport_recv (buf, strlen (handshake_msg));
@@ -1525,7 +1529,11 @@ transport_handshake (void)
                                  TCP_NODELAY,
                                  (char *) &flag,
                                  sizeof(int));
-		g_assert (result >= 0);
+		/* g_assert (result >= 0); */
+		if (0 > result) {
+			fprintf (stderr, "debugger-agent: Error setting TCP_NODELAY.\n");
+			return FALSE;
+		}
 	}
 
 	set_keepalive ();
@@ -3006,14 +3014,14 @@ no_seq_points_found (MonoMethod *method)
 /*
 	 * This can happen in full-aot mode with assemblies AOTed without the 'soft-debug' option to save space.
 	 */
-	printf ("Unable to find seq points for method '%s'.\n", mono_method_full_name (method, TRUE));
+		printf ("Unable to find seq points for method '%s'.\n", mono_method_full_name (method, TRUE));
 }
 
 /*
- * find_next_seq_point_for_native_offset:
- *
- *   Find the first sequence point after NATIVE_OFFSET.
- */
+* find_next_seq_point_for_native_offset:
+*
+* Find the first sequence point after NATIVE_OFFSET.
+*/
 static SeqPoint*
 find_next_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info)
 {
@@ -3028,7 +3036,7 @@ find_next_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, g
 	}
 	g_assert (seq_points);
 	if (info)
-	*info = seq_points;
+		*info = seq_points;
 
 	for (i = 0; i < seq_points->len; ++i) {
 		if (seq_points->seq_points [i].native_offset >= native_offset)
@@ -3039,10 +3047,10 @@ find_next_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, g
 }
 
 /*
- * find_prev_seq_point_for_native_offset:
- *
- *   Find the first sequence point before NATIVE_OFFSET.
- */
+* find_prev_seq_point_for_native_offset:
+*
+* Find the first sequence point before NATIVE_OFFSET.
+*/
 static SeqPoint*
 find_prev_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info)
 {
@@ -3051,7 +3059,7 @@ find_prev_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, g
 
 	seq_points = get_seq_points (domain, method);
 	if (info)
-	*info = seq_points;
+		*info = seq_points;
 	if (!seq_points)
 		return NULL;
 
@@ -3604,7 +3612,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 				return;
 		}
 	}
-
+	
 	nevents = g_slist_length (events);
 	buffer_init (&buf, 128);
 	buffer_add_byte (&buf, suspend_policy);
@@ -3889,12 +3897,12 @@ static void
 appdomain_unload (MonoProfiler *prof, MonoDomain *domain)
 {
 	clear_breakpoints_for_domain (domain);
-	
+
 	mono_loader_lock ();
 	/* Invalidate each thread's frame stack */
 	mono_g_hash_table_foreach (thread_to_tls, invalidate_each_thread, NULL);
 	mono_loader_unlock ();
-	
+
 	process_profiler_event (EVENT_KIND_APPDOMAIN_UNLOAD, domain);
 }
 
@@ -3940,7 +3948,7 @@ start_runtime_invoke (MonoProfiler *prof, MonoMethod *method)
 	DebuggerTlsData *tls;
 
 	mono_loader_lock ();
-	
+
 	tls = mono_g_hash_table_lookup (thread_to_tls, thread);
 	/* Could be the debugger thread with assembly/type load hooks */
 	if (tls)
@@ -4050,7 +4058,7 @@ jit_end (MonoProfiler *prof, MonoMethod *method, MonoJitInfo *jinfo, int result)
 			break;
 		}
 	}
-
+	
 	send_type_load (method->klass);
 
 	if (!result)
