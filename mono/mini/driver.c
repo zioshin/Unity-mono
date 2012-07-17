@@ -1239,6 +1239,9 @@ static const char info[] =
 #endif
 
 #ifdef HOST_WIN32
+
+extern BOOL WINAPI GC_DllMain(HINSTANCE inst, ULONG reason, LPVOID reserved);
+
 BOOL APIENTRY DllMain (HMODULE module_handle, DWORD reason, LPVOID reserved)
 {
 	if (!GC_DllMain (module_handle, reason, reserved))
