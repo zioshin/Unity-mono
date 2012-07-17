@@ -78,6 +78,7 @@ namespace System.Net
 #else
 				ConfigurationSettings.GetConfig ("system.net/authenticationModules");
 #endif
+#endif
 			}
 		}
 		
