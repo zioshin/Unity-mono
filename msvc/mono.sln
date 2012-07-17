@@ -197,7 +197,6 @@ Global
 		{8F90007F-8019-4191-8808-891E4762D958}.Release_SGen|x64.Build.0 = Release|x64
 		{8F90007F-8019-4191-8808-891E4762D958}.Release|Win32.ActiveCfg = Release|Win32
 		{8F90007F-8019-4191-8808-891E4762D958}.Release|x64.ActiveCfg = Release|x64
-		{8F90007F-8019-4191-8808-891E4762D958}.Release|x64.Build.0 = Release|x64
 		{CA2A69D6-3B9D-45A5-8BF7-4E242E683122}.Debug_SGen|Win32.ActiveCfg = Debug|Win32
 		{CA2A69D6-3B9D-45A5-8BF7-4E242E683122}.Debug_SGen|x64.ActiveCfg = Debug|x64
 		{CA2A69D6-3B9D-45A5-8BF7-4E242E683122}.Debug_SGen|x64.Build.0 = Debug|x64
@@ -354,8 +353,8 @@ Global
 		{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}.Release_SGen|x64.Build.0 = Release_SGen|x64
 		{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}.Release|Win32.ActiveCfg = Release|Win32
 		{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}.Release|Win32.Build.0 = Release|Win32
-		{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}.Release|x64.ActiveCfg = Release_SGen|x64
-		{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}.Release|x64.Build.0 = Release_SGen|x64
+		{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}.Release|x64.ActiveCfg = Release|x64
+		{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -383,9 +382,9 @@ Global
 		{F51017F9-B7FB-4F87-B7B5-12799D965783} = {4CFD7702-60B2-4E82-BFAD-FCBB53EB4DA2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		AMDCaProjectFile = C:\Users\Owner\Development\monogit\mono\msvc\CodeAnalyst\mono.caw
-		AMDCaPersistentStartup = mono
 		AMDCaPersistentConfig = Debug|Win32
+		AMDCaPersistentStartup = mono
+		AMDCaProjectFile = C:\Users\Owner\Development\monogit\mono\msvc\CodeAnalyst\mono.caw
 	EndGlobalSection
 	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
 		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
