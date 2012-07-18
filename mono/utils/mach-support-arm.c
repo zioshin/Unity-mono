@@ -21,7 +21,7 @@ mono_mach_arch_get_ip (thread_state_t state)
 {
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 
-	return (void *) arch_state->__eip;
+	return (void *) arch_state->__pc;
 }
 
 void *
@@ -29,7 +29,7 @@ mono_mach_arch_get_sp (thread_state_t state)
 {
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 
-	return (void *) arch_state->__esp;
+	return (void *) arch_state->__sp;
 }
 
 int
