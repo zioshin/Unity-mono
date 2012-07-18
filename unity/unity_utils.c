@@ -1,3 +1,4 @@
+#include <glib.h>
 #include "unity_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +8,6 @@
 #include <fcntl.h>
 #endif
 #include <mono/metadata/object.h>
-#include <glib.h>
 
 #ifdef WIN32
 #define UTF8_2_WIDE(src,dst) MultiByteToWideChar( CP_UTF8, 0, src, -1, dst, MAX_PATH )
