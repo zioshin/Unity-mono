@@ -134,6 +134,7 @@
     <ClCompile Include="..\mono\metadata\threadpool.c" />
     <ClCompile Include="..\mono\metadata\threads.c" />
     <ClCompile Include="..\mono\metadata\verify.c" />
+    <ClCompile Include="..\unity\unity_utils.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\mono\metadata\appdomain.h" />
@@ -217,6 +218,8 @@
     <ClInclude Include="..\mono\metadata\verify-internals.h" />
     <ClInclude Include="..\mono\metadata\verify.h" />
     <ClInclude Include="..\mono\metadata\wrapper-types.h" />
+    <ClInclude Include="..\unity\libmono_vcdefs.h" />
+    <ClInclude Include="..\unity\unity_utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C36612BD-22D3-4B95-85E2-7FDC4FC5D739}</ProjectGuid>
