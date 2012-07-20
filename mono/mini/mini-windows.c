@@ -96,8 +96,8 @@ SIG_HANDLER_SIGNATURE (mono_chain_signal)
 	}
 	if (gUnhandledExceptionHandler)
 	{
-		win32_chained_exception_filter_didrun = TRUE;
-		win32_chained_exception_filter_result = (*gUnhandledExceptionHandler)(info);
+		mono_win_chained_exception_filter_didrun = TRUE;
+		mono_win_chained_exception_filter_didrun = (*gUnhandledExceptionHandler)(info);
 		return TRUE;
 	}
 	return FALSE;
