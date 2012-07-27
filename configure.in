@@ -2364,6 +2364,7 @@ if test "x$host" != "x$target"; then
    arm*-darwin*)
 		TARGET=ARM;
 		arch_target=arm;
+		AC_DEFINE(MONO_CROSS_COMPILE,1,[The runtime is compiled for cross-compiling mode])
 		ACCESS_UNALIGNED="no"
 		JIT_SUPPORTED=yes
 		CPPFLAGS="$CPPFLAGS -DARM_FPU_VFP=1 -D__ARM_EABI__"
