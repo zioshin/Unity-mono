@@ -3472,6 +3472,8 @@ mono_set_commandline_arguments(int argc, char* argv[], const char* basedir)
 	gchar *utf8_fullpath;
 	
 	g_assert (main_args == NULL);  //this function should only be called once.
+	if (argc == 0)
+		return;
 	main_args = g_new0 (char*, argc);
 	num_main_args = argc;
 	
