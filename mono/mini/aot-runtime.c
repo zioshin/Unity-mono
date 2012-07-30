@@ -35,8 +35,10 @@
 #include <sys/wait.h>  /* for WIFEXITED, WEXITSTATUS */
 #endif
 
+#if !defined(PLATFORM_ANDROID)
 #ifdef HAVE_DL_ITERATE_PHDR
 #include <link.h>
+#endif
 #endif
 
 #include <mono/metadata/tabledefs.h>
