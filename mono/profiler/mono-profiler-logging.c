@@ -3675,6 +3675,10 @@ scan_process_regions (ProfilerExecutableMemoryRegions *regions) {
 	char *current;
 	int fd;
 	
+#ifdef PLATFORM_MACOSX
+	return FALSE;
+#endif
+
 	fd = open ("/proc/self/maps", O_RDONLY);
 	if (fd == -1) {
 		return FALSE;

@@ -79,7 +79,7 @@
 #include <mono/utils/mono-signal-handler.h>
 
 /* The process' environment strings */
-#if defined(__APPLE__) && !defined (__arm__)
+#if defined(__APPLE__) && !defined(__arm__)
 /* Apple defines this in crt_externs.h but doesn't provide that header for 
  * arm-apple-darwin9.  We'll manually define the symbol on Apple as it does
  * in fact exist on all implementations (so far) 
@@ -153,12 +153,12 @@ static void process_ops_init (void)
 					    WAPI_HANDLE_CAP_SPECIAL_WAIT);
 }
 
-
+	
 /* Check if a pid is valid - i.e. if a process exists with this pid. */
 static gboolean is_pid_valid (pid_t pid)
 {
 	gboolean result = FALSE;
-
+	
 #if defined(PLATFORM_MACOSX) || defined(__OpenBSD__)
 	if (((kill(pid, 0) == 0) || (errno == EPERM)) && pid != 0)
 		result = TRUE;
@@ -172,16 +172,16 @@ static gboolean is_pid_valid (pid_t pid)
 		result = TRUE;
 	g_free (dir);
 #endif
-	
+
 	return result;
 }
-
+	
 static void process_set_defaults (struct _WapiHandle_process *process_handle)
 {
 	/* These seem to be the defaults on w2k */
 	process_handle->min_working_set = 204800;
 	process_handle->max_working_set = 1413120;
-	
+
 	_wapi_time_t_to_filetime (time (NULL), &process_handle->create_time);
 }
 
@@ -331,7 +331,7 @@ gboolean ShellExecuteEx (WapiShellExecuteInfo *sei)
 			return FALSE;
 
 #ifdef PLATFORM_MACOSX
-		handler = g_strdup ("/usr/bin/open");
+			handler = g_strdup ("/usr/bin/open");
 #else
 		/*
 		 * On Linux, try: xdg-open, the FreeDesktop standard way of doing it,
@@ -378,7 +378,7 @@ gboolean ShellExecuteEx (WapiShellExecuteInfo *sei)
 		g_free (args);
 		if (!ret){
 			if (GetLastError () != ERROR_OUTOFMEMORY)
-				SetLastError (ERROR_INVALID_DATA);
+			SetLastError (ERROR_INVALID_DATA);
 			return FALSE;
 		}
 		/* Shell exec should not return a process handle when it spawned a GUI thing, like a browser. */
@@ -813,7 +813,7 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 		if (cli_launcher)
 			newapp = mono_unicode_from_external (cli_launcher, &bytes_ignored);
 		else
-			newapp = mono_unicode_from_external ("mono", &bytes_ignored);
+		newapp = mono_unicode_from_external ("mono", &bytes_ignored);
 
 		if (newapp != NULL) {
 			if (appname != NULL) {
@@ -1038,7 +1038,7 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 	}
 	
 	process_handle_data->id = pid;
-
+	
 	/* Add our mono_process into the linked list of mono_processes */
 	mono_process = (struct MonoProcess *) g_malloc0 (sizeof (struct MonoProcess));
 	mono_process->pid = pid;
@@ -1116,7 +1116,7 @@ free_strings:
 
 	/* Check if something needs to be cleaned up. */
 	mono_processes_cleanup ();
-	
+
 	return(ret);
 }
 		
@@ -1417,7 +1417,7 @@ gboolean EnumProcesses (guint32 *pids, guint32 len, guint32 *needed)
 		pids [j++] = result [i].p_pid;
 #else
 		if (result[i].kp_proc.p_pid > 0) /* Pid 0 not supported */
-			pids [j++] = result [i].kp_proc.p_pid;
+		pids [j++] = result [i].kp_proc.p_pid;
 #endif
 	}
 	free (result);
@@ -1462,7 +1462,7 @@ gboolean EnumProcesses (guint32 *pids, guint32 len, guint32 *needed)
 	fit = len / sizeof (guint32);
 	while(i < fit && (entry = readdir (dir)) != NULL) {
 		pid_t pid;
-		char *endptr;
+			char *endptr;
 
 		if (!isdigit (entry->d_name[0]))
 			continue;
@@ -1573,7 +1573,7 @@ gboolean GetExitCodeProcess (gpointer process, guint32 *code)
 			return FALSE;
 		}
 	}
-
+	
 	ok=_wapi_lookup_handle (process, WAPI_HANDLE_PROCESS,
 				(gpointer *)&process_handle);
 	if(ok==FALSE) {
@@ -2005,7 +2005,7 @@ static gboolean match_procname_to_modulename (gchar *procname, gchar *modulename
 	return result;
 }
 
-#if !defined(__OpenBSD__)
+#if !defined(__OpenBSD__) && !defined (PLATFORM_MACOSX)
 static FILE *
 open_process_map (int pid, const char *mode)
 {
@@ -2262,7 +2262,7 @@ retry:
 #endif
 
 	return ret;
-}
+	}
 
 /*
  * wapi_process_get_path:

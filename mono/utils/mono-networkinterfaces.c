@@ -23,6 +23,10 @@ mono_networkinterface_list (int *size)
 	FILE *f;
 	char name [256];
 
+#ifdef __APPLE__
+	return NULL;
+#endif
+
 	f = fopen ("/proc/net/dev", "r");
 	if (!f) 
 		return NULL;
@@ -82,6 +86,10 @@ mono_network_get_data (char* name, MonoNetworkData data, MonoNetworkError *error
 		tx_fifo, tx_colls, tx_carrier, rx_multi;
 
 	*error = MONO_NETWORK_ERROR_OTHER;
+
+#ifdef __APPLE__
+	return -1;
+#endif
 
 	f = fopen ("/proc/net/dev", "r");
 	if (!f) 

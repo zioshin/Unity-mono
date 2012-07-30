@@ -497,7 +497,7 @@ shared_area_disabled (void)
 	return use_shared_area == -1;
 }
 
-#if defined(HAVE_SHM_OPEN) && !defined (DISABLE_SHARED_PERFCOUNTERS)
+#if defined(HAVE_SHM_OPEN) && !defined (DISABLE_SHARED_PERFCOUNTERS) && !defined(DISABLE_SHARED_HANDLES)
 
 static int
 mono_shared_area_instances_slow (void **array, int count, gboolean cleanup)

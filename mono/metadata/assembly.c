@@ -702,7 +702,7 @@ mono_set_rootdir (void)
 	g_free (bindir);
 	g_free (name);
 	g_free (resolvedname);
-#elif defined(DISABLE_MONO_AUTODETECTION)
+#elif defined(DISABLE_MONO_AUTODETECTION) || defined (HOST_MACOSX)
 	fallback ();
 #else
 	char buf [4096];
