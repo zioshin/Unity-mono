@@ -7484,6 +7484,12 @@ add_gsharedvt_wrappers (MonoAotCompile *acfg, MonoMethodSignature *sig, gboolean
 	}
 }
 
+static void
+add_generic_class (MonoAotCompile *acfg, MonoClass *klass);
+
+gboolean
+mono_method_marked_as_wrapperless(MonoMethod* method);
+
 /*
  * compile_method:
  *
@@ -7501,18 +7507,19 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 	GTimer *jit_timer;
 	JitFlags flags;
 
-#if defined(PLATFORM_IPHONE_XCOMP)                                                                                                                                                                
-        if (acfg->aot_opts.ficall && method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE)                                                                                                       
-         {                                                                                                                                                                                         
-             method->save_lmf = FALSE;                                                                                                                                                             
-             MonoMethod *wrapped = mono_marshal_method_from_wrapper (method);                                                                                                                      
-             if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL))                                                                                                               
-             {
-                 if (wrapped->signature->ret->type != MONO_TYPE_R4)                                                                                                                                
-                     return;                                                                                                                                                                       
-             }                                                                                                                                                                                     
-         }                                                                                                                                                                                         
-#endif        
+#if defined(PLATFORM_IPHONE_XCOMP)
+	if (acfg->aot_opts.ficall && method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE)
+	{
+		wrapped = mono_marshal_method_from_wrapper (method);
+		if (wrapped && (wrapped->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) &&
+			mono_method_marked_as_wrapperless(wrapped))
+		{
+			method->save_lmf = FALSE;
+			if (wrapped->signature->ret->type != MONO_TYPE_R4)
+				return;
+		}
+	}
+#endif
 
 	if (acfg->aot_opts.metadata_only)
 		return;
