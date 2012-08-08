@@ -246,7 +246,7 @@ namespace System.IO
 			string result = MonoIO.GetCurrentDirectory (out error);
 			if (error != MonoIOError.ERROR_SUCCESS)
 				throw MonoIO.GetException (error);
-#if !MOONLIGHT && !DISABLE_SECURITY
+#if !MOONLIGHT && !DISABLE_SECURITY && !UNITY
 			if ((result != null) && (result.Length > 0) && SecurityManager.SecurityEnabled) {
 				new FileIOPermission (FileIOPermissionAccess.PathDiscovery, result).Demand ();
 			}
