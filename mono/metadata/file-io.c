@@ -366,7 +366,8 @@ ves_icall_System_IO_MonoIO_GetFileSystemEntries (MonoString *path,
 		return(NULL);
 	}
 
-	utf8_path = get_search_dir (path_with_pattern);
+	/* utf8_path = get_search_dir (path_with_pattern); */
+	utf8_path = g_utf16_to_utf8 ( mono_string_chars (path), -1, NULL, NULL, NULL);
 	names = g_ptr_array_new ();
 
 	do {
