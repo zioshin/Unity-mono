@@ -218,7 +218,7 @@ namespace Mono.CSharp {
 			Version = LanguageVersion.Default;
 			VerifyClsCompliance = true;
 			Optimize = true;
-			Encoding = Encoding.Default;
+			Encoding = Encoding.UTF8;
 			Documentation = null;
 			GenerateDebugInfo = false;
 			ParseOnly = false;

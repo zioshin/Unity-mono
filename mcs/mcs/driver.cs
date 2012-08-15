@@ -1326,7 +1326,7 @@ namespace Mono.CSharp
 
 				switch (value) {
 				case "utf8":
-					RootContext.Encoding = new UTF8Encoding();
+					RootContext.Encoding = Encoding.UTF8;
 					break;
 				case "reset":
 					RootContext.Encoding = Encoding.Default;
