@@ -1741,6 +1741,12 @@ buffer_add_string (Buffer *buf, const char *str)
 }
 
 static inline void
+buffer_replace_byte (Buffer *buf, int offset, guint8 val)
+{
+	buf->buf [offset] = val;
+}
+
+static inline void
 buffer_free (Buffer *buf)
 {
 	g_free (buf->buf);
@@ -3719,6 +3725,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 			get_objref (keepalive_obj);
 	}
 
+	buffer_replace_byte (&buf, 0, suspend_policy);
 	send_success = send_packet (CMD_SET_EVENT, CMD_COMPOSITE, &buf);
 
 	buffer_free (&buf);
