@@ -68,6 +68,7 @@ rm -r builds/monodistribution
 fi
 }
 
+rm -rf builds
 if [ $# -eq 0 -o "$1" = "h13" ]; then
 	LEON13_VER=h13
 	build
