@@ -1,20 +1,10 @@
+#!/bin/bash
+
 # do both h13 and m13 build if there are no arguments
 # do either build if first argument is h13 or m13
 
-function parse_args() {
-if [ "$#" == 0 -o "$1" == "h13" ]; then
-	LEON13_VER=h13
-	build
-fi
-
-if [ "$#" == 0 -o "$1" == "m13" ]; then
-	LEON13_VER=m13
-	build
-fi
-}
-
-function build() {
-if [ "${LEON13_VER}" = h13 ]; then
+build() {
+if [ "${LEON13_VER}" = "h13" ]; then
     echo "Building LEON13 h13"
     ARCH=arm
     PLATFORM=lg115x
@@ -78,4 +68,12 @@ rm -r builds/monodistribution
 fi
 }
 
-parse_args
+if [ $# -eq 0 -o "$1" = "h13" ]; then
+	LEON13_VER=h13
+	build
+fi
+
+if [ $# -eq 0 -o "$1" = "m13" ]; then
+	LEON13_VER=m13
+	build
+fi
