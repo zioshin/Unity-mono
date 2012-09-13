@@ -19,6 +19,7 @@ while (defined(my $file = readdir(DIR))) {
 }
 closedir(DIR);
 
+system("chmod +x collectedbuilds/monodistribution/bin/mono") eq 0 or die("Failed chmodding");
 chdir("collectedbuilds");
 
 open(MYFILE,">built_by_teamcity.txt");
