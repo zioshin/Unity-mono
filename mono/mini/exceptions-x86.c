@@ -248,12 +248,16 @@ void win32_seh_init()
 	if (!restore_stack)
 		restore_stack = mono_win32_get_handle_stackoverflow ();
 
-	mono_old_win_toplevel_exception_filter = SetUnhandledExceptionFilter(seh_handler);
+	AddVectoredExceptionHandler (1, seh_handler);
+	/* use the following instead of AddVectoredExceptionHandler for old behavior
+	 * old_win32_toplevel_exception_filter = SetUnhandledExceptionFilter(seh_handler);
+	 */
 }
 
 void win32_seh_cleanup()
 {
-	if (mono_old_win_toplevel_exception_filter) SetUnhandledExceptionFilter(mono_old_win_toplevel_exception_filter);
+	/* if (old_win32_toplevel_exception_filter) SetUnhandledExceptionFilter(old_win32_toplevel_exception_filter); */
+	RemoveVectoredExceptionHandler (seh_handler);
 }
 
 void win32_seh_set_handler(int type, MonoW32ExceptionHandler handler)
