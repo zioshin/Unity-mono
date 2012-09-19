@@ -44,7 +44,7 @@ static MonoW32ExceptionHandler segv_handler;
 
 LPTOP_LEVEL_EXCEPTION_FILTER mono_old_win32_toplevel_exception_filter;
 gpointer mono_win32_vectored_exception_handle;
-gboolean mono_win32_chained_exception_needs_run;
+extern gboolean mono_win32_chained_exception_needs_run;
 extern int (*gUnhandledExceptionHandler)(EXCEPTION_POINTERS*);
 
 #ifndef PROCESS_CALLBACK_FILTER_ENABLED
