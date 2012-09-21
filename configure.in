@@ -278,7 +278,7 @@ case "$host" in
 		case "$host" in
 			dnl Snow Leopard and newer config.guess reports as this
 			i*86-*-darwin*)
-				BROKEN_DARWIN_FLAGS="-arch i386"
+				# BROKEN_DARWIN_FLAGS="-arch i386"
 				CPPFLAGS="$CPPFLAGS $BROKEN_DARWIN_FLAGS"
 				CFLAGS="$CFLAGS $BROKEN_DARWIN_FLAGS"
 				CXXFLAGS="$CXXFLAGS $BROKEN_DARWIN_FLAGS"
@@ -2176,6 +2176,10 @@ case "$host" in
 			AOT_SUPPORTED="yes"
 			;;
 		  darwin*|openbsd*|freebsd*)
+			if test "x$ac_cv_sizeof_void_p" = "x8"; then
+				TARGET=AMD64
+				arch_target=amd64
+			fi
 			sgen_supported=true
 		        ;;
 		esac
