@@ -50,7 +50,7 @@
 
 #include "jit-icalls.h"
 
-gboolean win32_chained_exception_needs_run;
+gboolean mono_win32_chained_exception_needs_run;
 
 void
 mono_runtime_install_handlers (void)
@@ -84,7 +84,7 @@ int (*gUnhandledExceptionHandler)(EXCEPTION_POINTERS*);
 gboolean
 SIG_HANDLER_SIGNATURE (mono_chain_signal)
 {
-	win32_chained_exception_needs_run = TRUE;
+	mono_win32_chained_exception_needs_run = TRUE;
 	return TRUE;
 }
 
