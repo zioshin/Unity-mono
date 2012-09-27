@@ -66,6 +66,7 @@ FILE* unity_fopen( const char *name, const char *mode )
 extern LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep);
 LONG mono_unity_seh_handler(EXCEPTION_POINTERS* ep)
 {
+#if defined(TARGET_X86) || defined(TARGET_AMD64)
 	return seh_vectored_exception_handler(ep);
 #else
 	g_assert_not_reached();

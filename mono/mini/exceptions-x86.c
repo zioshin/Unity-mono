@@ -262,9 +262,6 @@ LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep)
 	if (er->ExceptionCode != EXCEPTION_STACK_OVERFLOW)
 		g_free (sctx);
 
-	if (mono_win_chained_exception_filter_didrun)
-		res = mono_win_chained_exception_filter_result;
-
 	return res;
 }
 
