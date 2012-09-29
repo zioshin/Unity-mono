@@ -15,7 +15,7 @@ else
     ARCH=armv7a
     PLATFORM=mediatek451_001_vfp
     TOOLCHAIN=m13
-    TUNE="-march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16"
+    TUNE="-march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=neon"
 fi
 
 LEON13_TOOLCHAIN="${LEON13_SDK}/${TOOLCHAIN}/toolchain/bin/${ARCH}-${PLATFORM}-linux-gnueabi-"
