@@ -169,7 +169,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	stack_overflow_data.initial_ctx = ctx;
 
 	/* try to free 64kb from our stack */
-	mono_jit_walk_stack_from_ctx (win32_stack_overflow_walk, &ctx, MONO_UNWIND_LOOKUP_ACTUAL_METHOD, &stack_overflow_data);
+	mono_walk_stack (win32_stack_overflow_walk, domain, &ctx, MONO_UNWIND_SIGNAL_SAFE, mono_thread_internal_current (), lmf, &stack_overflow_data);
 
 	/* convert into sigcontext to be used in mono_arch_handle_exception */
 	mono_arch_monoctx_to_sigctx (&(stack_overflow_data.ctx), sctx);
@@ -243,6 +243,7 @@ LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep)
 		W32_SEH_HANDLE_EX(fpe);
 		break;
 	default:
+		res = EXCEPTION_CONTINUE_SEARCH;
 		break;
 	}
 
