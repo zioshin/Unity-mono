@@ -337,6 +337,10 @@ struct _MonoDomain {
 	MonoClass *socket_class;
 	MonoClass *ad_unloaded_ex_class;
 	MonoClass *process_class;
+
+	/* unity specific, cache the class for each static field */
+	/* a GC-tracked array to keep references to the static fields of types */
+	MonoClass           **static_data_class_array;
 };
 
 typedef struct  {
