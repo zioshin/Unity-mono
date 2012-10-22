@@ -191,7 +191,7 @@ struct _MonoJitInfo {
 	   same offset as in RuntimeMethod, because of the jit_code_hash
 	   internal hash table in MonoDomain. */
 	union {
-		MonoMethod *method;
+	MonoMethod *method;
 		MonoImage *image;
 		gpointer aot_info;
 	} d;
@@ -216,7 +216,7 @@ struct _MonoJitInfo {
 	gboolean    dbg_step_through_inited:1;
 	gboolean    dbg_step_through:1;
 
-	/* FIXME: Embed this after the structure later*/
+	/* FIXME: Embed this after the structure later */
 	gpointer    gc_info; /* Currently only used by SGen */
 	
 	MonoJitExceptionInfo clauses [MONO_ZERO_LEN_ARRAY];
@@ -408,6 +408,10 @@ struct _MonoDomain {
 	GHashTable *ftnptrs_hash;
 
 	guint32 execution_context_field_offset;
+
+	/* unity specific, cache the class for each static field */
+	/* a GC-tracked array to keep references to the static fields of types */
+	MonoClass           **static_data_class_array;
 };
 
 typedef struct  {
