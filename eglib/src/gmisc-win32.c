@@ -92,7 +92,7 @@ g_win32_getlocale(void)
 	gint ccBuf = GetLocaleInfo(lcid, LOCALE_SISO639LANGNAME, buf, 9);
 	buf[ccBuf - 1] = '-';
 	ccBuf += GetLocaleInfo(lcid, LOCALE_SISO3166CTRYNAME, buf + ccBuf, 9);
-	return strdup(buf);
+	return g_strdup(buf);
 }
 
 gboolean
@@ -101,7 +101,7 @@ g_path_is_absolute (const char *filename)
 	g_return_val_if_fail (filename != NULL, FALSE);
 
 	if (filename[0] != '\0' && filename[1] != '\0') {
-		if (filename[1] == ':' && filename[2] != '\0' &&
+		if (filename[1] == ':' && filename[2] != '\0' && 
 			(filename[2] == '\\' || filename[2] == '/'))
 			return TRUE;
 		/* UNC paths */
