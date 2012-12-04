@@ -221,5 +221,11 @@ g_ptr_array_sort_with_data(GPtrArray *array, GCompareDataFunc compare_func,
 {
 }
 
+guint
+g_ptr_array_reserved_size(GPtrArray *array )
+{
+	return ((GPtrArrayPriv *)array)->size;
+}
+
 
 
