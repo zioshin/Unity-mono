@@ -7,53 +7,60 @@
 
 typedef struct _LivenessState LivenessState;
 
-typedef struct _GPtrArray non_growable_array;
+typedef struct _GPtrArray custom_growable_array;
 #define array_at_index(array,index) (array)->pdata[(index)]
 
-non_growable_array* array_create_and_initialize (guint capacity)
+custom_growable_array* array_create_and_initialize (guint capacity)
 {
-	non_growable_array* array = g_ptr_array_sized_new(capacity);
+	custom_growable_array* array = g_ptr_array_sized_new(capacity);
 	array->len = 0;
 	return array;
 }
 
-void array_destroy (non_growable_array* array)
+void array_destroy (custom_growable_array* array)
 {
 	g_ptr_array_free(array, TRUE);
 }
 
-gboolean array_is_full(non_growable_array* array)
+gboolean array_is_full(custom_growable_array* array)
 {
 	return g_ptr_array_reserved_size(array) == array->len;
 }
 
-void array_push_back(non_growable_array* array, gpointer value)
+void array_push_back(custom_growable_array* array, gpointer value)
 {
 	g_assert(!array_is_full(array));
 	array->pdata[array->len] = value;
 	array->len++;
 }
 
-gpointer array_pop_back(non_growable_array* array)
+gpointer array_pop_back(custom_growable_array* array)
 {
 	array->len--;
 	return array->pdata[array->len];
 }
 
-void array_clear(non_growable_array* array)
+void array_clear(custom_growable_array* array)
 {
 	array->len = 0;
+}
+
+void array_grow(custom_growable_array* array)
+{
+	int oldlen = array->len;
+	g_ptr_array_set_size(array, g_ptr_array_reserved_size(array)*2);
+	array->len = oldlen;
 }
 
 typedef void (*register_object_callback)(gpointer* arr, int size, void* callback_userdata);
 struct _LivenessState
 {
 	gint                first_index_in_all_objects;
-	non_growable_array* all_objects;
-	
+	custom_growable_array* all_objects;
+
 	MonoClass*          filter;
-	
-	non_growable_array* process_array;
+
+	custom_growable_array* process_array;
 	guint               initial_alloc_count;
 
 	void*               callback_userdata;
@@ -70,6 +77,11 @@ void           mono_unity_liveness_calculation_from_statics (LivenessState* stat
 #ifdef HAVE_BOEHM_GC
 void GC_start_world (void);
 void GC_stop_world (void);
+#define START_WORLD GC_start_world
+#define STOP_WORLD GC_stop_world
+#else
+#define START_WORLD g_assert_not_reached
+#define STOP_WORLD g_assert_not_reached
 #endif
 
 #define MARK_OBJ(obj) \
@@ -97,22 +109,24 @@ void mono_reset_state(LivenessState* state)
 	array_clear(state->process_array);
 }
 
-void mono_cleanup_all_objects_and_continue(LivenessState* state)
+void array_safe_grow(LivenessState* state, custom_growable_array* array)
 {
-	// if all_objects run out of space, run through list, add objects that match the filter,
-	// clear bit in vtable and then clear the array.
+	// if all_objects run out of space, run through list
+	// clear bit in vtable, start the world, reallocate, stop the world and continue
 	int i;
-	mono_filter_objects(state);
-	
 	for (i = 0; i < state->all_objects->len; i++)
 	{
 		MonoObject* object = array_at_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
-	
-	// reset the all_object list
-	array_clear(state->all_objects);
-	state->first_index_in_all_objects = 0;
+	START_WORLD ();
+	array_grow(array);
+	STOP_WORLD ();
+	for (i = 0; i < state->all_objects->len; i++)
+	{
+		MonoObject* object = array_at_index(state->all_objects,i);
+		MARK_OBJ(object);
+	}
 }
 
 static gboolean should_process_value (MonoObject* val, MonoClass* filter)
@@ -128,6 +142,7 @@ static gboolean should_process_value (MonoObject* val, MonoClass* filter)
 static void mono_traverse_array (MonoArray* array, LivenessState* state);
 static void mono_traverse_object (MonoObject* object, LivenessState* state);
 static void mono_traverse_gc_desc (MonoObject* object, LivenessState* state);
+static void mono_traverse_objects (LivenessState* state);
 
 static void mono_traverse_generic_object( MonoObject* object, LivenessState* state ) 
 {
@@ -147,17 +162,16 @@ static void mono_add_process_object (MonoObject* object, LivenessState* state)
 {
 	if (object && !IS_MARKED(object))
 	{
+		// Check if klass has further references - if not skip adding
+		if (GET_VTABLE(object)->klass->has_references)
+		{
 		if (array_is_full(state->all_objects))
-			mono_cleanup_all_objects_and_continue(state);
+				array_safe_grow(state, state->all_objects);
 		array_push_back(state->all_objects, object);
 		MARK_OBJ(object);
 
-		// Check if we should add val to process_array
-		if (GET_VTABLE(object)->klass->has_references)
-		{
 			if(array_is_full(state->process_array))
-				mono_traverse_generic_object(object,state);
-			else
+				array_safe_grow(state, state->process_array);
 				array_push_back(state->process_array, object);
 		}
 	}
@@ -198,6 +212,9 @@ static void mono_traverse_array (MonoArray* array, LivenessState* state)
 	{
 		MonoObject* val =  mono_array_get(array, MonoObject*, i);
 		mono_add_process_object(val, state);
+		// Add 64 objects at a time and then traverse
+		if( ((i+1) & 63) == 0)
+			mono_traverse_objects(state);
 	}
 
 }
@@ -209,9 +226,10 @@ static void mono_traverse_object_internal (MonoObject* object, gboolean isStruct
 
 	g_assert (object);
 	
+	// subtract the added offset for the vtable. This is added to the offset even though it is a struct
 	if(isStruct)
 		object--;
-	
+
 	for (p = klass; p != NULL; p = p->parent)
 	{
 		gpointer iter = NULL;
@@ -226,7 +244,6 @@ static void mono_traverse_object_internal (MonoObject* object, gboolean isStruct
 			if (MONO_TYPE_ISSTRUCT(field->type))
 			{
 				char* offseted = (char*)object;
-				// subtract the added offset for the vtable. This is added to the offset even though it is a struct
 				offseted += field->offset;
 				if (field->type->type == MONO_TYPE_GENERICINST)
 				{
@@ -301,7 +318,7 @@ void mono_filter_objects(LivenessState* state)
 		{
 			state->filter_callback(filtered_objects, 64, state->callback_userdata);
 			num_objects = 0;
-	}
+		}
 	}
 
 	if (num_objects != 0)
@@ -355,8 +372,7 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 
 			if (field->offset == -1)
 			{
-				//TODO: This triggers on all runtime tests. Ask jon what this means???
-				// g_assert_not_reached ();
+				g_assert_not_reached ();
 			}
 			else
 			{
@@ -423,7 +439,7 @@ gpointer mono_unity_liveness_calculation_from_statics_managed(gpointer filter_ha
 	}
 	g_ptr_array_free (objects, TRUE);
 
-
+	
 	return mono_gchandle_new (res, FALSE);
 
 }
@@ -467,7 +483,7 @@ gpointer mono_unity_liveness_calculation_from_root_managed(gpointer root_handle,
 
 	if (filter_type)
 		filter = mono_class_from_mono_type (filter_type->type);
-	
+
 	liveness_state = mono_unity_liveness_calculation_begin (filter, 1000, mono_unity_liveness_add_object_callback, (void*)objects);
 	mono_unity_liveness_calculation_from_root (root, liveness_state);
 	mono_unity_liveness_calculation_end (liveness_state);
@@ -492,7 +508,7 @@ LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint m
 	// all_objects: contains a list of all referenced objects to be able to clean the vtable bits after the traversal
 	// process_array. array that contains the objcets that should be processed. this should run depth first to reduce memory usage
 	// if all_objects run out of space, run through list, add objects that match the filter, clear bit in vtable and then clear the array.
-
+	
 	state = g_new(LivenessState, 1);
 	max_count = max_count < 1000 ? 1000 : max_count;
 	state->all_objects = array_create_and_initialize(max_count*4);
@@ -504,12 +520,8 @@ LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint m
 	state->callback_userdata = callback_userdata;
 	state->filter_callback = callback;
 
-#ifdef HAVE_BOEHM_GC
-	GC_stop_world ();
+	STOP_WORLD ();
 	// no allocations can happen beyond this point
-#else
-	g_assert_not_reached ();
-#endif
 
 	return state;
 }
@@ -522,11 +534,7 @@ void mono_unity_liveness_calculation_end (LivenessState* state)
 		MonoObject* object = g_ptr_array_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
-#ifdef HAVE_BOEHM_GC
-	GC_start_world ();
-#else
-	g_assert_not_reached ();
-#endif
+	START_WORLD ();
 
 	//cleanup the liveness_state
 	array_destroy(state->all_objects);
