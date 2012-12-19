@@ -162,17 +162,17 @@ static void mono_add_process_object (MonoObject* object, LivenessState* state)
 {
 	if (object && !IS_MARKED(object))
 	{
-		// Check if klass has further references - if not skip adding
-		if (GET_VTABLE(object)->klass->has_references)
-		{
 		if (array_is_full(state->all_objects))
-				array_safe_grow(state, state->all_objects);
+			array_safe_grow(state, state->all_objects);
 		array_push_back(state->all_objects, object);
 		MARK_OBJ(object);
 
+		// Check if klass has further references - if not skip adding
+		if (GET_VTABLE(object)->klass->has_references)
+		{
 			if(array_is_full(state->process_array))
 				array_safe_grow(state, state->process_array);
-				array_push_back(state->process_array, object);
+			array_push_back(state->process_array, object);
 		}
 	}
 }
@@ -348,6 +348,7 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 			continue;
 		if (klass->image == mono_defaults.corlib)
 			continue;
+		g_assert(klass->size_inited);
 		for (j = 0; j < klass->field.count; j++)
 		{
 			field = &klass->fields[j];
