@@ -1124,8 +1124,8 @@ set_keepalive (void)
 
 	result = setsockopt (conn_fd, SOL_SOCKET, SO_RCVTIMEO, (char *) &tv, sizeof(struct timeval));
 		g_assert (result >= 0);
-	}
-	
+}
+
 static int
 socket_transport_accept (int socket_fd)
 {
@@ -3566,11 +3566,13 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 	Buffer buf;
 	GSList *l;
 	MonoDomain *domain = mono_domain_get ();
-	MonoThread *thread = NULL;
+	MonoThread *thread = NULL,
+	           *main_thread = mono_thread_get_main ();
 	MonoObject *keepalive_obj = NULL;
 	gboolean send_success = FALSE;
 	static int ecount;
 	int nevents;
+	gsize current_thread_id = GetCurrentThreadId ();
 	
 	if (!inited) { 
 		DEBUG (2, fprintf (log_file, "Debugger agent not initialized yet: dropping %s\n", event_to_string (event)));
@@ -3609,7 +3611,7 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 			if (debugger_thread_id == GetCurrentThreadId ()) {
 				/* Don't suspend on events from the debugger thread */
 				suspend_policy = SUSPEND_POLICY_NONE;
-		thread = mono_thread_get_main ();
+				thread = mono_thread_get_main ();
 			}
 			else thread = mono_thread_current ();
 		} else {
@@ -3619,6 +3621,11 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 		}
 	}
 	
+	if (debugger_thread_id == current_thread_id)
+		thread = main_thread;
+	else
+		thread = mono_thread_current ();
+
 	nevents = g_slist_length (events);
 	buffer_init (&buf, 128);
 	buffer_add_byte (&buf, suspend_policy);
