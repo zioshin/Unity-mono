@@ -33,6 +33,7 @@ AC_SUBST(GNUC_PRETTY)
 AC_SUBST(GNUC_UNUSED)
 AC_SUBST(GNUC_NORETURN)
 AC_SUBST(BREAKPOINT)
+WANT_ICONV=1
 
 # We use a separate variable to pass down CPPFLAGS and CFLAGS from the main mono 
 # configure, because of autoconf brokeness
@@ -93,11 +94,14 @@ arm*-darwin*)
     ;;
 i*86-*-darwin*)
     ORDER=G_LITTLE_ENDIAN
+    if test "x$ac_cv_sizeof_void_p" = "x8"; then
+        WANT_ICONV=0
+    fi
     ;;
 *-*-openbsd*)
     CFLAGS="$CFLAGS -pthread"
     LDFLAGS="$LDFLAGS -pthread"
-    ;;
+	;;
 esac
 
 target_osx=no
@@ -150,7 +154,9 @@ AC_CHECK_FUNCS(strndup getpwuid_r)
 fi
 
 AM_CONDITIONAL(NEED_VASPRINTF, test x$have_vasprintf = x )
-AM_ICONV()
+if test "x$WANT_ICONV" = "x1"; then
+    AM_ICONV()
+fi
 AC_SEARCH_LIBS(sqrtf, m)
 
 # nanosleep may not be part of libc, also search it in other libraries
@@ -179,7 +185,10 @@ if test "x$have_iso_varargs" = "xyes"; then
 fi
 AC_SUBST(G_HAVE_ISO_VARARGS)
 
-AC_CHECK_HEADERS(getopt.h sys/time.h sys/wait.h pwd.h langinfo.h iconv.h localcharset.h sys/types.h)
+AC_CHECK_HEADERS(getopt.h sys/time.h sys/wait.h pwd.h langinfo.h localcharset.h sys/types.h)
+if test "x$WANT_ICONV" = "x1"; then
+    AC_CHECK_HEADERS(iconv.h)
+fi
 AC_CHECK_HEADER(alloca.h, [HAVE_ALLOCA_H=1], [HAVE_ALLOCA_H=0])
 AC_SUBST(HAVE_ALLOCA_H)
 
