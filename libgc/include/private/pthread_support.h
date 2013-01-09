@@ -92,7 +92,8 @@ typedef struct GC_Thread_Rep {
 
 # define THREAD_TABLE_SZ 128	/* Must be power of 2	*/
 extern volatile GC_thread GC_threads[THREAD_TABLE_SZ];
-#ifdef NACL
+#define USE_NACL_GC_INSTRUMENTATION (defined(NACL) && !defined(ENABLE_NACL_THREAD_SUSPENSION))
+#if USE_NACL_GC_INSTRUMENTATION
 extern __thread GC_thread gc_thread_self;
 #endif
 

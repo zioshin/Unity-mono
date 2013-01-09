@@ -58,7 +58,6 @@ CustomConfigureStep() {
     --without-sigaltstack \
     --without-mmap \
     --with-gc=included \
-    --enable-nacl-gc \
     --with-sgen=no \
     --enable-nls=no \
     --enable-nacl-codegen \

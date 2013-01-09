@@ -680,7 +680,7 @@ void GC_mark_thread_local_free_lists(void)
 static struct GC_Thread_Rep first_thread;
 static GC_bool first_thread_used = FALSE;
 
-#ifdef NACL
+#if USE_NACL_GC_INSTRUMENTATION
 extern volatile int nacl_thread_parked[MAX_NACL_GC_THREADS];
 extern volatile int nacl_thread_used[MAX_NACL_GC_THREADS];
 extern volatile int nacl_thread_parking_inited;
@@ -766,7 +766,7 @@ GC_thread GC_new_thread(pthread_t id)
 #endif
     result -> next = GC_threads[hv];
     GC_threads[hv] = result;
-#ifdef NACL
+#if USE_NACL_GC_INSTRUMENTATION
     nacl_gc_thread_self = result;
     nacl_initialize_gc_thread();
 #endif
@@ -783,7 +783,7 @@ void GC_delete_thread(pthread_t id)
     register GC_thread p = GC_threads[hv];
     register GC_thread prev = 0;
     
-#ifdef NACL
+#if USE_NACL_GC_INSTRUMENTATION
     nacl_shutdown_gc_thread();
     nacl_gc_thread_self = NULL;
 #endif

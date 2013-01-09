@@ -23,7 +23,7 @@
 #include "include/libgc-mono-debugger.h"
 #endif
 
-#ifdef NACL
+#if USE_NACL_GC_INSTRUMENTATION
 volatile int __nacl_thread_suspension_needed = 0;
 pthread_t nacl_thread_parker = -1;
 
@@ -34,8 +34,21 @@ volatile int nacl_num_gc_threads = 0;
 pthread_mutex_t nacl_thread_alloc_lock = PTHREAD_MUTEX_INITIALIZER;
 __thread int nacl_thread_idx = -1;
 __thread GC_thread nacl_gc_thread_self = NULL;
-#endif
+#else
+#ifdef NACL
+#define SIG_SUSPEND 0
+#define SIG_THR_RESTART 1
 
+int (*pthread_suspend)(pthread_t thread, int sig) = NULL;
+
+void mono_set_pthread_suspend(int (*_pthread_suspend)(pthread_t thread, int sig))
+{
+   pthread_suspend = _pthread_suspend;
+}
+#endif
+#endif
+#undef DEBUG_THREADS
+#define DEBUG_THREADS 0
 #if DEBUG_THREADS
 
 #ifndef NSIG
@@ -359,7 +372,7 @@ int android_thread_kill(pid_t tid, int sig)
 /* were sent. */
 int GC_suspend_all()
 {
-#ifndef NACL
+#if !USE_NACL_GC_INSTRUMENTATION
     int n_live_threads = 0;
     int i;
     GC_thread p;
@@ -379,10 +392,14 @@ int GC_suspend_all()
 	      GC_printf1("Sending suspend signal to 0x%lx\n", p -> id);
 	    #endif
 
+#ifdef NACL
+        result = pthread_suspend(p -> id, SIG_SUSPEND);
+#else
 #ifndef PLATFORM_ANDROID
         result = pthread_kill(p -> id, SIG_SUSPEND);
 #else
         result = android_thread_kill(p -> kernel_id, SIG_SUSPEND);
+#endif
 #endif
 	    switch(result) {
 #if defined(ANDROID)	/* Android kernel seems to return EINVAL for non-existent threads (and sometimes EPERM) */
@@ -401,7 +418,11 @@ int GC_suspend_all()
         }
       }
     }
+#ifdef NACL
+return 0;
+#else
     return n_live_threads;
+#endif
 #else /* NACL */
     return 0;
 #endif
@@ -410,7 +431,7 @@ int GC_suspend_all()
 /* Caller holds allocation lock.	*/
 static void pthread_stop_world()
 {
-#ifndef NACL
+#if !USE_NACL_GC_INSTRUMENTATION
     int i;
     int n_live_threads;
     int code;
@@ -507,7 +528,7 @@ static void pthread_stop_world()
 }
 
 
-#ifdef NACL
+#if USE_NACL_GC_INSTRUMENTATION
 
 #if __x86_64__
 
@@ -587,6 +608,11 @@ void __nacl_suspend_thread_if_needed() {
     }
 }
 
+#else
+#ifdef NACL
+void __nacl_suspend_thread_if_needed() {}
+volatile int __nacl_thread_suspension_needed = 0;
+#endif
 #endif /* NACL */
 
 /* Caller holds allocation lock.	*/
@@ -621,7 +647,7 @@ void GC_stop_world()
 /* the world stopped.							*/
 static void pthread_start_world()
 {
-#ifndef NACL
+#if !USE_NACL_GC_INSTRUMENTATION
     pthread_t my_thread = pthread_self();
     register int i;
     register GC_thread p;
@@ -644,11 +670,14 @@ static void pthread_start_world()
 	    #if DEBUG_THREADS
 	      GC_printf1("Sending restart signal to 0x%lx\n", p -> id);
 	    #endif
-
+#ifdef NACL
+        result = pthread_suspend(p -> id, SIG_THR_RESTART);
+#else
 #ifndef PLATFORM_ANDROID
         result = pthread_kill(p -> id, SIG_THR_RESTART);
 #else
         result = android_thread_kill(p -> kernel_id, SIG_THR_RESTART);
+#endif
 #endif
 	    switch(result) {
                 case ESRCH:
@@ -668,7 +697,8 @@ static void pthread_start_world()
     GC_printf0 ("All threads signaled");
     #endif
 
-    for (i = 0; i < n_live_threads; i++) {
+ #ifndef NACL
+   for (i = 0; i < n_live_threads; i++) {
 	while (0 != (code = sem_wait(&GC_suspend_ack_sem))) {
 	    if (errno != EINTR) {
 		GC_err_printf1("Sem_wait returned %ld\n", (unsigned long)code);
@@ -676,7 +706,7 @@ static void pthread_start_world()
 	    }
 	}
     }
-  
+  #endif
     if (GC_notify_event)
         GC_notify_event (GC_EVENT_POST_START_WORLD);
     #if DEBUG_THREADS
