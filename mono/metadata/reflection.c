@@ -8554,6 +8554,16 @@ mono_custom_attrs_from_method (MonoMethod *method)
 MonoCustomAttrInfo*
 mono_custom_attrs_from_class (MonoClass *klass)
 {
+	MonoDomain* domain = mono_domain_get();
+
+	// Hashing attributes as a lookup optimization.
+	MonoCustomAttrInfo* hashed_attribute_info = (MonoCustomAttrInfo*)g_hash_table_lookup(domain->class_custom_atrributes, klass);
+
+	if(hashed_attribute_info != NULL) 
+	{
+		return hashed_attribute_info;
+	}
+
 	guint32 idx;
 
 	if (klass->generic_class)
@@ -8571,7 +8581,11 @@ mono_custom_attrs_from_class (MonoClass *klass)
 		idx <<= MONO_CUSTOM_ATTR_BITS;
 		idx |= MONO_CUSTOM_ATTR_TYPEDEF;
 	}
-	return mono_custom_attrs_from_index (klass->image, idx);
+
+	hashed_attribute_info = mono_custom_attrs_from_index (klass->image, idx);
+
+	g_hash_table_insert(domain->class_custom_atrributes, klass, hashed_attribute_info);
+	return hashed_attribute_info;
 }
 
 MonoCustomAttrInfo*

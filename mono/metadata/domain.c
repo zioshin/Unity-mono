@@ -1217,6 +1217,7 @@ mono_domain_create (void)
 	domain->jit_info_table = jit_info_table_new (domain);
 	domain->jit_info_free_queue = NULL;
 	domain->finalizable_objects_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
+	domain->class_custom_atrributes = g_hash_table_new (mono_aligned_addr_hash, NULL);
 	domain->track_resurrection_handles_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
 
 	InitializeCriticalSection (&domain->lock);
@@ -2053,7 +2054,11 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 #endif	
 
 	g_hash_table_destroy (domain->finalizable_objects_hash);
+	g_hash_table_destroy (domain->class_custom_atrributes);
+
 	domain->finalizable_objects_hash = NULL;
+	domain->class_custom_atrributes = NULL;
+	
 	if (domain->track_resurrection_objects_hash) {
 		g_hash_table_foreach (domain->track_resurrection_objects_hash, free_slist, NULL);
 		g_hash_table_destroy (domain->track_resurrection_objects_hash);
