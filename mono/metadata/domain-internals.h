@@ -370,6 +370,9 @@ struct _MonoDomain {
 
 	GHashTable     *generic_virtual_thunks;
 
+	/* Hashing class attributes as a lookup optimization */
+	GHashTable	*class_custom_atrributes;
+
 	/* Information maintained by the JIT engine */
 	gpointer runtime_info;
 
