@@ -7012,7 +7012,7 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 			if (custom && mono_custom_attrs_has_attr (custom, secman->suppressunmanagedcodesecurity)) {
 				pinvoke = FALSE;
 			}
-			if (custom)
+			if (custom && !custom->cached)
 				mono_custom_attrs_free (custom);
 
 			if (pinvoke) {
@@ -7020,7 +7020,7 @@ mono_method_to_ir (MonoCompile *cfg, MonoMethod *method, MonoBasicBlock *start_b
 				if (custom && mono_custom_attrs_has_attr (custom, secman->suppressunmanagedcodesecurity)) {
 					pinvoke = FALSE;
 				}
-				if (custom)
+				if (custom && !custom->cached)
 					mono_custom_attrs_free (custom);
 			}
 		} else {
