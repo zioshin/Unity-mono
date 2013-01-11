@@ -36,6 +36,10 @@ __thread int nacl_thread_idx = -1;
 __thread GC_thread nacl_gc_thread_self = NULL;
 #endif
 
+#ifdef __QNXNTO__
+#define SA_RESTART 0 
+#endif
+
 #if DEBUG_THREADS
 
 #ifndef NSIG
