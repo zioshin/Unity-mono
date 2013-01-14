@@ -2157,14 +2157,5 @@ namespace System
 			// This is the new .NET format, encodes the kind on the top bits
 			info.AddValue ("dateData", encoded);
 		}
-		
-#if MONOTOUCH
-		static DateTime () {
-			if (MonoTouchAOTHelper.FalseFlag) {
-				var comparer = new System.Collections.Generic.GenericComparer <DateTime> ();
-				var eqcomparer = new System.Collections.Generic.GenericEqualityComparer <DateTime> ();
-			}
-		}
-#endif
 	}
 }
