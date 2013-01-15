@@ -728,6 +728,7 @@ struct hblkhdr {
 #     define hb_marks _mark_byte_union._hb_marks
 #   else
       word hb_marks[MARK_BITS_SZ];
+      word hb_dirties[MARK_BITS_SZ];
 			    /* Bit i in the array refers to the             */
 			    /* object starting at the ith word (header      */
 			    /* INCLUDED) in the heap block.                 */
@@ -1272,6 +1273,13 @@ extern long GC_large_alloc_warn_suppressed;
 				    (word)1 << modWORDSZ(n))
 # define clear_mark_bit_from_hdr(hhdr,n) (hhdr)->hb_marks[divWORDSZ(n)] \
 				&= ~((word)1 << modWORDSZ(n))
+# define dirty_bit_from_hdr(hhdr,n) (((hhdr)->hb_dirties[divWORDSZ(n)] \
+			    >> (modWORDSZ(n))) & (word)1)
+# define set_dirty_bit_from_hdr(hhdr,n) \
+			    OR_WORD((hhdr)->hb_dirties+divWORDSZ(n), \
+				    (word)1 << modWORDSZ(n))
+# define clear_dirty_bit_from_hdr(hhdr,n) (hhdr)->hb_dirties[divWORDSZ(n)] \
+				&= ~((word)1 << modWORDSZ(n))
 #endif /* !USE_MARK_BYTES */
 
 /* Important internal collector routines */
@@ -1810,6 +1818,7 @@ void GC_dirty_init GC_PROTO((void));
 GC_API GC_bool GC_is_marked GC_PROTO((ptr_t p));
 void GC_clear_mark_bit GC_PROTO((ptr_t p));
 void GC_set_mark_bit GC_PROTO((ptr_t p));
+int GC_set_dirty_bit GC_PROTO((ptr_t p));
   
 /* Stubborn objects: */
 void GC_read_changed GC_PROTO((void));	/* Analogous to GC_read_dirty */

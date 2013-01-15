@@ -229,6 +229,24 @@ void GC_clear_marks()
 
 }
 
+int GC_set_dirty_bit(p)
+ptr_t p;
+{
+    register struct hblk *h = HBLKPTR(p);
+    register hdr * hhdr = HDR(h);
+    register int word_no = (word *)p - (word *)h;
+
+	if (!hhdr)
+		return FALSE;
+
+	if (!dirty_bit_from_hdr(hhdr, word_no)) {
+        set_dirty_bit_from_hdr(hhdr, word_no);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 /* Initiate a garbage collection.  Initiates a full collection if the	*/
 /* mark	state is invalid.						*/
 /*ARGSUSED*/
