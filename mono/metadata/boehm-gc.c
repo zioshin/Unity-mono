@@ -25,16 +25,50 @@
 
 #if HAVE_BOEHM_GC
 
+#define OPDEF(a,b,c,d,e,f,g,h,i,j) \
+	a = i,
+
+enum {
+#include "mono/cil/opcode.def"
+	CEE_LAST
+};
+
+#undef OPDEF
+
 #ifdef USE_INCLUDED_LIBGC
 #undef TRUE
 #undef FALSE
 #define THREAD_LOCAL_ALLOC 1
 #include "private/pthread_support.h"
+#include "private/gc_priv.h"
+#else
+#include "gc_version.h"
 #endif
 
 #define GC_NO_DESCRIPTOR ((gpointer)(0 | GC_DS_LENGTH))
 
 static gboolean gc_initialized = FALSE;
+#define DO_INCREMENTAL 1
+#define MANAGE_ROOTS 1
+
+#if MANAGE_ROOTS
+typedef enum {
+	ROOT_TYPE_NORMAL = 0, /* "normal" roots */
+	ROOT_TYPE_PINNED = 1, /* roots without a GC descriptor */
+	ROOT_TYPE_WBARRIER = 2, /* roots with a write barrier */
+	ROOT_TYPE_NUM
+} GCRootType;
+
+static int add_roots (char* start, char* end, GCRootType type);
+#if DO_INCREMENTAL
+static void add_dirty_roots(void* root);
+static void initiate_gc_callback(void);
+#endif
+static void push_other_roots(int all);
+extern GC_initiate_gc_callback_proc GC_initiate_gc_callback;
+static GC_push_other_roots_proc push_other_roots_orig;
+
+#endif
 
 static void
 mono_gc_warning (char *msg, GC_word arg)
@@ -113,7 +147,17 @@ mono_gc_base_init (void)
 	/* If GC_no_dls is set to true, GC_find_limit is not called. This causes a seg fault on Android. */
 	GC_no_dls = TRUE;
 #endif
+#if MANAGE_ROOTS
+#if DO_INCREMENTAL
+	GC_initiate_gc_callback = initiate_gc_callback;
+#endif
+	push_other_roots_orig = GC_push_other_roots;
+	GC_push_other_roots = push_other_roots;
+#endif
 	GC_init ();
+#if DO_INCREMENTAL
+	GC_enable_incremental ();
+#endif
 	GC_oom_fn = mono_gc_out_of_memory;
 	GC_set_warn_proc (mono_gc_warning);
 	GC_finalize_on_demand = 1;
@@ -124,6 +168,21 @@ mono_gc_base_init (void)
 #endif
 	mono_gc_enable_events ();
 	gc_initialized = TRUE;
+}
+
+static int barrier_count = 0;
+void
+mono_gc_collect_a_little (int micro_seconds)
+{
+#if DO_INCREMENTAL
+	char buf[1024];
+	sprintf(buf, "wbarrier stores: %d since last frame\n", barrier_count);
+	OutputDebugStringA(buf);
+	barrier_count = 0;
+	GC_time_limit = 1;//micro_seconds;
+	//GC_time_limit_us = 1000;//micro_seconds;
+	GC_collect_a_little ();
+#endif
 }
 
 void
@@ -309,8 +368,12 @@ mono_gc_enable_events (void)
 int
 mono_gc_register_root (char *start, size_t size, void *descr)
 {
+#if MANAGE_ROOTS
+	return add_roots (start, start + size + 1, ROOT_TYPE_PINNED);
+#else
 	/* for some strange reason, they want one extra byte on the end */
 	GC_add_roots (start, start + size + 1);
+#endif
 
 	return TRUE;
 }
@@ -547,49 +610,332 @@ mono_gc_remove_weak_track_object (MonoDomain *domain, MonoObject *obj)
 	return refs;
 }
 
+static void
+record_write (void* ptr)
+{
+	if (GC_set_dirty_bit (ptr))
+		barrier_count++;
+}
+
 void
 mono_gc_wbarrier_set_field (MonoObject *obj, gpointer field_ptr, MonoObject* value)
 {
 	*(void**)field_ptr = value;
+	record_write (field_ptr);
 }
 
 void
 mono_gc_wbarrier_set_arrayref (MonoArray *arr, gpointer slot_ptr, MonoObject* value)
 {
 	*(void**)slot_ptr = value;
+	record_write (slot_ptr);
 }
 
 void
 mono_gc_wbarrier_arrayref_copy (MonoArray *arr, gpointer slot_ptr, int count)
 {
 	/* no need to do anything */
+	char* ptr = slot_ptr;
+	char* end = (char*)slot_ptr +  count * arr->obj.vtable->klass->element_class->instance_size;
+	while (ptr < end) {
+		record_write (ptr);
+		ptr += sizeof(void*);
+	}
 }
 
 void
 mono_gc_wbarrier_generic_store (gpointer ptr, MonoObject* value)
 {
 	*(void**)ptr = value;
+	record_write (ptr);
 }
 
 void
 mono_gc_wbarrier_generic_nostore (gpointer ptr)
 {
+	record_write (ptr);
 }
 
 void
 mono_gc_wbarrier_value_copy (gpointer dest, gpointer src, int count, MonoClass *klass)
 {
+	char* ptr = dest;
+	char* end = (char*)dest +  count * klass->instance_size;
+	while (ptr < end) {
+		record_write (ptr);
+		ptr += sizeof(void*);
+	}
 }
 
 void
 mono_gc_wbarrier_object (MonoObject *object)
 {
+	record_write (object);
 }
 
 void
 mono_gc_clear_domain (MonoDomain *domain)
 {
 }
+
+#if MANAGE_ROOTS
+
+typedef struct _GCRoot
+{
+	char* start;
+	char* end;
+	GCRootType type;
+}GCRoot;
+
+#define MAX_ROOTS 1024
+static void* dirty_roots[MAX_ROOTS];
+static void* grungy_roots[MAX_ROOTS];
+static GCRoot roots[MAX_ROOTS];
+static int roots_count = 0;
+static int dirty_roots_count = 0;
+static int grungy_roots_count = 0;
+
+static int add_roots (char* start, char* end, GCRootType type)
+{
+#if 1
+	int i = 0;
+	while (i < MAX_ROOTS)
+	{
+		if (!roots[i].start) {
+			roots[i].start = start;
+			roots[i].end = end;
+			roots[i].type = type;
+			roots_count++;
+#if DO_INCREMENTAL
+			add_dirty_roots (roots[i].start);
+#endif
+			return TRUE;
+		}
+		i++;
+	}
+	return FALSE;
+#else
+	GC_add_roots (start, end);
+#endif
+}
+
+static void push_other_roots(int all)
+{
+	if (push_other_roots_orig)
+		push_other_roots_orig (all);
+	if (all || DO_INCREMENTAL) {
+		int i = 0;
+		while (i < roots_count) {
+			if (roots[i].start)
+				GC_push_all (roots[i].start, roots[i].end);
+			i++;
+		}
+	}
+	else {
+		int i = 0;
+		while (i < roots_count) {
+			int j = 0;
+			if (!roots[i].start) {
+				i++;
+				continue;
+			}
+			if (roots[i].type != ROOT_TYPE_WBARRIER) {
+				GC_push_all (roots[i].start, roots[i].end);
+				i++;
+				continue;
+			}
+			while (j < grungy_roots_count) {
+				if (grungy_roots[j] >= roots[i].start && grungy_roots[j] <= roots[i].end)
+					GC_push_all (roots[j].start, roots[j].end);
+				j++;
+			}
+			i++;
+		}
+	}
+}
+
+#if DO_INCREMENTAL
+
+static void initiate_gc_callback(void)
+{
+	/* copy currently dirty pages to be pushed for current mark */
+	memcpy(&grungy_roots, &dirty_roots, sizeof(dirty_roots));
+	memset(&dirty_roots, 0, sizeof(dirty_roots));
+	grungy_roots_count = dirty_roots_count;
+	dirty_roots_count = 0;
+}
+
+static void add_dirty_roots(void* root)
+{
+	int i =0;
+	while (i < MAX_ROOTS && dirty_roots[i] != NULL)
+		i++;
+
+	if (i < MAX_ROOTS)
+		dirty_roots[i] = root;
+	else
+		abort();
+
+	dirty_roots_count++;
+}
+
+#endif /* DO_INCREMENTAL */
+
+#endif /* MANAGE_ROOTS */
+
+
+int
+mono_gc_register_root_wbarrier (char *start, size_t size, void *descr)
+{
+#if MANAGE_ROOTS
+	return add_roots (start, start + size + 1, ROOT_TYPE_WBARRIER);
+#else
+	/* for some strange reason, they want one extra byte on the end */
+	GC_add_roots (start, start + size + 1);
+#endif
+
+	return TRUE;
+}
+
+void
+mono_gc_wbarrier_set_root (gpointer ptr, MonoObject *value)
+{
+	*(void**)ptr = value;
+}
+
+
+static MonoMethod *write_barrier_method;
+
+MonoMethod*
+mono_gc_get_write_barrier (void)
+{
+	MonoMethod *res;
+	MonoMethodBuilder *mb;
+	MonoMethodSignature *sig;
+#ifdef MANAGED_WBARRIER
+	int label_no_wb, label_need_wb_1, label_need_wb_2, label2;
+	int remset_var, next_var, dummy_var;
+
+#ifdef HAVE_KW_THREAD
+	int remset_offset = -1, stack_end_offset = -1;
+
+	MONO_THREAD_VAR_OFFSET (remembered_set, remset_offset);
+	MONO_THREAD_VAR_OFFSET (stack_end, stack_end_offset);
+	g_assert (remset_offset != -1 && stack_end_offset != -1);
+#endif
+#endif
+
+	// FIXME: Maybe create a separate version for ctors (the branch would be
+	// correctly predicted more times)
+	if (write_barrier_method)
+		return write_barrier_method;
+
+	/* Create the IL version of mono_gc_barrier_generic_store () */
+	sig = mono_metadata_signature_alloc (mono_defaults.corlib, 1);
+	sig->ret = &mono_defaults.void_class->byval_arg;
+	sig->params [0] = &mono_defaults.int_class->byval_arg;
+
+	mb = mono_mb_new (mono_defaults.object_class, "wbarrier", MONO_WRAPPER_WRITE_BARRIER);
+
+#ifdef MANAGED_WBARRIER
+	if (mono_runtime_has_tls_get ()) {
+		/* ptr_in_nursery () check */
+#ifdef ALIGN_NURSERY
+		/*
+		 * Masking out the bits might be faster, but we would have to use 64 bit
+		 * immediates, which might be slower.
+		 */
+		mono_mb_emit_ldarg (mb, 0);
+		mono_mb_emit_icon (mb, DEFAULT_NURSERY_BITS);
+		mono_mb_emit_byte (mb, CEE_SHR_UN);
+		mono_mb_emit_icon (mb, (mword)nursery_start >> DEFAULT_NURSERY_BITS);
+		label_no_wb = mono_mb_emit_branch (mb, CEE_BEQ);
+#else
+		// FIXME:
+		g_assert_not_reached ();
+#endif
+
+		/* Need write barrier if ptr >= stack_end */
+		mono_mb_emit_ldarg (mb, 0);
+		EMIT_TLS_ACCESS (mb, stack_end, stack_end_offset);
+		label_need_wb_1 = mono_mb_emit_branch (mb, CEE_BGE_UN);
+
+		/* Need write barrier if ptr < stack_start */
+		dummy_var = mono_mb_add_local (mb, &mono_defaults.int_class->byval_arg);
+		mono_mb_emit_ldarg (mb, 0);
+		mono_mb_emit_ldloc_addr (mb, dummy_var);
+		label_need_wb_2 = mono_mb_emit_branch (mb, CEE_BLE_UN);
+
+		/* Don't need write barrier case */
+		mono_mb_patch_branch (mb, label_no_wb);
+
+		mono_mb_emit_byte (mb, CEE_RET);
+
+		/* Need write barrier case */
+		mono_mb_patch_branch (mb, label_need_wb_1);
+		mono_mb_patch_branch (mb, label_need_wb_2);
+
+		// remset_var = remembered_set;
+		remset_var = mono_mb_add_local (mb, &mono_defaults.int_class->byval_arg);
+		EMIT_TLS_ACCESS (mb, remset, remset_offset);
+		mono_mb_emit_stloc (mb, remset_var);
+
+		// next_var = rs->store_next
+		next_var = mono_mb_add_local (mb, &mono_defaults.int_class->byval_arg);
+		mono_mb_emit_ldloc (mb, remset_var);
+		mono_mb_emit_ldflda (mb, G_STRUCT_OFFSET (RememberedSet, store_next));
+		mono_mb_emit_byte (mb, CEE_LDIND_I);
+		mono_mb_emit_stloc (mb, next_var);
+
+		// if (rs->store_next < rs->end_set) {
+		mono_mb_emit_ldloc (mb, next_var);
+		mono_mb_emit_ldloc (mb, remset_var);
+		mono_mb_emit_ldflda (mb, G_STRUCT_OFFSET (RememberedSet, end_set));
+		mono_mb_emit_byte (mb, CEE_LDIND_I);
+		label2 = mono_mb_emit_branch (mb, CEE_BGE);
+
+		/* write barrier fast path */
+		// *(rs->store_next++) = (mword)ptr;
+		mono_mb_emit_ldloc (mb, next_var);
+		mono_mb_emit_ldarg (mb, 0);
+		mono_mb_emit_byte (mb, CEE_STIND_I);
+
+		mono_mb_emit_ldloc (mb, next_var);
+		mono_mb_emit_icon (mb, sizeof (gpointer));
+		mono_mb_emit_byte (mb, CEE_ADD);
+		mono_mb_emit_stloc (mb, next_var);
+
+		mono_mb_emit_ldloc (mb, remset_var);
+		mono_mb_emit_ldflda (mb, G_STRUCT_OFFSET (RememberedSet, store_next));
+		mono_mb_emit_ldloc (mb, next_var);
+		mono_mb_emit_byte (mb, CEE_STIND_I);
+
+		/* write barrier slow path */
+		mono_mb_patch_branch (mb, label2);
+	}
+#endif
+
+	mono_mb_emit_ldarg (mb, 0);
+	mono_mb_emit_icall (mb, mono_gc_wbarrier_generic_nostore);
+	mono_mb_emit_byte (mb, CEE_RET);
+
+	res = mono_mb_create_method (mb, sig, 16);
+	mono_mb_free (mb);
+
+	mono_loader_lock ();
+	if (write_barrier_method) {
+		/* Already created */
+		mono_free_method (res);
+	} else {
+		/* double-checked locking */
+		mono_memory_barrier ();
+		write_barrier_method = res;
+	}
+	mono_loader_unlock ();
+
+	return write_barrier_method;
+}
+
 
 #if defined(USE_INCLUDED_LIBGC) && defined(USE_COMPILER_TLS) && defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
 extern __thread MONO_TLS_FAST void* GC_thread_tls;
