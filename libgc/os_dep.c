@@ -2096,6 +2096,8 @@ void GC_default_push_other_roots GC_PROTO((int all))
 
 void (*GC_push_other_roots) GC_PROTO((int all)) = GC_default_push_other_roots;
 
+GC_initiate_gc_callback_proc GC_initiate_gc_callback = 0;
+
 #endif /* THREADS */
 
 /*

@@ -1357,7 +1357,8 @@ void GC_push_current_stack GC_PROTO((ptr_t cold_gc_frame));
   			/* stack for scanning.				*/
 void GC_push_roots GC_PROTO((GC_bool all, ptr_t cold_gc_frame));
   			/* Push all or dirty roots.	*/
-extern void (*GC_push_other_roots) GC_PROTO((int all));
+typedef void (*GC_push_other_roots_proc) GC_PROTO((int all));
+extern GC_push_other_roots_proc GC_push_other_roots;
   			/* Push system or application specific roots	*/
   			/* onto the mark stack.  In some environments	*/
   			/* (e.g. threads environments) this is		*/
@@ -1380,6 +1381,10 @@ extern void (*GC_start_call_back) GC_PROTO((void));
   			/* Not called if 0.  Called with allocation 	*/
   			/* lock held.					*/
   			/* 0 by default.				*/
+
+typedef void (*GC_initiate_gc_callback_proc) GC_PROTO((void));
+extern GC_initiate_gc_callback_proc GC_initiate_gc_callback;
+
 # if defined(USE_GENERIC_PUSH_REGS)
   void GC_generic_push_regs GC_PROTO((ptr_t cold_gc_frame));
 # else
