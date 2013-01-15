@@ -111,6 +111,21 @@ register hdr * hhdr;
     return(TRUE);
 }
 
+GC_bool GC_block_clean(hhdr)
+register hdr * hhdr;
+{
+    /* We treat hb_marks as an array of words here, even if it is 	*/
+    /* actually an array of bytes.  Since we only check for zero, there	*/
+    /* are no endian-ness issues.					*/
+    register word *p = (word *)(&(hhdr -> hb_dirties[0]));
+    register word * plim =
+	    (word *)(&(hhdr -> hb_dirties[MARK_BITS_SZ]));
+    while (p < plim) {
+	if (*p++) return(FALSE);
+    }
+    return(TRUE);
+}
+
 /* The following functions sometimes return a DONT_KNOW value. */
 #define DONT_KNOW  2
 

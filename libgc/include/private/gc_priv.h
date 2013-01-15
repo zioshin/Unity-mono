@@ -1427,7 +1427,7 @@ extern GC_initiate_gc_callback_proc GC_initiate_gc_callback;
 # else
   void GC_mark_and_push_stack GC_PROTO((word p));
 # endif
-void GC_push_marked GC_PROTO((struct hblk * h, hdr * hhdr));
+void GC_push_marked GC_PROTO((struct hblk * h, hdr * hhdr, int use_dirty_bits));
 		/* Push contents of all marked objects in h onto	*/
 		/* mark stack.						*/
 #ifdef SMALL_CONFIG
@@ -1602,6 +1602,7 @@ GC_bool GC_reclaim_all GC_PROTO((GC_stop_func stop_func, GC_bool ignore_old));
   				/* Reclaim all blocks.  Abort (in a	*/
   				/* consistent state) if f returns TRUE. */
 GC_bool GC_block_empty GC_PROTO((hdr * hhdr));
+GC_bool GC_block_clean GC_PROTO((hdr * hhdr));
  				/* Block completely unmarked? 	*/
 GC_bool GC_never_stop_func GC_PROTO((void));
 				/* Returns FALSE.		*/

@@ -1697,9 +1697,10 @@ register hdr * hhdr;
 #endif /* SMALL_CONFIG */
 
 /* Push all objects reachable from marked objects in the given block */
-void GC_push_marked(h, hhdr)
+void GC_push_marked(h, hhdr, use_dirty_bits)
 struct hblk *h;
 register hdr * hhdr;
+int use_dirty_bits;
 {
     register int sz = hhdr -> hb_sz;
     register int descr = hhdr -> hb_descr;
@@ -1783,7 +1784,7 @@ struct hblk *h;
     h = GC_next_used_block(h);
     if (h == 0) return(0);
     hhdr = HDR(h);
-    GC_push_marked(h, hhdr);
+    GC_push_marked(h, hhdr, FALSE);
     return(h + OBJ_SZ_TO_BLOCKS(hhdr -> hb_sz));
 }
 
@@ -1812,7 +1813,14 @@ struct hblk *h;
 #	endif
         h += OBJ_SZ_TO_BLOCKS(hhdr -> hb_sz);
     }
-    GC_push_marked(h, hhdr);
+    if (!GC_block_clean(hhdr))
+        GC_push_marked(h, hhdr, TRUE);
+    else if (hhdr->hb_descr)
+    /* danger danger danger*/
+        GC_push_marked(h, hhdr, FALSE);
+    else
+        /* ptr free FTW */
+        hhdr = hhdr;
     return(h + OBJ_SZ_TO_BLOCKS(hhdr -> hb_sz));
 }
 #endif
@@ -1831,7 +1839,7 @@ struct hblk *h;
 	if (hhdr -> hb_obj_kind == UNCOLLECTABLE) break;
         h += OBJ_SZ_TO_BLOCKS(hhdr -> hb_sz);
     }
-    GC_push_marked(h, hhdr);
+    GC_push_marked(h, hhdr, FALSE);
     return(h + OBJ_SZ_TO_BLOCKS(hhdr -> hb_sz));
 }
 
