@@ -316,6 +316,7 @@ mono_g_hash_table_remove
 mono_g_hash_table_replace
 mono_g_hash_table_size
 mono_gc_collect
+mono_gc_collect_a_little
 mono_gc_collection_count
 mono_gc_enable_events
 mono_gc_get_generation
