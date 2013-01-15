@@ -234,6 +234,8 @@ void GC_clear_marks()
 /*ARGSUSED*/
 void GC_initiate_gc()
 {
+    if (GC_initiate_gc_callback)
+        GC_initiate_gc_callback();
     if (GC_dirty_maintained) GC_read_dirty();
 #   ifdef STUBBORN_ALLOC
     	GC_read_changed();
