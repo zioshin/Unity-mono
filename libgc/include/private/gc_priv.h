@@ -1357,7 +1357,7 @@ void GC_push_current_stack GC_PROTO((ptr_t cold_gc_frame));
   			/* stack for scanning.				*/
 void GC_push_roots GC_PROTO((GC_bool all, ptr_t cold_gc_frame));
   			/* Push all or dirty roots.	*/
-extern void (*GC_push_other_roots) GC_PROTO((void));
+extern void (*GC_push_other_roots) GC_PROTO((int all));
   			/* Push system or application specific roots	*/
   			/* onto the mark stack.  In some environments	*/
   			/* (e.g. threads environments) this is		*/

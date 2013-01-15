@@ -645,7 +645,7 @@ ptr_t cold_gc_frame;
 	/* the main stack is marked here, but the register stack	*/
 	/* backing store is handled in the threads-specific code.	*/
 #   endif
-    if (GC_push_other_roots != 0) (*GC_push_other_roots)();
+    if (GC_push_other_roots != 0) (*GC_push_other_roots)(all);
     	/* In the threads case, this also pushes thread stacks.	*/
         /* Note that without interior pointer recognition lots	*/
     	/* of stuff may have been pushed already, and this	*/

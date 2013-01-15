@@ -2087,14 +2087,14 @@ void GC_default_push_other_roots GC_PROTO((void))
 
 extern void GC_push_all_stacks();
 
-void GC_default_push_other_roots GC_PROTO((void))
+void GC_default_push_other_roots GC_PROTO((int all))
 {
     GC_push_all_stacks();
 }
 
 # endif /* GC_SOLARIS_THREADS || GC_PTHREADS */
 
-void (*GC_push_other_roots) GC_PROTO((void)) = GC_default_push_other_roots;
+void (*GC_push_other_roots) GC_PROTO((int all)) = GC_default_push_other_roots;
 
 #endif /* THREADS */
 
