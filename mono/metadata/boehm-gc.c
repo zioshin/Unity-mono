@@ -746,7 +746,7 @@ static void push_other_roots(int all)
 			}
 			while (j < grungy_roots_count) {
 				if (grungy_roots[j] >= roots[i].start && grungy_roots[j] <= roots[i].end)
-					GC_push_all (roots[j].start, roots[j].end);
+					GC_push_all (grungy_roots[j], (char*)grungy_roots[j] + sizeof(void*) + 1);
 				j++;
 			}
 			i++;
