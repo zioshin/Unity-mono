@@ -522,7 +522,7 @@
 /* #undef HAVE_WORKING_SIGALTSTACK */
 
 /* The GC needs write barriers. */
-/* #undef HAVE_WRITE_BARRIERS */
+#define HAVE_WRITE_BARRIERS 1
 
 /* Have system zlib */
 /* #define HAVE_ZLIB 1 */
