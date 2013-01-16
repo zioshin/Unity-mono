@@ -60,6 +60,7 @@ typedef enum {
 } GCRootType;
 
 static int add_roots (char* start, char* end, GCRootType type);
+static int remove_roots (char* start, char* end);
 #if DO_INCREMENTAL
 static void add_dirty_roots(void* root);
 static void initiate_gc_callback(void);
@@ -381,20 +382,28 @@ mono_gc_register_root (char *start, size_t size, void *descr)
 void
 mono_gc_deregister_root (char* addr)
 {
+#if MANAGE_ROOTS
+	mono_gc_deregister_root_size (addr, sizeof(gpointer));
+#else
 #if !defined(PLATFORM_WIN32) || (UNITY_USE_REASONABLE_LOOKING_GCROOTS_CODEPATH_ON_WINDOWS == 1)
 	/* FIXME: libgc doesn't define this on win32 for some reason */
 	/* FIXME: No size info */
 	GC_remove_roots (addr, addr + sizeof (gpointer) + 1);
 #endif
+#endif /* MANAGE_ROOTS */
 }
 
 void
 mono_gc_deregister_root_size (char* addr, size_t size)
 {
+#if MANAGE_ROOTS
+	remove_roots (addr, addr + size + 1);
+#else
 #if !defined(PLATFORM_WIN32) || (UNITY_USE_REASONABLE_LOOKING_GCROOTS_CODEPATH_ON_WINDOWS == 1)
 	/* FIXME: libgc doesn't define this on win32 for some reason */
 	GC_remove_roots (addr, addr + size + 1);
 #endif
+#endif /* MANAGE_ROOTS */
 }
 
 void
@@ -680,43 +689,81 @@ mono_gc_clear_domain (MonoDomain *domain)
 
 #if MANAGE_ROOTS
 
-typedef struct _GCRoot
+struct _GCRoot
 {
 	char* start;
 	char* end;
 	GCRootType type;
-}GCRoot;
+};
+typedef struct _GCRoot GCRoot;
 
-#define MAX_ROOTS 1024
-static void* dirty_roots[MAX_ROOTS];
-static void* grungy_roots[MAX_ROOTS];
-static GCRoot roots[MAX_ROOTS];
+static gpointer* dirty_roots;
+static gpointer* grungy_roots;
+static GCRoot* roots;
 static int roots_count = 0;
 static int dirty_roots_count = 0;
-static int grungy_roots_count = 0;
 
 static int add_roots (char* start, char* end, GCRootType type)
 {
 #if 1
 	int i = 0;
-	while (i < MAX_ROOTS)
+	int index = -1;
+
+	if (!roots) {
+		roots_count = 32;
+		roots = g_new0 (GCRoot, roots_count);
+	}
+
+	while (i < roots_count)
 	{
 		if (!roots[i].start) {
-			roots[i].start = start;
-			roots[i].end = end;
-			roots[i].type = type;
-			roots_count++;
-#if DO_INCREMENTAL
-			add_dirty_roots (roots[i].start);
-#endif
-			return TRUE;
+			index = i;
+			break;
 		}
 		i++;
 	}
-	return FALSE;
+
+	if (index == -1) {
+		GCRoot* new_roots = NULL;
+		int new_roots_count = roots_count * 2;
+
+		index = roots_count;
+		new_roots = g_new0 (GCRoot, new_roots_count);
+		memcpy (new_roots, roots, roots_count*sizeof(GCRoot));
+		g_free (roots);
+		roots = new_roots;
+		roots_count = new_roots_count;
+	}
+
+	g_assert (index != -1);
+
+	roots[index].start = start;
+	roots[index].end = end;
+	roots[index].type = type;
+#if DO_INCREMENTAL
+	add_dirty_roots (roots[i].start);
+#endif
+	return TRUE;
 #else
 	GC_add_roots (start, end);
 #endif
+}
+
+static int remove_roots (char* start, char* end)
+{
+	int i = 0;
+	int found = 0;
+	while (i < roots_count)
+	{
+		if (start >= roots[i].start && end <= roots[i].end) {
+			roots[i].start = roots[i].end = NULL;
+			roots[i].type = ROOT_TYPE_NORMAL;
+			found = TRUE;
+		}
+		i++;
+	}
+
+	return found;
 }
 
 static void push_other_roots(int all)
@@ -744,7 +791,7 @@ static void push_other_roots(int all)
 				i++;
 				continue;
 			}
-			while (j < grungy_roots_count) {
+			while (j < dirty_roots_count) {
 				if (grungy_roots[j] >= roots[i].start && grungy_roots[j] <= roots[i].end)
 					GC_push_all (grungy_roots[j], (char*)grungy_roots[j] + sizeof(void*) + 1);
 				j++;
@@ -759,24 +806,52 @@ static void push_other_roots(int all)
 static void initiate_gc_callback(void)
 {
 	/* copy currently dirty pages to be pushed for current mark */
-	memcpy(&grungy_roots, &dirty_roots, sizeof(dirty_roots));
-	memset(&dirty_roots, 0, sizeof(dirty_roots));
-	grungy_roots_count = dirty_roots_count;
-	dirty_roots_count = 0;
+	memcpy(grungy_roots, dirty_roots, dirty_roots_count*sizeof(gpointer));
+	memset(dirty_roots, 0, dirty_roots_count*sizeof(gpointer));
 }
 
 static void add_dirty_roots(void* root)
 {
 	int i =0;
-	while (i < MAX_ROOTS && dirty_roots[i] != NULL)
+	int index = -1;
+
+	
+	if (!dirty_roots) {
+		dirty_roots_count = 32;
+		dirty_roots = g_new0 (gpointer, dirty_roots_count);
+		grungy_roots = g_new0 (gpointer, dirty_roots_count);
+	}
+
+	while (i < dirty_roots_count)
+	{
+		if (!dirty_roots[i]) {
+			index = i;
+			break;
+		}
 		i++;
+	}
 
-	if (i < MAX_ROOTS)
-		dirty_roots[i] = root;
-	else
-		abort();
 
-	dirty_roots_count++;
+	if (index == -1) {
+		gpointer* new_dirty_roots = NULL;
+		gpointer* new_grungy_roots = NULL;
+		int new_dirty_roots_count = dirty_roots_count * 2;
+
+		index = dirty_roots_count;
+		dirty_roots = g_new0 (gpointer, new_dirty_roots_count);
+		grungy_roots = g_new0 (gpointer, new_dirty_roots_count);
+		memcpy (new_dirty_roots, dirty_roots, dirty_roots_count*sizeof(gpointer));
+		memcpy (new_grungy_roots, grungy_roots, dirty_roots_count*sizeof(gpointer));
+		g_free (dirty_roots);
+		g_free (grungy_roots);
+		dirty_roots = new_dirty_roots;
+		grungy_roots = new_grungy_roots;
+		dirty_roots_count = new_dirty_roots_count;
+	}
+
+	g_assert (index != -1);
+
+	dirty_roots[index] = root;
 }
 
 #endif /* DO_INCREMENTAL */
