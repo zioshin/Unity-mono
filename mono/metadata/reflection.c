@@ -8554,6 +8554,7 @@ mono_custom_attrs_from_method (MonoMethod *method)
 MonoCustomAttrInfo*
 mono_custom_attrs_from_class (MonoClass *klass)
 {
+	guint32 idx;
 	MonoDomain* domain = mono_domain_get();
 
 	// Hashing attributes as a lookup optimization.
@@ -8563,8 +8564,6 @@ mono_custom_attrs_from_class (MonoClass *klass)
 	{
 		return hashed_attribute_info;
 	}
-
-	guint32 idx;
 
 	if (klass->generic_class)
 		klass = klass->generic_class->container_class;
