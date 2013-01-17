@@ -142,6 +142,18 @@ register hdr * hhdr;
 #   endif
 }
 
+/* clear all dirty bits in the header */
+void GC_clear_hdr_dirties(hhdr)
+register hdr * hhdr;
+{
+#   ifdef USE_MARK_BYTES
+      BZERO(hhdr -> hb_dirties, MARK_BITS_SZ);
+#   else
+      BZERO(hhdr -> hb_dirties, MARK_BITS_SZ*sizeof(word));
+	 // memset(hhdr -> hb_dirties, 0xFF, MARK_BITS_SZ*sizeof(word));
+#   endif
+}
+
 /* Set all mark bits in the header.  Used for uncollectable blocks. */
 void GC_set_hdr_marks(hhdr)
 register hdr * hhdr;
@@ -1739,9 +1751,10 @@ int use_dirty_bits;
      default:
       GC_mark_stack_top_reg = GC_mark_stack_top;
       for (p = (word *)h, word_no = 0; p <= lim; p += sz, word_no += sz) {
-         if (mark_bit_from_hdr(hhdr, word_no)) {
+         if (mark_bit_from_hdr(hhdr, word_no) && (!use_dirty_bits || dirty_bit_from_hdr(hhdr, word_no))) {
            /* Mark from fields inside the object */
              PUSH_OBJ((word *)p, hhdr, GC_mark_stack_top_reg, mark_stack_limit);
+			 clear_dirty_bit_from_hdr(hhdr, word_no);
 #	     ifdef GATHERSTATS
 		/* Subtract this object from total, since it was	*/
 		/* added in twice.					*/

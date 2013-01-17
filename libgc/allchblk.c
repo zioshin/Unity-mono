@@ -244,6 +244,7 @@ unsigned char flags;
       
     /* Clear mark bits */
       GC_clear_hdr_marks(hhdr);
+      GC_clear_hdr_dirties(hhdr);
       
     hhdr -> hb_last_reclaimed = (unsigned short)GC_gc_no;
     return(TRUE);

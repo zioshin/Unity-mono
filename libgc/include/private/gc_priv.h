@@ -1446,6 +1446,8 @@ GC_bool GC_stopped_mark GC_PROTO((GC_stop_func stop_func));
   			/* and rescuers.			*/
 void GC_clear_hdr_marks GC_PROTO((hdr * hhdr));
 				    /* Clear the mark bits in a header */
+void GC_clear_hdr_dirties GC_PROTO((hdr * hhdr));
+				    /* Clear the mark bits in a header */
 void GC_set_hdr_marks GC_PROTO((hdr * hhdr));
  				    /* Set the mark bits in a header */
 void GC_set_fl_marks GC_PROTO((ptr_t p));
