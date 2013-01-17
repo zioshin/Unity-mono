@@ -283,7 +283,11 @@ void win32_seh_init()
 		restore_stack = mono_win32_get_handle_stackoverflow ();
 
 	old_win32_toplevel_exception_filter = SetUnhandledExceptionFilter(seh_unhandled_exception_filter);
+#ifdef DEBUG_WRITE_BARRIERS
+	win32_vectored_exception_handle = AddVectoredExceptionHandler (0, seh_vectored_exception_handler);
+#else
 	win32_vectored_exception_handle = AddVectoredExceptionHandler (1, seh_vectored_exception_handler);
+#endif
 }
 
 void win32_seh_cleanup()

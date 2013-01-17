@@ -1209,8 +1209,10 @@ static const char info[] =
 #ifdef PLATFORM_WIN32
 BOOL APIENTRY DllMain (HMODULE module_handle, DWORD reason, LPVOID reserved)
 {
+#ifndef HAVE_NULL_GC
 	if (!GC_DllMain (module_handle, reason, reserved))
 		return FALSE;
+#endif
 
 	switch (reason)
 	{

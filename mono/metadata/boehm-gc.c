@@ -683,6 +683,24 @@ mono_gc_wbarrier_object (MonoObject *object)
 }
 
 void
+mono_gc_wbarrier_memcpy (gpointer dst, gpointer src, size_t size)
+{
+	memcpy (dst, src, size);
+	while (size > 0) {
+		record_write (dst);
+		dst = (char*)dst + sizeof(void*);
+		size -= sizeof(void*);
+	}
+}
+
+void
+mono_gc_wbarrier_generic_store_ptr (gpointer ptr, gpointer value)
+{
+	*(void**)ptr = value;
+	record_write (ptr);
+}
+
+void
 mono_gc_clear_domain (MonoDomain *domain)
 {
 }

@@ -261,7 +261,7 @@
 /* #undef HAVE_NET_IF_H */
 
 /* No GC support. */
-/* #undef HAVE_NULL_GC */
+/* #define HAVE_NULL_GC 1 */
 
 /* Have oprofile support */
 /* #undef HAVE_OPROFILE */
@@ -522,7 +522,10 @@
 /* #undef HAVE_WORKING_SIGALTSTACK */
 
 /* The GC needs write barriers. */
-#define HAVE_WRITE_BARRIERS 1
+/* #define HAVE_WRITE_BARRIERS 1 */
+
+/* Debug write barriers on Windows. */
+/* #define DEBUG_WRITE_BARRIERS */
 
 /* Have system zlib */
 /* #define HAVE_ZLIB 1 */

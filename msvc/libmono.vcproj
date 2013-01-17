@@ -783,9 +783,6 @@
 				Name="VCALinkTool"
 			/>
 			<Tool
-				Name="VCManifestTool"
-			/>
-			<Tool
 				Name="VCXDCMakeTool"
 			/>
 			<Tool
@@ -793,9 +790,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -5559,6 +5553,10 @@
 			</File>
 			<File
 				RelativePath="..\mono\metadata\mono-perfcounters.h"
+				>
+			</File>
+			<File
+				RelativePath="..\mono\metadata\null-gc.c"
 				>
 			</File>
 			<File
