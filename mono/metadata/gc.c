@@ -593,7 +593,8 @@ alloc_handle (HandleData *handles, MonoObject *obj, gboolean track)
 	if (!handles->size) {
 		handles->size = 32;
 		if (handles->type > HANDLE_WEAK_TRACK) {
-			handles->entries = mono_gc_alloc_fixed (sizeof (gpointer) * handles->size, NULL);
+			handles->entries = g_malloc0 (sizeof (gpointer) * handles->size);
+			mono_gc_register_root_wbarrier ((char*)handles->entries, sizeof(gpointer)*handles->size, NULL);
 		} else {
 			handles->entries = g_malloc0 (sizeof (gpointer) * handles->size);
 			handles->domain_ids = g_malloc0 (sizeof (guint16) * handles->size);
@@ -630,9 +631,13 @@ alloc_handle (HandleData *handles, MonoObject *obj, gboolean track)
 		/* resize and copy the entries */
 		if (handles->type > HANDLE_WEAK_TRACK) {
 			gpointer *entries;
-			entries = mono_gc_alloc_fixed (sizeof (gpointer) * new_size, NULL);
+			entries = g_malloc0 (sizeof (gpointer) * new_size);
 			memcpy (entries, handles->entries, sizeof (gpointer) * handles->size);
+			mono_gc_disable ();
+			mono_gc_deregister_root_size ((char*)handles->entries, sizeof(gpointer)*handles->size);
 			handles->entries = entries;
+			mono_gc_register_root_wbarrier ((char*)handles->entries, sizeof(gpointer)*new_size, NULL);
+			mono_gc_enable ();
 		} else {
 			gpointer *entries;
 			guint16 *domain_ids;
@@ -667,7 +672,11 @@ alloc_handle (HandleData *handles, MonoObject *obj, gboolean track)
 	}
 	handles->bitmap [slot] |= 1 << i;
 	slot = slot * 32 + i;
-	handles->entries [slot] = obj;
+
+	if (handles->type <= HANDLE_WEAK_TRACK)
+		handles->entries [slot] = obj;
+	else
+		mono_gc_wbarrier_set_root (&handles->entries [slot], obj);
 	if (handles->type <= HANDLE_WEAK_TRACK) {
 		if (obj)
 			mono_gc_weak_link_add (&(handles->entries [slot]), obj, track);
@@ -795,7 +804,7 @@ mono_gchandle_set_target (guint32 gchandle, MonoObject *obj)
 			if (obj)
 				mono_gc_weak_link_add (&handles->entries [slot], obj, handles->type == HANDLE_WEAK_TRACK);
 		} else {
-			handles->entries [slot] = obj;
+			mono_gc_wbarrier_set_root (&handles->entries [slot], obj);
 		}
 	} else {
 		/* print a warning? */
@@ -1071,9 +1080,6 @@ mono_gc_init (void)
 	InitializeCriticalSection (&allocator_section);
 
 	InitializeCriticalSection (&finalizer_mutex);
-
-	MONO_GC_REGISTER_ROOT (gc_handles [HANDLE_NORMAL].entries);
-	MONO_GC_REGISTER_ROOT (gc_handles [HANDLE_PINNED].entries);
 
 	mono_gc_base_init ();
 
