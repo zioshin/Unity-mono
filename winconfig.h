@@ -522,7 +522,7 @@
 /* #undef HAVE_WORKING_SIGALTSTACK */
 
 /* The GC needs write barriers. */
-/* #define HAVE_WRITE_BARRIERS 1 */
+#define HAVE_WRITE_BARRIERS 1
 
 /* Debug write barriers on Windows. */
 /* #define DEBUG_WRITE_BARRIERS */
