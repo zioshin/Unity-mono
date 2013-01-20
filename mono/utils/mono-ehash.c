@@ -126,6 +126,7 @@ mono_g_hash_table_new (GHashFunc hash_func, GEqualFunc key_equal_func)
 
 	hash->table_size = g_spaced_primes_closest (1);
 	hash->table = mg_new0 (Slot *, hash->table_size);
+	mono_gc_wbarrier_generic_nostore (&hash->table);
 	hash->last_rehash = hash->table_size;
 	
 	return hash;
@@ -158,6 +159,7 @@ do_rehash (MonoGHashTable *hash)
 	/* printf ("New size: %d\n", hash->table_size); */
 	table = hash->table;
 	hash->table = mg_new0 (Slot *, hash->table_size);
+	mono_gc_wbarrier_generic_nostore (&hash->table);
 	
 	for (i = 0; i < current_size; i++){
 		Slot *s, *next;
@@ -167,7 +169,9 @@ do_rehash (MonoGHashTable *hash)
 			next = s->next;
 
 			s->next = hash->table [hashcode];
+			mono_gc_wbarrier_generic_nostore (&s->next);
 			hash->table [hashcode] = s;
+			mono_gc_wbarrier_generic_nostore (&hash->table [hashcode]);
 		}
 	}
 	mg_free (table);
@@ -279,10 +283,14 @@ mono_g_hash_table_remove (MonoGHashTable *hash, gconstpointer key)
 				(*hash->key_destroy_func)(s->key);
 			if (hash->value_destroy_func != NULL)
 				(*hash->value_destroy_func)(s->value);
-			if (last == NULL)
+			if (last == NULL) {
 				hash->table [hashcode] = s->next;
-			else
+				mono_gc_wbarrier_generic_nostore (&hash->table [hashcode]);
+			}
+			else {
 				last->next = s->next;
+				mono_gc_wbarrier_generic_nostore (&last->next);
+			}
 			mg_free (s);
 			hash->in_use--;
 			return TRUE;
@@ -315,9 +323,11 @@ mono_g_hash_table_foreach_remove (MonoGHashTable *hash, GHRFunc func, gpointer u
 					(*hash->value_destroy_func)(s->value);
 				if (last == NULL){
 					hash->table [i] = s->next;
+					mono_gc_wbarrier_generic_nostore (&hash->table [i]);
 					n = s->next;
 				} else  {
 					last->next = s->next;
+					mono_gc_wbarrier_generic_nostore (&last->next);
 					n = last->next;
 				}
 				mg_free (s);
@@ -379,18 +389,28 @@ mono_g_hash_table_insert_replace (MonoGHashTable *hash, gpointer key, gpointer v
 				if (hash->key_destroy_func != NULL)
 					(*hash->key_destroy_func)(s->key);
 				s->key = key;
+				if (hash->gc_type != MONO_HASH_VALUE_GC)
+					mono_gc_wbarrier_generic_nostore (&s->key);
 			}
 			if (hash->value_destroy_func != NULL)
 				(*hash->value_destroy_func) (s->value);
 			s->value = value;
+				if (hash->gc_type != MONO_HASH_KEY_GC)
+					mono_gc_wbarrier_generic_nostore (&s->value);
 			return;
 		}
 	}
 	s = mg_new (Slot, 1);
 	s->key = key;
+	if (hash->gc_type != MONO_HASH_VALUE_GC)
+		mono_gc_wbarrier_generic_nostore (&s->key);
 	s->value = value;
+	if (hash->gc_type != MONO_HASH_KEY_GC)
+		mono_gc_wbarrier_generic_nostore (&s->value);
 	s->next = hash->table [hashcode];
+	mono_gc_wbarrier_generic_nostore (&s->next);
 	hash->table [hashcode] = s;
+	mono_gc_wbarrier_generic_nostore (&hash->table [hashcode]);
 	hash->in_use++;
 }
 
