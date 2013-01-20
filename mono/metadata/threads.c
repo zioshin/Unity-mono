@@ -348,7 +348,7 @@ small_id_alloc (MonoThread *thread)
 	}
 	thread->small_id = id;
 	g_assert (small_id_table [id] == NULL);
-	small_id_table [id] = thread;
+	mono_gc_wbarrier_generic_store (&small_id_table [id], thread);
 	small_id_next++;
 	if (small_id_next > small_id_table_size)
 		small_id_next = 0;
@@ -3547,13 +3547,13 @@ mono_alloc_static_data (gpointer **static_data_ptr, guint32 offset)
 	if (!static_data) {
 		static_data = mono_gc_alloc_fixed (static_data_size [0], NULL);
 		*static_data_ptr = static_data;
-		static_data [0] = static_data;
+		mono_gc_wbarrier_generic_store_ptr (&static_data [0], static_data);
 	}
 
 	for (i = 1; i <= idx; ++i) {
 		if (static_data [i])
 			continue;
-		static_data [i] = mono_gc_alloc_fixed (static_data_size [i], NULL);
+		mono_gc_wbarrier_generic_store_ptr (&static_data [i], mono_gc_alloc_fixed (static_data_size [i], NULL));
 	}
 }
 
