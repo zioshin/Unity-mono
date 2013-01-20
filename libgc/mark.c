@@ -162,9 +162,9 @@ register hdr * hhdr;
 
     for (i = 0; i < MARK_BITS_SZ; ++i) {
 #     ifdef USE_MARK_BYTES
-    	hhdr -> hb_marks[i] = 1;
+       hhdr -> hb_marks[i] = 1;
 #     else
-    	hhdr -> hb_marks[i] = ONES;
+       hhdr -> hb_marks[i] = ONES;
 #     endif
     }
 }
@@ -247,12 +247,15 @@ ptr_t p;
     register struct hblk *h = HBLKPTR(p);
     register hdr * hhdr = HDR(h);
     register int word_no = (word *)p - (word *)h;
+	register int word_real = 0;
 
 	if (!hhdr)
 		return FALSE;
 
-	if (!dirty_bit_from_hdr(hhdr, word_no)) {
-        set_dirty_bit_from_hdr(hhdr, word_no);
+	word_real = word_no - word_no % hhdr->hb_sz;
+
+	if (!dirty_bit_from_hdr(hhdr, word_real)) {
+        set_dirty_bit_from_hdr(hhdr, word_real);
 		return TRUE;
 	}
 
