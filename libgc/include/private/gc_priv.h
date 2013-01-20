@@ -303,9 +303,36 @@ void GC_print_callers GC_PROTO((struct callinfo info[NFRAMES]));
 # if defined(MSWIN32) || defined(MSWINCE)
 #   include <windows.h>
 #   include <winbase.h>
-#   define CLOCK_TYPE DWORD
-#   define GET_TIME(x) x = GetTickCount()
-#   define MS_TIME_DIFF(a,b) ((long)((a)-(b)))
+#if 0
+# define CLOCK_TYPE DWORD
+# define GET_TIME(x) (void)(x = GetTickCount())
+# define MS_TIME_DIFF(a,b) ((long)((a)-(b)))
+#else
+#   define CLOCK_TYPE LONGLONG
+#   define GET_TIME(x) QueryPerformanceCounter((LARGE_INTEGER*)&x)
+static long time_diff_ms(LONGLONG a, LONGLONG b)
+{
+	static LARGE_INTEGER frequency = {0};
+	static double freq;
+	if (!frequency.QuadPart) {
+		QueryPerformanceFrequency (&frequency);
+		freq = frequency.QuadPart / 1000.0;
+	}
+	return (long)((((LARGE_INTEGER*)&a)->QuadPart - ((LARGE_INTEGER*)&b)->QuadPart) / freq);
+}
+static long time_diff_us(LONGLONG a, LONGLONG b)
+{
+	static LARGE_INTEGER frequency = {0};
+	static double freq;
+	if (!frequency.QuadPart) {
+		QueryPerformanceFrequency (&frequency);
+		freq = frequency.QuadPart / 1000000.0;
+	}
+	return (long)((((LARGE_INTEGER*)&a)->QuadPart - ((LARGE_INTEGER*)&b)->QuadPart) / freq);
+}
+#   define MS_TIME_DIFF(a,b) time_diff_ms(a,b)
+#   define US_TIME_DIFF(a,b) time_diff_us(a,b)
+#endif
 # else /* !MSWIN32, !MSWINCE, !BSD_TIME */
 #   include <time.h>
 #   if !defined(__STDC__) && defined(SPARC) && defined(SUNOS4)

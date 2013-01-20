@@ -135,12 +135,12 @@ int GC_n_attempts = 0;		/* Number of attempts at finishing	*/
     
     if ((count++ & 3) != 0) return(0);
     GET_TIME(current_time);
-    time_diff = MS_TIME_DIFF(current_time,GC_start_time);
-    if (time_diff >= GC_time_limit) {
+    time_diff = US_TIME_DIFF(current_time,GC_start_time);
+    if (time_diff >= GC_time_limit*1000) {
 #   	ifdef CONDPRINT
 	  if (GC_print_stats) {
 	    GC_printf0("Abandoning stopped marking after ");
-	    GC_printf1("%lu msecs", (unsigned long)time_diff);
+	    GC_printf1("%lu usecs", (unsigned long)time_diff);
 	    GC_printf1("(attempt %ld)\n", (unsigned long) GC_n_attempts);
 	  }
 #	endif
@@ -394,8 +394,8 @@ GC_stop_func stop_func;
 #   if defined(CONDPRINT)
       if (GC_print_stats) {
         GET_TIME(current_time);
-        GC_printf1("Complete collection took %lu msecs\n",
-                   MS_TIME_DIFF(current_time,start_time));
+        GC_printf1("Complete collection took %lu usecs\n",
+                   US_TIME_DIFF(current_time,start_time));
       }
 #   endif
     if (GC_notify_event)
@@ -578,14 +578,14 @@ GC_stop_func stop_func;
     START_WORLD();
 #   ifdef PRINTTIMES
 	GET_TIME(current_time);
-	GC_printf1("World-stopped marking took %lu msecs\n",
-	           MS_TIME_DIFF(current_time,start_time));
+	GC_printf1("World-stopped marking took %lu usecs\n",
+	           US_TIME_DIFF(current_time,start_time));
 #   else
 #     ifdef CONDPRINT
 	if (GC_print_stats) {
 	  GET_TIME(current_time);
-	  GC_printf1("World-stopped marking took %lu msecs\n",
-	             MS_TIME_DIFF(current_time,start_time));
+	  GC_printf1("World-stopped marking took %lu usecs\n",
+	             US_TIME_DIFF(current_time,start_time));
 	}
 #     endif
 #   endif
@@ -781,9 +781,9 @@ void GC_finish_collection()
 	
 #   ifdef PRINTTIMES
 	GET_TIME(done_time);
-	GC_printf2("Finalize + initiate sweep took %lu + %lu msecs\n",
-	           MS_TIME_DIFF(finalize_time,start_time),
-	           MS_TIME_DIFF(done_time,finalize_time));
+	GC_printf2("Finalize + initiate sweep took %lu + %lu usecs\n",
+	           US_TIME_DIFF(finalize_time,start_time),
+	           US_TIME_DIFF(done_time,finalize_time));
 #   endif
 }
 
