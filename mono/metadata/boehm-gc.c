@@ -77,6 +77,8 @@ mono_gc_warning (char *msg, GC_word arg)
 	mono_trace (G_LOG_LEVEL_WARNING, MONO_TRACE_GC, msg, (unsigned long)arg);
 }
 
+extern int GC_print_stats;
+
 void
 mono_gc_base_init (void)
 {
@@ -156,6 +158,7 @@ mono_gc_base_init (void)
 	GC_push_other_roots = push_other_roots;
 #endif
 	GC_init ();
+	GC_print_stats = 1;
 #if DO_INCREMENTAL
 	GC_enable_incremental ();
 #endif
@@ -720,6 +723,7 @@ static gpointer* grungy_roots;
 static GCRoot* roots;
 static int roots_count = 0;
 static int dirty_roots_count = 0;
+static int force_all_roots = 0;
 
 static int add_roots (char* start, char* end, GCRootType type)
 {
@@ -788,13 +792,14 @@ static void push_other_roots(int all)
 {
 	if (push_other_roots_orig)
 		push_other_roots_orig (all);
-	if (all || DO_INCREMENTAL) {
+	if (all || force_all_roots) {
 		int i = 0;
 		while (i < roots_count) {
 			if (roots[i].start)
 				GC_push_all (roots[i].start, roots[i].end);
 			i++;
 		}
+		force_all_roots = 0;
 	}
 	else {
 		int i = 0;
@@ -856,8 +861,8 @@ static void add_dirty_roots(void* root)
 		int new_dirty_roots_count = dirty_roots_count * 2;
 
 		index = dirty_roots_count;
-		dirty_roots = g_new0 (gpointer, new_dirty_roots_count);
-		grungy_roots = g_new0 (gpointer, new_dirty_roots_count);
+		new_dirty_roots = g_new0 (gpointer, new_dirty_roots_count);
+		new_grungy_roots = g_new0 (gpointer, new_dirty_roots_count);
 		memcpy (new_dirty_roots, dirty_roots, dirty_roots_count*sizeof(gpointer));
 		memcpy (new_grungy_roots, grungy_roots, dirty_roots_count*sizeof(gpointer));
 		g_free (dirty_roots);
@@ -876,11 +881,11 @@ static void add_dirty_roots(void* root)
 
 #endif /* MANAGE_ROOTS */
 
-
 int
 mono_gc_register_root_wbarrier (char *start, size_t size, void *descr)
 {
 #if MANAGE_ROOTS
+	force_all_roots = TRUE;
 	return add_roots (start, start + size + 1, ROOT_TYPE_WBARRIER);
 #else
 	/* for some strange reason, they want one extra byte on the end */
@@ -894,6 +899,7 @@ void
 mono_gc_wbarrier_set_root (gpointer ptr, MonoObject *value)
 {
 	*(void**)ptr = value;
+	add_dirty_roots (ptr);
 }
 
 
