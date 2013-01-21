@@ -175,6 +175,19 @@ case "$host" in
 		with_sigaltstack=no
 		use_sigposix=yes
 		;;
+	*-*-qnx*)
+		CPPFLAGS="$CPPFLAGS -D_THREAD_SAFE -D_QNX_SOURCE -D_REENTRANT -DUSE_MMAP"
+		libmono_cflags="-D_THREAD_SAFE -D_REENTRANT"
+		platform_win32=no
+		use_sigposix=yes
+		with_tls=pthread
+		libgc_threads=pthreads
+        with_sigaltstack=no 
+ 	    with_glib=embedded 
+ 	    disable_nls=yes 
+        parallel_mark=no
+		mono_cv_uscore=yes
+		;;
 	*-*-linux*)
 		platform_win32=no
 		CPPFLAGS="$CPPFLAGS -DGC_LINUX_THREADS -D_GNU_SOURCE -D_REENTRANT -DUSE_MMAP"
@@ -246,8 +259,9 @@ case "$host" in
 		dnl its gcc defaults to 64-bit mode.  They have also deprecated the usage of ucontext
 		dnl we need to set some flags to build our 32-bit binaries on 10.6 properly
 		case "$host" in
-			i*86-*-darwin10*)
-				BROKEN_DARWIN_FLAGS="-arch i386 -D_XOPEN_SOURCE"
+			dnl Snow Leopard and newer config.guess reports as this
+			i*86-*-darwin*)
+				# BROKEN_DARWIN_FLAGS="-arch i386"
 				CPPFLAGS="$CPPFLAGS $BROKEN_DARWIN_FLAGS"
 				CFLAGS="$CFLAGS $BROKEN_DARWIN_FLAGS"
 				CXXFLAGS="$CXXFLAGS $BROKEN_DARWIN_FLAGS"
@@ -2095,7 +2109,13 @@ case "$host" in
 			# foo.c:6: warning: visibility attribute not supported in this configuration; ignored
 			# ld: fatal: relocation error: R_386_GOTOFF: file /var/tmp//ccxYR96k.o: symbol astruct: relocation must bind locally
 			have_visibility_hidden=no
-
+			;;
+		  darwin*|openbsd*|freebsd*)
+			if test "x$ac_cv_sizeof_void_p" = "x8"; then
+				TARGET=AMD64
+				arch_target=amd64
+			fi
+		        ;;
 		esac
 		;;
 	x86_64-*-* | amd64-*-*)
@@ -2195,6 +2215,15 @@ case "$host" in
 		JIT_SUPPORTED=yes
 		jit_wanted=true
 		CPPFLAGS="$CPPFLAGS -DARM_FPU_VFP=1 -D__ARM_EABI__"
+		;;
+	arm*-*-qnx*)
+		TARGET=ARM;
+		arch_target=arm;
+		ACCESS_UNALIGNED="no"
+		JIT_SUPPORTED=yes
+		jit_wanted=true
+		CPPFLAGS="$CPPFLAGS -O2 -marm -Wa,-march=armv7-a -march=armv7-a -Wa,-mfpu=neon -mfpu=neon -mfloat-abi=softfp -mtune=cortex-a9 -ffunction-sections -fdata-sections -fno-strict-aliasing -DARM_FPU_VFP=1 -D__ARM_EABI__ -DHAVE_ARMV6"
+		LDFLAGS="$LDFLAGS -Wl,--rpath,app/native/Data/Managed -L${QNX_TARGET}/armle-v7/lib/gcc/4.6.3"
 		;;
 	arm*-linux*)
 		TARGET=ARM;
@@ -2345,6 +2374,11 @@ case "$host" in
     	LIBC="libc.so"
 	INTL="libintl.so"
 	;;
+    *-*-*qnx*)
+    	LIBC="libc.so"
+	INTL="libintl.so"
+	soname_spec='${libname}${shared_ext}'
+	;;
     *-*-*linux*)
 	AC_PATH_X
 	AC_MSG_CHECKING(for the soname of libX11.so)
@@ -2404,7 +2438,9 @@ if test "x$TARGET" = "xAMD64" -o "x$TARGET" = "xX86" -o "x$TARGET" = "xALPHA"; t
 			mono_debugger_supported=yes
 			;;
 		*86-apple-darwin*)
-			mono_debugger_supported=yes
+			if not test "x$TARGET" = "xAMD64"; then
+				mono_debugger_supported=yes
+			fi
 			;;		
 		esac
 	fi

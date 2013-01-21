@@ -253,6 +253,9 @@ struct _MonoDomain {
 	GHashTable	   *generic_virtual_cases;
 	MonoThunkFreeList **thunk_free_lists;
 
+	/* Hashing class attributes as a lookup optimization */
+	GHashTable	*class_custom_atrributes;
+
 	/* Information maintained by the JIT engine */
 	gpointer runtime_info;
 
@@ -274,6 +277,10 @@ struct _MonoDomain {
 	MonoImage *socket_assembly;
 	MonoClass *sockaddr_class;
 	MonoClassField *sockaddr_data_field;
+
+	/* unity specific, cache the class for each static field */
+	/* a GC-tracked array to keep references to the static fields of types */
+	MonoClass           **static_data_class_array;
 };
 
 typedef struct  {

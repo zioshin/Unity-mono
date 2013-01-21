@@ -64,10 +64,15 @@
 #   define DARWIN
 # endif
 
+/* And one for QNX: */
+# if defined(__QNXNTO__)
+#   define QNX
+# endif
+
 /* Determine the machine type: */
 # if defined(__arm__) || defined(__thumb__)
 #    define ARM32
-#    if !defined(LINUX) && !defined(NETBSD) && !defined(DARWIN)
+#    if !defined(LINUX) && !defined(NETBSD) && !defined(DARWIN) && !defined(QNX)
 #      define NOSYS
 #      define mach_type_known
 #    endif
@@ -350,6 +355,9 @@
 #    define mach_type_known
 #    define DARWIN_DONT_PARSE_STACK
 #    define GC_DONT_REGISTER_MAIN_STATIC_DATA
+#   elif defined(__x86_64)
+#    define X86_64
+#    define mach_type_known
 #   endif
 # endif
 # if defined(NeXT) && defined(mc68000)
@@ -365,6 +373,14 @@
 # if defined(__OpenBSD__) && (defined(i386) || defined(__i386__))
 #   define I386
 #   define OPENBSD
+#   define mach_type_known
+# endif
+# if defined(QNX) && (defined(i386) || defined(__i386__))
+#   define I386
+#   define mach_type_known
+# endif
+# if defined(QNX) && defined(__arm__)
+#   define ARM32
 #   define mach_type_known
 # endif
 # if defined(FREEBSD) && (defined(i386) || defined(__i386__))
@@ -1326,6 +1342,11 @@
 #       define STACKBOTTOM ((ptr_t)((word) __djgpp_stack_limit + _stklen))
 		/* This may not be right.  */
 #   endif
+#   ifdef QNX 
+#	define OS_TYPE "QNX"
+        extern int etext[];
+#       define DATASTART ((ptr_t)((((word) (etext)) + 0x1ff) & ~0x1ff))
+#   endif
 #   ifdef OPENBSD
 #	define OS_TYPE "OPENBSD"
 #   endif
@@ -1952,6 +1973,11 @@
 #         define USE_MUNMAP
 #     endif
 #   endif
+#   ifdef QNX 
+#	define OS_TYPE "QNX"
+        extern int etext[];
+#       define DATASTART ((ptr_t)((((word) (etext)) + 0x1ff) & ~0x1ff))
+#   endif
 #   ifdef NOSYS
       /* __data_start is usually defined in the target linker script.  */
       extern int __data_start[];
@@ -2065,6 +2091,27 @@
 #	    define PREFETCH(x) __builtin_prefetch((x), 0, 0)
 #	    define PREFETCH_FOR_WRITE(x) __builtin_prefetch((x), 1)
 #	endif
+#   endif
+#   ifdef DARWIN
+#     define OS_TYPE "DARWIN"
+#     define DARWIN_DONT_PARSE_STACK
+#     define DYNAMIC_LOADING
+      /* XXX: see get_end(3), get_etext() and get_end() should not be used.
+         These aren't used when dyld support is enabled (it is by default) */
+#     define DATASTART ((ptr_t) get_etext())
+#     define DATAEND    ((ptr_t) get_end())
+#     define STACKBOTTOM ((ptr_t) 0x7fff5fc00000)
+#     ifndef USE_MMAP
+#       define USE_MMAP
+#     endif
+#     define USE_MMAP_ANON
+#     ifdef GC_DARWIN_THREADS
+#       define MPROTECT_VDB
+#     endif
+#     include <unistd.h>
+#     define GETPAGESIZE() getpagesize()
+      /* There seems to be some issues with trylock hanging on darwin. This
+         should be looked into some more */
 #   endif
 #   ifdef FREEBSD
 #	define OS_TYPE "FREEBSD"

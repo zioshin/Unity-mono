@@ -1198,6 +1198,7 @@ mono_domain_create (void)
 	domain->jit_info_table = jit_info_table_new (domain);
 	domain->jit_info_free_queue = NULL;
 	domain->finalizable_objects_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
+	domain->class_custom_atrributes = g_hash_table_new_full (mono_aligned_addr_hash, NULL, NULL, mono_custom_attrs_free);
 #ifndef HAVE_SGEN_GC
 	domain->track_resurrection_handles_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
 #endif
@@ -1958,6 +1959,10 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 		mono_gc_free_fixed (domain->static_data_array);
 		domain->static_data_array = NULL;
 	}
+	if (domain->static_data_class_array) {
+		g_free (domain->static_data_class_array);
+		domain->static_data_class_array = NULL;
+	}
 	mono_internal_hash_table_destroy (&domain->jit_code_hash);
 
 	/*
@@ -1989,7 +1994,11 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 #endif	
 
 	g_hash_table_destroy (domain->finalizable_objects_hash);
+	g_hash_table_destroy (domain->class_custom_atrributes);
+
 	domain->finalizable_objects_hash = NULL;
+	domain->class_custom_atrributes = NULL;
+	
 #ifndef HAVE_SGEN_GC
 	if (domain->track_resurrection_objects_hash) {
 		g_hash_table_foreach (domain->track_resurrection_objects_hash, free_slist, NULL);
@@ -2179,11 +2188,15 @@ mono_domain_add_class_static_data (MonoDomain *domain, MonoClass *klass, gpointe
 		next = GPOINTER_TO_INT (domain->static_data_array [0]);
 		if (next >= size) {
 			gpointer *new_array = mono_gc_alloc_fixed (sizeof (gpointer) * (size * 2), NULL);
+			gpointer *new_class_array =  g_malloc0(sizeof (gpointer) * size * 2);
 			mono_gc_wbarrier_memcpy (new_array, domain->static_data_array, sizeof (gpointer) * size);
+			memcpy (new_class_array, domain->static_data_class_array, sizeof (gpointer) * size);
 			size *= 2;
 			mono_gc_wbarrier_generic_store_ptr (&new_array [1], GINT_TO_POINTER (size));
 			mono_gc_free_fixed (domain->static_data_array);
+			g_free(domain->static_data_class_array);
 			domain->static_data_array = new_array;
+			domain->static_data_class_array = new_class_array;
 		}
 	} else {
 		int size = 32;
@@ -2192,7 +2205,9 @@ mono_domain_add_class_static_data (MonoDomain *domain, MonoClass *klass, gpointe
 		mono_gc_wbarrier_generic_store_ptr (&new_array [0],  GINT_TO_POINTER (next));
 		mono_gc_wbarrier_generic_store_ptr (&new_array [1],  GINT_TO_POINTER (size));
 		domain->static_data_array = new_array;
+		domain->static_data_class_array = g_malloc0(sizeof (gpointer) * size);
 	}
+	domain->static_data_class_array[next] = klass;
 	mono_gc_wbarrier_generic_store_ptr (&domain->static_data_array [next++], data);
 	mono_gc_wbarrier_generic_store_ptr (&domain->static_data_array [0], GINT_TO_POINTER (next));
 }
