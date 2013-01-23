@@ -44,7 +44,7 @@ CPPFLAGS_FOR_EGLIB=$CPPFLAGS
 CFLAGS_FOR_EGLIB=$CFLAGS
 
 #
-# These are the flags that need to be stored in the mono.pc file for 
+# These are the flags that need to be stored in the mono.pc file for
 # compiling code that will embed Mono
 #
 libmono_cflags=""
@@ -182,9 +182,9 @@ case "$host" in
 		use_sigposix=yes
 		with_tls=pthread
 		libgc_threads=pthreads
-        with_sigaltstack=no 
- 	    with_glib=embedded 
- 	    disable_nls=yes 
+        with_sigaltstack=no
+ 	    with_glib=embedded
+ 	    disable_nls=yes
         parallel_mark=no
 		mono_cv_uscore=yes
 		;;
@@ -237,8 +237,8 @@ case "$host" in
 		platform_darwin=yes
 		CPPFLAGS="$CPPFLAGS -no-cpp-precomp -D_THREAD_SAFE -DGC_MACOSX_THREADS -DPLATFORM_MACOSX -DUSE_MMAP -DUSE_MUNMAP"
 		CPPFLAGS="$CPPFLAGS -DGetCurrentProcess=MonoGetCurrentProcess -DGetCurrentThread=MonoGetCurrentThread -DCreateEvent=MonoCreateEvent"
-		
-		if [[ "$host" != "arm-apple-darwin9" ]]; then 
+
+		if [[ "$host" != "arm-apple-darwin9" ]]; then
 			CPPFLAGS="$CPPFLAGS $MACSDKOPTIONS"
 			LDFLAGS="$LDFLAGS $MACSDKOPTIONS"
 		fi
@@ -493,7 +493,7 @@ if test -d $srcdir/$olivedir; then
 olive_topdir='$(top_srcdir)/'$olivedir
 fi
 
-# gettext: prepare the translation directories. 
+# gettext: prepare the translation directories.
 # we do not configure the full gettext, as we consume it dynamically from C#
 AM_PO_SUBDIRS
 
@@ -505,8 +505,8 @@ if test "x$USE_NLS" = "xyes"; then
    fi
 fi
 
-AC_ARG_WITH([libgdiplus], 
-	[  --with-libgdiplus=installed|sibling|<path>	Override the libgdiplus used for System.Drawing tests (defaults to installed)], 
+AC_ARG_WITH([libgdiplus],
+	[  --with-libgdiplus=installed|sibling|<path>	Override the libgdiplus used for System.Drawing tests (defaults to installed)],
 	[], [with_libgdiplus=installed])
 
 case $with_libgdiplus in
@@ -549,7 +549,7 @@ AC_ARG_WITH([glib],
 eglib_dir=
 
 case $with_glib in
-embedded) 
+embedded)
   GLIB_CFLAGS='-I$(top_srcdir)/eglib/src -I$(top_builddir)/eglib/src'
   GLIB_LIBS='-L$(top_builddir)/eglib/src -leglib -lm'
   BUILD_GLIB_CFLAGS="$GLIB_CFLAGS"
@@ -581,7 +581,7 @@ system)
     PKG_CONFIG_PATH=$pkg_config_path
     export PKG_CONFIG_PATH
   fi
-  
+
   ## Versions of dependencies
   GLIB_REQUIRED_VERSION=2.4.0
 
@@ -601,7 +601,7 @@ system)
   AC_MSG_ERROR([Invalid argument to --with-glib.])
 esac
 AM_CONDITIONAL(EGLIB_BUILD, test x$with_glib = xembedded)
-  
+
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 AC_SUBST(GMODULE_CFLAGS)
@@ -998,7 +998,7 @@ if test x$platform_win32 = xno; then
 	AC_MSG_CHECKING(for sched_setaffinity from glibc < 2.3.4)
 	AC_TRY_COMPILE([#include <sched.h>], [
 		int main() {
-            int mask = 1; 
+            int mask = 1;
             sched_setaffinity(0, &mask);
         }
 	], [
@@ -1015,7 +1015,7 @@ if test x$platform_win32 = xno; then
 	dnl *** Check for large file support                               ***
 	dnl *** (If we were using autoconf 2.50 we'd use AC_SYS_LARGEFILE) ***
 	dnl ******************************************************************
-	
+
 	# Check that off_t can represent 2**63 - 1 correctly, working around
 	# potential compiler bugs.  Defines LARGE_FILE_SUPPORT, adds $1 to
 	# CPPFLAGS and sets $large_offt to yes if the test succeeds
@@ -1057,7 +1057,7 @@ if test x$platform_win32 = xno; then
 	if test $large_offt = no; then
 		AC_MSG_WARN([No 64 bit file size support available])
 	fi
-	
+
 	dnl *****************************
 	dnl *** Checks for libsocket  ***
 	dnl *****************************
@@ -1206,7 +1206,7 @@ if test x$platform_win32 = xno; then
 			AC_MSG_RESULT(no)
 		])
 	])
-	
+
 	dnl **********************************
 	dnl *** Check for gethostbyname2_r ***
 	dnl **********************************
@@ -1492,9 +1492,9 @@ if test x$platform_win32 = xno; then
 	# 'Real Time' functions on Solaris
 	# posix4 on Solaris 2.6
 	# pthread (first!) on Linux
-	AC_SEARCH_LIBS(sem_init, pthread rt posix4) 
+	AC_SEARCH_LIBS(sem_init, pthread rt posix4)
 
-	AC_SEARCH_LIBS(shm_open, pthread rt posix4) 
+	AC_SEARCH_LIBS(shm_open, pthread rt posix4)
 	AC_CHECK_FUNCS(shm_open)
 
 	dnl ********************************
@@ -1529,14 +1529,14 @@ if test x$platform_win32 = xno; then
         LIBS="$LIBS -lm";
 	if test "x$has_broken_apple_cpp" != "xyes"; then
 	        AC_CHECK_FUNCS(finite, , AC_MSG_CHECKING(for finite in math.h)
-	                AC_TRY_LINK([#include <math.h>], 
-	                [ finite(0.0); ], 
+	                AC_TRY_LINK([#include <math.h>],
+	                [ finite(0.0); ],
 	                AC_DEFINE(HAVE_FINITE, 1, [Have finite]) AC_MSG_RESULT(yes),
 	                AC_MSG_RESULT(no)))
 	fi
         AC_CHECK_FUNCS(isfinite, , AC_MSG_CHECKING(for isfinite in math.h)
-                AC_TRY_LINK([#include <math.h>], 
-                [ isfinite(0.0); ], 
+                AC_TRY_LINK([#include <math.h>],
+                [ isfinite(0.0); ],
                 AC_DEFINE(HAVE_ISFINITE, 1, [Have isfinite]) AC_MSG_RESULT(yes),
                 AC_MSG_RESULT(no)))
 
@@ -1557,7 +1557,7 @@ if test x$platform_win32 = xno; then
 		AC_DEFINE(HAVE_SIGNBIT, 1, [Have signbit])
 	], [
 		AC_MSG_RESULT(no)
-	]) 
+	])
 
 	dnl **********************************
 	dnl *** epoll			   ***
@@ -1614,7 +1614,7 @@ if test x$platform_win32 = xno; then
 			AC_DEFINE(HAVE_SOCKADDR_IN_SIN_LEN, 1, [sockaddr_in has sin_len])
 		], [
 			AC_MSG_RESULT(no)
-		])	
+		])
 	dnl **********************************
 	dnl ***    Checks for sin6_len     ***
 	dnl **********************************
@@ -1629,7 +1629,7 @@ if test x$platform_win32 = xno; then
 			AC_DEFINE(HAVE_SOCKADDR_IN6_SIN_LEN, 1, [sockaddr_in6 has sin6_len])
 		], [
 			AC_MSG_RESULT(no)
-		])	
+		])
 	dnl **********************************
 	dnl *** Checks for MonoPosixHelper ***
 	dnl **********************************
@@ -1683,7 +1683,7 @@ if test x$platform_win32 = xno; then
 	AC_CHECK_FUNCS(swab)
 	AC_CHECK_FUNCS(setusershell endusershell)
 	AC_CHECK_SIZEOF(size_t)
-	AC_CHECK_TYPES([blksize_t], [AC_DEFINE(HAVE_BLKSIZE_T)], , 
+	AC_CHECK_TYPES([blksize_t], [AC_DEFINE(HAVE_BLKSIZE_T)], ,
 		[#include <sys/types.h>
 		 #include <sys/stat.h>
 		 #include <unistd.h>])
@@ -1714,15 +1714,15 @@ if test x$platform_win32 = xno; then
 		[#include <sys/types.h>
 		 #include <utime.h>])
 	AC_CHECK_MEMBERS(
-		[struct dirent.d_off, struct dirent.d_reclen, struct dirent.d_type],,, 
+		[struct dirent.d_off, struct dirent.d_reclen, struct dirent.d_type],,,
 		[#include <sys/types.h>
 		 #include <dirent.h>])
 	AC_CHECK_MEMBERS(
-		[struct passwd.pw_gecos],,, 
+		[struct passwd.pw_gecos],,,
 		[#include <sys/types.h>
 		 #include <pwd.h>])
 	AC_CHECK_MEMBERS(
-		[struct statfs.f_flags],,, 
+		[struct statfs.f_flags],,,
 		[#include <sys/types.h>
 		 #include <sys/vfs.h>])
 
@@ -1734,7 +1734,7 @@ if test x$platform_win32 = xno; then
 
 	dnl kinfo_proc.kp_proc works on darwin but fails on other simil-bsds
 	AC_CHECK_MEMBERS(
-		[struct kinfo_proc.kp_proc],,, 
+		[struct kinfo_proc.kp_proc],,,
 		[#include <sys/types.h>
 		 #include <sys/param.h>
 		 #include <sys/sysctl.h>
@@ -1831,10 +1831,10 @@ AC_TRY_COMPILE([#include <sys/socket.h>], [
 
 AC_CHECK_FUNCS(trunc, , AC_MSG_CHECKING(for trunc in math.h)
 	# Simply calling trunc (0.0) is no good since gcc will optimize the call away
-	AC_TRY_LINK([#include <math.h>], 
+	AC_TRY_LINK([#include <math.h>],
 	[ static void *p = &trunc; ],
 	[
-		AC_DEFINE(HAVE_TRUNC) 
+		AC_DEFINE(HAVE_TRUNC)
 		AC_MSG_RESULT(yes)
 		ac_cv_trunc=yes
 	],
@@ -1913,7 +1913,7 @@ if test "x$ac_cv_have_dev_random" = "xno" \
 *** variable MONO_EGD_SOCKET to point to the daemon's socket to use that.
 ***]])
 fi
- 
+
 AC_MSG_CHECKING([if inter-process shared handles are requested])
 AC_ARG_ENABLE(shared-handles, [  --disable-shared-handles disable inter-process shared handles], try_shared_handles=$enableval, try_shared_handles=yes)
 AC_MSG_RESULT($try_shared_handles)
@@ -2172,7 +2172,7 @@ case "$host" in
 		;;
 	hppa2.0w-hp-hpux11.00 | hppa64-hp-hpux11.00)
 		TARGET=HPPA;
-		arch_target=hppa; 
+		arch_target=hppa;
 		LIBC="libc.sl"
 		ACCESS_UNALIGNED="no"
 		INTERP_SUPPORTED=yes
@@ -2181,7 +2181,7 @@ case "$host" in
 	hppa*linux*)
 		TARGET=HPPA;
 		AC_DEFINE(MONO_ARCH_REGPARMS,1,[Architecture uses registers for Parameters])
-		arch_target=hppa; 
+		arch_target=hppa;
 		ACCESS_UNALIGNED="no"
 		JIT_SUPPORTED=yes
 		jit_wanted=true
@@ -2216,7 +2216,7 @@ case "$host" in
 		JIT_SUPPORTED=yes
 		jit_wanted=true
 		CPPFLAGS="$CPPFLAGS -O2 -marm -Wa,-march=armv7-a -march=armv7-a -Wa,-mfpu=neon -mfpu=neon -mfloat-abi=softfp -mtune=cortex-a9 -ffunction-sections -fdata-sections -fno-strict-aliasing -DARM_FPU_VFP=1 -D__ARM_EABI__ -DHAVE_ARMV6"
-		LDFLAGS="$LDFLAGS -Wl,--rpath,app/native/Data/Managed -L${QNX_TARGET}/armle-v7/lib/gcc/4.6.3"
+		LDFLAGS="$LDFLAGS -Wl,--rpath,app/native/Data/Managed -L${QNX_TARGET}/armle-v7/lib/gcc/4.4.2"
 		;;
 	arm*-linux*)
 		TARGET=ARM;
@@ -2383,7 +2383,7 @@ case "$host" in
 			fi
 		done
 	done
-	
+
 	if test "x$X11" = "xlibX11.so"; then
 		AC_MSG_WARN([Could not find X development libs. Do you have the -devel package installed? WinForms may not work...]);
 	fi
@@ -2407,7 +2407,7 @@ AC_CHECK_HEADERS(valgrind/memcheck.h)
 if test "x$TARGET" = "xAMD64" -o "x$TARGET" = "xX86"; then
 	if test "x$with_tls" = "x__thread"; then
 		#
-		# On some linux distributions, TLS works in executables, but linking 
+		# On some linux distributions, TLS works in executables, but linking
 		# against a shared library containing TLS fails with:
 		# undefined reference to `__tls_get_addr'
 		#
@@ -2432,7 +2432,7 @@ if test "x$TARGET" = "xAMD64" -o "x$TARGET" = "xX86" -o "x$TARGET" = "xALPHA"; t
 			;;
 		*86-apple-darwin*)
 			mono_debugger_supported=yes
-			;;		
+			;;
 		esac
 	fi
 fi
@@ -2537,8 +2537,8 @@ AC_ARG_WITH(mcs_docs,[  --with-mcs-docs=yes,no         If you want to build the 
 	fi
 ], [with_moonlight=no])
 
-AC_CHECK_HEADER([malloc.h], 
-		[AC_DEFINE([HAVE_USR_INCLUDE_MALLOC_H], [1], 
+AC_CHECK_HEADER([malloc.h],
+		[AC_DEFINE([HAVE_USR_INCLUDE_MALLOC_H], [1],
 			[Define to 1 if you have /usr/include/malloc.h.])],,)
 
 dnl
@@ -2917,9 +2917,9 @@ fi
 
 if test x$gc = xsgen; then
         echo IMPORTANT:
-	echo IMPORTANT: You have selected an experimental, work-in-progress 
+	echo IMPORTANT: You have selected an experimental, work-in-progress
 	echo IMPORTANT: GC engine.  This GC engine is currently not supported
-	echo IMPORTANT: and is not yet ready for use.  
+	echo IMPORTANT: and is not yet ready for use.
 	echo IMPORTANT:
 	echo IMPORTANT: There are known problems with it, use at your own risk.
 fi
