@@ -244,22 +244,25 @@ void GC_clear_marks()
 int GC_set_dirty_bit(p)
 ptr_t p;
 {
-    register struct hblk *h = HBLKPTR(p);
-    register hdr * hhdr = HDR(h);
-    register int word_no = (word *)p - (word *)h;
-	register int word_real = 0;
+    ptr_t p_start = GC_base (p);
+    register struct hblk *h = HBLKPTR(p_start);
+    register hdr * hhdr = HDR(p_start);
+    register int word_no = (word *)p_start - (word *)h;
+    register int word_real = 0;
 
-	if (!hhdr)
-		return FALSE;
+    if (!hhdr)
+        return FALSE;
 
-	word_real = word_no - word_no % hhdr->hb_sz;
+    word_real = word_no - word_no % hhdr->hb_sz;
 
-	if (!dirty_bit_from_hdr(hhdr, word_real)) {
+	GC_ASSERT (word_real == word_no);
+
+    if (!dirty_bit_from_hdr(hhdr, word_real)) {
         set_dirty_bit_from_hdr(hhdr, word_real);
-		return TRUE;
-	}
+        return TRUE;
+    }
 
-	return FALSE;
+    return FALSE;
 }
 
 /* Initiate a garbage collection.  Initiates a full collection if the	*/
