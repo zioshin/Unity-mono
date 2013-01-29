@@ -109,9 +109,14 @@ void array_safe_grow(LivenessState* state, custom_growable_array* array)
 		MonoObject* object = array_at_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
+#ifdef HAVE_BOEHM_GC
 	GC_start_world ();
+#endif
 	array_grow(array);
+
+#ifdef HAVE_BOEHM_GC
 	GC_stop_world ();
+#endif
 	for (i = 0; i < state->all_objects->len; i++)
 	{
 		MonoObject* object = array_at_index(state->all_objects,i);
@@ -541,7 +546,9 @@ LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint m
 	state->callback_userdata = callback_userdata;
 	state->filter_callback = callback;
 
+#ifdef HAVE_BOEHM_GC
 	GC_stop_world ();
+#endif
 	// no allocations can happen beyond this point
 
 	return state;
@@ -555,7 +562,9 @@ void mono_unity_liveness_calculation_end (LivenessState* state)
 		MonoObject* object = g_ptr_array_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
+#ifdef HAVE_BOEHM_GC
 	GC_start_world ();
+#endif
 
 	//cleanup the liveness_state
 	array_destroy(state->all_objects);
