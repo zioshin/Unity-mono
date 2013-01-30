@@ -223,6 +223,7 @@ signed_word * log_size_ptr;
     new_dl -> dl_hidden_link = HIDE_POINTER(link);
     dl_set_next(new_dl, dl_head[index]);
     dl_head[index] = new_dl;
+    GC_set_dirty_bit (&dl_head[index]);
     GC_dl_entries++;
 #   ifdef THREADS
         UNLOCK();
@@ -379,6 +380,7 @@ finalization_mark_proc * mp;
                   fo_head[index] = fo_next(curr_fo);
                 } else {
                   fo_set_next(prev_fo, fo_next(curr_fo));
+                  GC_set_dirty_bit (&prev_fo);
                 }
             if (fn == 0) {
                 GC_fo_entries--;
@@ -398,6 +400,7 @@ finalization_mark_proc * mp;
                   fo_head[index] = curr_fo;
                 } else {
                   fo_set_next(prev_fo, curr_fo);
+                  GC_set_dirty_bit (&prev_fo);
                 }
             }
 #	    ifdef THREADS
@@ -452,8 +455,10 @@ finalization_mark_proc * mp;
     new_fo -> fo_object_size = hhdr -> hb_sz;
     new_fo -> fo_mark_proc = mp;
     fo_set_next(new_fo, fo_head[index]);
+    GC_set_dirty_bit (&new_fo);
     GC_fo_entries++;
     fo_head[index] = new_fo;
+    GC_set_dirty_bit (&fo_head[index]);
 #   ifdef THREADS
         UNLOCK();
     	ENABLE_SIGNALS();
@@ -605,13 +610,17 @@ void GC_finalize()
               next_fo = fo_next(curr_fo);
               if (prev_fo == 0) {
                 fo_head[i] = next_fo;
+                GC_set_dirty_bit (&fo_head[i]);
               } else {
                 fo_set_next(prev_fo, next_fo);
+                GC_set_dirty_bit (&prev_fo);
               }
               GC_fo_entries--;
             /* Add to list of objects awaiting finalization.	*/
               fo_set_next(curr_fo, GC_finalize_now);
+              GC_set_dirty_bit (&curr_fo);
               GC_finalize_now = curr_fo;
+              GC_set_dirty_bit (&GC_finalize_now);
               /* unhide object pointer so any future collections will	*/
               /* see it.						*/
               curr_fo -> fo_hidden_base = 
@@ -692,14 +701,18 @@ void GC_enqueue_all_finalizers()
           next_fo = fo_next(curr_fo);
           if (prev_fo == 0) {
               fo_head[i] = next_fo;
+              GC_set_dirty_bit (&fo_head[i]);
           } else {
               fo_set_next(prev_fo, next_fo);
+              GC_set_dirty_bit (&prev_fo);
           }
           GC_fo_entries--;
 
           /* Add to list of objects awaiting finalization.	*/
           fo_set_next(curr_fo, GC_finalize_now);
+          GC_set_dirty_bit (&curr_fo);
           GC_finalize_now = curr_fo;
+          GC_set_dirty_bit (&GC_finalize_now);
 
           /* unhide object pointer so any future collections will	*/
           /* see it.						*/
@@ -776,14 +789,19 @@ int GC_invoke_finalizers()
 	}
     	curr_fo = GC_finalize_now;
 #	ifdef THREADS
- 	    if (curr_fo != 0) GC_finalize_now = fo_next(curr_fo);
+        if (curr_fo != 0) {
+            GC_finalize_now = fo_next(curr_fo);
+            GC_set_dirty_bit (&GC_finalize_now);
+        }
 	    UNLOCK();
 	    ENABLE_SIGNALS();
 	    if (curr_fo == 0) break;
 #	else
 	    GC_finalize_now = fo_next(curr_fo);
+        GC_set_dirty_bit (&GC_finalize_now);
 #	endif
  	fo_set_next(curr_fo, 0);
+    GC_set_dirty_bit (&curr_fo);
     	(*(curr_fo -> fo_fn))((ptr_t)(curr_fo -> fo_hidden_base),
     			      curr_fo -> fo_client_data);
     	curr_fo -> fo_client_data = 0;
