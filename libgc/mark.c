@@ -1834,12 +1834,7 @@ struct hblk *h;
     }
     if (!GC_block_clean(hhdr))
         GC_push_marked(h, hhdr, TRUE);
-    else if (hhdr->hb_descr)
-    /* danger danger danger*/
-        GC_push_marked(h, hhdr, FALSE);
-    else
-        /* ptr free FTW */
-        hhdr = hhdr;
+
     return(h + OBJ_SZ_TO_BLOCKS(hhdr -> hb_sz));
 }
 #endif
