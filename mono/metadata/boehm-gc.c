@@ -901,7 +901,10 @@ void
 mono_gc_wbarrier_set_root (gpointer ptr, MonoObject *value)
 {
 	*(void**)ptr = value;
+#if MANAGE_ROOTS
 	add_dirty_roots (ptr);
+#else
+#endif
 }
 
 
