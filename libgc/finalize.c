@@ -127,12 +127,15 @@ signed_word * log_size_ptr;
         register int new_hash = HASH3(real_key, new_size, log_new_size);
         
         p -> next = new_table[new_hash];
+        GC_set_dirty_bit (&p -> next);
         new_table[new_hash] = p;
+        GC_set_dirty_bit (&new_table[new_hash]);
         p = next;
       }
     }
     *log_size_ptr = log_new_size;
     *table = new_table;
+    GC_set_dirty_bit (&table);
 }
 
 # if defined(__STDC__) || defined(__cplusplus)
@@ -378,6 +381,7 @@ finalization_mark_proc * mp;
             /* Delete the structure for base. */
                 if (prev_fo == 0) {
                   fo_head[index] = fo_next(curr_fo);
+                  GC_set_dirty_bit (&fo_head[index]);
                 } else {
                   fo_set_next(prev_fo, fo_next(curr_fo));
                   GC_set_dirty_bit (&prev_fo);
@@ -398,6 +402,7 @@ finalization_mark_proc * mp;
 		/* consistency in the event of a signal.		*/
 		if (prev_fo == 0) {
                   fo_head[index] = curr_fo;
+                  GC_set_dirty_bit (&fo_head[index]);
                 } else {
                   fo_set_next(prev_fo, curr_fo);
                   GC_set_dirty_bit (&prev_fo);
