@@ -3548,6 +3548,7 @@ mono_alloc_static_data (gpointer **static_data_ptr, guint32 offset)
 	gpointer* static_data = *static_data_ptr;
 	if (!static_data) {
 		static_data = mono_gc_alloc_fixed (static_data_size [0], NULL);
+		mono_gc_register_root (static_data, static_data_size [0], NULL);
 		*static_data_ptr = static_data;
 		mono_gc_wbarrier_generic_store_ptr (&static_data [0], static_data);
 	}
