@@ -8915,7 +8915,7 @@ command_set_to_string (CommandSet command_set)
 	case CMD_SET_MODULE:
 		return "MODULE"; 
 	case CMD_SET_EVENT:
-		return "EVENT"; 
+		return "EVENT";
 	default:
 		return "";
 	}
@@ -9096,9 +9096,9 @@ cmd_to_string (CommandSet set, int command)
 		cmds = event_cmds_str;
 		cmds_len = G_N_ELEMENTS (event_cmds_str);
 		break;
-	default:
+			default:
 		return NULL;
-	}
+		}
 	if (command > 0 && command <= cmds_len)
 		return cmds [command - 1];
 	else
@@ -9160,17 +9160,18 @@ debugger_thread (void *arg)
 
 	mono_thread_internal_current ()->flags |= MONO_THREAD_FLAG_DONT_MANAGE;
 
-	mono_set_is_debugger_attached (TRUE);
-	
 	if (agent_config.defer) {
 		if (!wait_for_attach ()) {
 			DEBUG (1, fprintf (log_file, "[dbg] Can't attach, aborting debugger thread.\n"));
 			attach_failed = TRUE; // Don't abort process when we can't listen
 		} else {
+			mono_set_is_debugger_attached (TRUE);
+
 		/* Send start event to client */
 		process_profiler_event (EVENT_KIND_VM_START, mono_thread_get_main ());
-	}
-	}
+		}
+	} else
+		mono_set_is_debugger_attached (TRUE);
 	
 	while (!attach_failed) {
 		res = transport_recv (header, HEADER_LENGTH);
