@@ -4,12 +4,21 @@ PREFIX="$PWD/builds/tizen"
 
 BUILDDIR=/$PWD
 OUTDIR=builds/embedruntimes/tizen
-CXXFLAGS="-Os -DHAVE_ARMV6=1 -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3 -mtune=cortex-a9"
+CXXFLAGS="-Os -DHAVE_ARMV6=1 -DARM_FPU_VFP=1 -D__ARM_EABI__ -mno-thumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon -mtune=cortex-a9 -ffunction-sections -fdata-sections -fno-strict-aliasing -fPIC "
 CFLAGS="$CXXFLAGS"
+
+TIZEN_PREFIX=${TIZEN_SDK}/tools/arm-linux-gnueabi-gcc-4.5/bin/arm-linux-gnueabi-
+
+CC="${TIZEN_PREFIX}gcc --sysroot=${TIZEN_SDK}/platforms/tizen2.0/rootstraps/tizen-device-2.0.cpp -I${TIZEN_SDK}/platforms/tizen2.0/rootstraps/tizen-device-2.0.cpp/usr/include -DTIZEN"
+CXX="${TIZEN_PREFIX}g++ --sysroot=${TIZEN_SDK}/platforms/tizen2.0/rootstraps/tizen-device-2.0.cpp -I${TIZEN_SDK}/platforms/tizen2.0/rootstraps/tizen-device-2.0.cpp/usr/include -DTIZEN"
+AR="${TIZEN_PREFIX}ar"
+LD="${TIZEN_PREFIX}ld"
 
 CONFIG_OPTS="\
 --prefix=$PREFIX \
+--with-sysroot=${TIZEN_SDK}/platforms/tizen2.0/rootstraps/tizen-device-2.0.cpp \
 --cache-file=tizen_cross.cache \
+--host=arm-linux-gnueabi \
 --disable-mcs-build \
 --disable-parallel-mark \
 --disable-shared-handles \
@@ -19,21 +28,21 @@ CONFIG_OPTS="\
 --disable-nls \
 mono_cv_uscore=yes"
 
-LDFLAGS="-L$BUILDDIR/unity"
+LDFLAGS=""
 
-${TIZEN_SB}/sb2 make clean && make distclean
-${TIZEN_SB}/sb2 rm tizen_cross.cache
+make clean && make distclean
+rm tizen_cross.cache
 
 pushd eglib
-${TIZEN_SB}/sb2 autoreconf -i
+autoreconf -i
 popd
-${TIZEN_SB}/sb2 autoreconf -i
+autoreconf -i
 
 # Run configure
-${TIZEN_SB}/sb2 ./configure $CONFIG_OPTS CFLAGS=\"$CXXFLAGS\" CXXFLAGS=\"$CXXFLAGS\" LDFLAGS=\"$LDFLAGS\"
+./configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" CC="$CC" CXX="$CXX" AR="$AR" LD="$LD"
 
 # Run Make
-${TIZEN_SB}/sb2 make && echo "Build SUCCESS!" || exit 1
+make -j6 && echo "Build SUCCESS!" || exit 1
 
 rm -rf $PWD/builds
 
@@ -41,7 +50,7 @@ mkdir -p $OUTDIR
 cp -f mono/mini/.libs/libmono.a $OUTDIR
 
 # Clean up for next build
-${TIZEN_SB}/sb2 make clean && make distclean
+make clean && make distclean
 
 if [ -d builds/monodistribution ] ; then
 rm -r builds/monodistribution
