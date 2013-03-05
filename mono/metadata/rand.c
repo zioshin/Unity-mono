@@ -27,12 +27,43 @@
 #include <mono/metadata/exception.h>
 
 #if defined(__native_client__)
-#include <errno.h>
 
-static void
-get_entropy_from_server (const char *path, guchar *buf, int len)
+// simple implementation using rand(). Not crytographically reliable, but will get unity running.
+#include <errno.h>
+#include <stdlib.h>
+
+MonoBoolean
+ves_icall_System_Security_Cryptography_RNGCryptoServiceProvider_RngOpen (void)
 {
-    return;
+    return TRUE;
+}
+
+int nacl_rand_id = 1;
+
+gpointer
+ves_icall_System_Security_Cryptography_RNGCryptoServiceProvider_RngInitialize (MonoArray *seed)
+{
+    return GINT_TO_POINTER (nacl_rand_id++);
+}
+
+gpointer 
+ves_icall_System_Security_Cryptography_RNGCryptoServiceProvider_RngGetBytes (gpointer handle, MonoArray *arry)
+{
+    gint file = GPOINTER_TO_INT (handle);
+    guint32 len = mono_array_length (arry);
+    guchar *buf = mono_array_addr (arry, guchar, 0);
+    gint count = 0;
+		
+    do {
+	buf [count++] = rand();
+    } while (count < len);
+
+    return handle;	
+}
+
+void
+ves_icall_System_Security_Cryptography_RNGCryptoServiceProvider_RngClose (gpointer handle) 
+{
 }
 
 #else /* defined(__native_client__) */
@@ -107,7 +138,6 @@ get_entropy_from_server (const char *path, guchar *buf, int len)
     close (file);
 }
 #endif
-#endif /* __native_client__ */
 
 #if defined (HOST_WIN32)
 
@@ -279,3 +309,4 @@ ves_icall_System_Security_Cryptography_RNGCryptoServiceProvider_RngClose (gpoint
 }
 
 #endif /* OS definition */
+#endif /* __native_client__ */
