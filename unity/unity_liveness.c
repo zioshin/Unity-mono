@@ -75,10 +75,10 @@ void           mono_unity_liveness_calculation_from_root (MonoObject* root, Live
 void           mono_unity_liveness_calculation_from_statics (LivenessState* state);
 
 #ifdef HAVE_BOEHM_GC
-void GC_start_world (void);
-void GC_stop_world (void);
-#define START_WORLD GC_start_world
-#define STOP_WORLD GC_stop_world
+void GC_start_world_external (void);
+void GC_stop_world_external (void);
+#define START_WORLD GC_start_world_external
+#define STOP_WORLD GC_stop_world_external
 #else
 #define START_WORLD g_assert_not_reached
 #define STOP_WORLD g_assert_not_reached
