@@ -108,6 +108,7 @@ extern gboolean mono_gc_is_gc_thread (void) MONO_INTERNAL;
  * can't cope with this concept - we return FALSE.
  */
 extern gboolean mono_gc_register_thread (void *baseptr) MONO_INTERNAL;
+extern gboolean mono_gc_unregister_thread (MonoThread *thread) MONO_INTERNAL;
 
 extern gboolean mono_gc_is_finalizer_internal_thread (MonoInternalThread *thread) MONO_INTERNAL;
 

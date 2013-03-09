@@ -401,7 +401,7 @@ static void thread_cleanup (MonoInternalThread *thread)
 
 	if (thread->synch_cs)
 		UNLOCK_THREAD (thread);
-	
+
 	/*
 	An interruption request has leaked to cleanup. Adjust the global counter.
 
@@ -427,7 +427,7 @@ static void thread_cleanup (MonoInternalThread *thread)
 		return;
 	}
 	mono_release_type_locks (thread);
-
+	
 	mono_profiler_thread_end (thread->tid);
 
 	if (thread == mono_thread_internal_current ()) {
@@ -948,6 +948,8 @@ mono_thread_detach (MonoThread *thread)
 {
 	g_return_if_fail (thread != NULL);
 
+	mono_gc_unregister_thread (thread);
+
 	THREAD_DEBUG (g_message ("%s: mono_thread_detach for %p (%"G_GSIZE_FORMAT")", __func__, thread, (gsize)thread->internal_thread->tid));
 
 	mono_profiler_thread_end (thread->internal_thread->tid);
@@ -1078,14 +1080,14 @@ void ves_icall_System_Threading_Thread_Sleep_internal(gint32 ms)
 	mono_thread_current_check_pending_interrupt ();
 	
 	while (TRUE) {
-	mono_thread_set_state (thread, ThreadState_WaitSleepJoin);
+		mono_thread_set_state (thread, ThreadState_WaitSleepJoin);
 	
-	res = SleepEx(ms,TRUE);
+		res = SleepEx(ms,TRUE);
 	
-	mono_thread_clr_state (thread, ThreadState_WaitSleepJoin);
+		mono_thread_clr_state (thread, ThreadState_WaitSleepJoin);
 
-	if (res == WAIT_IO_COMPLETION) { /* we might have been interrupted */
-		MonoException* exc = mono_thread_execute_interruption (thread);
+		if (res == WAIT_IO_COMPLETION) { /* we might have been interrupted */
+			MonoException* exc = mono_thread_execute_interruption (thread);
 			if (exc) {
 				mono_raise_exception (exc);
 			} else {
