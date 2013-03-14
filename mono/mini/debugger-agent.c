@@ -3120,6 +3120,9 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 		suspend_policy = SUSPEND_POLICY_NONE;
 	}
 
+	if (event == EVENT_KIND_THREAD_DEATH)
+		suspend_policy = SUSPEND_POLICY_NONE;
+
 	if (mono_runtime_is_shutting_down ())
 		suspend_policy = SUSPEND_POLICY_NONE;
 
@@ -3279,6 +3282,7 @@ thread_end (MonoProfiler *prof, gsize tid)
 			tls->thread = NULL;
 
 			/* FIXME Unity: Safe to free this? */
+			/* Yes, as long as the event raised further down doesn't cause a thread suspension */
 			TlsSetValue (debugger_tls_id, NULL);
 			g_free(tls);
 		}
