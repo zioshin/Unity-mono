@@ -428,7 +428,7 @@ add_line (StatementMachine *stm, GPtrArray *il_offset_array, GPtrArray *line_num
  *
  *   Free a MonoDebugSourceLocation returned by
  *   mono_debug_symfile_lookup_location
- */
+ */ 
 void
 mono_debug_symfile_free_location   (MonoDebugSourceLocation  *location)
 {
@@ -644,7 +644,7 @@ mono_debug_symfile_get_line_numbers_full (MonoDebugMethodInfo *minfo, char **sou
 
 			g_ptr_array_add (*source_file_list, info);
 		}
-	}				
+	}
 
 	if (n_il_offsets)
 		*n_il_offsets = il_offset_array->len;
@@ -711,6 +711,7 @@ compare_method (const void *key, const void *object)
 MonoDebugMethodInfo *
 mono_debug_symfile_lookup_method (MonoDebugHandle *handle, MonoMethod *method)
 {
+	uint32_t method_token;
 	MonoSymbolFileMethodEntry *first_ie, *ie;
 	MonoDebugMethodInfo *minfo;
 	MonoSymbolFile *symfile = handle->symfile;
@@ -731,6 +732,12 @@ mono_debug_symfile_lookup_method (MonoDebugHandle *handle, MonoMethod *method)
 
 	first_ie = (MonoSymbolFileMethodEntry *)
 		(symfile->raw_contents + read32(&(symfile->offset_table->_method_table_offset)));
+
+	method_token = mono_method_get_token (method);
+	if (!method_token) {
+		mono_debugger_unlock ();
+		return NULL;
+	}
 
 	ie = mono_binary_search (GUINT_TO_POINTER (mono_method_get_token (method)), first_ie,
 				   read32(&(symfile->offset_table->_method_count)),
