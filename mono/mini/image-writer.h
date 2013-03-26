@@ -12,6 +12,13 @@
 #ifndef __MONO_IMAGE_WRITER_H__
 #define __MONO_IMAGE_WRITER_H__
 
+#define MONO_AOT_EMIT_MASM
+#ifdef MONO_AOT_EMIT_MASM
+#define LOCAL_LABEL_PREFIX "local_"
+#else
+#define LOCAL_LABEL_PREFIX ".L"
+#endif
+
 #include "config.h"
 
 #include <glib.h>
