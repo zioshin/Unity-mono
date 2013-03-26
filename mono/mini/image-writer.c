@@ -1770,7 +1770,11 @@ asm_writer_emit_symbol_diff (MonoImageWriter *acfg, const char *end, const char*
 	start = get_label (start);
 	end = get_label (end);
 	if ((acfg->col_count++ % 8) == 0)
+#if defined(MONO_AOT_EMIT_MASM)
+		fprintf (acfg->fp, "\n\t%s ", AS_INT64_DIRECTIVE); // We want 64bit addressing
+#else
 		fprintf (acfg->fp, "\n\t%s ", AS_INT32_DIRECTIVE);
+#endif
 	else
 		fprintf (acfg->fp, ",");
 	if (offset > 0)
