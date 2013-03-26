@@ -2804,6 +2804,49 @@ get_debug_sym (MonoMethod *method, const char *prefix, GHashTable *cache)
 
 	g_free (name1);
 
+#ifdef MONO_AOT_EMIT_MASM
+	/* This assembler has a length limitation on symbols of about 240 chars... */
+#define MAX_MASM_SYMBOL_LENGTH 240
+	if (len > MAX_MASM_SYMBOL_LENGTH) {
+		char *short_name = malloc (MAX_MASM_SYMBOL_LENGTH + 1);
+		int source_length = strlen (name2);
+		int source_i = 0;
+		int destination_i = 0;
+		int saved_characters = 0;
+		int saving_target = source_length - MAX_MASM_SYMBOL_LENGTH;
+
+		while (source_i < source_length) {
+			if (saved_characters >= saving_target) {
+				/* Check if we are done, just copy the remaining characters */
+				strcpy (short_name + destination_i, name2 + source_i);
+				source_i = source_length;
+			} else if (destination_i == MAX_MASM_SYMBOL_LENGTH) {
+				/* If we have no more space, truncate the name here */
+				short_name [destination_i] = '\0';
+				source_i = source_length;
+			} else {
+				/* Copy the character only if it's not a lowercase vowel */
+				char c = name2 [source_i];
+				if ((c != 'a') && (c != 'e') && (c != 'i') && (c != 'o') && (c != 'u')) {
+					short_name [destination_i] = c;
+					destination_i++;
+				} else {
+					saved_characters ++;
+				}
+
+				source_i++;
+			}
+		}
+
+		//printf ("Symbol \"%s\" is has length %d (saving_target %d)\n", name2, source_length, saving_target);
+		//printf ("  Replacing with \"%s\" (length %d)\n", short_name, strlen (short_name));
+
+		free (name2);
+		name2 = short_name;
+	}
+#undef MAX_XBOX_ASM_SYMBOL_LENGTH
+#endif
+
 	count = 0;
 	while (g_hash_table_lookup (cache, name2)) {
 		sprintf (name2 + j, "_%d", count);
