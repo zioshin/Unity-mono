@@ -210,7 +210,6 @@ case "$host" in
 		gc_default=boehm
 		use_sigposix=yes
 		ikvm_native=no
-		AC_DEFINE(DISABLE_SOCKETS,1,[Disable sockets support])
 		AC_DEFINE(DISABLE_ATTACH, 1, [Disable agent attach support])
 		;;
 	*-*-hpux*)
