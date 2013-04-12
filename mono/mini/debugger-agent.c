@@ -1129,7 +1129,13 @@ set_keepalive (void)
 static int
 socket_transport_accept (int socket_fd)
 {
+#ifdef __QNXNTO__
+	do {
+		conn_fd = accept (socket_fd, NULL, NULL);
+	} while( conn_fd == -1 && errno == EINTR );
+#else
 	conn_fd = accept (socket_fd, NULL, NULL);
+#endif
 	if (conn_fd == -1) {
 		fprintf (stderr, "debugger-agent: Unable to listen on %d\n", socket_fd);
 	} else {
