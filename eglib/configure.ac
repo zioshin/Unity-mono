@@ -110,6 +110,7 @@ AC_SEARCH_LIBS(sqrtf, m)
 AC_SEARCH_LIBS(nanosleep, rt)
 
 AC_SEARCH_LIBS(dlopen, dl)
+
 old_ldflags="${LDFLAGS}"
 LDFLAGS="${LDFLAGS} -Wl,-export-dynamic"
 AC_TRY_LINK(, [int i;], found_export_dynamic=yes, found_export_dynamic=no)

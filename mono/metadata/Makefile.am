@@ -86,6 +86,7 @@ sgen_sources = \
 libmonoruntime_la_SOURCES = \
 	$(platform_sources)	\
 	../../unity/unity_utils.c	\
+	../../unity/unity_liveness.c	\
 	appdomain.c		\
 	assembly.c		\
 	attach.h		\

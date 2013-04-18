@@ -58,6 +58,10 @@ int WSAAPI getnameinfo(const struct sockaddr*,socklen_t,char*,DWORD,
 #endif
 #endif
 
+#ifdef __QNXNTO__
+#include <sys/select.h>
+#endif
+
 #ifdef PLATFORM_ANDROID
 #include <linux/in.h>
 #include <linux/tcp.h>

@@ -3,7 +3,17 @@ LIBRARY mono-2.0.dll
 EXPORTS
 ; unity items
 mono_assembly_name_parse
-mono_class_is_generic
+
+;Unity Exports that add new functions created by Unity
+unity_mono_redirect_output
+unity_mono_close_output
+mono_unity_liveness_calculation_begin
+mono_unity_liveness_calculation_end
+mono_unity_liveness_calculation_from_statics
+mono_unity_liveness_calculation_from_statics_managed
+mono_unity_liveness_calculation_from_root
+mono_unity_liveness_calculation_from_root_managed
+mmono_class_is_generic
 mono_class_is_inflated
 mono_gchandle_is_in_domain
 mono_runtime_unhandled_exception_policy_set

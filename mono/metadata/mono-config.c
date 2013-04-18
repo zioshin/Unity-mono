@@ -33,6 +33,8 @@
 #define CONFIG_OS "netbsd"
 #elif defined(__OpenBSD__)
 #define CONFIG_OS "openbsd"
+#elif defined(__QNXNTO__)
+#define CONFIG_OS "QNX"
 #elif defined(__WIN32__) || defined(TARGET_WIN32)
 #define CONFIG_OS "windows"
 #elif defined(_IBMR2)

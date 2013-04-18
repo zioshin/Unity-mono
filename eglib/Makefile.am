@@ -7,7 +7,7 @@ else
 if CROSS_COMPILING
 SUBDIRS = src
 else
-SUBDIRS = src test
+SUBDIRS = src
 endif
 endif
 endif

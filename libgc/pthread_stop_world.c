@@ -49,6 +49,11 @@ void mono_set_pthread_suspend(int (*_pthread_suspend)(pthread_t thread, int sig)
 #endif
 #undef DEBUG_THREADS
 #define DEBUG_THREADS 0
+
+#ifdef __QNXNTO__
+#define SA_RESTART 0 
+#endif
+
 #if DEBUG_THREADS
 
 #ifndef NSIG

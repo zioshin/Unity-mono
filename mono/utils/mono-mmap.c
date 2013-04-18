@@ -385,7 +385,7 @@ mono_mprotect (void *addr, size_t length, int flags)
 			memset (addr, 0, length);
 #else
 		memset (addr, 0, length);
-#ifdef HAVE_MADVISE
+#if defined(HAVE_MADVISE) && !defined(__QNXNTO__)
 		madvise (addr, length, MADV_DONTNEED);
 		madvise (addr, length, MADV_FREE);
 #else
