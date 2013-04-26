@@ -1213,3 +1213,34 @@ void GC_dump()
 }
 
 #endif /* NO_DEBUGGING */
+
+#ifdef DARWIN
+
+#include <mach/mach_time.h>
+
+long GC_time_diff_ms(uint64_t a, uint64_t b)
+{
+        static mach_timebase_info_data_t sTimeBaseInfo;
+
+        if (sTimeBaseInfo.denom == 0) {
+                mach_timebase_info(&sTimeBaseInfo);
+        }
+
+        return (long)((a - b) * sTimeBaseInfo.numer * .000001 / sTimeBaseInfo.denom);
+}
+
+#endif /* DARWIN */
+
+void GC_stop_world_external()
+{
+    DISABLE_SIGNALS();
+    LOCK();
+    GC_stop_world();
+}
+
+void GC_start_world_external()
+{
+    GC_start_world();
+    UNLOCK();
+    ENABLE_SIGNALS();
+}

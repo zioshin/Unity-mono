@@ -10,6 +10,9 @@ typedef struct _LivenessState LivenessState;
 typedef struct _GPtrArray custom_growable_array;
 #define array_at_index(array,index) (array)->pdata[(index)]
 
+extern void GC_stop_world_external();
+extern void GC_start_world_external();
+
 custom_growable_array* array_create_and_initialize (guint capacity)
 {
 	custom_growable_array* array = g_ptr_array_sized_new(capacity);
@@ -109,9 +112,9 @@ void array_safe_grow(LivenessState* state, custom_growable_array* array)
 		MonoObject* object = array_at_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
-	GC_start_world ();
+	GC_start_world_external ();
 	array_grow(array);
-	GC_stop_world ();
+	GC_stop_world_external ();
 	for (i = 0; i < state->all_objects->len; i++)
 	{
 		MonoObject* object = array_at_index(state->all_objects,i);
@@ -178,37 +181,6 @@ static gboolean mono_field_can_contain_references(MonoClassField* field)
 	if (field->type->type == MONO_TYPE_STRING)
 		return FALSE;
 	return MONO_TYPE_IS_REFERENCE(field->type);
-}
-
-static void mono_traverse_array (MonoArray* array, LivenessState* state)
-{
-	int i = 0;
-	gboolean has_references;
-	MonoObject* object = (MonoObject*)array;
-	MonoClass* element_class;
-	g_assert (object);
-
-	element_class = GET_VTABLE(object)->klass->element_class;
-	has_references = !mono_class_is_valuetype(element_class);
-	g_assert(element_class->size_inited != 0);
-
-	for (i = 0; i < element_class->field.count; i++)
-	{
-		has_references |= mono_field_can_contain_references(&element_class->fields[i]);
-	}
-
-	if (!has_references)
-		return;
-
-	for (i = 0; i < mono_array_length (array); i++)
-	{
-		MonoObject* val =  mono_array_get(array, MonoObject*, i);
-		mono_add_process_object(val, state);
-		// Add 64 objects at a time and then traverse
-		if( ((i+1) & 63) == 0)
-			mono_traverse_objects(state);
-	}
-
 }
 
 static void mono_traverse_object_internal (MonoObject* object, gboolean isStruct, MonoClass* klass, LivenessState* state)
@@ -297,6 +269,60 @@ static void mono_traverse_objects (LivenessState* state)
 		mono_traverse_generic_object(object, state);
 	}
 }
+
+static void mono_traverse_array (MonoArray* array, LivenessState* state)
+{
+	int i = 0;
+	gboolean has_references;
+	MonoObject* object = (MonoObject*)array;
+	MonoClass* element_class;
+	size_t elementClassSize;
+	size_t array_length;
+	
+	g_assert (object);
+	
+	
+	
+	element_class = GET_VTABLE(object)->klass->element_class;
+	has_references = !mono_class_is_valuetype(element_class);
+	g_assert(element_class->size_inited != 0);
+	
+	for (i = 0; i < element_class->field.count; i++)
+	{
+		has_references |= mono_field_can_contain_references(&element_class->fields[i]);
+	}
+	
+	if (!has_references)
+		return;
+	
+	array_length = mono_array_length (array);
+	if (element_class->valuetype)
+	{
+		elementClassSize = mono_class_array_element_size (element_class);
+		for (i = 0; i < array_length; i++)
+		{
+			MonoObject* object = (MonoObject*)mono_array_addr_with_size (array, elementClassSize, i);
+			mono_traverse_object_internal (object, 1, element_class, state);
+			
+			// Add 64 objects at a time and then traverse
+			if( ((i+1) & 63) == 0)
+				mono_traverse_objects(state);
+		}
+	}
+	else
+	{
+		for (i = 0; i < array_length; i++)
+		{
+			MonoObject* val =  mono_array_get(array, MonoObject*, i);
+			mono_add_process_object(val, state);
+			
+			// Add 64 objects at a time and then traverse
+			if( ((i+1) & 63) == 0)
+				mono_traverse_objects(state);
+		}
+	}
+}
+
 
 void mono_filter_objects(LivenessState* state)
 {
@@ -518,7 +544,7 @@ LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint m
 	state->callback_userdata = callback_userdata;
 	state->filter_callback = callback;
 
-	GC_stop_world ();
+	GC_stop_world_external ();
 	// no allocations can happen beyond this point
 
 	return state;
@@ -532,7 +558,7 @@ void mono_unity_liveness_calculation_end (LivenessState* state)
 		MonoObject* object = g_ptr_array_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
-	GC_start_world ();
+	GC_start_world_external ();
 
 	//cleanup the liveness_state
 	array_destroy(state->all_objects);
