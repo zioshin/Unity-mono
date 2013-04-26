@@ -27,6 +27,7 @@ if ($ENV{UNITY_THISISABUILDMACHINE})
 	rmtree("$root/builds");
 	$teamcity=1;
 	$jobs = "";
+	$ENV{'PATH'} = "/usr/local/bin:$ENV{'PATH'}";
 } else {
 	print "not rmtree-ing $root/builds, as we're not on a buildmachine";
 	if (($debug==0) && ($skipbuild==0))
@@ -35,7 +36,6 @@ if ($ENV{UNITY_THISISABUILDMACHINE})
 	}
 	$jobs = "-j$jobs";
 }
-$ENV{'LIBTOOLIZE'} = 'glibtoolize';
 
 my @arches = ('x86_64','i386');
 if ($iphone_simulator || $minimal) {
