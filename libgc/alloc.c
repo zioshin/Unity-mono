@@ -391,14 +391,24 @@ static int set_realtime (int nanoseconds)
 GC_bool GC_try_to_collect_inner(stop_func)
 GC_stop_func stop_func;
 {
+    char buf[1024];
+    CLOCK_TYPE time1;
+    CLOCK_TYPE time2;
+    CLOCK_TYPE time3;
+    CLOCK_TYPE time4;
 #   ifdef CONDPRINT
         CLOCK_TYPE start_time, current_time;
 #   endif
     if (GC_dont_gc) return FALSE;
-    
+    GET_TIME(time1);
     if (GC_notify_event)
 	GC_notify_event (GC_EVENT_START);
     
+#ifdef DOPPELGANGER_CONCURRENT
+	GC_complete_last();
+#endif
+    
+    GET_TIME(time2);
     if (GC_incremental && GC_collection_in_progress()) {
 #   ifdef CONDPRINT
       if (GC_print_stats) {
@@ -439,6 +449,7 @@ GC_stop_func stop_func;
 	}
     GC_invalidate_mark_state();  /* Flush mark stack.	*/
     GC_clear_marks();
+    GET_TIME(time3);
 #   ifdef SAVE_CALL_CHAIN_IN_GC
         GC_save_callers(GC_last_stack);
 #   endif
@@ -454,7 +465,9 @@ GC_stop_func stop_func;
         /* finish incrementally.					*/
       return(FALSE);
     }
+#ifndef DOPPELGANGER_CONCURRENT
     GC_finish_collection();
+#endif
 #   if defined(CONDPRINT)
       if (GC_print_stats) {
         GET_TIME(current_time);
@@ -464,6 +477,12 @@ GC_stop_func stop_func;
 #   endif
     if (GC_notify_event)
 	GC_notify_event (GC_EVENT_END);
+    GET_TIME(time4);
+    sprintf(buf, "Collection complete %lu us clear %lu us finish %lu us\n", 
+        US_TIME_DIFF(time2,time1), 
+        US_TIME_DIFF(time3,time2), 
+        US_TIME_DIFF(time4,time3));
+    OutputDebugStringA(buf);
       
     return(TRUE);
 }
@@ -539,6 +558,10 @@ int GC_collect_a_little GC_PROTO(())
     return(result);
 }
 
+#ifdef DOPPELGANGER_CONCURRENT
+extern int GC_mark_state;
+#endif
+
 /*
  * Assumes lock is held, signals are disabled.
  * We stop the world.
@@ -605,6 +628,13 @@ GC_stop_func stop_func;
 	            return(FALSE);
 	    }
 	    if (GC_mark_some((ptr_t)(&dummy))) break;
+#ifdef DOPPELGANGER_CONCURRENT
+        if (GC_mark_state == 3)
+        {
+            GC_doppelgang_mark();
+            break;
+        }
+#endif
 	}
 	
     GC_gc_no++;

@@ -170,6 +170,13 @@ register hdr * hhdr;
 # endif
 {
     register hdr * hhdr = HDR(h);
+
+#ifdef DOPPELGANGER
+	if(hhdr->hb_obj_kind != PTRFREE) {
+		size_t size_needed = HBLKSIZE * OBJ_SZ_TO_BLOCKS(hhdr->hb_sz);
+		memcpy((((char*)h)+size_needed), h, size_needed);
+	}
+#endif
     
     if (IS_UNCOLLECTABLE(hhdr -> hb_obj_kind)) return;
         /* Mark bit for these is cleared only once the object is 	*/
@@ -209,6 +216,13 @@ ptr_t p;
     return(mark_bit_from_hdr(hhdr, word_no));
 }
 
+#ifdef DOPPELGANGER_CONCURRENT
+GC_PTR GC_premark(GC_PTR val)
+{
+    GC_set_mark_bit(val);
+    return val;
+}
+#endif
 
 /*
  * Clear mark bits in all allocated heap blocks.  This invalidates
@@ -595,6 +609,19 @@ mse * msp;
     return(msp - GC_MARK_STACK_DISCARDS);
 }
 
+#ifdef DOPPELGANGER
+word * GC_doppelganger_for(word *obj, hdr * hhdr)
+{
+	word * my_current = obj;
+	if (hhdr->hb_obj_kind != PTRFREE) {
+		size_t offset = OBJ_SZ_TO_BLOCKS(hhdr->hb_sz) * HBLKSIZE;
+		my_current = (word*)(((ptr_t)obj) + offset);
+	}
+
+	return my_current;
+}
+#endif
+
 /*
  * Mark objects pointed to by the regions described by
  * mark stack entries between GC_mark_stack and GC_mark_stack_top,
@@ -669,6 +696,7 @@ mse * mark_stack_limit;
 #	  endif /* PARALLEL_MARK */
           mark_stack_top -> mse_start =
          	limit = current_p + SPLIT_RANGE_WORDS-1;
+          // TODO, do we need doppelganger lookup here?
           mark_stack_top -> mse_descr =
           		descr - WORDS_TO_BYTES(SPLIT_RANGE_WORDS-1);
           /* Make sure that pointers overlapping the two ranges are	*/
@@ -1184,6 +1212,28 @@ void GC_mark_init()
     alloc_mark_stack(INITIAL_MARK_STACK_SIZE);
 }
 
+#ifdef DOPPELGANGER
+static HANDLE doppelganger_handle = 0;
+static char* doppelganger_buffer = 0;
+static int doppelganger_buffer_length = 1024*1024*10;
+static int doppelganger_buffer_offset = 0;
+static int doppelganger_roots_index = 0;
+static char* doppelganger_roots[1024];
+
+void GC_doppelganger_clear_roots()
+{
+    int i;
+    for (i = 0; i < doppelganger_roots_index; i++)
+    {
+        //HeapFree(doppelganger_handle, 0, doppelganger_roots[i]);
+        //free(doppelganger_roots[i]);
+        doppelganger_roots[i] = NULL;
+    }
+    doppelganger_roots_index = 0;
+    doppelganger_buffer_offset = 0;
+}
+#endif
+
 /*
  * Push all locations between b and t onto the mark stack.
  * b is the first location to be checked. t is one past the last
@@ -1209,8 +1259,22 @@ ptr_t top;
 	length += GC_DS_TAGS;
 	length &= ~GC_DS_TAGS;
 #   endif
+#ifdef DOPPELGANGER
+    if (!doppelganger_handle) {
+        doppelganger_handle = HeapCreate(0, GC_page_size*10, 0);
+        doppelganger_buffer = HeapAlloc(doppelganger_handle, 0, doppelganger_buffer_length);
+    }
+    doppelganger_roots[doppelganger_roots_index] = doppelganger_buffer + doppelganger_buffer_offset;
+    memcpy(doppelganger_roots[doppelganger_roots_index], bottom, length);
+    GC_mark_stack_top -> mse_start = (word *)doppelganger_roots[doppelganger_roots_index];
+    GC_mark_stack_top -> mse_descr = length;
+    doppelganger_roots_index++;
+    doppelganger_buffer_offset += length;
+    GC_ASSERT(doppelganger_buffer_offset < doppelganger_buffer_length);
+#else
     GC_mark_stack_top -> mse_start = (word *)bottom;
     GC_mark_stack_top -> mse_descr = length;
+#endif
 }
 
 /*

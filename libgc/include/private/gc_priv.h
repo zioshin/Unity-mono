@@ -309,9 +309,30 @@ long GC_time_diff_ms(uint64_t a, uint64_t b);
 # if defined(MSWIN32) || defined(MSWINCE)
 #   include <windows.h>
 #   include <winbase.h>
-#   define CLOCK_TYPE DWORD
-#   define GET_TIME(x) x = GetTickCount()
-#   define MS_TIME_DIFF(a,b) ((long)((a)-(b)))
+#   define CLOCK_TYPE LONGLONG
+#   define GET_TIME(x) QueryPerformanceCounter((LARGE_INTEGER*)&x)
+static long time_diff_ms(LONGLONG a, LONGLONG b)
+{
+  static LARGE_INTEGER frequency = {0};
+  static double freq;
+  if (!frequency.QuadPart) {
+    QueryPerformanceFrequency (&frequency);
+    freq = frequency.QuadPart / 1000.0;
+  }
+  return (long)((((LARGE_INTEGER*)&a)->QuadPart - ((LARGE_INTEGER*)&b)->QuadPart) / freq);
+}
+static long time_diff_us(LONGLONG a, LONGLONG b)
+{
+  static LARGE_INTEGER frequency = {0};
+  static double freq;
+  if (!frequency.QuadPart) {
+    QueryPerformanceFrequency (&frequency);
+    freq = frequency.QuadPart / 1000000.0;
+  }
+  return (long)((((LARGE_INTEGER*)&a)->QuadPart - ((LARGE_INTEGER*)&b)->QuadPart) / freq);
+}
+#   define MS_TIME_DIFF(a,b) time_diff_ms(a,b)
+#   define US_TIME_DIFF(a,b) time_diff_us(a,b)
 # else /* !MSWIN32, !MSWINCE, !BSD_TIME */
 #   include <time.h>
 #   if !defined(__STDC__) && defined(SPARC) && defined(SUNOS4)
@@ -1299,6 +1320,10 @@ struct hblk * GC_prev_block GC_PROTO((struct hblk * h));
 			/* use.						*/
 void GC_mark_init GC_PROTO((void));
 void GC_clear_marks GC_PROTO((void));	/* Clear mark bits for all heap objects. */
+#ifdef DOPPELGANGER_CONCURRENT
+void GC_doppelgang_mark GC_PROTO((void));
+void GC_doppelganger_clear_roots GC_PROTO((void));
+#endif
 void GC_invalidate_mark_state GC_PROTO((void));
 					/* Tell the marker that	marked 	   */
   					/* objects may point to	unmarked   */
@@ -1811,6 +1836,12 @@ void GC_dirty_init GC_PROTO((void));
 GC_API GC_bool GC_is_marked GC_PROTO((ptr_t p));
 void GC_clear_mark_bit GC_PROTO((ptr_t p));
 void GC_set_mark_bit GC_PROTO((ptr_t p));
+
+#ifdef DOPPELGANGER_CONCURRENT
+GC_PTR GC_premark(GC_PTR val);
+#else
+#define GC_premark(val) (val)
+#endif
   
 /* Stubborn objects: */
 void GC_read_changed GC_PROTO((void));	/* Analogous to GC_read_dirty */

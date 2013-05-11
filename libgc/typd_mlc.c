@@ -668,7 +668,7 @@ DCL_LOCK_STATE;
    }
    if (op != NULL)
        ((word *)op)[lw - 1] = d;
-   return((GC_PTR) op);
+   return(GC_premark((GC_PTR) op));
 }
 
 #if defined(__STDC__) || defined(__cplusplus)

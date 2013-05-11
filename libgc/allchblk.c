@@ -581,8 +581,12 @@ int n;
     register hdr * thishdr;		/* Header corr. to hbp */
     size_t size_needed;    /* number of bytes in requested objects */
     size_t size_avail;	/* bytes available in this block	*/
-
     size_needed = HBLKSIZE * OBJ_SZ_TO_BLOCKS(sz);
+
+#ifdef DOPPELGANGER
+    if(kind != PTRFREE)
+        size_needed *= 2;
+#endif
 
     /* search for a big enough block in free list */
 	hbp = GC_hblkfreelist[n];
@@ -764,8 +768,9 @@ int n;
     }
 
     GC_large_free_bytes -= size_needed;
-    
+
     GC_ASSERT(IS_MAPPED(hhdr));
+
     return( hbp );
 }
  
@@ -791,6 +796,10 @@ signed_word size;
     size = hhdr->hb_sz;
     size = HBLKSIZE * OBJ_SZ_TO_BLOCKS(size);
     GC_remove_counts(hbp, (word)size);
+#ifdef DOPPELGANGER
+    if(hhdr->hb_obj_kind != PTRFREE)
+        size *= 2;
+#endif
     hhdr->hb_sz = size;
 #   ifdef USE_MUNMAP
       hhdr -> hb_last_reclaimed = GC_gc_no;

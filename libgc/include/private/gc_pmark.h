@@ -150,6 +150,12 @@ mse * GC_signal_mark_stack_overflow GC_PROTO((mse *msp));
 #   define ADD_TO_COMPOSITE(sz)
 # endif
 
+#ifdef DOPPELGANGER
+word * GC_doppelganger_for(word *obj, hdr * hhdr);
+#else
+#define GC_doppelganger_for(obj,hhdr) (obj)
+#endif
+
 /* Push the object obj with corresponding heap block header hhdr onto 	*/
 /* the mark stack.							*/
 # define PUSH_OBJ(obj, hhdr, mark_stack_top, mark_stack_limit) \
@@ -164,7 +170,7 @@ mse * GC_signal_mark_stack_overflow GC_PROTO((mse *msp));
         if (mark_stack_top >= mark_stack_limit) { \
           mark_stack_top = GC_signal_mark_stack_overflow(mark_stack_top); \
         } \
-        mark_stack_top -> mse_start = (obj); \
+        mark_stack_top -> mse_start = GC_doppelganger_for(obj, hhdr); \
         mark_stack_top -> mse_descr = _descr; \
     } \
 }

@@ -36,6 +36,9 @@ typedef LONG * IE_t;
 GC_bool GC_thr_initialized = FALSE;
 
 DWORD GC_main_thread = 0;
+#ifdef DOPPELGANGER_CONCURRENT
+DWORD GC_background_thread = 0;
+#endif
 
 extern GC_bool GC_use_dll_main;
 
@@ -495,6 +498,11 @@ void GC_push_all_stacks()
         GC_push_all_stack(stack_min, thread->stack_base);
       }
     }
+#ifdef DOPPELGANGER_CONCURRENT
+    else if (thread -> id == thread_id && thread -> id == GC_background_thread) {
+        found_me = TRUE;
+    }
+#endif
   }
   if (!found_me) ABORT("Collecting from unknown thread.");
 }
@@ -664,8 +672,57 @@ DWORD WINAPI main_thread_start(LPVOID arg)
 
 # else /* !MSWINCE */
 
+#ifdef DOPPELGANGER_CONCURRENT
+HANDLE start_mark_event;
+HANDLE start_clean_event;
+HANDLE finish_mark_event;
+
+DWORD WINAPI BackgroundThread(LPVOID arg)
+{
+    GC_thread me;
+    me = GC_new_thread();
+    GC_background_thread = GetCurrentThreadId();
+    me->should_scan = FALSE;
+	while(TRUE)
+	{
+		WaitForSingleObject(start_mark_event, INFINITE);
+		while(TRUE) {
+			int dummy = 0;
+			if (GC_mark_some((ptr_t)(&dummy))) break;
+		}
+		//if (!GC_stopped_mark(GC_never_stop_func)) {
+		//	abort();
+		//}
+		WaitForSingleObject(start_clean_event, INFINITE);
+		GC_finish_collection();
+		SetEvent(finish_mark_event);
+
+	}
+}
+
+void GC_complete_last (void)
+{
+	static int intialized = 0;
+	if (intialized) {
+		SetEvent(start_clean_event);
+		WaitForSingleObject(finish_mark_event, INFINITE);
+	}
+	intialized = 1;
+}
+
+void GC_doppelgang_mark (void)
+{
+	//WaitForSingleObject(finish_mark_event, INFINITE);
+	SetEvent(start_mark_event);
+}
+
+#endif
+
 /* Called by GC_init() - we hold the allocation lock.	*/
 void GC_thr_init() {
+#ifdef DOPPELGANGER_CONCURRENT
+    DWORD thread_id = 0;
+#endif
     GC_thread me;
     if (GC_thr_initialized) return;
     GC_main_thread = GetCurrentThreadId();
@@ -674,6 +731,13 @@ void GC_thr_init() {
     /* Add the initial thread, so we can stop it.	*/
     me = GC_new_thread();
     me->should_scan = TRUE;
+
+#ifdef DOPPELGANGER_CONCURRENT
+    start_mark_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    start_clean_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    finish_mark_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+    CreateThread(NULL, 0, &BackgroundThread, NULL, 0, &thread_id);
+#endif
 }
 
 #ifdef CYGWIN32

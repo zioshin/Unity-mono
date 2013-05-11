@@ -212,6 +212,7 @@ register struct hblk * h;
 #   ifdef USE_MUNMAP
 	result -> hb_last_reclaimed = GC_gc_no;
 #   endif
+    result -> hb_obj_kind = PTRFREE;
     return(result);
 }
 

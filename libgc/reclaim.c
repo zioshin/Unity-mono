@@ -967,7 +967,9 @@ int report_if_found;		/* Abort if a GC_reclaimable object is found */
   /* Go through all heap blocks (in hblklist) and reclaim unmarked objects */
   /* or enqueue the block for later processing.				   */
     GC_apply_to_all_blocks(GC_reclaim_block, (word)report_if_found);
-
+#ifdef DOPPELGANGER_CONCURRENT
+#define EAGER_SWEEP 1
+#endif
 # ifdef EAGER_SWEEP
     /* This is a very stupid thing to do.  We make it possible anyway,	*/
     /* so that you can convince yourself that it really is very stupid.	*/

@@ -91,7 +91,7 @@ unsigned flags;
 	/* Clear the whole block, in case of GC_realloc call. */
 	BZERO(result, n_blocks * HBLKSIZE);
     }
-    return result;
+    return GC_premark(result);
 }
 
 /* allocate lb bytes for an object of kind k.	*/
@@ -156,7 +156,7 @@ register ptr_t *opp;
     GC_words_allocd += lw;
     
 out:
-    return op;
+    return GC_premark(op);
 }
 
 /* Allocate a composite object of size n bytes.  The caller guarantees  */
@@ -226,7 +226,7 @@ register int k;
     if (0 == result) {
         return((*GC_oom_fn)(lb));
     } else {
-        return(result);
+        return(GC_premark(result));
     }
 }   
 
@@ -259,15 +259,15 @@ DCL_LOCK_STATE;
 	FASTLOCK();
         if( EXPECT(!FASTLOCK_SUCCEEDED() || (op = *opp) == 0, 0) ) {
             FASTUNLOCK();
-            return(GENERAL_MALLOC((word)lb, PTRFREE));
+            return(GC_premark(GENERAL_MALLOC((word)lb, PTRFREE)));
         }
         /* See above comment on signals.	*/
         *opp = obj_link(op);
         GC_words_allocd += lw;
         FASTUNLOCK();
-        return((GC_PTR) op);
+        return(GC_premark((GC_PTR) op));
    } else {
-       return(GENERAL_MALLOC((word)lb, PTRFREE));
+       return(GC_premark(GENERAL_MALLOC((word)lb, PTRFREE)));
    }
 }
 
@@ -294,7 +294,7 @@ DCL_LOCK_STATE;
 	FASTLOCK();
         if( EXPECT(!FASTLOCK_SUCCEEDED() || (op = *opp) == 0, 0) ) {
             FASTUNLOCK();
-            return(GENERAL_MALLOC((word)lb, NORMAL));
+            return(GC_premark(GENERAL_MALLOC((word)lb, NORMAL)));
         }
         /* See above comment on signals.	*/
 	GC_ASSERT(0 == obj_link(op)
@@ -306,9 +306,9 @@ DCL_LOCK_STATE;
         obj_link(op) = 0;
         GC_words_allocd += lw;
         FASTUNLOCK();
-        return((GC_PTR) op);
+        return(GC_premark((GC_PTR) op));
    } else {
-       return(GENERAL_MALLOC((word)lb, NORMAL));
+       return(GC_premark(GENERAL_MALLOC((word)lb, NORMAL)));
    }
 }
 

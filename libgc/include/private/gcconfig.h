@@ -32,6 +32,9 @@
     typedef struct GC_undefined_struct * ptr_t;
 # endif
 
+#define DOPPELGANGER 1
+#define DOPPELGANGER_CONCURRENT 1
+
 /* Machine dependent parameters.  Some tuning parameters can be found	*/
 /* near the top of gc_private.h.					*/
 

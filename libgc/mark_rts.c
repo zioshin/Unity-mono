@@ -576,6 +576,14 @@ ptr_t cold_gc_frame;
 {
     int i;
     int kind;
+    CLOCK_TYPE time1;
+    CLOCK_TYPE time2;
+    char buf[1024];
+    GET_TIME(time1);
+
+#ifdef DOPPELGANGER
+    GC_doppelganger_clear_roots();
+#endif
 
     /*
      * Next push static data.  This must happen early on, since it's
@@ -650,5 +658,9 @@ ptr_t cold_gc_frame;
         /* Note that without interior pointer recognition lots	*/
     	/* of stuff may have been pushed already, and this	*/
     	/* should be careful about mark stack overflows.	*/
+    GET_TIME(time2);
+
+    //sprintf(buf, "push_roots %lu us\n", US_TIME_DIFF(time2,time1));
+    //OutputDebugStringA(buf);
 }
 

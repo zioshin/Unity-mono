@@ -180,7 +180,7 @@ DCL_LOCK_STATE;
 	*(void **)op = ptr_to_struct_containing_descr;
 	UNLOCK();
     }
-    return((GC_PTR) op);
+    return(GC_premark((GC_PTR) op));
 }
 
 /* Similar to GC_gcj_malloc, but add debug info.  This is allocated	*/
@@ -239,7 +239,7 @@ DCL_LOCK_STATE;
     }
     *(void **)op = ptr_to_struct_containing_descr;
     UNLOCK();
-    return((GC_PTR) op);
+    return(GC_premark((GC_PTR) op));
 }
 
 /* And a debugging version of the above:	*/
@@ -311,7 +311,7 @@ DCL_LOCK_STATE;
 	}
         UNLOCK();
     }
-    return((GC_PTR) op);
+    return(GC_premark((GC_PTR) op));
 }
 
 #else
