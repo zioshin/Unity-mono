@@ -314,7 +314,7 @@ static void pthread_push_all_stacks()
 #       else
           GC_push_all_stack(lo, hi);
 #	endif
-#       ifdef NACL
+#       if USE_NACL_GC_INSTRUMENTATION
 	  /* Push reg_storage as roots, this will cover the reg context */
           GC_push_all_stack(p -> stop_info.reg_storage, p -> stop_info.reg_storage + NACL_GC_REG_STORAGE_SIZE);
 #       endif
@@ -399,13 +399,15 @@ int GC_suspend_all()
 
 #ifdef NACL
         result = pthread_suspend(p -> id, SIG_SUSPEND);
+	if (result)
+	    p->stop_info.stack_ptr = (void*)result;
 #else
 #ifndef PLATFORM_ANDROID
         result = pthread_kill(p -> id, SIG_SUSPEND);
 #else
         result = android_thread_kill(p -> kernel_id, SIG_SUSPEND);
 #endif
-#endif
+
 	    switch(result) {
 #if defined(ANDROID)	/* Android kernel seems to return EINVAL for non-existent threads (and sometimes EPERM) */
 				case EINVAL:
@@ -420,6 +422,7 @@ int GC_suspend_all()
                 default:
                     ABORT("pthread_kill failed");
             }
+#endif
         }
       }
     }
@@ -683,7 +686,6 @@ static void pthread_start_world()
 #else
         result = android_thread_kill(p -> kernel_id, SIG_THR_RESTART);
 #endif
-#endif
 	    switch(result) {
                 case ESRCH:
                     /* Not really there anymore.  Possible? */
@@ -694,6 +696,7 @@ static void pthread_start_world()
                 default:
                     ABORT("pthread_kill failed");
             }
+#endif
         }
       }
     }
