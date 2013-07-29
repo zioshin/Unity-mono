@@ -286,9 +286,8 @@ namespace Microsoft.Build.BuildEngine {
 			bool result = false;
 			ParentEngine.StartProjectBuild (this, targetNames);
 
-			// Invoking this to emit a warning in case of unsupported
-			// ToolsVersion
-			GetToolsVersionToUse (true);
+			// Don't warn about incorrect tools version; we don't care
+			GetToolsVersionToUse (false);
 
 			string current_directory = Environment.CurrentDirectory;
 			try {
