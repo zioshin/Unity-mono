@@ -10,19 +10,19 @@
 # To preserve compatibility with old Makefiles and tools we keep the
 # command names that had the suffix 2 (like wsdl2)
 #
-if USE_BATCH_FILES
-SCRIPT_IN=script.bat.in
-FILTER=sed -e 's,\.bat\.exe,\.exe,g' -e 's,/,\\,g'
-SCRIPT_SUFFIX=.bat
-else
+BATCH_IN=script.bat.in
+BATCH_FILTER=sed -e 's,\.bat\.exe,\.exe,g' -e 's,/,\\,g'
+BATCH_SUFFIX=.bat
 SCRIPT_IN=script.in
-FILTER=cat
+SCRIPT_FILTER=cat
 SCRIPT_SUFFIX=
-endif
 
 COMPAT_1_0_SUFFIX=1$(SCRIPT_SUFFIX)
 COMPAT_2_0_SUFFIX=2$(SCRIPT_SUFFIX)
 COMPAT_4_0_SUFFIX=4$(SCRIPT_SUFFIX)
+COMPAT_1_0_BATCH_SUFFIX=1$(BATCH_SUFFIX)
+COMPAT_2_0_BATCH_SUFFIX=2$(BATCH_SUFFIX)
+COMPAT_4_0_BATCH_SUFFIX=4$(BATCH_SUFFIX)
 
 bin_SCRIPTS = \
 	$(scripts_4_0_umask)	\
@@ -39,17 +39,34 @@ bin_SCRIPTS = \
 	mono-heapviz		\
 	$(scripts_mono_configuration_crypto)
 
+bin_BATCHES = \
+	$(batches_4_0_umask)	\
+	$(batches_defaults)	\
+	$(batches_2_0)		\
+	$(batches_service)	\
+	$(batches_nunit)	\
+	$(scripts_mono_configuration_crypto)
+
 if INSTALL_4_0
 bin_SCRIPTS += $(scripts_4_0)
+bin_BATCHES += $(batches_4_0)
 endif
 
 scripts_4_0_umask = \
 	makecert$(SCRIPT_SUFFIX)		\
 	sn$(SCRIPT_SUFFIX)
 
+batches_4_0_umask = \
+	makecert$(BATCH_SUFFIX)		\
+	sn$(BATCH_SUFFIX)
+
 deprecated = 					\
 	cilc(SCRIPT_SUFFIX)			\
 	mjs(SCRIPT_SUFFIX)
+
+deprecated = 					\
+	cilc(BATCH_SUFFIX)			\
+	mjs(BATCH_SUFFIX)
 
 scripts_2_0 = \
 	al2$(SCRIPT_SUFFIX)			\
@@ -60,6 +77,16 @@ scripts_2_0 = \
 	monop2$(SCRIPT_SUFFIX) 			\
 	resgen2$(SCRIPT_SUFFIX)			\
 	wsdl2$(SCRIPT_SUFFIX)
+
+batches_2_0 = \
+	al2$(BATCH_SUFFIX)			\
+	csharp2$(BATCH_SUFFIX)			\
+	gacutil2$(BATCH_SUFFIX)		\
+	gmcs$(BATCH_SUFFIX)			\
+	mdoc$(BATCH_SUFFIX)                    \
+	monop2$(BATCH_SUFFIX) 			\
+	resgen2$(BATCH_SUFFIX)			\
+	wsdl2$(BATCH_SUFFIX)
 
 scripts_4_0 = \
 	dmcs$(SCRIPT_SUFFIX)			\
@@ -99,6 +126,44 @@ scripts_4_0 = \
 	xbuild$(SCRIPT_SUFFIX)			\
 	ccrewrite$(SCRIPT_SUFFIX)
 
+batches_4_0 = \
+	dmcs$(BATCH_SUFFIX)			\
+	disco$(BATCH_SUFFIX)			\
+	dtd2xsd$(BATCH_SUFFIX)			\
+	dtd2rng$(BATCH_SUFFIX)			\
+	installvst$(BATCH_SUFFIX)		\
+	genxs$(BATCH_SUFFIX)			\
+	macpack$(BATCH_SUFFIX)			\
+	mono-cil-strip$(BATCH_SUFFIX)		\
+	prj2make$(BATCH_SUFFIX)		\
+	soapsuds$(BATCH_SUFFIX)		\
+	caspol$(BATCH_SUFFIX)			\
+	cert2spc$(BATCH_SUFFIX)		\
+	certmgr$(BATCH_SUFFIX)			\
+	chktrust$(BATCH_SUFFIX)		\
+	csharp$(BATCH_SUFFIX)			\
+	httpcfg$(BATCH_SUFFIX)			\
+	lc$(BATCH_SUFFIX)			\
+	mconfig$(BATCH_SUFFIX)			\
+	mod$(BATCH_SUFFIX)			\
+	monolinker$(BATCH_SUFFIX)		\
+	mono-api-info$(BATCH_SUFFIX) 		\
+	mono-shlib-cop$(BATCH_SUFFIX) 		\
+	mozroots$(BATCH_SUFFIX)		\
+	permview$(BATCH_SUFFIX)		\
+	pdb2mdb$(BATCH_SUFFIX)			\
+	xsd$(BATCH_SUFFIX)			\
+	mono-xmltool$(BATCH_SUFFIX)		\
+	setreg$(BATCH_SUFFIX)			\
+	secutil$(BATCH_SUFFIX)			\
+	signcode$(BATCH_SUFFIX)		\
+	sgen$(BATCH_SUFFIX)			\
+	sqlmetal$(BATCH_SUFFIX)		\
+	sqlsharp$(BATCH_SUFFIX)		\
+	svcutil$(BATCH_SUFFIX)			\
+	xbuild$(BATCH_SUFFIX)			\
+	ccrewrite$(BATCH_SUFFIX)
+
 MDOC_SUBCOMMANDS = \
 	mdoc-assemble \
 	mdoc-export-html \
@@ -129,12 +194,23 @@ scripts_defaults = 		\
 	resgen$(SCRIPT_SUFFIX)			\
 	wsdl$(SCRIPT_SUFFIX)
 
+batches_defaults = 		\
+	al$(BATCH_SUFFIX)			\
+	ilasm$(BATCH_SUFFIX)			\
+	gacutil$(BATCH_SUFFIX)			\
+	mkbundle$(BATCH_SUFFIX)		\
+	monop$(BATCH_SUFFIX)			\
+	resgen$(BATCH_SUFFIX)			\
+	wsdl$(BATCH_SUFFIX)
+
 scripts_service = mono-service mono-service2
 scripts_nunit = nunit-console$(SCRIPT_SUFFIX) nunit-console2$(SCRIPT_SUFFIX)
+batches_nunit = nunit-console$(BATCH_SUFFIX) nunit-console2$(BATCH_SUFFIX)
 scripts_rpmhelpers = mono-find-provides mono-find-requires
 scripts_mono_configuration_crypto = mono-configuration-crypto$(SCRIPT_SUFFIX)
+batches_mono_configuration_crypto = mono-configuration-crypto$(BATCH_SUFFIX)
 
-CLEANFILES = $(scripts_mono_configuration_crypto) $(scripts_4_0_umask) $(scripts_2_0) $(scripts_defaults) $(scripts_4_0) mono-service mono-service2 nunit-console nunit-console2 mono-find-provides mono-find-requires mod $(MDOC_SUBCOMMANDS)
+CLEANFILES = $(scripts_mono_configuration_crypto) $(scripts_4_0_umask) $(scripts_2_0) $(scripts_defaults) $(scripts_4_0) mono-service mono-service2 nunit-console nunit-console2 mono-find-provides mono-find-requires mod $(MDOC_SUBCOMMANDS) $(batches_mono_configuration_crypto) $(batches_4_0_umask) $(batches_2_0) $(batches_defaults) $(batches_4_0)
 DISTCLEANFILES = $(pkgconfig_DATA) $(scripts_rpmhelpers)
 
 EXTRA_DIST =			\
@@ -210,11 +286,19 @@ mono-service2: mono-service.in Makefile
 	mv -f $@.tmp $@
 
 nunit-console$(SCRIPT_SUFFIX): $(SCRIPT_IN) Makefile
-	$(REWRITE2_DEBUG) -e 's,@''exe_name@,nunit-console,g' $(srcdir)/$(SCRIPT_IN) | $(FILTER) > $@.tmp
+	$(REWRITE2_DEBUG) -e 's,@''exe_name@,nunit-console,g' $(srcdir)/$(SCRIPT_IN) | $(SCRIPT_FILTER) > $@.tmp
+	mv -f $@.tmp $@
+
+nunit-console$(BATCH_SUFFIX): $(BATCH_IN) Makefile
+	$(REWRITE2_DEBUG) -e 's,@''exe_name@,nunit-console,g' $(srcdir)/$(BATCH_IN) | $(BATCH_FILTER) > $@.tmp
 	mv -f $@.tmp $@
 
 nunit-console2$(SCRIPT_SUFFIX): $(SCRIPT_IN) Makefile
-	$(REWRITE2_DEBUG) -e 's,@''exe_name@,nunit-console,g' $(srcdir)/$(SCRIPT_IN) | $(FILTER) > $@.tmp
+	$(REWRITE2_DEBUG) -e 's,@''exe_name@,nunit-console,g' $(srcdir)/$(SCRIPT_IN) | $(SCRIPT_FILTER) > $@.tmp
+	mv -f $@.tmp $@
+
+nunit-console2$(BATCH_SUFFIX): $(BATCH_IN) Makefile
+	$(REWRITE2_DEBUG) -e 's,@''exe_name@,nunit-console,g' $(srcdir)/$(BATCH_IN) | $(BATCH_FILTER) > $@.tmp
 	mv -f $@.tmp $@
 
 #FIXME: this is not the correct rule for mod.bat.
@@ -225,25 +309,50 @@ mod$(SCRIPT_SUFFIX): mod.in Makefile
 #FIXME: this is not the correct rule for bat files.
 $(scripts_4_0_umask): script_umask.in Makefile
 	n=`echo $@ | sed 's,$(COMPAT_4_0_SUFFIX)$$,,'`; \
-	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/script_umask.in | $(FILTER) > $@.tmp
+	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/script_umask.in | $(SCRIPT_FILTER) > $@.tmp
+	mv -f $@.tmp $@
+
+#FIXME: this is not the correct rule for bat files.
+$(batches_4_0_umask): script_umask.in Makefile
+	n=`echo $@ | sed 's,$(COMPAT_4_0_BATCH_SUFFIX)$$,,'`; \
+	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/script_umask.in | $(BATCH_FILTER) > $@.tmp
 	mv -f $@.tmp $@
 
 $(scripts_defaults): $(SCRIPT_IN) Makefile
 	n=`echo $@ | sed 's,$(COMPAT_4_0_SUFFIX)$$,,'`; \
-	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(SCRIPT_IN) | $(FILTER) > $@.tmp
+	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(SCRIPT_IN) | $(SCRIPT_FILTER) > $@.tmp
+	mv -f $@.tmp $@
+
+$(batches_defaults): $(BATCH_IN) Makefile
+	n=`echo $@ | sed 's,$(COMPAT_4_0_BATCH_SUFFIX)$$,,'`; \
+	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(BATCH_IN) | $(BATCH_FILTER) > $@.tmp
 	mv -f $@.tmp $@
 
 $(scripts_2_0): $(SCRIPT_IN) Makefile
 	n=`echo $@ | sed 's,$(COMPAT_2_0_SUFFIX)$$,,'`; \
-	$(REWRITE2) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(SCRIPT_IN) | $(FILTER) > $@.tmp
+	$(REWRITE2) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(SCRIPT_IN) | $(SCRIPT_FILTER) > $@.tmp
+	mv -f $@.tmp $@
+
+$(batches_2_0): $(BATCH_IN) Makefile
+	n=`echo $@ | sed 's,$(COMPAT_2_0_BATCH_SUFFIX)$$,,'`; \
+	$(REWRITE2) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(BATCH_IN) | $(BATCH_FILTER) > $@.tmp
 	mv -f $@.tmp $@
 
 $(scripts_4_0): $(SCRIPT_IN) Makefile
 	n=`echo $@ | sed 's,$(COMPAT_4_0_SUFFIX)$$,,'`; \
-	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(SCRIPT_IN) | $(FILTER) > $@.tmp
+	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(SCRIPT_IN) | $(SCRIPT_FILTER) > $@.tmp
+	mv -f $@.tmp $@
+
+$(batches_4_0): $(BATCH_IN) Makefile
+	n=`echo $@ | sed 's,$(COMPAT_4_0_BATCH_SUFFIX)$$,,'`; \
+	$(REWRITE4) -e "s,@""exe_name@,$$n,g" $(srcdir)/$(BATCH_IN) | $(BATCH_FILTER) > $@.tmp
 	mv -f $@.tmp $@
 
 $(scripts_mono_configuration_crypto): mono-configuration-crypto.in
+	$(REWRITE4)  -e "s,@exe_name@,mono-configuration-crypto,g" $(srcdir)/mono-configuration-crypto.in > $@.tmp
+	mv -f $@.tmp $@
+
+$(batches_mono_configuration_crypto): mono-configuration-crypto.in
 	$(REWRITE4)  -e "s,@exe_name@,mono-configuration-crypto,g" $(srcdir)/mono-configuration-crypto.in > $@.tmp
 	mv -f $@.tmp $@
 
@@ -253,4 +362,6 @@ $(MDOC_SUBCOMMANDS): Makefile
 		echo "#!/bin/sh" > $$script ;                   \
 		echo "exec mdoc $$cmd \"\$$@\"" >> $$script;    \
 	done
+
+all: $(bin_SCRIPTS) $(bin_BATCHES)
 
