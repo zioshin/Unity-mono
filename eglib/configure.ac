@@ -48,6 +48,7 @@ CFLAGS="$CFLAGS -g -D_GNU_SOURCE"
 
 AM_CONDITIONAL(CROSS_COMPILING, [test x$cross_compiling = xyes])
 AC_C_BIGENDIAN([ORDER=G_BIG_ENDIAN],[ORDER=G_LITTLE_ENDIAN])
+AC_CHECK_SIZEOF(void *)
 
 platform_darwin=no
 platform_android=no
@@ -158,7 +159,7 @@ AM_CONDITIONAL(NEED_VASPRINTF, test x$have_vasprintf = x )
 if test "x$WANT_ICONV" = "x1"; then
     AM_ICONV()
 fi
-if not test "x$WANT_STRLCPY" = "x0"; then
+if ! test "x$WANT_STRLCPY" = "x0"; then
     AC_CHECK_FUNCS(strlcpy)
 fi
 AC_SEARCH_LIBS(sqrtf, m)
