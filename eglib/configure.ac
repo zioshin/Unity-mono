@@ -92,10 +92,11 @@ case $target in
 arm*-darwin*)
     CFLAGS="$CFLAGS -U_FORTIFY_SOURCE"
     ;;
-i*86-*-darwin*)
+i*86-*-darwin* | x86_64-*-darwin*)
     ORDER=G_LITTLE_ENDIAN
     if test "x$ac_cv_sizeof_void_p" = "x8"; then
         WANT_ICONV=0
+        WANT_STRLCPY=0
     fi
     ;;
 *-*-openbsd*)
@@ -138,7 +139,7 @@ AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(void *)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(long long)
-AC_CHECK_FUNCS(strlcpy stpcpy strtok_r rewinddir vasprintf)
+AC_CHECK_FUNCS(stpcpy strtok_r rewinddir vasprintf)
 
 #
 # Mono currently supports 10.6, but strndup is not available prior to 10.7; avoiding
@@ -156,6 +157,9 @@ fi
 AM_CONDITIONAL(NEED_VASPRINTF, test x$have_vasprintf = x )
 if test "x$WANT_ICONV" = "x1"; then
     AM_ICONV()
+fi
+if not test "x$WANT_STRLCPY" = "x0"; then
+    AC_CHECK_FUNCS(strlcpy)
 fi
 AC_SEARCH_LIBS(sqrtf, m)
 
