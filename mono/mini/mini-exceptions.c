@@ -2231,6 +2231,33 @@ print_stack_frame_to_string (StackFrameInfo *frame, MonoContext *ctx, gpointer d
 
 static gboolean handling_sigsegv = FALSE;
 
+int mono_backtrace_from_context(void* context, void* array[], int count)
+{
+#ifdef MONO_ARCH_HAVE_SIGCTX_TO_MONOCTX
+	MonoContext mctx;
+	void*  ip = 0;
+	void** bp = 0;
+	
+	mono_arch_sigctx_to_monoctx(context, &mctx);
+
+	ip = (void*)MONO_CONTEXT_GET_IP(&mctx);
+	bp = (void**)MONO_CONTEXT_GET_BP(&mctx);
+
+	int idx = 0;
+	while(ip && bp)
+	{	
+		array[idx++] = ip;
+
+		ip = bp[1];
+		bp = (void**)bp[0];
+	}
+
+	return idx;
+#else
+	return 0;
+#endif
+}
+
 /*
  * mono_handle_native_sigsegv:
  *
@@ -2279,7 +2306,12 @@ mono_handle_native_sigsegv (int signal, void *ctx)
 
 	mono_runtime_printf_err ("\nNative stacktrace:\n");
 
+#if __APPLE__
+	/* backtrace on OSX does not seem to work with altstack, use our own */
+	size = mono_backtrace_from_context (ctx, array, 256);
+#else
 	size = backtrace (array, 256);
+#endif
 	names = backtrace_symbols (array, size);
 	for (i =0; i < size; ++i) {
 		mono_runtime_printf_err ("\t%s", names [i]);
