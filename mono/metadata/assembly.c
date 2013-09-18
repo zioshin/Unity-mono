@@ -2517,6 +2517,24 @@ search_binding_loaded (MonoAssemblyName *aname)
 	return NULL;
 }
 
+/* LOCKING: Assumes that we are already locked */
+static void
+unload_binding (MonoAssemblyName *aname)
+{
+	GSList *tmp;
+
+	for (tmp = loaded_assembly_bindings; tmp; tmp = tmp->next) {
+		MonoAssemblyBindingInfo *info = tmp->data;
+		if (assembly_binding_maps_name (info, aname))
+		{
+			loaded_assembly_bindings = g_slist_remove (loaded_assembly_bindings, info);
+			mono_assembly_binding_info_free (info);
+			g_free (info);
+			return;
+		}
+	}
+}
+
 static inline gboolean
 info_compare_versions (AssemblyVersionSet *left, AssemblyVersionSet *right)
 {
@@ -2567,7 +2585,7 @@ assembly_binding_info_parsed (MonoAssemblyBindingInfo *info, void *user_data)
 		info_tmp = tmp->data;
 		if (strcmp (info->name, info_tmp->name) == 0 && info_versions_equal (info, info_tmp))
 			return;
-	}
+		}
 
 	info_copy = mono_mempool_alloc0 (domain->mp, sizeof (MonoAssemblyBindingInfo));
 	memcpy (info_copy, info, sizeof (MonoAssemblyBindingInfo));
@@ -2577,7 +2595,7 @@ assembly_binding_info_parsed (MonoAssemblyBindingInfo *info, void *user_data)
 		info_copy->culture = mono_mempool_strdup (domain->mp, info->culture);
 
 	domain->assembly_bindings = g_slist_append_mempool (domain->mp, domain->assembly_bindings, info_copy);
-}
+	}
 
 static int
 get_version_number (int major, int minor)
@@ -3053,6 +3071,7 @@ mono_assembly_close_except_image_pools (MonoAssembly *assembly)
 
 	mono_assemblies_lock ();
 	loaded_assemblies = g_list_remove (loaded_assemblies, assembly);
+	unload_binding (&assembly->aname);
 	mono_assemblies_unlock ();
 
 	assembly->image->assembly = NULL;
