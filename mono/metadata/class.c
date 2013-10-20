@@ -7606,7 +7606,9 @@ mono_class_is_subclass_of (MonoClass *klass, MonoClass *klassc,
 			   gboolean check_interfaces)
 {
 /*FIXME test for interfaces with variant generic arguments*/
-	
+	if (!klass->inited)
+		mono_class_init(klass);
+
 	if (check_interfaces && MONO_CLASS_IS_INTERFACE (klassc) && !MONO_CLASS_IS_INTERFACE (klass)) {
 		if (MONO_CLASS_IMPLEMENTS_INTERFACE (klass, klassc->interface_id))
 			return TRUE;
