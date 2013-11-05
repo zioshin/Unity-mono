@@ -372,11 +372,7 @@ boehm_thread_register (MonoThreadInfo* info, void *baseptr)
 gboolean
 mono_gc_unregister_thread (MonoThread *thread)
 {
-#if defined(HOST_WIN32)
 	return GC_thread_unregister_foreign ();
-#else
-	return TRUE;
-#endif
 }
 
 static void
