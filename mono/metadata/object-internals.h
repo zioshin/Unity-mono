@@ -444,6 +444,8 @@ struct _MonoInternalThread {
 	 */
 	gpointer unused1;
 	gpointer unused2;
+	MonoObject *threadstart;
+	MonoObject* principal;
 };
 
 struct _MonoThread {

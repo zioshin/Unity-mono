@@ -8,6 +8,8 @@
 #include <mono/metadata/metadata.h>
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/class-internals.h>
+#include <mono/metadata/object-internals.h>
+#include <mono/metadata/threads.h>
 
 #include <glib.h>
 
@@ -118,3 +120,14 @@ mono_unity_class_is_abstract (MonoClass* klass)
 {
 	return (klass->flags & TYPE_ATTRIBUTE_ABSTRACT);
 }
+
+void mono_unity_thread_clear_domain_fields (void)
+{
+	/*
+	 we need to clear fields that may reference objects living in non-root appdomain
+	 since the objects will live but their vtables will be destroyed when domain is torn down.
+	 */
+	MonoThread* thread = mono_thread_current ();
+	thread->internal_thread->principal = NULL;
+}
+
