@@ -9,6 +9,7 @@ CECIL = $(topdir)/class/lib/net_2_0/Mono.Cecil.dll
 RESOURCES = \
 	Descriptors/mscorlib.xml	\
 	Descriptors/System.xml		\
+	Descriptors/System.Core.xml		\
 	Descriptors/System.Drawing.xml	\
 	Descriptors/System.Web.xml		\
 	Descriptors/Mono.Posix.xml		\
