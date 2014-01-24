@@ -211,8 +211,10 @@ sub PackageSecurityAttributeInjectionTools
 }
 
 my $monoprefixUnity = "$monoprefix/lib/mono/unity";
+my $monoprefixUnityAOT = "$monoprefix/lib/mono/unity_aot";
 my $monodistroLibMono = "$monodistro/lib/mono";
 my $monodistroUnity = "$monodistroLibMono/unity";
+my $monodistroUnityAOT = "$monodistroLibMono/unity_aot";
 my $monoprefixUnityWeb = "$monoprefix/lib/mono/unity_web";
 my $monodistroUnityWeb = "$monodistro/lib/mono/unity_web";
 
@@ -385,7 +387,7 @@ if ($unity)
 
 if ($unityaot)
 {
-	CopyProfileAssembliesToPrefix("unity_aot", "unity_aot", $monoprefix);
+	CopyAssemblies($monoprefixUnityAOT,$monodistroUnityAOT);
 }
 
 #Overlaying files
