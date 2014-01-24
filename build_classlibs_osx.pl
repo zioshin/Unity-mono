@@ -121,7 +121,7 @@ dircopy("$monoprefix/lib/mono/2.0","$libmono/2.0");
 if ($unityaot)
 {
 	mkpath("$libmono/unity_aot");
-	dircopy("$monoprefix/lib/mono/unity_aot","$libmono/unity_aot");
+	dircopy("$root/mcs/class/lib/unity_aot","$libmono/unity_aot");
 }
 
 mkpath("$libmono/micro");
