@@ -4,7 +4,7 @@ include ../../build/rules.make
 
 LIBRARY = System.Web.Services.dll
 
-MONOTOUCH_BASED_PROFILE := $(filter monotouch unity, $(PROFILE))
+MONOTOUCH_BASED_PROFILE := $(filter monotouch unity unity_aot, $(PROFILE))
 ifdef MONOTOUCH_BASED_PROFILE
 LIB_MCS_FLAGS = \
 	-nowarn:649 -nowarn:169			\

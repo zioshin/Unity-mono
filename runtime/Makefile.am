@@ -49,6 +49,10 @@ if INSTALL_UNITY
 build_profiles += unity
 endif
 
+if INSTALL_UNITY_AOT
+build_profiles += unity_aot
+endif
+
 if BUILD_MCS
 
 # The write check is to foil 'make distcheck'

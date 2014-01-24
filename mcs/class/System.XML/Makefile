@@ -18,7 +18,7 @@ ifeq (net_2_0, $(PROFILE))
 BOOTSTRAP_MCS = MONO_PATH="$(topdir)/class/lib/net_2_0$(PLATFORM_PATH_SEPARATOR)$(topdir)/class/lib/net_2_0_bootstrap$(PLATFORM_PATH_SEPARATOR)$$MONO_PATH" $(INTERNAL_GMCS)
 endif
 
-MONOTOUCH_BASED_PROFILE := $(filter monotouch unity, $(PROFILE))
+MONOTOUCH_BASED_PROFILE := $(filter monotouch unity unity_aot, $(PROFILE))
 ifdef MONOTOUCH_BASED_PROFILE
 BOOTSTRAP_MCS = MONO_PATH="$(topdir)/class/lib/$(PROFILE)$(PLATFORM_PATH_SEPARATOR)$(PLATFORM_PATH_SEPARATOR)$$MONO_PATH" $(INTERNAL_SMCS)
 endif

@@ -18,6 +18,8 @@ net_4_0_SUBDIRS := build mcs class nunit24 ilasm tools tests errors
 unity_SUBDIRS := build mcs class
 unity_bootstrap_SUBDIRS := build mcs class
 
+unity_aot_SUBDIRS := build mcs class
+unity_aot_bootstrap_SUBDIRS := build mcs class
 
 # List of test subdirs that should pass 100%
 centum_tests := \
@@ -123,6 +125,8 @@ $(_boot_:%=profile-do--net_1_1_bootstrap--%): profile-do--net_1_1_bootstrap--%: 
 $(_boot_:%=profile-do--unity--%):         profile-do--unity--%:         profile-do--unity_bootstrap--%
 $(_boot_:%=profile-do--unity_bootstrap--%): profile-do--unity_bootstrap--%: profile-do--net_2_0--%
 
+$(_boot_:%=profile-do--unity_aot--%):         profile-do--unity_aot--%:         profile-do--unity_aot_bootstrap--%
+$(_boot_:%=profile-do--unity_aot_bootstrap--%): profile-do--unity_aot_bootstrap--%: profile-do--net_2_0--%
 
 testcorlib:
 	@cd class/corlib && $(MAKE) test run-test

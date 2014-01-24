@@ -142,6 +142,12 @@ net_2_1_dirs := \
 	System.ServiceModel	\
 	System.ServiceModel.Web
 
+unity_aot_dirs := \
+	corlib	\
+	Mono.CompilerServices.SymbolWriter	\
+	System	\
+	System.Core
+
 monotouch_dirs := \
 	corlib	\
 	Mono.CompilerServices.SymbolWriter	\
@@ -188,6 +194,9 @@ net_4_0_SUBDIRS := $(common_dirs) $(net_2_0_dirs) $(net_4_0_dirs)
 
 unity_bootstrap_SUBDIRS := $(monotouch_bootstrap_SUBDIRS)
 unity_SUBDIRS := $(monotouch_SUBDIRS)
+
+unity_aot_bootstrap_SUBDIRS := $(monotouch_bootstrap_SUBDIRS)
+unity_aot_SUBDIRS := $(unity_aot_dirs)
 
 include ../build/rules.make
 

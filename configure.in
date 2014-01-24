@@ -2528,6 +2528,7 @@ AC_ARG_WITH(profile4,  [  --with-profile4=yes,no          If you want to install
 AC_ARG_WITH(moonlight, [  --with-moonlight=yes,no         If you want to build the Moonlight 2.1 assemblies (defaults to yes)], [], [with_moonlight=yes])
 AC_ARG_WITH(monotouch, [  --with-monotouch=yes,no         If you want to build the raw MonoTouch 2.1 assemblies (defaults to no)], [], [with_monotouch=no])
 AC_ARG_WITH(unity, [  --with-unity=yes,no         If you want to build the Unity profile based on MonoTouch 2.1 assemblies (defaults to yes)], [], [with_unity=yes])
+AC_ARG_WITH(unity-aot, [  --with-unity-aot=yes,no         If you want to build the Unity AOT profile based on MonoTouch 2.1 assemblies (defaults to yes)], [], [with_unity=yes])
 
 OPROFILE=no
 AC_ARG_WITH(oprofile,[  --with-oprofile=no,<oprofile install dir>   Enable oprofile support (defaults to no)],[
@@ -2585,6 +2586,7 @@ AM_CONDITIONAL(INSTALL_2_1, [test "x$with_moonlight" = xyes])
 AM_CONDITIONAL(INSTALL_4_0, [test "x$with_profile4" = xyes])
 AM_CONDITIONAL(INSTALL_MONOTOUCH, [test "x$with_monotouch" = xyes])
 AM_CONDITIONAL(INSTALL_UNITY, [test "x$with_unity" = xyes])
+AM_CONDITIONAL(INSTALL_UNITY_AOT, [test "x$with_unity_aot" = xyes])
 
 AM_CONDITIONAL(MIPS_GCC, test ${TARGET}${ac_cv_prog_gcc} = MIPSyes)
 AM_CONDITIONAL(MIPS_SGI, test ${TARGET}${ac_cv_prog_gcc} = MIPSno)
@@ -2922,6 +2924,7 @@ echo "
 	4.0 Alpha:     $with_profile4
 	MonoTouch:     $with_monotouch
 	Unity Web:     $with_unity
+	Unity AOT:     $with_unity_aot
 	JNI support:   $jdk_headers_found
 	libgdiplus:    $libgdiplus_msg
 	zlib:          $zlib_msg

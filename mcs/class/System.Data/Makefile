@@ -31,7 +31,7 @@ LIB_MCS_FLAGS +=	\
 	-r:J2SE.Helpers.dll			\
 	$(OTHER_LIB_MCS_FLAGS)
 else 
-MONOTOUCH_BASED_PROFILE := $(filter monotouch unity, $(PROFILE))
+MONOTOUCH_BASED_PROFILE := $(filter monotouch unity unity_aot, $(PROFILE))
 ifdef MONOTOUCH_BASED_PROFILE
 LIB_MCS_FLAGS += \
 	-r:Mono.Data.Tds.dll \
