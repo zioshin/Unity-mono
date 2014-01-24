@@ -117,6 +117,13 @@ $File::Copy::Recursive::CopyLink = 0;  #make sure we copy files as files and not
 mkpath("$libmono/2.0");
 dircopy("$monoprefix/lib/mono/2.0","$libmono/2.0");
 # system("rm $libmono/2.0/*.mdb");
+
+if ($unityaot)
+{
+	mkpath("$libmono/unity_aot");
+	dircopy("$monoprefix/lib/mono/unity_aot","$libmono/unity_aot");
+}
+
 mkpath("$libmono/micro");
 system("cp $root/mcs/class/lib/monotouch/mscorlib.dll $libmono/micro") eq 0 or die("Failed to copy micro corlib");
 system("cp $monoprefix/lib/mono/gac/Mono.Cecil/*/Mono.Cecil.dll $libmono/2.0") eq 0 or die("failed to copy Mono.Cecil.dll");
@@ -211,10 +218,8 @@ sub PackageSecurityAttributeInjectionTools
 }
 
 my $monoprefixUnity = "$monoprefix/lib/mono/unity";
-my $monoprefixUnityAOT = "$monoprefix/lib/mono/unity_aot";
 my $monodistroLibMono = "$monodistro/lib/mono";
 my $monodistroUnity = "$monodistroLibMono/unity";
-my $monodistroUnityAOT = "$monodistroLibMono/unity_aot";
 my $monoprefixUnityWeb = "$monoprefix/lib/mono/unity_web";
 my $monodistroUnityWeb = "$monodistro/lib/mono/unity_web";
 
@@ -383,11 +388,6 @@ if ($unity)
 
 	RunLinker();
 	RunSecurityInjection();
-}
-
-if ($unityaot)
-{
-	CopyAssemblies($monoprefixUnityAOT,$monodistroUnityAOT);
 }
 
 #Overlaying files
