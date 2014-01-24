@@ -42,6 +42,7 @@ if ($ENV{UNITY_THISISABUILDMACHINE}) {
 }
 
 my $unity=1;
+my $unityaot=1;
 my $monotouch=1;
 my $injectSecurityAttributes=0;
 
@@ -51,6 +52,7 @@ GetOptions(
    "skipbuild=i"=>\$skipbuild,
    "cleanbuild=i"=>\$cleanbuild,
    "unity=i"=>\$unity,
+   "unityaot=i"=>\$unityaot,
    "injectsecurityattributes=i"=>\$injectSecurityAttributes,
    "monotouch=i"=>\$monotouch,
 ) or die ("illegal cmdline options");
@@ -83,6 +85,7 @@ if (not $skipbuild)
 	{
 		my $withMonotouch = $monotouch ? "yes" : "no";
 		my $withUnity = $unity ? "yes" : "no";
+		my $withUnityAOT = $unityaot ? "yes" : "no";
 		
 		chdir("$root/eglib") eq 1 or die("failed to chdir 3");
 		print(">>>Calling autoreconf in eglib\n");
@@ -91,7 +94,7 @@ if (not $skipbuild)
 		print(">>>Calling autoreconf in mono\n");
 		system("autoreconf -i");
 		print(">>>Calling configure in mono\n");
-		system("./configure","--prefix=$monoprefix","--with-monotouch=$withMonotouch","-with-unity=$withUnity", "--with-glib=embedded","--with-mcs-docs=no","--with-macversion=10.5", "--disable-nls") eq 0 or die ("failing autogenning mono");
+		system("./configure","--prefix=$monoprefix","--with-monotouch=$withMonotouch","-with-unity=$withUnity","-with-unity-aot=$withUnityAOT", "--with-glib=embedded","--with-mcs-docs=no","--with-macversion=10.5", "--disable-nls") eq 0 or die ("failing autogenning mono");
 		print("calling make clean in mono\n");
 		system("make","clean");
 	}
@@ -378,6 +381,11 @@ if ($unity)
 
 	RunLinker();
 	RunSecurityInjection();
+}
+
+if ($unityaot)
+{
+	CopyProfileAssembliesToPrefix("unity_aot", "unity_aot", $monoprefix);
 }
 
 #Overlaying files
