@@ -32,7 +32,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Collections;
@@ -677,7 +677,7 @@ namespace System {
 
 			if (Equals (c))
 				return true;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if (c is TypeBuilder)
 				return ((TypeBuilder)c).IsAssignableTo (this);
 #endif
@@ -1219,7 +1219,9 @@ namespace System {
 				Type t = typeArguments [i];
 				if (t == null)
 					throw new ArgumentNullException ("typeArguments");
+#if !DISABLE_REFLECTION_EMIT
 				if (!(t is EnumBuilder || t is TypeBuilder))
+#endif // !DISABLE_REFLECTION_EMIT
 					t = t.UnderlyingSystemType;
 				if (t == null || !t.IsSystemType)
 					throw new ArgumentNullException ("typeArguments");

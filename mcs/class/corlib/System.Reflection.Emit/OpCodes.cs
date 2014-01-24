@@ -1,3 +1,4 @@
+#if !DISABLE_REFLECTION_EMIT
 using System.Runtime.InteropServices;
 
 namespace System.Reflection.Emit {
@@ -935,3 +936,4 @@ namespace System.Reflection.Emit {
                }
 	}
 }
+#endif

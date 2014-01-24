@@ -30,8 +30,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_COM
 using System.Reflection;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 
@@ -45,10 +46,11 @@ namespace System.Runtime.InteropServices {
 	public interface ITypeLibConverter {
 		[return: MarshalAs(UnmanagedType.Interface)]
 		object ConvertAssemblyToTypeLib (Assembly assembly, string typeLibName, TypeLibExporterFlags flags, ITypeLibExporterNotifySink notifySink);
-		#if !MICRO_LIB
+		#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		AssemblyBuilder ConvertTypeLibToAssembly ([MarshalAs(UnmanagedType.Interface)] object typeLib, string asmFileName, int flags, ITypeLibImporterNotifySink notifySink, byte[] publicKey, StrongNameKeyPair keyPair, bool unsafeInterfaces);
 		AssemblyBuilder ConvertTypeLibToAssembly ([MarshalAs(UnmanagedType.Interface)] object typeLib, string asmFileName, TypeLibImporterFlags flags, ITypeLibImporterNotifySink notifySink, byte[] publicKey, StrongNameKeyPair keyPair, string asmNamespace, Version asmVersion);
 		#endif
 		bool GetPrimaryInteropAssembly (Guid g, int major, int minor, int lcid, out string asmName, out string asmCodeBase);
 	}
 }
+#endif

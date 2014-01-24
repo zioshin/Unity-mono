@@ -30,7 +30,7 @@
 //
 
 using System.Reflection;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Runtime.CompilerServices;

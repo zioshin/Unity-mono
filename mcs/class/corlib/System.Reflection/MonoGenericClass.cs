@@ -32,7 +32,7 @@
 //
 
 using System.Reflection;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Collections;
@@ -41,7 +41,7 @@ using System.Globalization;
 using System.Runtime.Serialization;
 using System.Text;
 
-#if (NET_2_0 || BOOTSTRAP_NET_2_0) && !MICRO_LIB
+#if (NET_2_0 || BOOTSTRAP_NET_2_0) && !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 
 namespace System.Reflection
 {

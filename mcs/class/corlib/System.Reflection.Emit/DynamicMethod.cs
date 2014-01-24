@@ -31,6 +31,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_REFLECTION_EMIT
 #if NET_2_0 || BOOTSTRAP_NET_2_0
 
 using System;
@@ -440,4 +441,5 @@ namespace System.Reflection.Emit {
 	}
 }
 
+#endif
 #endif

@@ -26,6 +26,7 @@
 // Copyright (C) 2004 Novell, Inc (http://www.novell.com)
 //
 
+#if !DISABLE_REFLECTION_EMIT
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -158,3 +159,4 @@ namespace System.Reflection.Emit {
 #endif
 	}
 } 
+#endif

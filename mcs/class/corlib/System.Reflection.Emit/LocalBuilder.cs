@@ -33,6 +33,7 @@
 // (C) 2001, 2002 Ximian, Inc.  http://www.ximian.com
 //
 
+#if !DISABLE_REFLECTION_EMIT
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -153,3 +154,4 @@ namespace System.Reflection.Emit {
 		}
 	}
 }
+#endif

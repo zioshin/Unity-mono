@@ -28,6 +28,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_COM
 using System;
 using System.Collections;
 using System.Reflection;
@@ -149,3 +150,4 @@ namespace Mono.Interop
 		}
 	}
 }
+#endif

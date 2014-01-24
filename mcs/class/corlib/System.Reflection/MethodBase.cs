@@ -29,7 +29,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Runtime.CompilerServices;
@@ -195,7 +195,7 @@ namespace System.Reflection {
 		}
 
 		internal virtual int get_next_table_index (object obj, int table, bool inc) {
-			#if !MICRO_LIB
+			#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if (this is MethodBuilder) {
 				MethodBuilder mb = (MethodBuilder)this;
 				return mb.get_next_table_index (obj, table, inc);

@@ -36,7 +36,7 @@ using System.Collections;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Threading;
@@ -455,7 +455,7 @@ namespace System {
 		}
 
 #endif // !NET_2_1
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		public AssemblyBuilder DefineDynamicAssembly (AssemblyName name, AssemblyBuilderAccess access)
 		{
 			return DefineDynamicAssembly (name, access, null, null, null, null, null, false);
@@ -1321,7 +1321,7 @@ namespace System {
 				return null;
 
 			string name;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if (name_or_tb is TypeBuilder)
 				name = ((TypeBuilder) name_or_tb).FullName;
 			else

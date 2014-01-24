@@ -28,6 +28,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_REFLECTION_EMIT
 using System;
 using System.IO;
 using System.Collections;
@@ -402,4 +403,4 @@ namespace System.Runtime.Serialization.Formatters.Binary
 		}
 	}
  }
- 
+#endif 

@@ -437,7 +437,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
 		
 		TypeMetadata CreateMemberTypeMetadata (Type type)
 		{
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if (!BinaryCommon.UseReflectionSerialization) {
 				Type metaType = CodeGenerator.GenerateMetadataType (type, _context);
 				return (TypeMetadata) Activator.CreateInstance (metaType);

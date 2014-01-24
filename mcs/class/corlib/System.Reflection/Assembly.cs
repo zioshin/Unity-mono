@@ -33,7 +33,7 @@ using System.Security.Policy;
 using System.Security.Permissions;
 #endif
 using System.Runtime.Serialization;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection;
 using System.Reflection.Emit;
 #endif

@@ -1,3 +1,4 @@
+#if !DISABLE_REFLECTION_EMIT
 namespace System.Reflection.Emit {
 	internal class OpCodeNames {
 		internal static readonly string [] names = {
@@ -308,3 +309,4 @@ namespace System.Reflection.Emit {
 		};
 	}
 }
+#endif

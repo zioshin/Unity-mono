@@ -32,7 +32,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Security;
@@ -92,7 +92,7 @@ namespace System.Reflection {
 		{
 			return get_parameter_info (handle, member);
 		}
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		static extern UnmanagedMarshal get_retval_marshal (IntPtr handle);
 		
@@ -134,7 +134,7 @@ namespace System.Reflection {
 			return get_base_definition (this);
 		}
 
-#if (NET_2_0 || BOOTSTRAP_NET_2_0) && !MICRO_LIB
+#if (NET_2_0 || BOOTSTRAP_NET_2_0) && !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		public override ParameterInfo ReturnParameter {
 			get {
 				return MonoMethodInfo.GetReturnParameterInfo (this);
@@ -149,7 +149,7 @@ namespace System.Reflection {
 		}
 		public override ICustomAttributeProvider ReturnTypeCustomAttributes { 
 			get {
-				#if !MICRO_LIB
+				#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 				return MonoMethodInfo.GetReturnParameterInfo (this);
 				#else
 				return new ParameterInfo (ReturnType, this);

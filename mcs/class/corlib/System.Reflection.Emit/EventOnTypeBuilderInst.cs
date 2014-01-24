@@ -27,6 +27,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_REFLECTION_EMIT
 using System;
 using System.Collections;
 using System.Globalization;
@@ -121,4 +122,5 @@ namespace System.Reflection.Emit
 	}
 }
 
+#endif
 #endif

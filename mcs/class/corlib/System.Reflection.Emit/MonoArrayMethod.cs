@@ -31,6 +31,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_REFLECTION_EMIT
 using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -139,3 +140,4 @@ namespace System.Reflection {
 		}
 	}
 }
+#endif

@@ -28,6 +28,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_COM
 using System;
 
 namespace System.Runtime.InteropServices
@@ -51,3 +52,4 @@ namespace System.Runtime.InteropServices
 		}
 	}
 }
+#endif

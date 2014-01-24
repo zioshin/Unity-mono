@@ -28,9 +28,10 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !DISABLE_COM
 using System;
 using System.Reflection;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 
@@ -55,7 +56,7 @@ namespace System.Runtime.InteropServices
 		{
 			throw new NotImplementedException ();
 		}
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		[MonoTODO ("implement")]
 		public AssemblyBuilder ConvertTypeLibToAssembly ([MarshalAs(UnmanagedType.Interface)] object typeLib, string asmFileName, int flags, ITypeLibImporterNotifySink notifySink, byte[] publicKey, StrongNameKeyPair keyPair, bool unsafeInterfaces)
 		{
@@ -75,3 +76,4 @@ namespace System.Runtime.InteropServices
 		}	
 	}
 }
+#endif

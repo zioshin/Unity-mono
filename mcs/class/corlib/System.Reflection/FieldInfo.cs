@@ -27,7 +27,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System.Diagnostics;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Globalization;
@@ -201,7 +201,7 @@ namespace System.Reflection {
 		{
 			throw new NotImplementedException ();
 		}
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern UnmanagedMarshal GetUnmanagedMarshal ();
 
@@ -221,7 +221,7 @@ namespace System.Reflection {
 
 			if (DeclaringType.IsExplicitLayout)
 				count ++;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			UnmanagedMarshal marshalAs = UMarshal;
 			if (marshalAs != null)
 				count ++;
@@ -235,7 +235,7 @@ namespace System.Reflection {
 				attrs [count ++] = new NonSerializedAttribute ();
 			if (DeclaringType.IsExplicitLayout)
 				attrs [count ++] = new FieldOffsetAttribute (GetFieldOffset ());
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if (marshalAs != null)
 				attrs [count ++] = marshalAs.ToMarshalAsAttribute ();
 #endif			

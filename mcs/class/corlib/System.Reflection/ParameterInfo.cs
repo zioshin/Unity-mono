@@ -25,7 +25,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Runtime.CompilerServices;
@@ -47,14 +47,14 @@ namespace System.Reflection
 		protected string NameImpl;
 		protected int PositionImpl;
 		protected ParameterAttributes AttrsImpl;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		private UnmanagedMarshal marshalAs;
 #endif
 		//ParameterInfo parent;
 
 		protected ParameterInfo () {
 		}
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		internal ParameterInfo (ParameterBuilder pb, Type type, MemberInfo member, int position) {
 			this.ClassImpl = type;
 			this.MemberImpl = member;
@@ -79,7 +79,7 @@ namespace System.Reflection
 			//this.parent = pinfo;
 		}
 
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		/* to build a ParameterInfo for the return type of a method */
 		internal ParameterInfo (Type type, MemberInfo member, UnmanagedMarshal marshalAs) {
 			this.ClassImpl = type;
@@ -250,7 +250,7 @@ namespace System.Reflection
 				count ++;
 			if (IsOptional)
 				count ++;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if (marshalAs != null)
 				count ++;
 #endif
@@ -265,7 +265,7 @@ namespace System.Reflection
 				attrs [count ++] = new OptionalAttribute ();
 			if (IsOut)
 				attrs [count ++] = new OutAttribute ();
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if (marshalAs != null)
 				attrs [count ++] = marshalAs.ToMarshalAsAttribute ();
 #endif

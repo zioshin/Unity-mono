@@ -33,7 +33,7 @@ using System.Security.Policy;
 using System.Security.Principal;
 #endif
 using System.Reflection;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 using System.Globalization;
@@ -99,7 +99,7 @@ namespace System
 			object[] activationAttributes, object securityAttributes);
 		#endif
 
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 		AssemblyBuilder DefineDynamicAssembly (AssemblyName name, AssemblyBuilderAccess access);
 		AssemblyBuilder DefineDynamicAssembly (AssemblyName name, AssemblyBuilderAccess access, Evidence evidence);
 		AssemblyBuilder DefineDynamicAssembly (AssemblyName name, AssemblyBuilderAccess access, string dir);

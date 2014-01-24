@@ -35,7 +35,7 @@ using System;
 using System.Reflection;
 using System.Collections;
 using System.Runtime.CompilerServices;
-#if !MICRO_LIB
+#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 using System.Reflection.Emit;
 #endif
 
@@ -53,7 +53,7 @@ namespace System
 		static bool IsUserCattrProvider (object obj)
 		{
 			Type type = obj as Type;
-			#if !MICRO_LIB
+			#if !MICRO_LIB && !DISABLE_REFLECTION_EMIT
 			if ((type is MonoType) || (type is TypeBuilder))
 			#else
 			if (type is MonoType)

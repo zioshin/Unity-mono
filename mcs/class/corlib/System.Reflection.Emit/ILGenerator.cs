@@ -31,6 +31,7 @@
 // (C) 2001 Ximian, Inc.  http://www.ximian.com
 //
 
+#if !DISABLE_REFLECTION_EMIT
 using System;
 using System.Collections;
 using System.Diagnostics.SymbolStore;
@@ -1157,3 +1158,4 @@ namespace System.Reflection.Emit {
 		public int EndCol;
 	}
 }
+#endif
