@@ -1968,6 +1968,9 @@ mono_class_layout_fields (MonoClass *class)
 		break;
 	}
 
+#if !defined(__x86_64__) /* Disable for x86_64 to stay compatible with default ABI layouting rules.  We keep
+						    natural alignment for structs which is enough to not generate alignment errors on
+							things like pointers and such. */
 	if (layout != TYPE_ATTRIBUTE_EXPLICIT_LAYOUT) {
 		/*
 		 * For small structs, set min_align to at least the struct size to improve
@@ -1977,6 +1980,7 @@ mono_class_layout_fields (MonoClass *class)
 		if (class->instance_size <= sizeof (MonoObject) + sizeof (gpointer))
 			class->min_align = MAX (class->min_align, class->instance_size - sizeof (MonoObject));
 	}
+#endif
 
 	mono_memory_barrier ();
 	class->size_inited = 1;
