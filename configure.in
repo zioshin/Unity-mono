@@ -244,6 +244,7 @@ case "$host" in
 		libdl="-ldl"
 		libgc_threads=pthreads
 		use_sigposix=yes
+		with_sigaltstack=no
 		if test "x$cross_compiling" != "xno"; then
                 	# to bypass the underscore linker check, not
                 	# available during cross-compilation
@@ -316,6 +317,7 @@ case "$host" in
 		libdl=
 		libgc_threads=pthreads
 		has_dtrace=yes
+		with_sigaltstack=no
 		if test "x$cross_compiling" = "xyes"; then
 			has_broken_apple_cpp=yes
 		fi
@@ -714,7 +716,8 @@ AC_ARG_WITH(tls, [  --with-tls=__thread,pthread    select Thread Local Storage i
 
 # Enable support for using sigaltstack for SIGSEGV and stack overflow handling
 # This does not work on some platforms (bug #55253)
-AC_ARG_WITH(sigaltstack, [  --with-sigaltstack=yes,no      enable/disable support for sigaltstack (defaults to yes)],[],[with_sigaltstack=yes])
+# Unity: disabled because it doesn't work nicely when threads have small stacks (e.g. 48k for FMOD threads)
+AC_ARG_WITH(sigaltstack, [  --with-sigaltstack=yes,no      enable/disable support for sigaltstack (defaults to no)],[],[with_sigaltstack=no])
 
 AC_ARG_WITH(static_mono, [  --with-static_mono=yes,no      link mono statically to libmono (faster) (defaults to yes)],[],[with_static_mono=yes])
 AC_ARG_WITH(shared_mono, [  --with-shared_mono=yes,no      build a shared libmono library (defaults to yes)],[],[with_shared_mono=yes])
@@ -2594,10 +2597,10 @@ case "$host" in
 		TARGET=AMD64;
 		arch_target=amd64;
 		JIT_SUPPORTED=yes
-		if test "x$ac_cv_sizeof_void_p" = "x4"; then
+			if test "x$ac_cv_sizeof_void_p" = "x4"; then
 			AC_DEFINE(__mono_ilp32__, 1, [64 bit mode with 4 byte longs and pointers])
 			sizeof_register=8
-		fi
+			fi
 		case $host_os in
 		  linux*)
 			sgen_supported=true
@@ -2611,7 +2614,7 @@ case "$host" in
 			x86_64-*-nacl*)
 				AC_DEFINE(__mono_ilp32__, 1, [64 bit mode with 4 byte longs and pointers])
 				sizeof_register=8
-				;;
+			;;
 		esac
 		;;
 	ia64-*-*)
