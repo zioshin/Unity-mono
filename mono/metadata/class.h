@@ -201,6 +201,12 @@ mono_class_is_delegate       (MonoClass* klass);
 MONO_API mono_bool
 mono_class_implements_interface (MonoClass* klass, MonoClass* iface);
 
+void*
+mono_class_get_userdata      (MonoClass* klass);
+
+void
+mono_class_set_userdata      (MonoClass* klass, void* userdata);
+
 /* MonoClassField accessors */
 MONO_API const char*
 mono_field_get_name   (MonoClassField *field);

@@ -405,6 +405,8 @@ struct _MonoClass {
 
 	/* Rarely used fields of classes */
 	MonoClassExt *ext;
+
+	void *user_data;
 };
 
 #ifdef COMPRESSED_INTERFACE_BITMAP

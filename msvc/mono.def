@@ -197,6 +197,8 @@ mono_class_get_rank
 mono_class_get_type
 mono_class_get_type_token
 mono_class_get_variant_class
+mono_class_get_userdata
+mono_class_set_userdata
 mono_class_implements_interface
 mono_class_inflate_generic_method
 mono_class_inflate_generic_type
