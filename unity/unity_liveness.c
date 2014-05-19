@@ -11,6 +11,11 @@ void mono_unity_liveness_calculation_end (void);
 GPtrArray* mono_unity_liveness_calculation_from_root (MonoObject* root, MonoClass* filter);
 GPtrArray* mono_unity_liveness_calculation_from_statics (MonoClass* filter);
 
+#ifdef HAVE_BOEHM_GC
+void GC_start_world (void);
+void GC_stop_world (void);
+#endif
+
 /* TODO: Endian safe */
 #define MARK_OBJ(obj) \
 	do { \
@@ -83,7 +88,6 @@ static void mono_traverse_array (MonoArray* array, GQueue* queue, MonoClass* fil
 	}
 
 	g_ptr_array_add (objects, object);
-
 	MARK_OBJ(object);
 
 }
@@ -121,7 +125,7 @@ static void mono_traverse_object (MonoObject* object, GQueue* queue, MonoClass* 
 
 				mono_field_get_value (object, field, &val);
 
-				if (val && !IS_MARKED(object))
+				if (val && !IS_MARKED(val))
 				{
 					g_queue_push_tail (queue, val);
 				}
@@ -134,6 +138,30 @@ static void mono_traverse_object (MonoObject* object, GQueue* queue, MonoClass* 
 	MARK_OBJ(object);
 }
 
+static void mono_traverse_gc_desc (MonoObject* object, GQueue* queue, MonoClass* filter, GPtrArray* objects)
+{
+	int i = 0;
+	int mask = 0;
+	mask = (int)object->vtable->gc_descr;
+
+	g_assert (mask & 1);
+
+	for (i = 0; i < 30; i++)
+	{
+		int offset = (1 << (31-i));
+		if (mask & offset)
+		{
+			MonoObject* val = *(MonoObject**)(((char*)object) + i * sizeof(void*));
+			if (val && !IS_MARKED(val))
+			{
+				g_queue_push_tail (queue, val);
+			}
+		}
+	}
+	g_ptr_array_add (objects, object);
+	MARK_OBJ(object);
+}
+
 static void mono_traverse_objects (GQueue* queue, MonoClass* filter, GPtrArray* objects)
 {
 	int i = 0;
@@ -142,12 +170,20 @@ static void mono_traverse_objects (GQueue* queue, MonoClass* filter, GPtrArray* 
 
 	while (object = g_queue_pop_head (queue))
 	{
+		int gc_desc = 0;
 		if (IS_MARKED(object))
 			continue;
-		if (mono_object_class(object)->rank)
+
+		gc_desc = (int)object->vtable->gc_descr;
+
+		if (gc_desc & 1)
+			mono_traverse_gc_desc (object, queue, filter, all_objects);
+		else if (mono_object_class(object)->rank)
 			mono_traverse_array (object, queue, filter, all_objects);
-		else if (0)
-			;
+		else if (mono_defaults.string_class == mono_object_class (object))
+			continue;
+		else if (!mono_object_class (object)->has_references)
+			continue;
 		else
 			mono_traverse_object (object, queue, filter, all_objects);
 	}
@@ -231,6 +267,8 @@ gpointer mono_unity_liveness_calculation_from_statics_managed(gpointer filter_ha
 	MonoClass* filter = NULL;
 	GPtrArray* objects = NULL;
 
+	mono_unity_liveness_calculation_begin ();
+
 	if (filter_type)
 		filter = mono_class_from_mono_type (filter_type->type);
 	
@@ -243,6 +281,8 @@ gpointer mono_unity_liveness_calculation_from_statics_managed(gpointer filter_ha
 	}
 
 	g_ptr_array_free (objects, TRUE);
+
+	mono_unity_liveness_calculation_end ();
 
 	return mono_gchandle_new (res, FALSE);
 
@@ -282,6 +322,8 @@ gpointer mono_unity_liveness_calculation_from_root_managed(gpointer root_handle,
 	MonoClass* filter = NULL;
 	GPtrArray* objects = NULL;
 
+	mono_unity_liveness_calculation_begin ();
+
 	if (filter_type)
 		filter = mono_class_from_mono_type (filter_type->type);
 	
@@ -295,5 +337,26 @@ gpointer mono_unity_liveness_calculation_from_root_managed(gpointer root_handle,
 
 	g_ptr_array_free (objects, TRUE);
 
+	mono_unity_liveness_calculation_end ();
+
 	return mono_gchandle_new (res, FALSE);
+}
+
+
+void mono_unity_liveness_calculation_begin (void)
+{
+#ifdef HAVE_BOEHM_GC
+	GC_stop_world ();
+#else
+	g_assert_not_reached ();
+#endif
+}
+
+void mono_unity_liveness_calculation_end (void)
+{
+#ifdef HAVE_BOEHM_GC
+	GC_start_world ();
+#else
+	g_assert_not_reached ();
+#endif
 }
