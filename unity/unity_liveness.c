@@ -211,22 +211,29 @@ static void mono_traverse_array (MonoArray* array, LivenessState* state)
 
 }
 
-static void mono_traverse_object (MonoObject* object, LivenessState* state)
+static void mono_traverse_object_internal (MonoObject* object, MonoClass* klass, LivenessState* state)
 {
 	MonoClassField *field;
-	MonoClass* klass = NULL;
 	MonoClass *p;
 
 	g_assert (object);
-
-	klass = GET_VTABLE(object)->klass;
 	
-	for (p = klass; p != NULL; p = p->parent) {
+	for (p = klass; p != NULL; p = p->parent)
+	{
 		gpointer iter = NULL;
 		while (field = mono_class_get_fields (p, &iter)) 
 		{
 			if (field->type->attrs & FIELD_ATTRIBUTE_STATIC)
 				continue;
+
+			if (MONO_TYPE_ISSTRUCT(field->type))
+			{
+				char* offseted = (char*)object;
+				offseted += field->offset;
+				mono_traverse_object_internal((MonoObject*)offseted, field->type->data.klass, state);
+				continue;
+			}
+
 			if (!MONO_TYPE_IS_REFERENCE(field->type))
 				continue;
 
@@ -243,6 +250,11 @@ static void mono_traverse_object (MonoObject* object, LivenessState* state)
 			}
 		}
 	}
+}
+
+static void mono_traverse_object (MonoObject* object, LivenessState* state)
+{
+	mono_traverse_object_internal (object, GET_VTABLE(object)->klass, state);
 }
 
 static void mono_traverse_gc_desc (MonoObject* object, LivenessState* state)
@@ -313,6 +325,15 @@ GPtrArray* mono_unity_liveness_calculation_from_statics(LivenessState* liveness_
 		while (field = mono_class_get_fields (klass, &iter)) {
 			if (!(field->type->attrs & FIELD_ATTRIBUTE_STATIC))
 				continue;
+			
+			
+			if (MONO_TYPE_ISSTRUCT(field->type))
+			{
+				char* offseted = (char*)mono_vtable_get_static_field_data (mono_class_vtable (domain, klass));
+				offseted += field->offset;
+				mono_traverse_object_internal((MonoObject*)offseted, field->type->data.klass, liveness_state);
+				continue;
+			}
 
 			//TODO: We should handle value types as static variables (eg. struct with reference types)
 			if (!MONO_TYPE_IS_REFERENCE(field->type))
@@ -333,7 +354,7 @@ GPtrArray* mono_unity_liveness_calculation_from_statics(LivenessState* liveness_
 
 				if (val)
 				{
-					array_push_back(liveness_state->process_array, val);
+					mono_add_process_object(val, liveness_state);
 				}
 			}
 		}
