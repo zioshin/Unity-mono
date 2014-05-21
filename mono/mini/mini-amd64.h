@@ -64,7 +64,7 @@ void win32_seh_set_handler(int type, MonoW32ExceptionHandler handler);
 #define	SIGSEGV 11
 #endif
 
-LONG CALLBACK seh_handler(EXCEPTION_POINTERS* ep);
+LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep);
 
 #endif /* HOST_WIN32 */
 
