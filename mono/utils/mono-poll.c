@@ -2,6 +2,8 @@
 #include "mono/metadata/threads.h"
 #include <errno.h>
 
+void mono_thread_interruption_checkpoint (void);
+
 #ifdef DISABLE_SOCKETS
 #include <glib.h>
 
