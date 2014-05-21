@@ -2450,6 +2450,7 @@ MONO_API void     mono_print_thread_dump_from_ctx        (MonoContext *ctx);
 void     mono_walk_stack_with_ctx               (MonoJitStackWalk func, MonoContext *start_ctx, MonoUnwindOptions unwind_options, void *user_data) MONO_INTERNAL;
 void     mono_walk_stack_with_state             (MonoJitStackWalk func, MonoThreadUnwindState *state, MonoUnwindOptions unwind_options, void *user_data) MONO_INTERNAL;
 void     mono_walk_stack                        (MonoJitStackWalk func, MonoUnwindOptions options, void *user_data) MONO_INTERNAL;
+void     mono_walk_stack_full                   (MonoJitStackWalk func, MonoContext *start_ctx, MonoDomain *domain, MonoJitTlsData *jit_tls, MonoLMF *lmf, MonoUnwindOptions unwind_options, gpointer user_data) MONO_INTERNAL;
 gboolean mono_thread_state_init_from_sigctx     (MonoThreadUnwindState *ctx, void *sigctx) MONO_INTERNAL;
 gboolean mono_thread_state_init_from_current    (MonoThreadUnwindState *ctx) MONO_INTERNAL;
 gboolean mono_thread_state_init_from_monoctx    (MonoThreadUnwindState *ctx, MonoContext *mctx) MONO_INTERNAL;

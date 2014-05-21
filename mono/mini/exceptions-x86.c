@@ -192,7 +192,7 @@ win32_handle_stack_overflow (EXCEPTION_POINTERS* ep, struct sigcontext *sctx)
 	stack_overflow_data.initial_ctx = ctx;
 
 	/* try to free 64kb from our stack */
-	mono_jit_walk_stack_from_ctx_in_thread (win32_stack_overflow_walk, domain, &ctx, FALSE, mono_thread_current (), lmf, &stack_overflow_data);
+	mono_walk_stack_full (win32_stack_overflow_walk, &ctx, domain, jit_tls, lmf, MONO_UNWIND_NONE, &stack_overflow_data);
 
 	/* convert into sigcontext to be used in mono_arch_handle_exception */
 	mono_arch_monoctx_to_sigctx (&(stack_overflow_data.ctx), sctx);
