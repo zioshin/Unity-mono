@@ -1904,7 +1904,7 @@ mono_main (int argc, char* argv[])
 	} else if (enable_debugging)
 		mono_debug_init (MONO_DEBUG_FORMAT_MONO);
 
-#ifdef HOST_WIN32
+#ifdef USE_COREE
 	if (mixed_mode)
 		mono_load_coree (argv [i]);
 #endif

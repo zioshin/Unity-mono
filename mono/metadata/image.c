@@ -152,7 +152,7 @@ mono_image_rva_map (MonoImage *image, guint32 addr)
 	MonoSectionTable *tables = iinfo->cli_section_tables;
 	int i;
 	
-#ifdef HOST_WIN32
+#ifdef USE_COREE
 	if (image->is_module_handle) {
 		if (addr && addr < image->raw_data_len)
 			return image->raw_data + addr;
