@@ -15,6 +15,21 @@ AM_MAINTAINER_MODE
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
+# We use a separate variable to pass down CPPFLAGS and CFLAGS from the main mono 
+# configure, because of autoconf brokeness
+if test "x$CPPFLAGS_FOR_EGLIB" != "x"; then
+   CPPFLAGS=$CPPFLAGS_FOR_EGLIB
+   echo "CPPFLAGS: $CPPFLAGS"
+fi
+if test "x$CFLAGS_FOR_EGLIB" != "x"; then
+   CFLAGS=$CFLAGS_FOR_EGLIB
+   echo "CFLAGS: $CFLAGS"
+fi
+echo "CPPFLAGS_FOR_EGLIB: $CPPFLAGS_FOR_EGLIB"
+echo "CFLAGS_FOR_EGLIB: $CFLAGS_FOR_EGLIB"
+
+CFLAGS="$CFLAGS -g -D_GNU_SOURCE"
+
 AC_PROG_CC
 AM_PROG_LIBTOOL
 # Use dolt (http://dolt.freedesktop.org/) instead of libtool for building.
@@ -34,17 +49,6 @@ AC_SUBST(GNUC_UNUSED)
 AC_SUBST(GNUC_NORETURN)
 AC_SUBST(BREAKPOINT)
 WANT_ICONV=1
-
-# We use a separate variable to pass down CPPFLAGS and CFLAGS from the main mono 
-# configure, because of autoconf brokeness
-if test "x$CPPFLAGS_FOR_EGLIB" != "x"; then
-   CPPFLAGS=$CPPFLAGS_FOR_EGLIB
-fi
-if test "x$CFLAGS_FOR_EGLIB" != "x"; then
-   CFLAGS=$CFLAGS_FOR_EGLIB
-fi
-
-CFLAGS="$CFLAGS -g -D_GNU_SOURCE"
 
 AM_CONDITIONAL(CROSS_COMPILING, [test x$cross_compiling = xyes])
 AC_C_BIGENDIAN([ORDER=G_BIG_ENDIAN],[ORDER=G_LITTLE_ENDIAN])
