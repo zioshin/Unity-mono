@@ -22,3 +22,7 @@
 [submodule "external/Lucene.Net"]
 	path = external/Lucene.Net
 	url = git://github.com/mono/lucene.net.git
+[submodule "external/buildscripts"]
+	path = external/buildscripts
+	url = https://github.com/Unity-Technologies/monobuildtools
+	branch = unity-future
