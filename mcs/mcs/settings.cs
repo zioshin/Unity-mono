@@ -182,6 +182,7 @@ namespace Mono.CSharp {
 			LoadDefaultReferences = true;
 			StdLibRuntimeVersion = RuntimeVersion.v4;
 			WarningLevel = 4;
+			SdkVersion = "4";
 
 			// Default to 1 or mdb files would be platform speficic
 			TabSize = 1;
