@@ -75,7 +75,7 @@ MonoSecurityManager* mono_security_manager_get_methods (void) MONO_INTERNAL;
 
 /* Security mode */
 gboolean mono_is_security_manager_active (void) MONO_INTERNAL;
-void mono_security_set_mode (MonoSecurityMode mode) MONO_INTERNAL;
+void mono_security_set_mode (MonoSecurityMode mode);
 MonoSecurityMode mono_security_get_mode (void) MONO_INTERNAL;
 
 /* internal calls */
