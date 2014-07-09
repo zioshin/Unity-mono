@@ -820,6 +820,18 @@ parse_flag (const char *option, char *flag)
 	}
 }
 
+// GetCurrentProcessId now requires the runtime to be initialized
+// POSIX, Windows, or GTFO
+static guint32
+mono_debugger_agent_get_process_id ()
+{
+#if HOST_WIN32
+	return GetCurrentProcessId ();
+#else
+	return getpid ();
+#endif
+}
+
 void
 mono_debugger_agent_parse_options (char *options)
 {
@@ -889,7 +901,7 @@ mono_debugger_agent_parse_options (char *options)
 		/* Waiting for deferred attachment */
 		agent_config.defer = TRUE;
 		if (agent_config.address == NULL) {
-			agent_config.address = g_strdup_printf ("0.0.0.0:%u", 56000 + (GetCurrentProcessId () % 1000));
+			agent_config.address = g_strdup_printf ("0.0.0.0:%u", 56000 + (mono_debugger_agent_get_process_id () % 1000));
 		}
 	}
 
