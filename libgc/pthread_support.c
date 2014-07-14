@@ -827,6 +827,8 @@ void GC_delete_gc_thread(pthread_t id, GC_thread gc_id)
         prev = p;
         p = p -> next;
     }
+    if (!p) /* This can happen when a foreign thread gets joined */
+        return;
     if (prev == 0) {
         GC_threads[hv] = p -> next;
     } else {
