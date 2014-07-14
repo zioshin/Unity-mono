@@ -83,7 +83,12 @@ namespace System.Configuration {
 			hasFile = true;
 			this.system = system;
 
-			system.InitForConfiguration (ref locationSubPath, out configPath, out locationConfigPath);
+			try
+			{
+				system.InitForConfiguration (ref locationSubPath, out configPath, out locationConfigPath);
+			} catch {
+				// Print warning? Don't care?
+			}
 			
 			Configuration parent = null;
 			
