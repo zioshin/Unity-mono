@@ -289,17 +289,17 @@ namespace System.Configuration
 			case ConfigurationUserLevel.None:
 				if (string.IsNullOrEmpty (map.ExeConfigFilename))
 					throw new ArgumentException (
-						"The 'ExeConfigFilename' argument cannot be null.");
+						"The 'ExeConfigFilename' argument cannot be null or empty.");
 				break;
 			case ConfigurationUserLevel.PerUserRoamingAndLocal:
 				if (string.IsNullOrEmpty (map.LocalUserConfigFilename))
 					throw new ArgumentException (
-						"The 'LocalUserConfigFilename' argument cannot be null.");
+						"The 'LocalUserConfigFilename' argument cannot be null or empty.");
 				goto case ConfigurationUserLevel.PerUserRoaming;
 			case ConfigurationUserLevel.PerUserRoaming:
 				if (string.IsNullOrEmpty (map.RoamingUserConfigFilename))
 					throw new ArgumentException (
-						"The 'RoamingUserConfigFilename' argument cannot be null.");
+						"The 'RoamingUserConfigFilename' argument cannot be null or empty.");
 				goto case ConfigurationUserLevel.None;
 			}
 		}
