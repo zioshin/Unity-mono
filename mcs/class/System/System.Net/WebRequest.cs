@@ -62,13 +62,7 @@ namespace System.Net
 		
 		static WebRequest ()
 		{
-#if MOBILE
-			RegisterDynamicPrefix ("http", "HttpRequestCreator");
-			RegisterDynamicPrefix ("https", "HttpRequestCreator");
-			RegisterDynamicPrefix ("file", "FileWebRequestCreator");
-			RegisterDynamicPrefix ("ftp", "FtpRequestCreator");
-#else
-	#if CONFIGURATION_DEP
+#if CONFIGURATION_DEP
 			object cfg = ConfigurationManager.GetSection ("system.net/webRequestModules");
 			WebRequestModulesSection s = cfg as WebRequestModulesSection;
 			if (s != null) {
@@ -79,7 +73,11 @@ namespace System.Net
 			}
 #endif
 			ConfigurationSettings.GetConfig ("system.net/webRequestModules");
-#endif
+			// Fall back to register dynamic
+			RegisterDynamicPrefix ("http", "HttpRequestCreator");
+			RegisterDynamicPrefix ("https", "HttpRequestCreator");
+			RegisterDynamicPrefix ("file", "FileWebRequestCreator");
+			RegisterDynamicPrefix ("ftp", "FtpRequestCreator");
 		}
 		
 		static void RegisterDynamicPrefix(string protocol, string implementor)
