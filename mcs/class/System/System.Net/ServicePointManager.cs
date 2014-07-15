@@ -364,7 +364,7 @@ namespace System.Net
 				limit = defaultConnectionLimit;
 #else
 				string addr = address.ToString ();
-				limit = (int) manager.GetMaxConnections (addr);
+				limit = ((null == manager) ? defaultConnectionLimit : (int) manager.GetMaxConnections (addr));
 #endif
 				sp = new ServicePoint (address, limit, maxServicePointIdleTime);
 				sp.Expect100Continue = expectContinue;
