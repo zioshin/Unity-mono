@@ -1578,10 +1578,10 @@ gboolean GetExitCodeProcess (gpointer process, guint32 *code)
 				(gpointer *)&process_handle);
 	if(ok==FALSE) {
 		DEBUG ("%s: Can't find process %p", __func__, process);
-		
+
 		return(FALSE);
 	}
-	
+
 	/* A process handle is only signalled if the process has exited
 	 * and has been waited for */
 
@@ -1590,7 +1590,7 @@ gboolean GetExitCodeProcess (gpointer process, guint32 *code)
 	 */
 	process_wait (process, 0, TRUE);
 	
-	if (_wapi_handle_issignalled (process) == TRUE) {
+	if (_wapi_handle_issignalled (process) == TRUE || process_handle->exited) {
 		*code = process_handle->exitstatus;
 	} else {
 		*code = STILL_ACTIVE;
@@ -2995,13 +2995,19 @@ static guint32 process_wait (gpointer handle, guint32 timeout, gboolean alertabl
 				ret = MONO_SEM_WAIT_ALERTABLE (&mp->exit_sem, alertable);
 			}
 
+			if (ret == -1 && ECHILD == errno) {
+				/* "No child processes" - already exited */
+				MONO_SEM_POST (&mp->exit_sem);
+				break;
+			}
+
 			if (ret == -1 && errno != EINTR && errno != ETIMEDOUT) {
 				DEBUG ("%s (%p, %u): sem_timedwait failure: %s", 
 					__func__, handle, timeout, g_strerror (errno));
 				/* Should we return a failure here? */
 			}
 
-			if (ret == 0) {
+			if (ret == 0 || !is_pid_valid (pid)) {
 				/* Success, process has exited */
 				MONO_SEM_POST (&mp->exit_sem);
 				break;
