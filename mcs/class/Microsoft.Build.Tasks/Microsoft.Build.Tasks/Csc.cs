@@ -135,7 +135,7 @@ namespace Microsoft.Build.Tasks {
 		{
 			if (!string.IsNullOrEmpty (ToolPath))
 				return Path.Combine (ToolPath, ToolExe);
-			return ToolLocationHelper.GetPathToDotNetFrameworkFile (ToolExe, TargetDotNetFrameworkVersion.VersionLatest);
+			return ToolExe;
 		}
 
 		[MonoTODO]
@@ -206,7 +206,7 @@ namespace Microsoft.Build.Tasks {
 
 		protected override string ToolName {
 			get {
-				return "mcs.exe";
+				return MSBuildUtils.RunningOnWindows ? "mcs.bat" : "mcs";
 			}
 		}
 
