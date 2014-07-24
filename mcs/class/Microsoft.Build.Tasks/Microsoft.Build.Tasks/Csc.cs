@@ -133,9 +133,10 @@ namespace Microsoft.Build.Tasks {
 
 		protected override string GenerateFullPathToTool ()
 		{
-			if (!string.IsNullOrEmpty (ToolPath))
-				return Path.Combine (ToolPath, ToolExe);
-			return ToolExe;
+			var toolPath = string.IsNullOrEmpty (ToolPath) ?
+				Path.Combine (ToolLocationHelper.GetPathToDotNetFramework (TargetDotNetFrameworkVersion.VersionLatest), "../../../bin") :
+				ToolPath;
+			return Path.Combine (toolPath, ToolExe);
 		}
 
 		[MonoTODO]
