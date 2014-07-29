@@ -34,7 +34,7 @@ namespace Mono.Linker.Steps {
 
 		ArrayList _unResolved;
 
-		public ResolveStep ()
+		internal ResolveStep ()
 		{
 			_unResolved = new ArrayList ();
 		}

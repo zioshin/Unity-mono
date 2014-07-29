@@ -71,7 +71,7 @@ namespace Mono.Linker.Steps {
 			}
 		}
 
-		protected virtual void InitializeType (TypeDefinition type)
+		void InitializeType (TypeDefinition type)
 		{
 			MarkType (type);
 
@@ -83,7 +83,7 @@ namespace Mono.Linker.Steps {
 				InitializeMethods (type.Constructors);
 		}
 
-		protected virtual void InitializeFields (TypeDefinition type)
+		void InitializeFields (TypeDefinition type)
 		{
 			foreach (FieldDefinition field in type.Fields)
 				if (Annotations.IsMarked (field))
@@ -123,7 +123,6 @@ namespace Mono.Linker.Steps {
 
 		protected virtual void EnqueueMethod (MethodDefinition method)
 		{
-			//Annotations.Mark(method);
 			_methods.Enqueue (method);
 		}
 
@@ -140,10 +139,10 @@ namespace Mono.Linker.Steps {
 				return;
 
 			foreach (MethodDefinition @override in overrides)
-				ProcessOverride (@override, method);
+				ProcessOverride (@override);
 		}
 
-		void ProcessOverride (MethodDefinition method, MethodDefinition markedby)
+		void ProcessOverride (MethodDefinition method)
 		{
 			if (!Annotations.IsMarked (method.DeclaringType))
 				return;
@@ -154,21 +153,21 @@ namespace Mono.Linker.Steps {
 			if (Annotations.IsMarked (method))
 				return;
 
-			MarkMethod (method, markedby);
+			MarkMethod (method);
 			ProcessVirtualMethod (method);
 		}
 
 		void MarkMethodBody (MethodBody body)
 		{
 			foreach (VariableDefinition var in body.Variables)
-				MarkType (var.VariableType, body.Method);
+				MarkType (var.VariableType);
 
 			foreach (ExceptionHandler eh in body.ExceptionHandlers)
 				if (eh.Type == ExceptionHandlerType.Catch)
-					MarkType (eh.CatchType, body.Method);
+					MarkType (eh.CatchType);
 
 			foreach (Instruction instruction in body.Instructions)
-				MarkInstruction (instruction, body.Method);
+				MarkInstruction (instruction);
 		}
 
 		void MarkMarshalSpec (IHasMarshalSpec spec)
@@ -181,7 +180,7 @@ namespace Mono.Linker.Steps {
 			MarkType (type);
 		}
 
-		protected void MarkCustomAttributes (ICustomAttributeProvider provider)
+		void MarkCustomAttributes (ICustomAttributeProvider provider)
 		{
 			if (!provider.HasCustomAttributes)
 				return;
@@ -247,7 +246,7 @@ namespace Mono.Linker.Steps {
 
 				FieldDefinition field = GetField (attribute, fieldname);
 				if (field != null)
-					MarkField (field, ca);
+					MarkField (field);
 
 				TypeReference fieldType = ca.GetFieldType (fieldname);
 				MarkIfType (fieldType, de.Value);
@@ -313,11 +312,7 @@ namespace Mono.Linker.Steps {
 				MarkCustomAttributes (module);
 		}
 
-		protected void MarkField (FieldReference reference)
-		{
-			MarkField(reference,null);
-		}
-		void MarkField (FieldReference reference, object markedby)
+		void MarkField (FieldReference reference)
 		{
 //			if (IgnoreScope (reference.DeclaringType.Scope))
 //				return;
@@ -330,12 +325,12 @@ namespace Mono.Linker.Steps {
 			if (CheckProcessed (field))
 				return;
 
-			MarkType (field.DeclaringType, markedby);
-			MarkType (field.FieldType, markedby);
+			MarkType (field.DeclaringType);
+			MarkType (field.FieldType);
 			MarkCustomAttributes (field);
 			MarkMarshalSpec (field);
 
-			Annotations.Mark (field, markedby);
+			Annotations.Mark (field);
 		}
 
 		protected virtual bool IgnoreScope (IMetadataScope scope)
@@ -364,10 +359,6 @@ namespace Mono.Linker.Steps {
 
 		protected virtual void MarkType (TypeReference reference)
 		{
-			MarkType(reference,null);
-		}
-		protected virtual void MarkType (TypeReference reference, object markedby)
-		{
 			if (reference == null)
 				return;
 
@@ -388,18 +379,18 @@ namespace Mono.Linker.Steps {
 				return;
 
 			MarkScope (type.Scope);
-			MarkType (type.BaseType, type);
-			MarkType (type.DeclaringType, type);
+			MarkType (type.BaseType);
+			MarkType (type.DeclaringType);
 			MarkCustomAttributes (type);
 
 			if (IsMulticastDelegate (type)) {
-				MarkMethodCollection (type.Constructors, type);
-				MarkMethodCollection (type.Methods, type);
+				MarkMethodCollection (type.Constructors);
+				MarkMethodCollection (type.Methods);
 			}
 
 			if (IsSerializable (type) && type.HasConstructors) {
-				MarkMethodsIf (type.Constructors, IsDefaultConstructorPredicate, type);
-				MarkMethodsIf (type.Constructors, IsSpecialSerializationConstructorPredicate, type);
+				MarkMethodsIf (type.Constructors, IsDefaultConstructorPredicate);
+				MarkMethodsIf (type.Constructors, IsSpecialSerializationConstructorPredicate);
 			}
 
 			MarkTypeSpecialCustomAttributes (type);
@@ -411,16 +402,16 @@ namespace Mono.Linker.Steps {
 
 			if (type.HasInterfaces) {
 				foreach (TypeReference iface in type.Interfaces)
-					MarkType (iface, type);
+					MarkType (iface);
 			}
 
 			if (type.HasMethods)
-				MarkMethodsIf (type.Methods, IsVirtualAndHasPreservedParent, type);
+				MarkMethodsIf (type.Methods, IsVirtualAndHasPreservedParent);
 
 			if (type.HasConstructors)
-				MarkMethodsIf (type.Constructors, IsStaticConstructorPredicate, type);
+				MarkMethodsIf (type.Constructors, IsStaticConstructorPredicate);
 
-			Annotations.Mark (type, markedby);
+			Annotations.Mark (type);
 
 			ApplyPreserveInfo (type);
 		}
@@ -577,11 +568,11 @@ namespace Mono.Linker.Steps {
 
 		delegate bool MethodPredicate (MethodDefinition method);
 
-		void MarkMethodsIf (ICollection methods, MethodPredicate predicate, object markedby)
+		void MarkMethodsIf (ICollection methods, MethodPredicate predicate)
 		{
 			foreach (MethodDefinition method in methods)
 				if (predicate (method))
-					MarkMethod (method, markedby);
+					MarkMethod (method);
 		}
 
 		static MethodPredicate IsDefaultConstructorPredicate = new MethodPredicate (IsDefaultConstructor);
@@ -678,7 +669,7 @@ namespace Mono.Linker.Steps {
 				if (argument_definition == null)
 					continue;
 
-				MarkMethodsIf (argument_definition.Constructors, ctor => !ctor.IsStatic && !ctor.HasParameters, null);
+				MarkMethodsIf (argument_definition.Constructors, ctor => !ctor.IsStatic && !ctor.HasParameters);
 			}
 		}
 
@@ -695,7 +686,7 @@ namespace Mono.Linker.Steps {
 			return null;
 		}
 
-		protected virtual void ApplyPreserveInfo (TypeDefinition type)
+		void ApplyPreserveInfo (TypeDefinition type)
 		{
 			ApplyPreserveMethods (type);
 
@@ -726,34 +717,30 @@ namespace Mono.Linker.Steps {
 				MarkMethod (method);
 		}
 
-		protected void MarkFields (TypeDefinition type)
+		void MarkFields (TypeDefinition type)
 		{
 			if (!type.HasFields)
 				return;
 
 			foreach (FieldDefinition field in type.Fields)
-				MarkField (field, type);
+				MarkField (field);
 		}
 
 		void MarkMethods (TypeDefinition type)
 		{
 			if (type.HasMethods)
-				MarkMethodCollection (type.Methods,type);
+				MarkMethodCollection (type.Methods);
 			if (type.HasConstructors)
-				MarkMethodCollection (type.Constructors, type);
+				MarkMethodCollection (type.Constructors);
 		}
 
-		void MarkMethodCollection (IEnumerable methods, object markedby)
+		void MarkMethodCollection (IEnumerable methods)
 		{
 			foreach (MethodDefinition method in methods)
-				MarkMethod (method, markedby);
+				MarkMethod (method);
 		}
 
 		void MarkMethod (MethodReference reference)
-		{
-			MarkMethod(reference, null);
-		}
-		void MarkMethod (MethodReference reference, object markedby)
 		{
 			reference = GetOriginalMethod (reference);
 
@@ -770,9 +757,7 @@ namespace Mono.Linker.Steps {
 
 			if (Annotations.GetAction (method) == MethodAction.Nothing)
 				Annotations.SetAction (method, MethodAction.Parse);
-			//if (markedby!=null)
 
-			Annotations.Mark(method, markedby);
 			EnqueueMethod (method);
 		}
 
@@ -810,7 +795,7 @@ namespace Mono.Linker.Steps {
 			if (CheckProcessed (method))
 				return;
 
-			MarkType (method.DeclaringType, method);
+			MarkType (method.DeclaringType);
 			MarkCustomAttributes (method);
 
 			MarkGenericParameterProvider (method);
@@ -822,7 +807,7 @@ namespace Mono.Linker.Steps {
 
 			if (method.HasParameters) {
 				foreach (ParameterDefinition pd in method.Parameters) {
-					MarkType (pd.ParameterType, method);
+					MarkType (pd.ParameterType);
 					MarkCustomAttributes (pd);
 					MarkMarshalSpec (pd);
 				}
@@ -926,26 +911,26 @@ namespace Mono.Linker.Steps {
 			MarkMethod (method);
 		}
 
-		void MarkInstruction (Instruction instruction, MethodDefinition markedby)
+		void MarkInstruction (Instruction instruction)
 		{
 			switch (instruction.OpCode.OperandType) {
 			case OperandType.InlineField:
-				MarkField ((FieldReference) instruction.Operand, markedby);
+				MarkField ((FieldReference) instruction.Operand);
 				break;
 			case OperandType.InlineMethod:
-				MarkMethod ((MethodReference) instruction.Operand, markedby);
+				MarkMethod ((MethodReference) instruction.Operand);
 				break;
 			case OperandType.InlineTok:
 				object token = instruction.Operand;
 				if (token is TypeReference)
-					MarkType ((TypeReference) token, markedby);
+					MarkType ((TypeReference) token);
 				else if (token is MethodReference)
-					MarkMethod ((MethodReference) token, markedby);
+					MarkMethod ((MethodReference) token);
 				else
 					MarkField ((FieldReference) token);
 				break;
 			case OperandType.InlineType:
-				MarkType ((TypeReference) instruction.Operand, markedby);
+				MarkType ((TypeReference) instruction.Operand);
 				break;
 			default:
 				break;

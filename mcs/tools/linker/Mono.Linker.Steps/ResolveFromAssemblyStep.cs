@@ -26,7 +26,6 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System;
 using System.Collections;
 using Mono.Cecil;
 
@@ -54,14 +53,14 @@ namespace Mono.Linker.Steps {
 				context.Resolver.CacheAssembly (_assembly);
 			}
 
-			_assembly = _assembly ?? context.Resolve (_file);
+			AssemblyDefinition assembly = _assembly ?? context.Resolve (_file);
 
-			switch (_assembly.Kind) {
+			switch (assembly.Kind) {
 			case AssemblyKind.Dll:
-				ProcessLibrary (_assembly);
+				ProcessLibrary (assembly);
 				return;
 			default:
-				ProcessExecutable (_assembly);
+				ProcessExecutable (assembly);
 				return;
 			}
 		}
@@ -72,45 +71,39 @@ namespace Mono.Linker.Steps {
 
 			foreach (TypeDefinition type in assembly.MainModule.Types) {
 				Annotations.Mark (type);
-				var reason = MakeReason(assembly);
+
 				if (type.HasFields)
-					MarkFields (type.Fields, reason);
+					MarkFields (type.Fields);
 				if (type.HasMethods)
-					MarkMethods (type.Methods, reason);
+					MarkMethods (type.Methods);
 				if (type.HasConstructors)
-					MarkMethods (type.Constructors, reason);
+					MarkMethods (type.Constructors);
 			}
 		}
 
 		static void ProcessExecutable (AssemblyDefinition assembly)
 		{
 			Annotations.SetAction (assembly, AssemblyAction.Link);
-			var reason = MakeReason(assembly);
-			Annotations.Mark (assembly.EntryPoint.DeclaringType, reason);
-			MarkMethod (assembly.EntryPoint, MethodAction.Parse, reason);
+
+			Annotations.Mark (assembly.EntryPoint.DeclaringType);
+			MarkMethod (assembly.EntryPoint, MethodAction.Parse);
 		}
 
-		private static object MakeReason(AssemblyDefinition assembly)
-		{
-			return "ResolveFromAssemblyStep: " + assembly.Name.Name;
-		}
-	
-
-		static void MarkFields (ICollection fields, object reason)
+		static void MarkFields (ICollection fields)
 		{
 			foreach (FieldDefinition field in fields)
-				Annotations.Mark (field, reason);
+				Annotations.Mark (field);
 		}
 
-		static void MarkMethods (ICollection methods, object reason)
+		static void MarkMethods (ICollection methods)
 		{
 			foreach (MethodDefinition method in methods)
-				MarkMethod (method, MethodAction.ForceParse, reason);
+				MarkMethod (method, MethodAction.ForceParse);
 		}
 
-		static void MarkMethod (MethodDefinition method, MethodAction action, object reason)
+		static void MarkMethod (MethodDefinition method, MethodAction action)
 		{
-			Annotations.Mark (method, reason);
+			Annotations.Mark (method);
 			Annotations.SetAction (method, action);
 		}
 	}
