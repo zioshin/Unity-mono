@@ -188,7 +188,7 @@
 		<ItemGroup Condition="'$(ImplicitlyExpandDesignTimeFacades)' == 'true'">
 			<DesignTimeFacadeDirectoryRoots Include="$(TargetFrameworkDirectory)" />
 			<DesignTimeFacadeDirectories Include="%(DesignTimeFacadeDirectoryRoots.Identity)\Facades\" Condition="Exists('%(DesignTimeFacadeDirectoryRoots.Identity)\Facades\')" />
-			<_DesignTimeFacadeAssemblies Include="%(DesignTimeFacadeDirectories.Identity)\*.dll"/>
+			<_DesignTimeFacadeAssemblies Include="%(DesignTimeFacadeDirectories.Identity)\*.dll" Condition="'%(DesignTimeFacadeDirectories.Identity)' != ''"/>
 		</ItemGroup>
 
 		<PropertyGroup Condition="'@(DesignTimeFacadeDirectories)' != ''">
