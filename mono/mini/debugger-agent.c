@@ -6251,6 +6251,8 @@ clear_types_for_assembly (MonoAssembly *assembly)
 	MonoDomain *domain = mono_domain_get ();
 	AgentDomainInfo *info = NULL;
 
+	if (!domain)
+		return;
 	mono_loader_lock ();
 	info = get_agent_domain_info (domain);
 	g_hash_table_foreach_remove (info->loaded_classes, type_comes_from_assembly, assembly);
