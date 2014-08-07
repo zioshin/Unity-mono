@@ -3371,7 +3371,7 @@ mono_thread_pop_appdomain_ref (void)
 gboolean
 mono_thread_internal_has_appdomain_ref (MonoInternalThread *thread, MonoDomain *domain)
 {
-	gboolean res;
+	gboolean res = FALSE;
 	SPIN_LOCK (thread->lock_thread_id);
 	/* Check for null, as we may unload an appdomain immediately after creating a thread and not yet havecalled mono_thread_push_appdomain_ref */
 	if (thread->appdomain_refs)
