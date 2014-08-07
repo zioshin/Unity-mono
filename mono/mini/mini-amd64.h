@@ -374,7 +374,7 @@ typedef struct MonoCompileArch {
 #define MONO_ARCH_HAVE_GET_TRAMPOLINES 1
 
 #define MONO_ARCH_AOT_SUPPORTED 1
-#if !defined( HOST_WIN32 ) && !defined( __native_client__ )
+#if !defined( __native_client__ )
 #define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
 #endif
 
