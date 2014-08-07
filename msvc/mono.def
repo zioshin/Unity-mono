@@ -3,6 +3,8 @@ LIBRARY mono.dll
 EXPORTS
 ;Unity Exports that expose private mono apis
 mono_thread_suspend_all_other_threads
+mono_thread_push_appdomain_ref
+mono_thread_pop_appdomain_ref
 mono_thread_pool_cleanup
 mono_threads_set_shutting_down
 mono_runtime_set_shutting_down
@@ -49,6 +51,7 @@ mono_unity_class_is_abstract
 mono_backtrace_from_context
 mono_unity_thread_clear_domain_fields
 mono_unity_get_all_classes_with_name_case
+mono_unity_g_free
 
 ;Exports that should have been here, but I dont understand why they're not.
 mono_security_enable_core_clr
