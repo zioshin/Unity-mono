@@ -81,7 +81,7 @@ void           mono_unity_liveness_calculation_end (LivenessState* state);
 void           mono_unity_liveness_calculation_from_root (MonoObject* root, LivenessState* state);
 void           mono_unity_liveness_calculation_from_statics (LivenessState* state);
 
-#ifdef HAVE_BOEHM_GC
+#ifndef HAVE_SGEN_GC
 void GC_start_world_external (void);
 void GC_stop_world_external (void);
 #define START_WORLD GC_start_world_external
