@@ -119,7 +119,7 @@ namespace Microsoft.Build.BuildEngine {
 						TaskItem item = new TaskItem (include_item);
 						item.ItemSpec = itemName;
 
-						if (wildcard_offset >= 0) {
+						if (wildcard_offset >= 0 && wildcard_offset < fi.FullName.Length) {
 							string rec_dir = Path.GetDirectoryName (fi.FullName.Substring (wildcard_offset));
 							if (rec_dir.Length > 0)
 								rec_dir += Path.DirectorySeparatorChar;
