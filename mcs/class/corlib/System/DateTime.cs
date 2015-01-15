@@ -508,8 +508,10 @@ namespace System
 				DateTime dt = new DateTime (now);
 
 				if ((now - last_now) > TimeSpan.TicksPerMinute){
-					to_local_time_span_object = TimeZone.CurrentTimeZone.GetLocalTimeDiff (dt);
-					last_now = now;
+					lock (this) {
+						to_local_time_span_object = TimeZone.CurrentTimeZone.GetLocalTimeDiff (dt);
+						last_now = now;
+					}
 
 				}
 
