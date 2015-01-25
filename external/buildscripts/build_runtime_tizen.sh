@@ -4,6 +4,7 @@ PREFIX="$PWD/builds/tizen"
 
 BUILDDIR=/$PWD
 OUTDIR=builds/embedruntimes/tizen
+BUILDDIR=builddir/tizen
 BUILDSCRIPTSDIR=external/buildscripts
 
 # perl ${BUILDSCRIPTSDIR}/SDKDownloader.pm --repo_name=tizen-sdk --artifacts_folder=artifacts && source ${TIZEN_SDK}/tizen-ndk-env.sh
@@ -25,7 +26,6 @@ STRIP="${TIZEN_PREFIX}strip"
 CONFIG_OPTS="\
 --prefix=$PREFIX \
 --with-sysroot=${TIZEN_SDK}/platforms/${TIZEN_PLATFORM}/rootstraps/${TIZEN_ROOTSTRAP} \
---cache-file=tizen_cross.cache \
 --host=arm-linux-gnueabi \
 --disable-mcs-build \
 --disable-parallel-mark \
@@ -39,23 +39,27 @@ mono_cv_uscore=yes"
 LDFLAGS="-ldlog"
 
 make clean && make distclean
-rm tizen_cross.cache
 
 pushd eglib
 autoreconf -i
 popd
 autoreconf -i
 
+rm -rf $BUILDDIR
+mkdir -p $BUILDDIR
+pushd $BUILDDIR
+
 # Run configure
-./configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" CC="$CC" CXX="$CXX" AR="$AR" LD="$LD" RANLIB="$RANLIB" STRIP="$STRIP"
+../../configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" CC="$CC" CXX="$CXX" AR="$AR" LD="$LD" RANLIB="$RANLIB" STRIP="$STRIP"
 
 # Run Make
 make -j6 && echo "Build SUCCESS!" || exit 1
+popd
 
 rm -rf $PWD/builds
 
 mkdir -p $OUTDIR
-cp -f mono/mini/.libs/libmono.a $OUTDIR
+cp -f $BUILDDIR/mono/mini/.libs/libmono.a $OUTDIR
 
 # Clean up for next build
 make clean && make distclean

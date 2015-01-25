@@ -10,6 +10,7 @@ rm -rf builds
 for STV_TARGET in ${STV_TARGETS}; do
 	echo "BUILDING FOR $STV_TARGET"
 	OUTDIR=builds/embedruntimes/stv/$STV_TARGET
+	BUILDDIR="builddir/stv-$STV_TARGET"
 
 	if [[ $STV_TARGET == *_15 ]]; then
 		LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${STV_STANDARD_15}/i386Libs";export LD_LIBRARY_PATH
@@ -36,7 +37,6 @@ for STV_TARGET in ${STV_TARGETS}; do
 
 	CONFIG_OPTS="\
 --prefix=$PREFIX \
---cache-file=stv_cross.cache \
 --host=arm-unknown-linux-gnueabi \
 --disable-mcs-build \
 --disable-parallel-mark \
@@ -48,21 +48,24 @@ for STV_TARGET in ${STV_TARGETS}; do
 mono_cv_uscore=yes"
 
 	make clean && make distclean
-	rm stv_cross.cache
 
 	pushd eglib
 	autoreconf -i
 	popd
 	autoreconf -i
 
+	rm -rf $BUILDDIR
+	mkdir -p $BUILDDIR
+	pushd $BUILDDIR
 	# Run configure
-	./configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" CC="$CC" CXX="$CXX" AR="$AR" LD="$LD"
+	../../configure $CONFIG_OPTS CFLAGS="$CXXFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" CC="$CC" CXX="$CXX" AR="$AR" LD="$LD"
 
 	# Run Make
 	make && echo "Build SUCCESS!" || exit 1
-
+	popd
+	
 	mkdir -p $OUTDIR
-	cp -f mono/mini/.libs/libmono.a $OUTDIR
+	cp -f $BUILDDIR/mono/mini/.libs/libmono.a $OUTDIR
 
 	if [ -d builds/monodistribution ] ; then
 		rm -r builds/monodistribution

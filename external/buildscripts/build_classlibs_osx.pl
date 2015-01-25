@@ -13,16 +13,17 @@ my $root = getcwd();
 my $monodistro = "$root/builds/monodistribution";
 my $lib = "$monodistro/lib";
 my $libmono = "$lib/mono";
-my $monoprefix = "$root/tmp/monoprefix";
+my $builddir = "$root/builddir/osx-classlibs";
+my $monoprefix = "$builddir/tmp/monoprefix";
 my $xcodePath = '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform';
 my $macversion = '10.5';
 my $sdkversion = '10.6';
 
 my $dependencyBranchToUse = "unity3.0";
 
-my $booCheckout = "external/boo";
-my $cecilCheckout = "mcs/class/Mono.Cecil";
-my $usCheckout = "external/unityscript";
+my $booCheckout = "$root/external/boo";
+my $cecilCheckout = "$root/mcs/class/Mono.Cecil";
+my $usCheckout = "$root/external/unityscript";
 
 if ($ENV{UNITY_THISISABUILDMACHINE}) {
 	print "rmtree-ing $root/builds because we're on a buildserver, and want to make sure we don't include old artifacts\n";
@@ -90,11 +91,17 @@ if (not $skipbuild)
 		chdir("$root") eq 1 or die("failed to chdir4");
 		print(">>>Calling autoreconf in mono\n");
 		system("autoreconf -i");
+		
+		rmtree("$builddir");
+		mkpath("$builddir");
+		chdir("$builddir") eq 1 or die("failed to chdir buildir");
 		print(">>>Calling configure in mono\n");
-		system("./configure","--prefix=$monoprefix","--with-monotouch=$withMonotouch","-with-unity=$withUnity", "--with-glib=embedded","--with-mcs-docs=no","--with-macversion=10.5", "--disable-nls") eq 0 or die ("failing autogenning mono");
+		system("../../configure","--prefix=$monoprefix","--with-monotouch=$withMonotouch","-with-unity=$withUnity", "--with-glib=embedded","--with-mcs-docs=no","--with-macversion=10.5", "--disable-nls") eq 0 or die ("failing autogenning mono");
 		print("calling make clean in mono\n");
 		system("make","clean");
+		chdir("$root");
 	}
+	chdir("$builddir");
 	system("make") eq 0 or die ("Failed running make");
 	system("make install") eq 0 or die ("Failed running make install");
 	# Couldn't get automake to Just Do The Right Thing

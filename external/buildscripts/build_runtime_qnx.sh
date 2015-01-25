@@ -5,7 +5,7 @@
 
 PREFIX=`pwd`/../builds/qnx
 
-OUTDIR=../builds/embedruntimes/qnx
+OUTDIR=builds/embedruntimes/qnx
 BUILDSCRIPTSDIR=external/buildscripts
 
 perl ${BUILDSCRIPTSDIR}/PrepareBB10NDK.pl -ndk=r09 -env=envsetup.sh && source envsetup.sh
@@ -17,26 +17,28 @@ make clean && make distclean
 rm -r *.cache config.status nto-arm-le-v7 libgc/config.status autom4te.cache Makefile
 
 NOCONFIGURE=1 ./autogen.sh
-cd eglib; NOCONFIGURE=1 ./autogen.sh
+pushd eglib
+NOCONFIGURE=1 ./autogen.sh
+popd
 
-cd ..
 addvariant nto arm le-v7
-cd nto-arm-le-v7
+BUILDDIR=nto-arm-le-v7
+pushd $BUILDDIR
 
 # Run Make
 make && echo "Build SUCCESS!" || exit 1
 
-rm -rf ../builds
+popd
+rm -rf builds
 
 mkdir -p $OUTDIR
-cp -f mono/mini/.libs/libmono.a $OUTDIR
+cp -f $BUILDDIR/mono/mini/.libs/libmono.a $OUTDIR
 
-if [ -d ../builds/monodistribution ] ; then
-rm -r ../builds/monodistribution
+if [ -d builds/monodistribution ] ; then
+	rm -r builds/monodistribution
 fi
 
 # Clean up for next build
-cd ..
 make clean && make distclean
 rm Makefile
 

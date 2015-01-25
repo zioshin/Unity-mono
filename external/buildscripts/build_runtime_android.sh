@@ -7,6 +7,7 @@ export ANDROID_PLATFORM=android-9
 GCC_PREFIX=arm-linux-androideabi-
 GCC_VERSION=4.8
 OUTDIR=builds/embedruntimes/android
+BUILDDIR="builddir/android"
 CWD="$(pwd)"
 PREFIX="$CWD/builds/android"
 BUILDSCRIPTSDIR=external/buildscripts
@@ -76,7 +77,6 @@ LDFLAGS="\
 
 CONFIG_OPTS="\
 --prefix=$PREFIX \
---cache-file=android_cross.cache \
 --host=arm-eabi-linux \
 --disable-mcs-build \
 --disable-parallel-mark \
@@ -108,14 +108,19 @@ function clean_build_krait_patch
 function clean_build
 {
 	make clean && make distclean
-	rm android_cross.cache
 
 	pushd eglib
 	autoreconf -i
 	popd
 	autoreconf -i
 
-	./configure $CONFIG_OPTS \
+	CURR_BUILDDIR="$BUILDDIR-$3"
+	CURR_OUTDIR="$OUTDIR/$3"
+
+	rm -rf $CURR_BUILDDIR
+	mkdir -p $CURR_BUILDDIR
+	pushd $CURR_BUILDDIR
+	../../configure $CONFIG_OPTS \
 	PATH="$PATH" CC="$CC" CXX="$CXX" CPP="$CPP" CXXCPP="$CXXCPP" \
 	CFLAGS="$CFLAGS $1" CPPFLAGS="$CPPFLAGS $1" CXXFLAGS="$CXXFLAGS $1" LDFLAGS="$LDFLAGS $2" \
 	LD=$LD AR=$AR AS=$AS RANLIB=$RANLIB STRIP=$STRIP CPATH="$CPATH"
@@ -126,10 +131,11 @@ function clean_build
 	fi
 
 	make && echo "Build SUCCESS!" || exit 1
+	popd
 
-	mkdir -p $3
-	cp mono/mini/.libs/libmono.a $3
-	cp mono/mini/.libs/libmono.so $3
+	mkdir -p $CURR_OUTDIR
+	cp $CURR_BUILDDIR/mono/mini/.libs/libmono.a $CURR_OUTDIR
+	cp $CURR_BUILDDIR/mono/mini/.libs/libmono.so $CURR_OUTDIR
 }
 
 CCFLAGS_ARMv5_CPU="-DARM_FPU_NONE=1 -march=armv5te -mtune=xscale -msoft-float"
@@ -142,9 +148,9 @@ rm -rf $OUTDIR
 
 clean_build_krait_patch
 
-clean_build "$CCFLAGS_ARMv5_CPU" "$LDFLAGS_ARMv5" "$OUTDIR/armv5"
-clean_build "$CCFLAGS_ARMv6_VFP" "$LDFLAGS_ARMv5" "$OUTDIR/armv6_vfp"
-clean_build "$CCFLAGS_ARMv7_VFP" "$LDFLAGS_ARMv7" "$OUTDIR/armv7a"
+clean_build "$CCFLAGS_ARMv5_CPU" "$LDFLAGS_ARMv5" "armv5"
+clean_build "$CCFLAGS_ARMv6_VFP" "$LDFLAGS_ARMv5" "armv6_vfp"
+clean_build "$CCFLAGS_ARMv7_VFP" "$LDFLAGS_ARMv7" "armv7a"
 
 # works only with ndk-r6b and later
 source ${BUILDSCRIPTSDIR}/build_runtime_android_x86.sh dontclean

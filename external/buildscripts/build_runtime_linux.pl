@@ -39,6 +39,7 @@ my $platform = $build64 ? 'linux64' : $build_armel ? 'linux-armel' : 'linux32' ;
 my $bintarget = "$root/builds/monodistribution/bin-$platform";
 my $libtarget = "$root/builds/embedruntimes/$platform";
 my $etctarget = "$root/builds/monodistribution/etc-$platform";
+my $builddir = "$root/builddir/linux-$platform";
 
 if ($minimal)
 {
@@ -78,10 +79,6 @@ if (not $skipbuild)
 
 	#this will fail on a fresh working copy, so don't die on it.
 	system("make distclean");
-	#were going to tell autogen to use a specific cache file, that we purposely remove before starting.
-        #that way, autogen is forced to do all its config stuff again, which should make this buildscript
-        #more robust if other targetplatforms have been built from this same workincopy
-        system("rm linux.cache");
 
 	chdir("$root/eglib") eq 1 or die ("Failed chdir 1");
 	#this will fail on a fresh working copy, so don't die on it.
@@ -91,7 +88,6 @@ if (not $skipbuild)
 
 	system("autoreconf -i") eq 0 or die ("Failed autoreconfing mono");
 	my @autogenparams = ();
-	unshift(@autogenparams, "--cache-file=linux.cache");
 	unshift(@autogenparams, "--disable-mcs-build");
 	unshift(@autogenparams, "--with-glib=embedded");
 	unshift(@autogenparams, "--disable-nls");  #this removes the dependency on gettext package
@@ -118,11 +114,16 @@ if (not $skipbuild)
 	print("\n\n\n\nCalling configure with these parameters: ");
 	system("echo", @autogenparams);
 	print("\n\n\n\n\n");
-	system("calling ./configure",@autogenparams);
-	system("./configure", @autogenparams) eq 0 or die ("failing configuring mono");
+
+	rmtree("$builddir");
+	mkpath("$builddir");
+	chdir("$builddir") eq 1 or die("Failed chdir 3");
+	system("calling configure in builddir/linux",@autogenparams);
+	system("../../configure", @autogenparams) eq 0 or die ("failing configuring mono");
 
 	system("make clean") eq 0 or die ("failed make cleaning");
 	system("make") eq 0 or die ("failing running make for mono");
+	chdir("$root");
 }
 
 mkpath($bintarget);
@@ -130,13 +131,13 @@ mkpath($libtarget);
 mkpath("$etctarget/mono");
 
 print "Copying libmono.so\n";
-system("cp", "$root/mono/mini/.libs/libmono.so.0","$libtarget/libmono.so") eq 0 or die ("failed copying libmono.so.0");
+system("cp", "$builddir/mono/mini/.libs/libmono.so.0","$libtarget/libmono.so") eq 0 or die ("failed copying libmono.so.0");
 
 print "Copying libmono.a\n";
-system("cp", "$root/mono/mini/.libs/libmono.a","$libtarget/libmono-static.a") eq 0 or die ("failed copying libmono.a");
+system("cp", "$builddir/mono/mini/.libs/libmono.a","$libtarget/libmono-static.a") eq 0 or die ("failed copying libmono.a");
 
 print "Copying libMonoPosixHelper.so\n";
-system("cp", "$root/support/.libs/libMonoPosixHelper.so","$libtarget/libMonoPosixHelper.so") eq 0 or die ("failed copying libMonoPosixHelper.so");
+system("cp", "$builddir/support/.libs/libMonoPosixHelper.so","$libtarget/libMonoPosixHelper.so") eq 0 or die ("failed copying libMonoPosixHelper.so");
 
 if ($ENV{"UNITY_THISISABUILDMACHINE"})
 {
@@ -145,7 +146,7 @@ if ($ENV{"UNITY_THISISABUILDMACHINE"})
 	system("git log --pretty=format:'mono-runtime-$platform = %H %d %ad' --no-abbrev-commit --date=short -1 > $root/builds/versions.txt");
 }
 
-system("ln","-f","$root/mono/mini/mono","$bintarget/mono") eq 0 or die("failed symlinking mono executable");
-system("ln","-f","$root/mono/metadata/pedump","$bintarget/pedump") eq 0 or die("failed symlinking pedump executable");
-system('cp',"$root/data/config","$etctarget/mono/config");
+system("ln","-f","$builddir/mono/mini/mono","$bintarget/mono") eq 0 or die("failed symlinking mono executable");
+system("ln","-f","$builddir/mono/metadata/pedump","$bintarget/pedump") eq 0 or die("failed symlinking pedump executable");
+system('cp',"$builddir/data/config","$etctarget/mono/config");
 system("chmod","-R","755",$bintarget);

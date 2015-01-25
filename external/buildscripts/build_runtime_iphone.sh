@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 SDK_VERSION=7.1
 MAC_SDK_VERSION=10.6
 ASPEN_ROOT=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer
@@ -21,8 +21,7 @@ SIMULATOR_ASPEN_SDK=$SIMULATOR_ASPEN_ROOT/SDKs/iPhoneSimulator${SDK_VERSION}.sdk
 
 ORIG_PATH=$PATH
 PRFX=$PWD/tmp 
-MAKE_JOBS=4
-
+MAKE_JOBS=1
 
 if [ ${UNITY_THISISABUILDMACHINE:+1} ]; then
 	echo "Erasing builds folder to make sure we start with a clean slate"
@@ -80,30 +79,37 @@ build_arm_mono ()
 {
 	setenv "$1"
 
+	BUILDDIR=buildir/ios-arm
 	if [ $2 -eq 0 ]; then
-		make clean
-		rm -f config.h*
-
-		pushd eglib 
-		LIBTOOL=$LIBTOOL ./autogen.sh --host=arm-apple-darwin9 --prefix=$PRFX
-		make clean
+		make distclean
+	
+		LIBTOOL=$LIBTOOL NOCONFIGURE=1 ./autogen.sh
+		pushd eglib
+		LIBTOOL=$LIBTOOL NOCONFIGURE=1 ./autogen.sh
 		popd
 
-		LIBTOOL=$LIBTOOL ./autogen.sh --prefix=$PRFX --disable-mcs-build --host=arm-apple-darwin9 --disable-shared-handles --with-tls=pthread --with-sigaltstack=no --with-glib=embedded --enable-minimal=jit,profiler,com --disable-nls || exit 1
+		rm -rf $BUILDDIR
+		mkdir -p $BUILDDIR
+		pushd $BUILDDIR
+
+		LIBTOOL=$LIBTOOL ../../configure --prefix=$PRFX --disable-mcs-build --host=arm-apple-darwin9 --disable-shared-handles --with-tls=pthread --with-sigaltstack=no --with-glib=embedded --enable-minimal=jit,profiler,com --disable-nls || exit 1
 		perl -pi -e 's/MONO_SIZEOF_SUNPATH 0/MONO_SIZEOF_SUNPATH 104/' config.h
 		perl -pi -e 's/#define HAVE_FINITE 1//' config.h
 		#perl -pi -e 's/#define HAVE_MMAP 1//' config.h
 		perl -pi -e 's/#define HAVE_CURSES_H 1//' config.h
 		perl -pi -e 's/#define HAVE_STRNDUP 1//' eglib/config.h
 		make $MAKE_JOBS
+		popd
 	else
-		echo "Skipping autogen.sh for incremental build"
+		echo "Skipping ./autogen.sh for incremental build"
 	fi
 
+	pushd $BUILDDIR
 	make || exit 1
+	popd
 
 	mkdir -p builds/embedruntimes/iphone
-	cp mono/mini/.libs/libmono.a "builds/embedruntimes/iphone/libmono-$1.a" || exit 1
+	cp $BUILDDIR/mono/mini/.libs/libmono.a "builds/embedruntimes/iphone/libmono-$1.a" || exit 1
 }
 
 build_iphone_runtime () 
@@ -131,22 +137,34 @@ build_iphone_crosscompiler ()
 
 	export PLATFORM_IPHONE_XCOMP=1	
 
-    if [ $1 -eq 0 ]; then
-		pushd eglib 
-		LIBTOOL=$LIBTOOL ./autogen.sh --prefix=$PRFX || exit 1
-		make clean
-		popd
+	BUILDDIR=builddir/ios-xcomp
 	
-		LIBTOOL=$LIBTOOL ./autogen.sh --prefix=$PRFX --with-macversion=$MAC_SDK_VERSION --disable-mcs-build --disable-shared-handles --with-tls=pthread --with-signalstack=no --with-glib=embedded --target=arm-darwin --disable-nls || exit 1
+    if [ $1 -eq 0 ]; then
+		make distclean
+
+		LIBTOOL=$LIBTOOL NOCONFIGURE=1 ./autogen.sh
+		pushd eglib
+		LIBTOOL=$LIBTOOL NOCONFIGURE=1 ./autogen.sh
+		popd
+		
+		rm -rf $BUILDDIR
+		mkdir -p $BUILDDIR
+		pushd $BUILDDIR
+	
+		LIBTOOL=$LIBTOOL ../../configure --prefix=$PRFX --with-macversion=$MAC_SDK_VERSION --disable-mcs-build --disable-shared-handles --with-tls=pthread --with-signalstack=no --with-glib=embedded --target=arm-darwin --disable-nls || exit 1
 		perl -pi -e 's/#define HAVE_STRNDUP 1//' eglib/config.h
 		make clean || exit 1
+		popd
 	else
-		echo "Skipping autogen.sh for incremental build"
+		echo "Skipping ./autogen.sh for incremental build"
 	fi
 
+	pushd $BUILDDIR
 	make $MAKE_JOBS || exit 1
+	popd
+
 	mkdir -p builds/crosscompiler/iphone
-	cp mono/mini/mono builds/crosscompiler/iphone/mono-xcompiler
+	cp $BUILDDIR/mono/mini/mono builds/crosscompiler/iphone/mono-xcompiler
 	unsetenv
 	echo "iPhone cross compiler build done"
 }
@@ -179,15 +197,15 @@ build_iphone_simulator ()
 
 	make distclean
 
-	#were going to tell autogen to use a specific cache file, that we purposely remove before starting.
-	#that way, autogen is forced to do all its config stuff again, which should make this buildscript
-	#more robust if other targetplatforms have been built from this same workincopy
-	rm osx.cache
-
+	LIBTOOL=$LIBTOOL NOCONFIGURE=1 ./autogen.sh
 	pushd eglib
-	make distclean
-	autoreconf -i
+	LIBTOOL=$LIBTOOL NOCONFIGURE=1 ./autogen.sh
 	popd
+
+	BUILDDIR=builddir/ios-simulator
+	rm -rf $BUILDDIR
+	mkdir -p $BUILDDIR
+	pushd $BUILDDIR
 
 	# From Massi: I was getting failures in install_name_tool about space
 	# for the commands being too small, and adding here things like
@@ -197,19 +215,19 @@ build_iphone_simulator ()
 	# Lucas noticed that I was lacking a Mono prefix, and having a long
 	# one would give us space, so here is this silly looong prefix.
 	LONG_PREFIX="/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting/scripting"
-
-	./autogen.sh --cache-file=osx.cache --disable-mcs-build --with-glib=embedded --disable-nls \
+		
+	LIBTOOL=$LIBTOOL ../../configure --disable-mcs-build --with-glib=embedded --disable-nls \
 		--prefix=$LONG_PREFIX || { echo "failing configuring mono"; exit 1; }
 	make clean || echo "failed make cleaning"
-
 	perl -pi -e 's/#define HAVE_STRNDUP 1//' eglib/config.h
 
 	make $MAKE_JOBS || { echo "failing running make for mono"; exit 1; }
+	popd
 
 	echo "Copying iPhone simulator static lib to final destination";
 	mkdir -p builds/embedruntimes/iphone
 
-	cp mono/mini/.libs/libmono.a builds/embedruntimes/iphone/libmono-i386.a
+	cp $BUILDDIR/mono/mini/.libs/libmono.a builds/embedruntimes/iphone/libmono-i386.a
 	unsetenv
 }
 

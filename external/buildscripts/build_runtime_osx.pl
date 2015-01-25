@@ -8,7 +8,7 @@ my $root = getcwd();
 my $skipbuild=0;
 my $debug = 0;
 my $minimal = 0;
-my $jobs = 4;
+my $jobs = 1;
 my $xcodePath = '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform';
 my $unityPath = "$root/../../unity/build";
 
@@ -59,7 +59,7 @@ if ($ENV{UNITY_THISISABUILDMACHINE})
 }
 
 my @arches = ('i386','x86_64');
-if ($iphone_simulator || $minimal) {
+if ($minimal) {
 	@arches = ('i386');
 }
 
@@ -90,6 +90,8 @@ for my $arch (@arches)
 	# Make architecture-specific targets and lipo at the end
 	my $bintarget = "$root/builds/monodistribution/bin-$arch";
 	my $libtarget = "$root/builds/embedruntimes/osx-$arch";
+	my $builddir = "$root/builddir/osx";
+
 	my $sdkoptions = '';
 
 	if ($minimal)
@@ -126,10 +128,6 @@ for my $arch (@arches)
 
 		#this will fail on a fresh working copy, so don't die on it.
 		system("make distclean");
-		#were going to tell autogen to use a specific cache file, that we purposely remove before starting.
-		#that way, autogen is forced to do all its config stuff again, which should make this buildscript
-		#more robust if other targetplatforms have been built from this same workincopy
-		system("rm osx.cache");
 
 		chdir("$root/eglib") eq 1 or die ("Failed chdir 1");
 		
@@ -139,7 +137,6 @@ for my $arch (@arches)
 		chdir("$root") eq 1 or die ("failed to chdir 2");
 		system("autoreconf -i");
 		my @autogenparams = ();
-		unshift(@autogenparams, "--cache-file=osx.cache");
 		unshift(@autogenparams, "--disable-mcs-build");
 		unshift(@autogenparams, "--with-glib=embedded");
 		unshift(@autogenparams, "--disable-nls");  #this removes the dependency on gettext package
@@ -161,11 +158,17 @@ for my $arch (@arches)
 		print("\n\n\n\nCalling configure with these parameters: ");
 		system("echo", @autogenparams);
 		print("\n\n\n\n\n");
-		system("calling ./configure",@autogenparams);
-		system("./configure", @autogenparams) eq 0 or die ("failing configuring mono");
+
+		rmtree("$builddir");
+		mkpath("$builddir");
+		chdir("$builddir") eq 1 or die("failed to chdir 3");
+
+		system("calling ./configure in builddir/osx",@autogenparams);
+		system("../../configure", @autogenparams) eq 0 or die ("failing configuring mono");
 
 		system("make clean") eq 0 or die ("failed make cleaning");
 		system("make $jobs") eq 0 or die ("failing runnig make for mono");
+		chdir("$root");
 	}
 
 	chdir($root);
@@ -173,23 +176,23 @@ for my $arch (@arches)
 	mkpath($bintarget);
 	mkpath($libtarget);
 
-	my $cmdline = "gcc -arch $arch $sdkoptions -bundle -Wl,-reexport_library mono/mini/.libs/libmono.a $sdkOptions -all_load -liconv -o $libtarget/MonoBundleBinary";
+	my $cmdline = "gcc -arch $arch $sdkoptions -bundle -Wl,-reexport_library $builddir/mono/mini/.libs/libmono.a $sdkOptions -all_load -liconv -o $libtarget/MonoBundleBinary";
 	print "About to call this cmdline to make a bundle:\n$cmdline\n";
 	system($cmdline) eq 0 or die("failed to link libmono.a into mono bundle");
 
 	print "Symlinking libmono.dylib\n";
-	system("ln","-f", "$root/mono/mini/.libs/libmono.0.dylib","$libtarget/libmono.0.dylib") eq 0 or die ("failed symlinking libmono.0.dylib");
+	system("ln","-f", "$builddir/mono/mini/.libs/libmono.0.dylib","$libtarget/libmono.0.dylib") eq 0 or die ("failed symlinking libmono.0.dylib");
 
 	print "Symlinking libmono.a\n";
-	system("ln", "-f", "$root/mono/mini/.libs/libmono.a","$libtarget/libmono.a") eq 0 or die ("failed symlinking libmono.a");
+	system("ln", "-f", "$builddir/mono/mini/.libs/libmono.a","$libtarget/libmono.a") eq 0 or die ("failed symlinking libmono.a");
 
 	print "Symlinking libMonoPosixHelper.dylib\n";
-	system("ln", "-f", "$root/support/.libs/libMonoPosixHelper.dylib","$libtarget/libMonoPosixHelper.dylib") eq 0 or die ("failed symlinking libMonoPosixHelper.dylib");
+	system("ln", "-f", "$builddir/support/.libs/libMonoPosixHelper.dylib","$libtarget/libMonoPosixHelper.dylib") eq 0 or die ("failed symlinking libMonoPosixHelper.dylib");
 
 	if (not $ENV{"UNITY_THISISABUILDMACHINE"})
 	{
 		rmtree ("$libtarget/libmono.0.dylib.dSYM");
-		system ('cp', '-R', "$root/mono/mini/.libs/libmono.0.dylib.dSYM","$libtarget/libmono.0.dylib.dSYM") eq 0 or warn ("Failed copying libmono.0.dylib.dSYM");
+		system ('cp', '-R', "$builddir/mono/mini/.libs/libmono.0.dylib.dSYM","$libtarget/libmono.0.dylib.dSYM") eq 0 or warn ("Failed copying libmono.0.dylib.dSYM");
 	}
 	
 	if ($ENV{"UNITY_THISISABUILDMACHINE"})
@@ -202,8 +205,8 @@ for my $arch (@arches)
 	InstallNameTool("$libtarget/libmono.0.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/libmono.0.dylib");
 	InstallNameTool("$libtarget/libMonoPosixHelper.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/libMonoPosixHelper.dylib");
 
-	system("ln","-f","$root/mono/mini/mono","$bintarget/mono") eq 0 or die("failed symlinking mono executable");
-	system("ln","-f","$root/mono/metadata/pedump","$bintarget/pedump") eq 0 or die("failed symlinking pedump executable");
+	system("ln","-f","$builddir/mono/mini/mono","$bintarget/mono") eq 0 or die("failed symlinking mono executable");
+	system("ln","-f","$builddir/mono/metadata/pedump","$bintarget/pedump") eq 0 or die("failed symlinking pedump executable");
 }
 
 # Create universal binaries

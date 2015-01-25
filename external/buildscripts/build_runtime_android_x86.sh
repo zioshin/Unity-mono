@@ -7,6 +7,7 @@ export ANDROID_PLATFORM=android-9
 GCC_PREFIX=i686-linux-android-
 GCC_VERSION=4.8
 OUTDIR=builds/embedruntimes/android
+BUILDDIR="builddir/android"
 PREFIX=`pwd`/builds/android
 
 NDK_ROOT=`cd $ANDROID_NDK_ROOT && pwd`
@@ -90,7 +91,13 @@ function clean_build
 	popd
 	autoreconf -i
 
-	./configure $CONFIG_OPTS \
+	CURR_BUILDDIR="$BUILDDIR-$3"
+	CURR_OUTDIR="$OUTDIR/$3"
+
+	rm -rf $CURR_BUILDDIR
+	mkdir -p $CURR_BUILDDIR
+	pushd $CURR_BUILDDIR
+	../../configure $CONFIG_OPTS \
 	PATH="$PATH" CC="$CC" CXX="$CXX" CPP="$CPP" CXXCPP="$CXXCPP" \
 	CFLAGS="$CFLAGS $1" CXXFLAGS="$CXXFLAGS $1" CPPFLAGS="$CPPFLAGS $1" LDFLAGS="$LDFLAGS $2" \
 	LD=$LD AR=$AR AS=$AS RANLIB=$RANLIB STRIP=$STRIP CPATH="$CPATH"
@@ -101,17 +108,18 @@ function clean_build
 	fi
 
 	make && echo "Build SUCCESS!" || exit 1
+	popd
 
-	mkdir -p $3
-	cp mono/mini/.libs/libmono.a $3
-	cp mono/mini/.libs/libmono.so $3
+	mkdir -p $CURR_OUTDIR
+	cp $CURR_BUILDDIR/mono/mini/.libs/libmono.a $CURR_OUTDIR
+	cp $CURR_BUILDDIR/mono/mini/.libs/libmono.so $CURR_OUTDIR
 }
 
 if [ x$1 != x"dontclean" ]; then
 	rm -rf $OUTDIR
 fi
 
-clean_build "" "" "$OUTDIR/x86"
+clean_build "" "" "x86"
 
 if [ x$1 != x"dontclean" ]; then
 NUM_LIBS_BUILT=`ls -AlR $OUTDIR | grep libmono | wc -l`
