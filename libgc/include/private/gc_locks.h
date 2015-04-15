@@ -216,7 +216,7 @@
         }
 #       define GC_CLEAR_DEFINED
 #    endif /* ALPHA */
-#    if defined(ARM32) && !defined(PLATFORM_STV)
+#    if defined(ARM32) && !defined(PLATFORM_STV) // work-around for SamsungTV. SpinLock currently does not work correctly.
         inline static int GC_test_and_set(volatile unsigned int *addr) {
 #if defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7__)
           int ret, tmp;
