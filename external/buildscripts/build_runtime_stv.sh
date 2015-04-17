@@ -20,7 +20,8 @@ for STV_TARGET in ${STV_TARGETS}; do
 	STV_GCC_PREFIX="${!STV_GCC_PREFIX}"
 
 	# need to swap flags when building for different platforms.
-	CXXFLAGS="-g -DARM_FPU_VFP=1 -DHAVE_ARMV6=1 -D__ARM_EABI__ -DLINUX -D__linux__ -DHAVE_PTHREAD_MUTEX_TIMEDLOCK -march=armv7-a -mfpu=vfp -mfloat-abi=softfp -fpic -funwind-tables -ffunction-sections -fdata-sections";
+
+	CXXFLAGS="-g -DARM_FPU_VFP=1 -DHAVE_ARMV6=1 -D__ARM_EABI__ -DLINUX -D__linux__ -DPLATFORM_STV -DUSE_PTHREAD_LOCKS -DHAVE_PTHREAD_MUTEX_TIMEDLOCK -march=armv7-a -mfpu=vfp -mfloat-abi=softfp -fpic -funwind-tables -ffunction-sections -fdata-sections";
 	CC="${STV_GCC_PREFIX}gcc"
 	CXX="${STV_GCC_PREFIX}g++"
 	AR="${STV_GCC_PREFIX}ar"
