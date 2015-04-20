@@ -1132,13 +1132,14 @@ add_imt_builder_entry (MonoImtBuilderEntry **imt_builder, MonoMethod *method, gu
 static void
 print_imt_entry (const char* message, MonoImtBuilderEntry *e, int num) {
 	if (e != NULL) {
+		MonoMethod *method = e->key;
 		printf ("  * %s [%d]: (%p) '%s.%s.%s'\n",
 				message,
 				num,
-				e->method,
-				e->method->klass->name_space,
-				e->method->klass->name,
-				e->method->name);
+				method,
+				method->klass->name_space,
+				method->klass->name,
+				method->name);
 	} else {
 		printf ("  * %s: NULL\n", message);
 	}

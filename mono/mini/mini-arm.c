@@ -24,7 +24,7 @@
 #include "mono/arch/arm/arm-vfp-codegen.h"
 #endif
 
-#if defined(__ARM_EABI__) && defined(__linux__) && !defined(PLATFORM_ANDROID)
+#if defined(__ARM_EABI__) && defined(__linux__) && !defined(PLATFORM_ANDROID) && !defined(PLATFORM_STV)
 #define HAVE_AEABI_READ_TP 1
 #endif
 
