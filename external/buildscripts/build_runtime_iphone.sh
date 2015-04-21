@@ -158,8 +158,11 @@ get_xcode_version()
 
 build_iphone_simulator ()
 {
+	INCREMENTAL=$1
+	ARCH=$2
 	echo "Building iPhone simulator static lib";
-	export CFLAGS="-D_XOPEN_SOURCE=1 -DTARGET_IPHONE_SIMULATOR -g -O0";
+	# on x86_64 -Werror=implicit-function-declaration is enabled. Disabled it
+	export CFLAGS="-D_XOPEN_SOURCE=1 -DTARGET_IPHONE_SIMULATOR -g -O0 -Wno-error=implicit-function-declaration";
 	export CPPFLAGS="$CFLAGS"
 	export MACSYSROOT="-isysroot $SIMULATOR_ASPEN_SDK"
 
@@ -168,8 +171,8 @@ build_iphone_simulator ()
 	if [ "4" != "$(get_xcode_version)" ]; then
 		export MACSDKOPTIONS="$MACSDKOPTIONS -mios-simulator-version-min=4.3"
 	fi
-	export CC="$SIMULATOR_ASPEN_ROOT/usr/bin/gcc -arch i386"
-	export CXX="$SIMULATOR_ASPEN_ROOT/usr/bin/g++ -arch i386"
+	export CC="$SIMULATOR_ASPEN_ROOT/usr/bin/gcc -arch $ARCH"
+	export CXX="$SIMULATOR_ASPEN_ROOT/usr/bin/g++ -arch $ARCH"
 	export LIBTOOLIZE=`which glibtoolize`
 	export CFLAGS="-D_XOPEN_SOURCE=1 -DTARGET_IPHONE_SIMULATOR -g -O0"
 
@@ -209,8 +212,13 @@ build_iphone_simulator ()
 	echo "Copying iPhone simulator static lib to final destination";
 	mkdir -p builds/embedruntimes/iphone
 
-	cp mono/mini/.libs/libmono.a builds/embedruntimes/iphone/libmono-i386.a
+	cp mono/mini/.libs/libmono.a builds/embedruntimes/iphone/libmono-$ARCH.a
 	unsetenv
+}
+
+lipo_iphone_simulator()
+{
+	lipo -create builds/embedruntimes/iphone/libmono-i386.a builds/embedruntimes/iphone/libmono-x86_64.a -output builds/embedruntimes/iphone/libmono_sim.a
 }
 
 usage()
@@ -237,7 +245,9 @@ if [ $# -gt 0 ]; then
 	elif [ "x$1" == "x--xcomp-only" ]; then
 		build_iphone_crosscompiler $INCREMENTAL || exit 1	
 	elif [ "x$1" == "x--simulator-only" ]; then
-		build_iphone_simulator $INCREMENTAL || exit 1	
+		build_iphone_simulator $INCREMENTAL i386 || exit 1
+		build_iphone_simulator $INCREMENTAL x86_64 || exit 1
+		lipo_iphone_simulator || exit 1
 	else
 		usage
 	fi
@@ -247,5 +257,7 @@ if [ $# -eq 0 ]; then
 	INCREMENTAL=0
 	build_iphone_runtime $INCREMENTAL || exit 1
 	build_iphone_crosscompiler $INCREMENTAL || exit 1
-	build_iphone_simulator $INCREMENTAL || exit 1
+	build_iphone_simulator $INCREMENTAL i386 || exit 1
+	build_iphone_simulator $INCREMENTAL x86_64 || exit 1
+	lipo_iphone_simulator || exit 1
 fi
