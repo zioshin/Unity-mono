@@ -4,7 +4,7 @@
 # Todo: set appropriate ARM flags for hard floats
 
 export ANDROID_PLATFORM=android-9
-GCC_VERSION=4.4.3
+GCC_VERSION=4.9
 OUTDIR=builds/embedruntimes/android
 PREFIX=`pwd`/builds/android
 
@@ -21,7 +21,7 @@ case "$HOST_ENV" in
         HOST_ENV=darwin-x86
         ;;
     Linux)
-        HOST_ENV=linux-x86
+        HOST_ENV=linux-x86_64
         ;;
     CYGWIN*|*_NT-*)
         HOST_ENV=windows
@@ -44,16 +44,16 @@ if [ ! -a $TOOLCHAIN -o ! -a $PLATFORM_ROOT ]; then
 fi
 
 PATH="$TOOLCHAIN/bin:$PATH"
-CC="$TOOLCHAIN/bin/i686-android-linux-gcc --sysroot=$PLATFORM_ROOT"
-CXX="$TOOLCHAIN/bin/i686-android-linux-g++ --sysroot=$PLATFORM_ROOT"
-CPP="$TOOLCHAIN/bin/i686-android-linux-cpp"
-CXXCPP="$TOOLCHAIN/bin/i686-android-linux-cpp"
+CC="$TOOLCHAIN/bin/i686-linux-android-gcc --sysroot=$PLATFORM_ROOT"
+CXX="$TOOLCHAIN/bin/i686-linux-android-g++ --sysroot=$PLATFORM_ROOT"
+CPP="$TOOLCHAIN/bin/i686-linux-android-cpp"
+CXXCPP="$TOOLCHAIN/bin/i686-linux-android-cpp"
 CPATH="$PLATFORM_ROOT/usr/include"
-LD=$TOOLCHAIN/bin/i686-android-linux-ld
-AS=$TOOLCHAIN/bin/i686-android-linux-as
-AR=$TOOLCHAIN/bin/i686-android-linux-ar
-RANLIB=$TOOLCHAIN/bin/i686-android-linux-ranlib
-STRIP=$TOOLCHAIN/bin/i686-android-linux-strip
+LD=$TOOLCHAIN/bin/i686-linux-android-ld
+AS=$TOOLCHAIN/bin/i686-linux-android-as
+AR=$TOOLCHAIN/bin/i686-linux-android-ar
+RANLIB=$TOOLCHAIN/bin/i686-linux-android-ranlib
+STRIP=$TOOLCHAIN/bin/i686-linux-android-strip
 CFLAGS="\
 -DANDROID -DPLATFORM_ANDROID -DLINUX -D__linux__ \
 -DHAVE_USR_INCLUDE_MALLOC_H -DPAGE_SIZE=0x1000 \
