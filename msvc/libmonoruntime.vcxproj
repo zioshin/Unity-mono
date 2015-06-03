@@ -337,6 +337,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;$(BOEHM_DEFINES);_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(top_srcdir);$(top_srcdir)/mono;$(LIBGC_CPPFLAGS_INCLUDE);$(GLIB_CFLAGS_INCLUDE)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -365,6 +366,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;$(BOEHM_DEFINES);_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(top_srcdir);$(top_srcdir)/mono;$(LIBGC_CPPFLAGS_INCLUDE);$(GLIB_CFLAGS_INCLUDE)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -379,6 +381,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;$(SGEN_DEFINES);_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(top_srcdir);$(top_srcdir)/mono;$(LIBGC_CPPFLAGS_INCLUDE);$(GLIB_CFLAGS_INCLUDE)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -395,6 +398,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;$(BOEHM_DEFINES);NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(top_srcdir);$(top_srcdir)/mono;$(LIBGC_CPPFLAGS_INCLUDE);$(GLIB_CFLAGS_INCLUDE)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -431,6 +435,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;$(BOEHM_DEFINES);NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(top_srcdir);$(top_srcdir)/mono;$(LIBGC_CPPFLAGS_INCLUDE);$(GLIB_CFLAGS_INCLUDE)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
