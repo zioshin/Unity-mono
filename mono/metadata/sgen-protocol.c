@@ -29,8 +29,6 @@
 #include "utils/mono-mmap.h"
 #include "utils/mono-threads.h"
 
-#ifdef SGEN_BINARY_PROTOCOL
-
 /* If not null, dump binary protocol to this file */
 static FILE *binary_protocol_file = NULL;
 
@@ -48,10 +46,57 @@ struct _BinaryProtocolBuffer {
 
 static BinaryProtocolBuffer * volatile binary_protocol_buffers = NULL;
 
-void
-binary_protocol_init (const char *filename)
+static char* filename_or_prefix = NULL;
+static int current_file_index = 0;
+static long long current_file_size = 0;
+static long long file_size_limit;
+
+static char*
+filename_for_index (int index)
 {
+	char *filename;
+
+	SGEN_ASSERT (0, file_size_limit > 0, "Indexed binary protocol filename must only be used with file size limit");
+
+	filename = sgen_alloc_internal_dynamic (strlen (filename_or_prefix) + 32, INTERNAL_MEM_BINARY_PROTOCOL, TRUE);
+	sprintf (filename, "%s.%d", filename_or_prefix, index);
+
+	return filename;
+}
+
+static void
+free_filename (char *filename)
+{
+	SGEN_ASSERT (0, file_size_limit > 0, "Indexed binary protocol filename must only be used with file size limit");
+
+	sgen_free_internal_dynamic (filename, strlen (filename_or_prefix) + 32, INTERNAL_MEM_BINARY_PROTOCOL);
+}
+
+static void
+binary_protocol_open_file (void)
+{
+	char *filename;
+
+	if (file_size_limit > 0)
+		filename = filename_for_index (current_file_index);
+	else
+		filename = filename_or_prefix;
+
 	binary_protocol_file = fopen (filename, "w");
+
+	if (file_size_limit > 0)
+		free_filename (filename);
+}
+
+void
+binary_protocol_init (const char *filename, long long limit)
+{
+	filename_or_prefix = sgen_alloc_internal_dynamic (strlen (filename) + 1, INTERNAL_MEM_BINARY_PROTOCOL, TRUE);
+	strcpy (filename_or_prefix, filename);
+
+	file_size_limit = limit;
+
+	binary_protocol_open_file ();
 }
 
 gboolean
@@ -112,8 +157,30 @@ binary_protocol_flush_buffer (BinaryProtocolBuffer *buffer)
 {
 	g_assert (buffer->index > 0);
 	fwrite (buffer->buffer, 1, buffer->index, binary_protocol_file);
+	current_file_size += buffer->index;
 
 	sgen_free_os_memory (buffer, sizeof (BinaryProtocolBuffer), SGEN_ALLOC_INTERNAL);
+}
+
+static void
+binary_protocol_check_file_overflow (void)
+{
+	if (file_size_limit <= 0 || current_file_size < file_size_limit)
+		return;
+
+	fclose (binary_protocol_file);
+	binary_protocol_file = NULL;
+
+	if (current_file_index > 0) {
+		char *filename = filename_for_index (current_file_index - 1);
+		unlink (filename);
+		free_filename (filename);
+	}
+
+	++current_file_index;
+	current_file_size = 0;
+
+	binary_protocol_open_file ();
 }
 
 void
@@ -138,8 +205,10 @@ binary_protocol_flush_buffers (gboolean force)
 
 	binary_protocol_buffers = NULL;
 
-	for (i = num_buffers - 1; i >= 0; --i)
+	for (i = num_buffers - 1; i >= 0; --i) {
 		binary_protocol_flush_buffer (bufs [i]);
+		binary_protocol_check_file_overflow ();
+	}
 
 	sgen_free_internal_dynamic (buf, num_buffers * sizeof (BinaryProtocolBuffer*), INTERNAL_MEM_BINARY_PROTOCOL);
 
@@ -233,6 +302,114 @@ binary_protocol_collection_end (int index, int generation)
 }
 
 void
+binary_protocol_concurrent_start (void)
+{
+	protocol_entry (SGEN_PROTOCOL_CONCURRENT_START, NULL, 0);
+}
+
+void
+binary_protocol_concurrent_update_finish (void)
+{
+	protocol_entry (SGEN_PROTOCOL_CONCURRENT_UPDATE_FINISH, NULL, 0);
+}
+
+void
+binary_protocol_world_stopping (long long timestamp)
+{
+	SGenProtocolWorldStopping entry = { timestamp };
+	protocol_entry (SGEN_PROTOCOL_WORLD_STOPPING, &entry, sizeof (SGenProtocolWorldStopping));
+}
+
+void
+binary_protocol_world_stopped (long long timestamp, long long total_major_cards,
+		long long marked_major_cards, long long total_los_cards, long long marked_los_cards)
+{
+	SGenProtocolWorldStopped entry = { timestamp, total_major_cards, marked_major_cards, total_los_cards, marked_los_cards };
+	protocol_entry (SGEN_PROTOCOL_WORLD_STOPPED, &entry, sizeof (SGenProtocolWorldStopped));
+}
+
+void
+binary_protocol_world_restarting (int generation, long long timestamp,
+		long long total_major_cards, long long marked_major_cards, long long total_los_cards, long long marked_los_cards)
+{
+	SGenProtocolWorldRestarting entry = { generation, timestamp, total_major_cards, marked_major_cards, total_los_cards, marked_los_cards };
+	protocol_entry (SGEN_PROTOCOL_WORLD_RESTARTING, &entry, sizeof (SGenProtocolWorldRestarting));
+}
+
+void
+binary_protocol_world_restarted (int generation, long long timestamp)
+{
+	SGenProtocolWorldRestarted entry = { generation, timestamp };
+	protocol_entry (SGEN_PROTOCOL_WORLD_RESTARTED, &entry, sizeof (SGenProtocolWorldRestarted));
+}
+
+void
+binary_protocol_thread_suspend (gpointer thread, gpointer stopped_ip)
+{
+	SGenProtocolThreadSuspend entry = { thread, stopped_ip };
+	protocol_entry (SGEN_PROTOCOL_THREAD_SUSPEND, &entry, sizeof (SGenProtocolThreadSuspend));
+}
+
+void
+binary_protocol_thread_restart (gpointer thread)
+{
+	SGenProtocolThreadRestart entry = { thread };
+	protocol_entry (SGEN_PROTOCOL_THREAD_RESTART, &entry, sizeof (SGenProtocolThreadRestart));
+}
+
+void
+binary_protocol_thread_register (gpointer thread)
+{
+	SGenProtocolThreadRegister entry = { thread };
+	protocol_entry (SGEN_PROTOCOL_THREAD_REGISTER, &entry, sizeof (SGenProtocolThreadRegister));
+
+}
+
+void
+binary_protocol_thread_unregister (gpointer thread)
+{
+	SGenProtocolThreadUnregister entry = { thread };
+	protocol_entry (SGEN_PROTOCOL_THREAD_UNREGISTER, &entry, sizeof (SGenProtocolThreadUnregister));
+
+}
+
+void
+binary_protocol_missing_remset (gpointer obj, gpointer obj_vtable, int offset, gpointer value, gpointer value_vtable, int value_pinned)
+{
+	SGenProtocolMissingRemset entry = { obj, obj_vtable, offset, value, value_vtable, value_pinned };
+	protocol_entry (SGEN_PROTOCOL_MISSING_REMSET, &entry, sizeof (SGenProtocolMissingRemset));
+
+}
+
+void
+binary_protocol_cement (gpointer obj, gpointer vtable, int size)
+{
+	SGenProtocolCement entry = { obj, vtable, size };
+	protocol_entry (SGEN_PROTOCOL_CEMENT, &entry, sizeof (SGenProtocolCement));
+}
+
+void
+binary_protocol_cement_reset (void)
+{
+	protocol_entry (SGEN_PROTOCOL_CEMENT_RESET, NULL, 0);
+}
+
+void
+binary_protocol_domain_unload_begin (gpointer domain)
+{
+	SGenProtocolDomainUnload entry = { domain };
+	protocol_entry (SGEN_PROTOCOL_DOMAIN_UNLOAD_BEGIN, &entry, sizeof (SGenProtocolDomainUnload));
+}
+
+void
+binary_protocol_domain_unload_end (gpointer domain)
+{
+	SGenProtocolDomainUnload entry = { domain };
+	protocol_entry (SGEN_PROTOCOL_DOMAIN_UNLOAD_END, &entry, sizeof (SGenProtocolDomainUnload));
+}
+
+#ifdef SGEN_HEAVY_BINARY_PROTOCOL
+void
 binary_protocol_alloc (gpointer obj, gpointer vtable, int size)
 {
 	SGenProtocolAlloc entry = { obj, vtable, size };
@@ -324,61 +501,10 @@ binary_protocol_empty (gpointer start, int size)
 }
 
 void
-binary_protocol_thread_suspend (gpointer thread, gpointer stopped_ip)
-{
-	SGenProtocolThreadSuspend entry = { thread, stopped_ip };
-	protocol_entry (SGEN_PROTOCOL_THREAD_SUSPEND, &entry, sizeof (SGenProtocolThreadSuspend));
-}
-
-void
-binary_protocol_thread_restart (gpointer thread)
-{
-	SGenProtocolThreadRestart entry = { thread };
-	protocol_entry (SGEN_PROTOCOL_THREAD_RESTART, &entry, sizeof (SGenProtocolThreadRestart));
-}
-
-void
-binary_protocol_thread_register (gpointer thread)
-{
-	SGenProtocolThreadRegister entry = { thread };
-	protocol_entry (SGEN_PROTOCOL_THREAD_REGISTER, &entry, sizeof (SGenProtocolThreadRegister));
-
-}
-
-void
-binary_protocol_thread_unregister (gpointer thread)
-{
-	SGenProtocolThreadUnregister entry = { thread };
-	protocol_entry (SGEN_PROTOCOL_THREAD_UNREGISTER, &entry, sizeof (SGenProtocolThreadUnregister));
-
-}
-
-void
-binary_protocol_missing_remset (gpointer obj, gpointer obj_vtable, int offset, gpointer value, gpointer value_vtable, int value_pinned)
-{
-	SGenProtocolMissingRemset entry = { obj, obj_vtable, offset, value, value_vtable, value_pinned };
-	protocol_entry (SGEN_PROTOCOL_MISSING_REMSET, &entry, sizeof (SGenProtocolMissingRemset));
-
-}
-
-void
 binary_protocol_card_scan (gpointer start, int size)
 {
 	SGenProtocolCardScan entry = { start, size };
 	protocol_entry (SGEN_PROTOCOL_CARD_SCAN, &entry, sizeof (SGenProtocolCardScan));
-}
-
-void
-binary_protocol_cement (gpointer obj, gpointer vtable, int size)
-{
-	SGenProtocolCement entry = { obj, vtable, size };
-	protocol_entry (SGEN_PROTOCOL_CEMENT, &entry, sizeof (SGenProtocolCement));
-}
-
-void
-binary_protocol_cement_reset (void)
-{
-	protocol_entry (SGEN_PROTOCOL_CEMENT_RESET, NULL, 0);
 }
 
 void
@@ -403,19 +529,18 @@ binary_protocol_dislink_process_staged (gpointer link, gpointer obj, int index)
 }
 
 void
-binary_protocol_domain_unload_begin (gpointer domain)
+binary_protocol_gray_enqueue (gpointer queue, gpointer cursor, gpointer value)
 {
-	SGenProtocolDomainUnload entry = { domain };
-	protocol_entry (SGEN_PROTOCOL_DOMAIN_UNLOAD_BEGIN, &entry, sizeof (SGenProtocolDomainUnload));
+	SGenProtocolGrayQueue entry = { queue, cursor, value };
+	protocol_entry (SGEN_PROTOCOL_GRAY_ENQUEUE, &entry, sizeof (SGenProtocolGrayQueue));
 }
 
 void
-binary_protocol_domain_unload_end (gpointer domain)
+binary_protocol_gray_dequeue (gpointer queue, gpointer cursor, gpointer value)
 {
-	SGenProtocolDomainUnload entry = { domain };
-	protocol_entry (SGEN_PROTOCOL_DOMAIN_UNLOAD_END, &entry, sizeof (SGenProtocolDomainUnload));
+	SGenProtocolGrayQueue entry = { queue, cursor, value };
+	protocol_entry (SGEN_PROTOCOL_GRAY_DEQUEUE, &entry, sizeof (SGenProtocolGrayQueue));
 }
-
 #endif
 
 #endif /* HAVE_SGEN_GC */

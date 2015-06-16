@@ -1480,9 +1480,9 @@ namespace System
 			return false;
 		}
 		
-		private static void qsort (Array keys, Array items, int low0, int high0, IComparer comparer)
+		unsafe static void qsort (Array keys, Array items, int low0, int high0, IComparer comparer)
 		{
-			QSortStack[] stack = new QSortStack[32];
+			QSortStack* stack = stackalloc QSortStack [32];
 			const int QSORT_THRESHOLD = 7;
 			int high, low, mid, i, k;
 			object key, hi, lo;
@@ -1934,9 +1934,9 @@ namespace System
 			return false;
 		}
 		
-		private static void qsort<T, U> (T[] keys, U[] items, int low0, int high0) where T : IComparable<T>
+		unsafe static void qsort<T, U> (T[] keys, U[] items, int low0, int high0) where T : IComparable<T>
 		{
-			QSortStack[] stack = new QSortStack[32];
+			QSortStack* stack = stackalloc QSortStack [32];
 			const int QSORT_THRESHOLD = 7;
 			int high, low, mid, i, k;
 			int sp = 1;
@@ -2043,9 +2043,9 @@ namespace System
 		}		
 
 		// Specialized version for items==null
-		private static void qsort<T> (T[] keys, int low0, int high0) where T : IComparable<T>
+		unsafe static void qsort<T> (T[] keys, int low0, int high0) where T : IComparable<T>
 		{
-			QSortStack[] stack = new QSortStack[32];
+			QSortStack* stack = stackalloc QSortStack [32];
 			const int QSORT_THRESHOLD = 7;
 			int high, low, mid, i, k;
 			int sp = 1;
@@ -2232,9 +2232,9 @@ namespace System
 			return false;
 		}
 		
-		private static void qsort<K, V> (K [] keys, V [] items, int low0, int high0, IComparer<K> comparer)
+		unsafe static void qsort<K, V> (K [] keys, V [] items, int low0, int high0, IComparer<K> comparer)
 		{
-			QSortStack[] stack = new QSortStack[32];
+			QSortStack* stack = stackalloc QSortStack [32];
 			const int QSORT_THRESHOLD = 7;
 			int high, low, mid, i, k;
 			IComparable<K> gcmp;
@@ -2378,9 +2378,9 @@ namespace System
 		}
 
 		// Specialized version for items==null
-		private static void qsort<K> (K [] keys, int low0, int high0, IComparer<K> comparer)
+		unsafe static void qsort<K> (K [] keys, int low0, int high0, IComparer<K> comparer)
 		{
-			QSortStack[] stack = new QSortStack[32];
+			QSortStack* stack = stackalloc QSortStack [32];
 			const int QSORT_THRESHOLD = 7;
 			int high, low, mid, i, k;
 			IComparable<K> gcmp;
@@ -2535,9 +2535,9 @@ namespace System
 			return false;
 		}
 		
-		private static void qsort<T> (T [] array, int low0, int high0, Comparison<T> compare)
+		unsafe static void qsort<T> (T [] array, int low0, int high0, Comparison<T> compare)
 		{
-			QSortStack[] stack = new QSortStack[32];
+			QSortStack* stack = stackalloc QSortStack [32];
 			const int QSORT_THRESHOLD = 7;
 			int high, low, mid, i, k;
 			int sp = 1;
@@ -3019,7 +3019,7 @@ namespace System
 			return IndexOf<T> (array, value, startIndex, array.Length - startIndex);
 		}
 
-		public static int IndexOf<T> (T [] array, T value, int startIndex, int count)
+		public static int IndexOf<T> (T[] array, T value, int startIndex, int count)
 		{
 			if (array == null)
 				throw new ArgumentNullException ("array");
@@ -3028,14 +3028,7 @@ namespace System
 			if (count < 0 || startIndex < array.GetLowerBound (0) || startIndex - 1 > array.GetUpperBound (0) - count)
 				throw new ArgumentOutOfRangeException ();
 
-			int max = startIndex + count;
-			EqualityComparer<T> equalityComparer = EqualityComparer<T>.Default;
-			for (int i = startIndex; i < max; i++) {
-				if (equalityComparer.Equals (array [i], value))
-					return i;
-			}
-
-			return -1;
+			return EqualityComparer<T>.Default.IndexOf (array, value, startIndex, startIndex + count);
 		}
 		
 		public static int LastIndexOf<T> (T [] array, T value)
@@ -3154,12 +3147,29 @@ namespace System
 			Copy (sourceArray, sourceIndex, destinationArray, destinationIndex, length);
 		}
 
+		#region Unsafe array operations
+
+		//
+		// Loads array index with no safety checks (JIT intristics)
+		//
 		internal static T UnsafeLoad<T> (T[] array, int index) {
 			return array [index];
 		}
 
+		//
+		// Stores values at specified array index with no safety checks (JIT intristics)
+		//
 		internal static void UnsafeStore<T> (T[] array, int index, T value) {
 			array [index] = value;
 		}
+
+		//
+		// Moved value from instance into target of different type with no checks (JIT intristics)
+		//
+		internal static R UnsafeMov<S,R> (S instance) {
+			return (R)(object) instance;
+		}
+
+		#endregion
 	}
 }

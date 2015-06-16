@@ -190,6 +190,12 @@ namespace Mono.CSharp
 
 			try {
 				field_type = ImportType (fi.FieldType, new DynamicTypeReader (fi));
+
+				//
+				// Private field has private type which is not fixed buffer
+				//
+				if (field_type == null)
+					return null;
 			} catch (Exception e) {
 				// TODO: I should construct fake TypeSpec based on TypeRef signature
 				// but there is no way to do it with System.Reflection
@@ -340,6 +346,9 @@ namespace Mono.CSharp
 					}
 				}
 
+				if (spec == null)
+					return null;
+
 				++dtype.Position;
 				tspec[index] = spec;
 			}
@@ -425,6 +434,8 @@ namespace Mono.CSharp
 						else
 							mod |= Modifiers.VIRTUAL;
 					}
+				} else if (parameters.HasExtensionMethodType) {
+					mod |= Modifiers.METHOD_EXTENSION;
 				}
 			}
 
@@ -756,6 +767,8 @@ namespace Mono.CSharp
 					return spec;
 
 				var targs = CreateGenericArguments (0, type.GetGenericArguments (), dtype);
+				if (targs == null)
+					return null;
 				if (declaringType == null) {
 					// Simple case, no nesting
 					spec = CreateType (type_def, null, new DynamicTypeReader (), canImportBaseType);
@@ -1274,6 +1287,23 @@ namespace Mono.CSharp
 			public string DefaultIndexerName;
 			public bool? CLSAttributeValue;
 			public TypeSpec CoClass;
+
+			static bool HasMissingType (ConstructorInfo ctor)
+			{
+#if STATIC
+				//
+				// Mimic odd csc behaviour where missing type on predefined
+				// attributes means the attribute is silently ignored. This can
+				// happen with PCL facades
+				//
+				foreach (var p in ctor.GetParameters ()) {
+					if (p.ParameterType.__ContainsMissingType)
+						return true;
+				}
+#endif
+
+				return false;
+			}
 			
 			public static AttributesBag Read (MemberInfo mi, MetadataImporter importer)
 			{
@@ -1348,6 +1378,9 @@ namespace Mono.CSharp
 							if (dt.Namespace != "System")
 								continue;
 
+							if (HasMissingType (a.Constructor))
+								continue;
+
 							if (bag == null)
 								bag = new AttributesBag ();
 
@@ -1364,6 +1397,9 @@ namespace Mono.CSharp
 						// Interface only attribute
 						if (name == "CoClassAttribute") {
 							if (dt.Namespace != "System.Runtime.InteropServices")
+								continue;
+
+							if (HasMissingType (a.Constructor))
 								continue;
 
 							if (bag == null)

@@ -542,6 +542,23 @@ public class DebuggerTests
 		assert_location (e, "step_through_3");
 		req.Disable ();
 
+		// Check DebuggerNonUserCode support
+		e = run_until ("ss_non_user_code");
+		req = create_step (e);
+		req.Filter = StepFilter.DebuggerNonUserCode;
+		e = step_into ();
+		// Step through non_user_code_1 ()
+		e = step_into ();
+		assert_location (e, "ss_non_user_code");
+		// Step through StepThroughClass.non_user_code_2 ()
+		e = step_into ();
+		assert_location (e, "ss_non_user_code");
+		req.Disable ();
+		req.Filter = StepFilter.None;
+		e = step_into ();
+		assert_location (e, "non_user_code_3");
+		req.Disable ();
+
 		// Check that step-over doesn't stop at inner frames with recursive functions
 		e = run_until ("ss_recursive");
 		req = create_step (e);
@@ -1446,6 +1463,12 @@ public class DebuggerTests
 		Assert.AreEqual ("static_foo", (e as StepEvent).Method.Name);
 		obj = frame.GetThis ();
 		AssertValue (null, obj);
+
+		// vtypes which reference themselves recursively
+		e = run_until ("vtypes4_2");
+		frame = e.Thread.GetFrames () [0];
+
+		Assert.IsTrue (frame.GetArgument (0) is StructMirror);
 	}
 
 	[Test]
@@ -2087,6 +2110,21 @@ public class DebuggerTests
 			Assert.AreEqual ("Exception", ex.Exception.Type.Name);
 		}
 
+#if NET_4_5
+		// out argument
+		m = t.GetMethod ("invoke_out");
+		var out_task = this_obj.InvokeMethodAsyncWithResult (e.Thread, m, new Value [] { vm.CreateValue (1), vm.CreateValue (null) }, InvokeOptions.ReturnOutArgs);
+		var out_args = out_task.Result.OutArgs;
+		AssertValue (5, out_args [0]);
+		Assert.IsTrue (out_args [1] is ArrayMirror);
+		Assert.AreEqual (10, (out_args [1] as ArrayMirror).Length);
+
+		// without ReturnOutArgs flag
+		out_task = this_obj.InvokeMethodAsyncWithResult (e.Thread, m, new Value [] { vm.CreateValue (1), vm.CreateValue (null) });
+		out_args = out_task.Result.OutArgs;
+		Assert.IsNull (out_args);
+#endif
+
 		// newobj
 		m = t.GetMethod (".ctor");
 		v = t.InvokeMethod (e.Thread, m, null);
@@ -2098,6 +2136,11 @@ public class DebuggerTests
 		m = cl1.GetMethod ("invoke_iface");
 		v = this_obj.InvokeMethod (e.Thread, m, null);
 		AssertValue (42, v);
+
+		// virtual call
+		m = t.BaseType.GetMethod ("virtual_method");
+		v = this_obj.InvokeMethod (e.Thread, m, null, InvokeOptions.Virtual);
+		AssertValue ("V2", v);
 
 #if NET_4_5
 		// instance
@@ -2189,6 +2232,24 @@ public class DebuggerTests
 		m = t.GetMethod ("invoke_return_int");
 		v = s.InvokeMethod (e.Thread, m, null);
 		AssertValue (42, v);
+
+#if NET_4_5
+		// Invoke a method which changes state
+		s = frame.GetArgument (1) as StructMirror;
+		t = s.Type;
+		m = t.GetMethod ("invoke_mutate");
+		var task = s.InvokeMethodAsyncWithResult (e.Thread, m, null, InvokeOptions.ReturnOutThis);
+		var out_this = task.Result.OutThis as StructMirror;
+		AssertValue (5, out_this ["l"]);
+
+		// Without the ReturnOutThis flag
+		s = frame.GetArgument (1) as StructMirror;
+		t = s.Type;
+		m = t.GetMethod ("invoke_mutate");
+		task = s.InvokeMethodAsyncWithResult (e.Thread, m, null);
+		out_this = task.Result.OutThis as StructMirror;
+		Assert.AreEqual (null, out_this);
+#endif
 	}
 
 	[Test]
@@ -2808,8 +2869,10 @@ public class DebuggerTests
 
 		var frames = e.Thread.GetFrames ();
 		Assert.AreEqual ("invoke_in_domain", frames [0].Method.Name);
+		Assert.AreEqual (domain, frames [0].Domain);
 		Assert.AreEqual ("invoke", frames [1].Method.Name);
 		Assert.AreEqual ("domains", frames [2].Method.Name);
+		Assert.AreEqual (vm.RootDomain, frames [2].Domain);
 
 		// Test breakpoints on already JITted methods in other domains
 		m = entry_point.DeclaringType.GetMethod ("invoke_in_domain_2");
@@ -3431,6 +3494,72 @@ public class DebuggerTests
 		Assert.IsNotNull (local_0, "#13.2");
 
 		Assert.AreEqual (wait_one_this, local_0, "#14.2");
+	}
+
+	[Test]
+	public void GetMethodBody () {
+		var bevent = run_until ("Main");
+
+		var m = bevent.Method.DeclaringType.GetMethod ("get_IntProperty");
+		var body = m.GetMethodBody ();
+		foreach (var ins in body.Instructions) {
+			if (ins.OpCode == OpCodes.Ldfld) {
+				var field = (FieldInfoMirror)ins.Operand;
+				Assert.AreEqual ("field_i", field.Name);
+			}
+		}
+	}
+
+	[Test]
+	public void EvaluateMethod () {
+		var bevent = run_until ("evaluate_method_2");
+
+		var m = bevent.Method.DeclaringType.GetMethod ("get_IntProperty");
+
+		var this_obj = bevent.Thread.GetFrames ()[0].GetThis ();
+		var v = m.Evaluate (this_obj, null);
+		AssertValue (42, v);
+	}
+
+	[Test]
+	public void SetIP () {
+		var bevent = run_until ("set_ip_1");
+
+		var invalid_loc = bevent.Thread.GetFrames ()[0].Location;
+
+		var req = create_step (bevent);
+		var e = step_out ();
+		req.Disable ();
+		var frames = e.Thread.GetFrames ();
+		var locs = frames [0].Method.Locations;
+		var next_loc = locs.First (l => (l.LineNumber == frames [0].Location.LineNumber + 2));
+
+		e.Thread.SetIP (next_loc);
+
+		/* Check that i = 5; j = 5; was skipped */
+		bevent = run_until ("set_ip_2");
+		var f = bevent.Thread.GetFrames ()[1];
+		AssertValue (1, f.GetValue (f.Method.GetLocal ("i")));
+		AssertValue (0, f.GetValue (f.Method.GetLocal ("j")));
+
+		// Error handling
+		AssertThrows<ArgumentNullException> (delegate {
+				e.Thread.SetIP (null);
+			});
+
+		AssertThrows<ArgumentException> (delegate {
+				e.Thread.SetIP (invalid_loc);
+			});
+	}
+
+	[Test]
+	public void NewInstanceNoCtor () {
+		var bevent = run_until ("Main");
+
+		var stype = bevent.Method.DeclaringType.Assembly.GetType ("AStruct");
+		var obj = stype.NewInstance ();
+		Assert.IsTrue (obj is ObjectMirror);
+		Assert.AreEqual ("AStruct", (obj as ObjectMirror).Type.Name);
 	}
 }
 

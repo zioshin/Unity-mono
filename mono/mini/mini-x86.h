@@ -48,7 +48,7 @@ struct sigcontext {
 #endif /* __HAIKU__ */
 
 #if defined( __linux__) || defined(__sun) || defined(__APPLE__) || defined(__NetBSD__) || \
-       defined(__FreeBSD__) || defined(__OpenBSD__)
+       defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)
 #define MONO_ARCH_USE_SIGACTION
 #endif
 
@@ -206,19 +206,17 @@ typedef struct {
 #define MONO_ARCH_HAVE_IS_INT_OVERFLOW 1
 #define MONO_ARCH_HAVE_INVALIDATE_METHOD 1
 #define MONO_ARCH_NEED_GOT_VAR 1
+#ifndef HOST_WIN32
+/* X86 uses jit_tls->lmf (See emit_push_lmf ()) */
 #define MONO_ARCH_ENABLE_MONO_LMF_VAR 1
+#endif
 #define MONO_ARCH_HAVE_CREATE_DELEGATE_TRAMPOLINE 1
-#define MONO_ARCH_HAVE_ATOMIC_ADD 1
-#define MONO_ARCH_HAVE_ATOMIC_EXCHANGE 1
-#define MONO_ARCH_HAVE_ATOMIC_CAS 1
-#define MONO_ARCH_HAVE_IMT 1
 #define MONO_ARCH_HAVE_TLS_GET (mono_x86_have_tls_get ())
 #define MONO_ARCH_IMT_REG X86_EDX
 #define MONO_ARCH_VTABLE_REG X86_EDX
 #define MONO_ARCH_RGCTX_REG MONO_ARCH_IMT_REG
 #define MONO_ARCH_HAVE_GENERALIZED_IMT_THUNK 1
 #define MONO_ARCH_HAVE_LIVERANGE_OPS 1
-#define MONO_ARCH_HAVE_XP_UNWIND 1
 #define MONO_ARCH_HAVE_SIGCTX_TO_MONOCTX 1
 #if defined(__linux__) || defined (__APPLE__)
 #define MONO_ARCH_MONITOR_OBJECT_REG X86_EAX
@@ -247,7 +245,6 @@ typedef struct {
 #define MONO_ARCH_GSHARED_SUPPORTED 1
 #define MONO_ARCH_HAVE_LLVM_IMT_TRAMPOLINE 1
 #define MONO_ARCH_LLVM_SUPPORTED 1
-#define MONO_ARCH_THIS_AS_FIRST_ARG 1
 
 #if defined(MONO_ARCH_USE_SIGACTION) || defined(TARGET_WIN32)
 #define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1

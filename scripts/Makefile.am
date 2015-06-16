@@ -76,6 +76,7 @@ scripts_4_0 = \
 	prj2make$(SCRIPT_SUFFIX)		\
 	soapsuds$(SCRIPT_SUFFIX)		\
 	caspol$(SCRIPT_SUFFIX)			\
+	cert-sync$(SCRIPT_SUFFIX)		\
 	cert2spc$(SCRIPT_SUFFIX)		\
 	certmgr$(SCRIPT_SUFFIX)			\
 	chktrust$(SCRIPT_SUFFIX)		\
@@ -102,7 +103,8 @@ scripts_4_0 = \
 	svcutil$(SCRIPT_SUFFIX)			\
 	ccrewrite$(SCRIPT_SUFFIX)		\
 	cccheck$(SCRIPT_SUFFIX)			\
-	mdbrebase$(SCRIPT_SUFFIX)
+	mdbrebase$(SCRIPT_SUFFIX)		\
+	ikdasm$(SCRIPT_SUFFIX)
 
 MDOC_SUBCOMMANDS = \
 	mdoc-assemble \
@@ -163,11 +165,7 @@ EXTRA_DIST =			\
 	get-cygwin-deps.sh	\
 	mono-configuration-crypto.in
 
-if USE_JIT
 mono_interp = mono
-else
-mono_interp = mint
-endif
 
 if HOST_WIN32
 if CROSS_COMPILING
@@ -199,13 +197,13 @@ if INSTALL_4_5
 REWRITE4 = $(REWRITE) -e 's,@''framework_version@,4.5,g'
 REWRITE4_DEBUG = $(REWRITE_DEBUG) -e 's,@''framework_version@,4.5,g'
 else 
-	if INSTALL_4_0
-	REWRITE4 = $(REWRITE) -e 's,@''framework_version@,4.0,g'
-	REWRITE4_DEBUG = $(REWRITE_DEBUG) -e 's,@''framework_version@,4.0,g'
-	else
-	REWRITE4 = $(REWRITE) -e 's,@''framework_version@,2.0,g'
-	REWRITE4_DEBUG = $(REWRITE_DEBUG) -e 's,@''framework_version@,2.0,g'
-	endif
+if INSTALL_4_0
+REWRITE4 = $(REWRITE) -e 's,@''framework_version@,4.0,g'
+REWRITE4_DEBUG = $(REWRITE_DEBUG) -e 's,@''framework_version@,4.0,g'
+else
+REWRITE4 = $(REWRITE) -e 's,@''framework_version@,2.0,g'
+REWRITE4_DEBUG = $(REWRITE_DEBUG) -e 's,@''framework_version@,2.0,g'
+endif
 endif
 
 peverify: peverify.in Makefile

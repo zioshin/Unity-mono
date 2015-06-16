@@ -94,7 +94,7 @@ case $host in
 esac
 
 case $target in
-arm*-darwin*)
+arm*-darwin*|aarch64*-*)
     CFLAGS="$CFLAGS -U_FORTIFY_SOURCE"
     ;;
 i*86-*-darwin* | x86_64-*-darwin*)
@@ -145,6 +145,7 @@ AC_CHECK_SIZEOF(void *)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(long long)
 AC_CHECK_FUNCS(stpcpy strtok_r rewinddir vasprintf)
+AC_CHECK_FUNCS(getrlimit)
 
 #
 # Mono currently supports 10.6, but strndup is not available prior to 10.7; avoiding
@@ -194,7 +195,7 @@ if test "x$have_iso_varargs" = "xyes"; then
 fi
 AC_SUBST(G_HAVE_ISO_VARARGS)
 
-AC_CHECK_HEADERS(getopt.h sys/time.h sys/wait.h pwd.h langinfo.h localcharset.h sys/types.h)
+AC_CHECK_HEADERS(getopt.h sys/select.h sys/time.h sys/wait.h pwd.h langinfo.h iconv.h localcharset.h sys/types.h sys/resource.h)
 if test "x$WANT_ICONV" = "x1"; then
     AC_CHECK_HEADERS(iconv.h)
 fi

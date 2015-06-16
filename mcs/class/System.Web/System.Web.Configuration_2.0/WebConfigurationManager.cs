@@ -36,9 +36,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Reflection;
-#if MONOWEB_DEP
 using Mono.Web.Util;
-#endif
 using System.Xml;
 using System.Configuration;
 using System.Configuration.Internal;
@@ -69,6 +67,7 @@ namespace System.Web.Configuration {
 		static readonly char[] pathTrimChars = { '/' };
 		static readonly object suppressAppReloadLock = new object ();
 		static readonly object saveLocationsCacheLock = new object ();
+		static readonly object getSectionLock = new object ();
 		
 		// See comment for the cacheLock field at top of System.Web.Caching/Cache.cs
 		static readonly ReaderWriterLockSlim sectionCacheLock;
@@ -519,7 +518,10 @@ namespace System.Web.Configuration {
 					cachePath = path;
 			}
 
-			ConfigurationSection section = c.GetSection (sectionName);
+			ConfigurationSection section;
+			lock (getSectionLock) {
+				section = c.GetSection (sectionName);
+			}
 			if (section == null)
 				return null;
 
@@ -531,11 +533,7 @@ namespace System.Web.Configuration {
 				value = collection;
 			}
 #else
-#if MONOWEB_DEP
-			object value = SettingsMappingManager.MapSection (get_runtime_object.Invoke (section, new object [0]));
-#else
-			object value = null;
-#endif
+			object value = SettingsMappingManager.MapSection (section.GetRuntimeObject ());
 #endif
 			if (cachePath != null)
 				cacheKey = baseCacheKey ^ cachePath.GetHashCode ();
@@ -683,9 +681,9 @@ namespace System.Web.Configuration {
 			configurations.Remove (GetCurrentPath (ctx));
 		}
 
-#if TARGET_J2EE || MONOWEB_DEP
+#if TARGET_J2EE
 		readonly static MethodInfo get_runtime_object = typeof (ConfigurationSection).GetMethod ("GetRuntimeObject", BindingFlags.NonPublic | BindingFlags.Instance);
-#endif		
+#endif
 
 		public static object GetWebApplicationSection (string sectionName)
 		{

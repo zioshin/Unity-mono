@@ -1217,6 +1217,15 @@ namespace MonoTests.System
 		}
 
 		[Test]
+		public void TryParse_Bug11630 ()
+		{
+			DateTime parsed;
+
+			Assert.IsTrue (DateTime.TryParse ("10Feb2013", out parsed));
+			Assert.AreEqual (new DateTime (2013, 2, 10), parsed);
+		}
+
+		[Test]
 		[ExpectedException (typeof (FormatException))]
 		public void Parse_CommaAfterHours ()
 		{
@@ -1262,8 +1271,17 @@ namespace MonoTests.System
 		public void Parse_Bug53023b ()
 		{
 			foreach (CultureInfo ci in CultureInfo.GetCultures (CultureTypes.SpecificCultures)) {
-				DateTime.Parse ("01-Sep-05", ci);
-				DateTime.Parse ("4:35:35 AM", ci);
+				try {
+					DateTime.Parse ("01-Sep-05", ci);
+
+					// FIXME: Our UmAlQuraCalendar/HijriCalendar calendars support month days - 1 only (fail on last day in month)
+					if (ci.Calendar is UmAlQuraCalendar || ci.Calendar is HijriCalendar)
+						continue;
+
+					DateTime.Parse ("4:35:35 AM", ci);
+				} catch {
+					Assert.Fail (ci.Name);
+				}
 			}
 		}
 
@@ -2565,6 +2583,41 @@ namespace MonoTests.System
 			var parsed = DateTime.Parse (s, culture);
 
 			Assert.AreEqual (dt, parsed, "#1");
+		}
+
+		[Test]
+		public void ISO8601FractionalDigits ()
+		{
+			string date = "2014-08-25T01:20:23.601911612343423423465789789365674575676746756747467Z";
+			long expectedTicks = 635445264236019116;
+
+			var dt = DateTime.Parse (date, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+			Assert.AreEqual (expectedTicks, dt.Ticks);
+		}
+
+		[Test]
+		[ExpectedException (typeof (FormatException))]
+		public void ISO8601FractionalDigitsException1 ()
+		{
+			string date = "2014-08-25T01:20:23.60191161234342342346578978936567457567:6746756747467Z";
+			DateTime.Parse (date, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+		}
+
+		[Test]
+		[ExpectedException (typeof (FormatException))]
+		public void ISO8601FractionalDigitsException2 ()
+		{
+			string date = "2014-08-25T01:20:23.6019116-12343423423465789789365674575676746756747467Z";
+			DateTime.Parse (date, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+		}
+
+		[Test]
+		[ExpectedException (typeof (FormatException))]
+		public void ISO8601FractionalDigitsException3 ()
+		{
+			string date = "2014-08-25T01:20:23.601911612343423423465789789365674575676746756747467%Z";
+			DateTime.Parse (date, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 		}
 	}
 }

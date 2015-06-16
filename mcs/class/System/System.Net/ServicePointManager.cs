@@ -31,7 +31,7 @@
 
 #if SECURITY_DEP
 
-#if MONOTOUCH
+#if MONOTOUCH || MONODROID
 using Mono.Security.Protocol.Tls;
 using MSX = Mono.Security.X509;
 using Mono.Security.X509.Extensions;
@@ -137,11 +137,7 @@ namespace System.Net
 		private static bool _checkCRL = false;
 		private static SecurityProtocolType _securityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls;
 
-#if TARGET_JVM
-		static bool expectContinue = false;
-#else
 		static bool expectContinue = true;
-#endif
 		static bool useNagle;
 		static RemoteCertificateValidationCallback server_cert_cb;
 		static bool tcp_keepalive;
@@ -264,7 +260,6 @@ namespace System.Net
 					throw new ArgumentException ("value");				
 
 				maxServicePoints = value;
-				RecycleServicePoints ();
 			}
 		}
 
@@ -329,9 +324,6 @@ namespace System.Net
 			if (address == null)
 				throw new ArgumentNullException ("address");
 
-			if ((servicePoints.Count % 4) == 0)
-				RecycleServicePoints ();
-
 			var origAddress = new Uri (address.Scheme + "://" + address.Authority);
 			
 			bool usesProxy = false;
@@ -377,42 +369,16 @@ namespace System.Net
 			
 			return sp;
 		}
-		
-		// Internal Methods
 
-		static void RecycleServicePoints ()
+		internal static void CloseConnectionGroup (string connectionGroupName)
 		{
 			lock (servicePoints) {
-				var toRemove = new ArrayList ();
-				var idleList = new SortedDictionary<DateTime, ServicePoint> ();
-				IDictionaryEnumerator e = servicePoints.GetEnumerator ();
-				while (e.MoveNext ()) {
-					ServicePoint sp = (ServicePoint) e.Value;
-					DateTime idleSince;
-					if (sp.CheckAvailableForRecycling (out idleSince)) {
-						toRemove.Add (e.Key);
-						continue;
-					}
-
-					while (idleList.ContainsKey (idleSince))
-						idleSince = idleSince.AddMilliseconds (1);
-					idleList.Add (idleSince, sp);
-				}
-				
-				for (int i = 0; i < toRemove.Count; i++) 
-					servicePoints.Remove (toRemove [i]);
-
-				if (maxServicePoints == 0 || servicePoints.Count <= maxServicePoints)
-					return;
-
-				// get rid of the ones with the longest idle time
-				foreach (var sp in idleList.Values) {
-					if (servicePoints.Count <= maxServicePoints)
-						break;
-					servicePoints.Remove (sp);
+				foreach (ServicePoint sp in servicePoints.Values) {
+					sp.CloseConnectionGroup (connectionGroupName);
 				}
 			}
 		}
+		
 #if SECURITY_DEP
 		internal class ChainValidationHelper {
 			object sender;

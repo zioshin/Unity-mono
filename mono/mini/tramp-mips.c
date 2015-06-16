@@ -16,6 +16,7 @@
 #include <config.h>
 #include <glib.h>
 
+#include <mono/metadata/abi-details.h>
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/marshal.h>
 #include <mono/metadata/tabledefs.h>
@@ -110,12 +111,6 @@ mono_arch_patch_plt_entry (guint8 *code, gpointer *got, mgreg_t *regs, guint8 *a
 #define ALIGN_TO(val,align) ((((guint64)val) + ((align) - 1)) & ~((align) - 1))
 
 #define STACK (int)(ALIGN_TO(4*IREG_SIZE + 8 + sizeof(MonoLMF) + 32, 8))
-
-void
-mono_arch_nullify_plt_entry (guint8 *code, mgreg_t *regs)
-{
-	mono_arch_patch_plt_entry (code, NULL, regs, mini_get_nullified_class_init_trampoline ());
-}
 
 void
 mono_arch_nullify_class_init_trampoline (guint8 *code, mgreg_t *regs)
@@ -414,8 +409,8 @@ mono_arch_create_rgctx_lazy_fetch_trampoline (guint32 slot, MonoTrampInfo **info
 		mips_move (code, mips_a1, mips_a0);
  	} else {
 		/* load rgctx ptr from vtable */
-		g_assert (mips_is_imm16 (G_STRUCT_OFFSET (MonoVTable, runtime_generic_context)));
-		mips_lw (code, mips_a1, mips_a0, G_STRUCT_OFFSET (MonoVTable, runtime_generic_context));
+		g_assert (mips_is_imm16 (MONO_STRUCT_OFFSET (MonoVTable, runtime_generic_context)));
+		mips_lw (code, mips_a1, mips_a0, MONO_STRUCT_OFFSET (MonoVTable, runtime_generic_context));
 		/* is the rgctx ptr null? */
 		/* if yes, jump to actual trampoline */
 		rgctx_null_jumps [njumps ++] = code;

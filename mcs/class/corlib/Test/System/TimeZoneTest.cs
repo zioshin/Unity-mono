@@ -177,7 +177,6 @@ public class TimeZoneTest {
         }
 
 	[Test]
-	[Category ("TargetJvmNotWorking")]
 	public void CurrentTimeZone_SerializationRoundtrip ()
 	{
 		TimeZone tz = TimeZone.CurrentTimeZone;
@@ -304,11 +303,12 @@ public class TimeZoneTest {
 
 
 			TimeZone tz = TimeZone.CurrentTimeZone;
-			DaylightTime daylightChanges = tz.GetDaylightChanges(2007);
+			int year = DateTime.Now.Year;
+			DaylightTime daylightChanges = tz.GetDaylightChanges(year);
 			DateTime dst_end = daylightChanges.End;
 
 			if (dst_end == DateTime.MinValue)
-				Assert.Ignore (tz.StandardName + " did not observe daylight saving time during 2007.");
+				Assert.Ignore (tz.StandardName + " did not observe daylight saving time during " + year + ".");
 
 			var standardOffset = tz.GetUtcOffset(daylightChanges.Start.AddMinutes(-1));
 
@@ -358,7 +358,11 @@ public class TimeZoneTest {
 				// now it fails on Snow Leopard the same way (incomplete data) with iOS5 simulator (OS update ?)
 				// but it *never*ever* failed on devices
 				incomplete_data_on_simulator_only_bug = true;
+#if XAMCORE_2_0
+				if (ObjCRuntime.Runtime.Arch == ObjCRuntime.Arch.SIMULATOR)
+#else
 				if (MonoTouch.ObjCRuntime.Runtime.Arch == MonoTouch.ObjCRuntime.Arch.SIMULATOR)
+#endif
 					Assert.Ignore ("known to fail on some iOS simulator versions - see source comments");
 			}
 		}

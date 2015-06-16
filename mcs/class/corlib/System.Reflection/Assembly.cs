@@ -752,13 +752,6 @@ namespace System.Reflection {
 			}
 		}
 
-		//
-		// The following functions are only for the Mono Debugger.
-		//
-
-		[MethodImplAttribute (MethodImplOptions.InternalCall)]
-		internal static extern int MonoDebugger_GetMethodToken (MethodBase method);
-
 		[MonoTODO ("Currently it always returns zero")]
 		[ComVisible (false)]
 		public
@@ -980,8 +973,9 @@ namespace System.Reflection {
 #if NET_4_5
 		public virtual IEnumerable<TypeInfo> DefinedTypes {
 			get {
-				foreach (var type in GetTypes ())
-					yield return new TypeDelegator (type);
+				foreach (var type in GetTypes ()) {
+					yield return type.GetTypeInfo ();
+				}
 			}
 		}
 

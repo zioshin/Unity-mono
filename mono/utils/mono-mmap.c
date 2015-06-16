@@ -29,6 +29,7 @@
 #endif
 
 #include "mono-mmap.h"
+#include "mono-mmap-internal.h"
 #include "mono-proclib.h"
 
 #ifndef MAP_ANONYMOUS
@@ -65,8 +66,8 @@ malloc_shared_area (int pid)
 static char*
 aligned_address (char *mem, size_t size, size_t alignment)
 {
-	char *aligned = (char*)((gulong)(mem + (alignment - 1)) & ~(alignment - 1));
-	g_assert (aligned >= mem && aligned + size <= mem + size + alignment && !((gulong)aligned & (alignment - 1)));
+	char *aligned = (char*)((size_t)(mem + (alignment - 1)) & ~(alignment - 1));
+	g_assert (aligned >= mem && aligned + size <= mem + size + alignment && !((size_t)aligned & (alignment - 1)));
 	return aligned;
 }
 
@@ -243,6 +244,12 @@ mono_shared_area_instances (void **array, int count)
 	return 0;
 }
 
+int
+mono_pages_not_faulted (void *addr, size_t length)
+{
+	return -1;
+}
+
 #else
 #if defined(HAVE_MMAP)
 
@@ -308,13 +315,13 @@ mono_valloc (void *addr, size_t length, int flags)
 	mflags |= MAP_PRIVATE;
 
 	ptr = mmap (addr, length, prot, mflags, -1, 0);
-	if (ptr == (void*)-1) {
+	if (ptr == MAP_FAILED) {
 		int fd = open ("/dev/zero", O_RDONLY);
 		if (fd != -1) {
 			ptr = mmap (addr, length, prot, mflags, fd, 0);
 			close (fd);
 		}
-		if (ptr == (void*)-1)
+		if (ptr == MAP_FAILED)
 			return NULL;
 	}
 	return ptr;
@@ -368,7 +375,7 @@ mono_file_map (size_t length, int flags, int fd, guint64 offset, void **ret_hand
 		mflags |= MAP_32BIT;
 
 	ptr = mmap (0, length, prot, mflags, fd, offset);
-	if (ptr == (void*)-1)
+	if (ptr == MAP_FAILED)
 		return NULL;
 	*ret_handle = (void*)length;
 	return ptr;
@@ -443,6 +450,30 @@ mono_mprotect (void *addr, size_t length, int flags)
 }
 #endif // __native_client__
 
+int
+mono_pages_not_faulted (void *addr, size_t size)
+{
+	int i;
+	gint64 count;
+	int pagesize = mono_pagesize ();
+	int npages = (size + pagesize - 1) / pagesize;
+	char *faulted = g_malloc0 (sizeof (char*) * npages);
+
+	if (mincore (addr, size, faulted) != 0) {
+		count = -1;
+	} else {
+		count = 0;
+		for (i = 0; i < npages; ++i) {
+			if (faulted [i] != 0)
+				++count;
+		}
+	}
+
+	g_free (faulted);
+
+	return count;
+}
+
 #else
 
 /* dummy malloc-based implementation */
@@ -481,7 +512,16 @@ mono_mprotect (void *addr, size_t length, int flags)
 	}
 	return 0;
 }
+
+int
+mono_pages_not_faulted (void *addr, size_t length)
+{
+	return -1;
+}
+
 #endif // HAVE_MMAP
+
+#if defined(HAVE_SHM_OPEN) && !defined (DISABLE_SHARED_PERFCOUNTERS) && !defined(DISABLE_SHARED_HANDLES)
 
 static int use_shared_area;
 
@@ -496,8 +536,6 @@ shared_area_disabled (void)
 	}
 	return use_shared_area == -1;
 }
-
-#if defined(HAVE_SHM_OPEN) && !defined (DISABLE_SHARED_PERFCOUNTERS) && !defined(DISABLE_SHARED_HANDLES)
 
 static int
 mono_shared_area_instances_slow (void **array, int count, gboolean cleanup)
@@ -607,7 +645,7 @@ mono_shared_area (void)
 	header->stats_start = sizeof (SAreaHeader);
 	header->stats_end = sizeof (SAreaHeader);
 
-	atexit (mono_shared_area_remove);
+	mono_atexit (mono_shared_area_remove);
 	return res;
 }
 

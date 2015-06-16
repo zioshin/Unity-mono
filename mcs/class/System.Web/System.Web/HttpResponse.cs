@@ -400,6 +400,13 @@ namespace System.Web
 			set;
 		}
 
+#if NET_4_5
+		public bool SuppressFormsAuthenticationRedirect {
+			get;
+			set;
+		}
+#endif
+
 		public bool TrySkipIisCustomErrors {
 			get;
 			set;
@@ -446,7 +453,7 @@ namespace System.Web
 		}
 
 		[MonoTODO ("Not implemented")]
-		public void AddCacheDependency (CacheDependency[] dependencies)
+		public void AddCacheDependency (params CacheDependency[] dependencies)
 		{
 			throw new NotImplementedException ();
 		}
@@ -1157,11 +1164,6 @@ namespace System.Web
 			Flush ();
 		}
 
-#if TARGET_JVM
-		public void WriteFile (IntPtr fileHandle, long offset, long size) {
-			throw new PlatformNotSupportedException("IntPtr not supported");
-		}
-#else
 		public void WriteFile (IntPtr fileHandle, long offset, long size)
 		{
 			if (offset < 0)
@@ -1182,7 +1184,6 @@ namespace System.Web
 			output_stream.ApplyFilter (false);
 			Flush ();
 		}
-#endif
 
 		public void WriteFile (string filename, long offset, long size)
 		{

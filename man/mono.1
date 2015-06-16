@@ -937,11 +937,11 @@ Override the automatic cpu detection mechanism. Currently used only on arm.
 The format of the value is as follows:
 .nf
 
-	"armvV [thumb]"
+	"armvV [thumb[2]]"
 
 .fi
 where V is the architecture number 4, 5, 6, 7 and the options can be currently be
-"thunb". Example:
+"thumb" or "thumb2". Example:
 .nf
 
 	MONO_CPU_ARCH="armv4 thumb" mono ...
@@ -1075,19 +1075,10 @@ first generation (of two).  A larger nursery will usually speed up the
 program but will obviously use more memory.  The default nursery size
 4 MB.
 .TP
-\fBmajor=\fIcollector\fR
-Specifies which major collector to use.  Options are `marksweep' for
-the Mark&Sweep collector, `marksweep-conc' for concurrent Mark&Sweep,
-`marksweep-par' for parallel Mark&Sweep, `marksweep-fixed' for
-Mark&Sweep with a fixed heap, and `marksweep-fixed-par' for parallel
-Mark&Sweep with a fixed heap. The Mark&Sweep collector is the default.
-.TP
-\fBmajor-heap-size=\fIsize\fR
-Sets the size of the major heap (not including the large object space)
-for the fixed-heap Mark&Sweep collector (i.e. `marksweep-fixed' and
-`marksweep-fixed-par').  The size is in bytes, with optional suffixes
-`k', `m' and `g' to specify kilo-, mega- and gigabytes, respectively.
-The default is 512 megabytes.
+\fBmajor=\fIcollector\fR Specifies which major collector to use.
+Options are `marksweep' for the Mark&Sweep collector, and
+`marksweep-conc' for concurrent Mark&Sweep.  The non-concurrent
+Mark&Sweep collector is the default.
 .TP
 \fBsoft-heap-limit=\fIsize\fR
 Once the heap size gets larger than this size, ignore what the default
@@ -1216,6 +1207,17 @@ is used.
 Performs a check to make sure that no references are left to an
 unloaded AppDomain.
 .TP
+\fBclear-at-tlab-creation\fR
+Clears the nursery incrementally when the thread local allocation
+buffers (TLAB) are created.  The default setting clears the whole
+nursery at GC time.
+.TP
+\fBdebug-clear-at-tlab-creation\fR
+Clears the nursery incrementally when the thread local allocation
+buffers (TLAB) are created, but at GC time fills it with the byte
+`0xff`, which should result in a crash more quickly if
+`clear-at-tlab-creation` doesn't work properly.
+.TP
 \fBclear-at-gc\fR
 This clears the nursery at GC time instead of doing it when the thread
 local allocation buffer (TLAB) is created.  The default is to clear
@@ -1255,6 +1257,11 @@ work, Mono needs to be compiled with the BINARY_PROTOCOL define on
 sgen-gc.c.   You can then use this command to explore the output
 .nf
                 sgen-grep-binprot 0x1234 0x5678 < file
+.TP
+\fBnursery-canaries\fR
+If set, objects allocated in the nursery are suffixed with a canary (guard)
+word, which is checked on each minor collection. Can be used to detect/debug
+heap corruption issues.
 .fi
 .ne
 .RE
@@ -1355,6 +1362,8 @@ loader in subtle ways.
 .Sp
 Directories are separated by the platform path separator (colons on unix). Example:
 .B /home/username/lib:/usr/local/mono/lib
+.Sp
+Relative paths are resolved based on the launch-time current directory.
 .Sp
 Alternative solutions to MONO_PATH include: installing libraries into
 the Global Assembly Cache (see gacutil(1)) or having the dependent
@@ -1534,6 +1543,12 @@ after a SIGSEGV or SIGABRT in unmanaged code.
 This option will suspend the program when a native SIGSEGV is received.
 This is useful for debugging crashes which do not happen under gdb,
 since a live process contains more information than a core file.
+.TP
+\fBcheck-pinvoke-callconv\fR
+This option causes the runtime to check for calling convention
+mismatches when using pinvoke, i.e. mixing cdecl/stdcall. It only
+works on windows. If a mismatch is detected, an
+ExecutionEngineException is thrown.
 .ne
 .RE
 .TP

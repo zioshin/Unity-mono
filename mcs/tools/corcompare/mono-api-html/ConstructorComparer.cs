@@ -49,8 +49,7 @@ namespace Xamarin.ApiDiff {
 
 		public override string GetDescription (XElement e)
 		{
-			StringBuilder sb = GetObsoleteMessage (e);
-			bool obsolete = sb.Length > 0;
+			var sb = new StringBuilder ();
 
 			var attribs = e.Attribute ("attrib");
 			if (attribs != null) {
@@ -100,14 +99,15 @@ namespace Xamarin.ApiDiff {
 			if (parameters != null) {
 				var list = new List<string> ();
 				foreach (var p in parameters.Elements ("parameter")) {
-					list.Add (p.GetTypeName ("type") + " " + p.GetAttribute ("name"));
+					var pTypeName   = p.GetTypeName ("type");
+					list.Add (State.IgnoreParameterNameChanges
+						? pTypeName
+						: pTypeName + " " + p.GetAttribute ("name"));
 				}
 				sb.Append (String.Join (", ", list));
 			}
 			sb.Append (");");
 
-			if (obsolete)
-				sb.AppendLine (); // more readable output
 			return sb.ToString ();
 		}
 	}

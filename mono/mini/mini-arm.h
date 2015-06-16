@@ -124,6 +124,17 @@
  * reproduceable results for benchmarks */
 #define MONO_ARCH_CODE_ALIGNMENT 32
 
+/* Argument marshallings for calls between gsharedvt and normal code */
+typedef enum {
+	GSHAREDVT_ARG_NONE = 0,
+	GSHAREDVT_ARG_BYVAL_TO_BYREF = 1,
+	GSHAREDVT_ARG_BYREF_TO_BYVAL = 2,
+	GSHAREDVT_ARG_BYREF_TO_BYVAL_I1 = 3,
+	GSHAREDVT_ARG_BYREF_TO_BYVAL_I2 = 4,
+	GSHAREDVT_ARG_BYREF_TO_BYVAL_U1 = 5,
+	GSHAREDVT_ARG_BYREF_TO_BYVAL_U2 = 6
+} GSharedVtArgMarshal;
+
 /* Return value marshalling for calls between gsharedvt and normal code */
 typedef enum {
 	GSHAREDVT_RET_NONE = 0,
@@ -155,6 +166,23 @@ typedef struct {
 	/* A negative value means a register, i.e. -1=r0, -2=r1 etc. */
 	int map [MONO_ZERO_LEN_ARRAY];
 } GSharedVtCallInfo;
+
+/* Structure used by the sequence points in AOTed code */
+typedef struct {
+	gpointer ss_trigger_page;
+	gpointer bp_trigger_page;
+	guint8* bp_addrs [MONO_ZERO_LEN_ARRAY];
+} SeqPointInfo;
+
+
+#define PARAM_REGS 4
+#define DYN_CALL_STACK_ARGS 6
+
+typedef struct {
+	mgreg_t regs [PARAM_REGS + DYN_CALL_STACK_ARGS];
+	mgreg_t res, res2;
+	guint8 *ret;
+} DynCallArgs;
 
 void arm_patch (guchar *code, const guchar *target);
 guint8* mono_arm_emit_load_imm (guint8 *code, int dreg, guint32 val);
@@ -203,6 +231,7 @@ typedef struct MonoCompileArch {
 	gboolean omit_fp, omit_fp_computed;
 	gpointer cinfo;
 	gpointer *vfp_scratch_slots [2];
+	int atomic_tmp_offset;
 } MonoCompileArch;
 
 #define MONO_ARCH_EMULATE_FCONV_TO_I8 1
@@ -227,25 +256,25 @@ typedef struct MonoCompileArch {
 #define MONO_ARCH_NEED_DIV_CHECK 1
 
 #define MONO_ARCH_HAVE_CREATE_DELEGATE_TRAMPOLINE
-#define MONO_ARCH_HAVE_XP_UNWIND 1
 #define MONO_ARCH_HAVE_GENERALIZED_IMT_THUNK 1
 
 #define ARM_NUM_REG_ARGS (ARM_LAST_ARG_REG-ARM_FIRST_ARG_REG+1)
 #define ARM_NUM_REG_FPARGS 0
 
 #define MONO_ARCH_HAVE_FULL_AOT_TRAMPOLINES 1
-#define MONO_ARCH_HAVE_IMT 1
 #define MONO_ARCH_HAVE_DECOMPOSE_LONG_OPTS 1
 
 #define MONO_ARCH_AOT_SUPPORTED 1
 #define MONO_ARCH_LLVM_SUPPORTED 1
-#define MONO_ARCH_THIS_AS_FIRST_ARG 1
 
 #define MONO_ARCH_GSHARED_SUPPORTED 1
 #define MONO_ARCH_DYN_CALL_SUPPORTED 1
 #define MONO_ARCH_DYN_CALL_PARAM_AREA 24
 
+#ifndef MONO_CROSS_COMPILE
 #define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
+#endif
+
 #define MONO_ARCH_HAVE_EXCEPTIONS_INIT 1
 #define MONO_ARCH_HAVE_GET_TRAMPOLINES 1
 #define MONO_ARCH_HAVE_CONTEXT_SET_INT_REG 1
@@ -253,6 +282,7 @@ typedef struct MonoCompileArch {
 #define MONO_ARCH_GC_MAPS_SUPPORTED 1
 #define MONO_ARCH_HAVE_SETUP_ASYNC_CALLBACK 1
 #define MONO_ARCH_HAVE_CONTEXT_SET_INT_REG 1
+#define MONO_ARCH_HAVE_HANDLER_BLOCK_GUARD 1
 #define MONO_ARCH_HAVE_SETUP_RESUME_FROM_SIGNAL_HANDLER_CTX 1
 #define MONO_ARCH_GSHAREDVT_SUPPORTED 1
 #define MONO_ARCH_HAVE_GENERAL_RGCTX_LAZY_FETCH_TRAMPOLINE 1

@@ -32,6 +32,7 @@ monoutils_sources = \
 	mono-math.c  		\
 	mono-mmap.c  		\
 	mono-mmap.h  		\
+	mono-mmap-internal.h	\
 	mono-mutex.c  		\
 	mono-mutex.h  		\
 	mono-networkinterfaces.c		\
@@ -99,6 +100,10 @@ monoutils_sources = \
 	mono-threads-mach.c	\
 	mono-threads-mach-helper.c	\
 	mono-threads-windows.c	\
+	mono-threads-linux.c	\
+	mono-threads-freebsd.c	\
+	mono-threads-openbsd.c	\
+	mono-threads-android.c	\
 	mono-threads.h	\
 	mono-tls.h	\
 	mono-tls.c	\
@@ -110,7 +115,11 @@ monoutils_sources = \
 	mono-hwcap.c	\
 	bsearch.h	\
 	bsearch.c	\
-	mono-signal-handler.h
+	mono-signal-handler.h	\
+	mono-conc-hashtable.h	\
+	mono-conc-hashtable.c	\
+	sha1.h		\
+	sha1.c
 
 arch_sources = 
 
@@ -125,6 +134,10 @@ arch_sources += mach-support-amd64.c
 endif
 
 if ARM
+arch_sources += mach-support-arm.c
+endif
+
+if ARM64
 arch_sources += mach-support-arm.c
 endif
 
@@ -144,6 +157,10 @@ endif
 
 if ARM
 arch_sources += mono-hwcap-arm.c mono-hwcap-arm.h
+endif
+
+if ARM64
+arch_sources += mono-hwcap-arm64.c mono-hwcap-arm64.h
 endif
 
 if MIPS
@@ -181,6 +198,7 @@ libmonoutilsinclude_HEADERS = 	\
 	mono-logger.h		\
 	mono-error.h		\
 	mono-publib.h		\
-	mono-dl-fallback.h
+	mono-dl-fallback.h	\
+	mono-counters.h
 
 EXTRA_DIST = ChangeLog mono-embed.h mono-embed.c

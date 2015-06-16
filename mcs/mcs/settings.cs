@@ -28,9 +28,10 @@ namespace Mono.CSharp {
 		V_3 = 3,
 		V_4 = 4,
 		V_5 = 5,
-		Future = 100,
+		V_6 = 6,
+		Experimental = 100,
 
-		Default = LanguageVersion.V_5,
+		Default = LanguageVersion.V_6,
 	}
 
 	public enum RuntimeVersion
@@ -159,6 +160,8 @@ namespace Mono.CSharp {
 		public bool StdLib;
 
 		public RuntimeVersion StdLibRuntimeVersion;
+
+		public string RuntimeMetadataVersion;
 
 		public bool WriteMetadataOnly;
 
@@ -1135,11 +1138,13 @@ namespace Mono.CSharp {
 
 				switch (value.ToLowerInvariant ()) {
 				case "iso-1":
+				case "1":
 					settings.Version = LanguageVersion.ISO_1;
 					return ParseResult.Success;
 				case "default":
 					settings.Version = LanguageVersion.Default;
 					return ParseResult.Success;
+				case "2":
 				case "iso-2":
 					settings.Version = LanguageVersion.ISO_2;
 					return ParseResult.Success;
@@ -1152,12 +1157,18 @@ namespace Mono.CSharp {
 				case "5":
 					settings.Version = LanguageVersion.V_5;
 					return ParseResult.Success;
-				case "future":
-					settings.Version = LanguageVersion.Future;
+				case "6":
+					settings.Version = LanguageVersion.V_6;
 					return ParseResult.Success;
+				case "experimental":
+					settings.Version = LanguageVersion.Experimental;
+					return ParseResult.Success;
+				case "future":
+					report.Warning (8000, 1, "Language version `future' is no longer supported");
+					goto case "6";
 				}
 
-				report.Error (1617, "Invalid -langversion option `{0}'. It must be `ISO-1', `ISO-2', `3', `4', `5', `Default' or `Future'", value);
+				report.Error (1617, "Invalid -langversion option `{0}'. It must be `ISO-1', `ISO-2', Default or value in range 1 to 6", value);
 				return ParseResult.Error;
 
 			case "/codepage":
@@ -1181,6 +1192,15 @@ namespace Mono.CSharp {
 					}
 					return ParseResult.Error;
 				}
+				return ParseResult.Success;
+
+			case "runtimemetadataversion":
+				if (value.Length == 0) {
+					Error_RequiresArgument (option);
+					return ParseResult.Error;
+				}
+
+				settings.RuntimeMetadataVersion = value;
 				return ParseResult.Success;
 
 			default:

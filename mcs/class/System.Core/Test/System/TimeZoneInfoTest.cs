@@ -232,7 +232,7 @@ namespace MonoTests.System
 				DateTime afterDST = new DateTime (2007, 10, 28, 2, 0, 0, DateTimeKind.Unspecified);
 				Assert.IsFalse (london.IsDaylightSavingTime (beforeDST), "Just before DST");
 				Assert.IsTrue (london.IsDaylightSavingTime (startDST), "the first seconds of DST");
-				Assert.IsTrue (london.IsDaylightSavingTime (endDST), "The last seconds of DST");
+				Assert.IsFalse (london.IsDaylightSavingTime (endDST), "The last seconds of DST");
 				Assert.IsFalse (london.IsDaylightSavingTime (afterDST), "Just after DST");
 			}
 		
@@ -263,6 +263,30 @@ namespace MonoTests.System
 				}
 			}
 		#endif
+			[Test (Description="Description xambug #17155")]
+			public void AdjustmentRuleAfterNewYears ()
+			{
+				TimeZoneInfo tz;
+				if (Environment.OSVersion.Platform == PlatformID.Unix)
+					tz = TimeZoneInfo.FindSystemTimeZoneById ("Pacific/Auckland"); // *nix
+				else
+					tz = TimeZoneInfo.FindSystemTimeZoneById ("New Zealand Standard Time"); // Windows
+
+				// DST start: 9/29/2013 2:00:00 AM
+				// DST end: 4/6/2014 3:00:00 AM
+				DateTime dt = new DateTime (2014, 1, 9, 23, 0, 0, DateTimeKind.Utc);
+				Assert.IsTrue (tz.IsDaylightSavingTime (dt), "#1.1");
+
+				// DST start: 9/29/2014 2:00:00 AM
+				// DST end: 4/6/2015 3:00:00 AM
+				dt = new DateTime (2014, 6, 9, 23, 0, 0, DateTimeKind.Utc);
+				Assert.IsFalse (tz.IsDaylightSavingTime (dt), "#2.1");
+
+				// DST start: 9/29/2014 2:00:00 AM
+				// DST end: 4/6/2015 3:00:00 AM
+				dt = new DateTime (2014, 10, 9, 23, 0, 0, DateTimeKind.Utc);
+				Assert.IsTrue (tz.IsDaylightSavingTime (dt), "#3.1");
+			}
 		}
 		
 		[TestFixture]
@@ -411,6 +435,89 @@ namespace MonoTests.System
 					Assert.Ignore ("Not running on Unix.");
 
 				TimeZoneInfo.ConvertTime (DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Pacific/Auckland"));
+			}
+
+			[Test]
+			[ExpectedException (typeof (ArgumentNullException))]
+			public void ConvertTime_DateTime_TimeZoneInfo_DestinationTimeZoneIsNull ()
+			{
+				TimeZoneInfo.ConvertTime (DateTime.Now, null);
+			}
+
+			[Test]
+			public void ConvertTime_DateTime_TimeZoneInfo_DateTimeKindMatch ()
+			{
+				var sdt = new DateTime (2014, 1, 9, 23, 0, 0, DateTimeKind.Utc);
+				var ddt = TimeZoneInfo.ConvertTime (sdt, TimeZoneInfo.Utc);
+				Assert.AreEqual (ddt.Kind, sdt.Kind, "#1.1");
+				Assert.AreEqual (ddt.Kind, DateTimeKind.Utc, "#1.2");
+				
+				sdt = new DateTime (2014, 1, 9, 23, 0, 0, DateTimeKind.Local);
+				ddt = TimeZoneInfo.ConvertTime (sdt, TimeZoneInfo.Local);
+				Assert.AreEqual (ddt.Kind, sdt.Kind, "#2.1");
+				Assert.AreEqual (ddt.Kind, DateTimeKind.Local, "#2.2");
+
+				sdt = new DateTime (2014, 1, 9, 23, 0, 0);
+				ddt = TimeZoneInfo.ConvertTime (sdt, TimeZoneInfo.Local);
+				Assert.AreEqual (ddt.Kind, sdt.Kind, "#3.1");
+				Assert.AreEqual (ddt.Kind, DateTimeKind.Unspecified, "#3.2");
+			}
+
+			[Test]
+			[ExpectedException (typeof (ArgumentNullException))]
+			public void ConverTime_DateTime_TimeZoneInfo_TimeZoneInfo_SourceTimeZoneIsNull ()
+			{
+				TimeZoneInfo.ConvertTime (DateTime.Now, null, TimeZoneInfo.Local);
+			}
+
+			[Test]
+			[ExpectedException (typeof (ArgumentNullException))]
+			public void ConverTime_DateTime_TimeZoneInfo_TimeZoneInfo_DestinationTimeZoneIsNull ()
+			{
+				TimeZoneInfo.ConvertTime (DateTime.Now, TimeZoneInfo.Utc, null);
+			}
+
+			[Test (Description="Fix for xambug https://bugzilla.xamarin.com/show_bug.cgi?id=17155")]
+			public void ConvertTime_AdjustmentRuleAfterNewYears ()
+			{
+				TimeZoneInfo tz;
+				if (Environment.OSVersion.Platform == PlatformID.Unix)
+					tz = TimeZoneInfo.FindSystemTimeZoneById ("Pacific/Auckland"); // *nix
+				else
+					tz = TimeZoneInfo.FindSystemTimeZoneById ("New Zealand Standard Time"); // Windows
+
+				// DST start: 9/29/2013 2:00:00 AM
+				// DST end: 4/6/2014 3:00:00 AM
+				DateTime sdt = new DateTime (2014, 1, 9, 23, 0, 0, DateTimeKind.Utc);
+				DateTime ddt = TimeZoneInfo.ConvertTime (sdt, tz);
+				Assert.AreEqual (10, ddt.Day, "#1.1");
+				Assert.AreEqual (1, ddt.Month, "#1.2");
+				Assert.AreEqual (2014, ddt.Year, "#1.3");
+				Assert.AreEqual (12, ddt.Hour, "#1.4");
+				Assert.AreEqual (0, ddt.Minute, "#1.5");
+				Assert.AreEqual (0, ddt.Second, "#1.6");
+				
+				// DST start: 9/29/2014 2:00:00 AM
+				// DST end: 4/6/2015 3:00:00 AM
+				sdt = new DateTime (2014, 6, 9, 23, 0, 0, DateTimeKind.Utc);
+				ddt = TimeZoneInfo.ConvertTime (sdt, tz);
+				Assert.AreEqual (10, ddt.Day, "#2.1");
+				Assert.AreEqual (6, ddt.Month, "#2.2");
+				Assert.AreEqual (2014, ddt.Year, "#2.3");
+				Assert.AreEqual (11, ddt.Hour, "#2.4");
+				Assert.AreEqual (0, ddt.Minute, "#2.5");
+				Assert.AreEqual (0, ddt.Second, "#2.6");
+				
+				// DST start: 9/29/2014 2:00:00 AM
+				// DST end: 4/6/2015 3:00:00 AM
+				sdt = new DateTime (2014, 10, 9, 23, 0, 0, DateTimeKind.Utc);
+				ddt = TimeZoneInfo.ConvertTime (sdt, tz);
+				Assert.AreEqual (10, ddt.Day, "#3.1");
+				Assert.AreEqual (10, ddt.Month, "#3.2");
+				Assert.AreEqual (2014, ddt.Year, "#3.3");
+				Assert.AreEqual (12, ddt.Hour, "#3.4");
+				Assert.AreEqual (0, ddt.Minute, "#3.5");
+				Assert.AreEqual (0, ddt.Second, "#3.6");
 			}
 		}
 		
@@ -695,6 +802,143 @@ namespace MonoTests.System
 				stream.Close ();
 				stream.Dispose ();
 				Assert.IsTrue (london.Equals (deserialized));
+			}
+		}
+
+		[TestFixture]
+		public class MultipleDaylightSavingTimeTests {
+			private TimeZoneInfo cairo;
+			private DateTime dst1Start;
+			private DateTime dst1End;
+			private DateTime dst2Start;
+			private DateTime dst2End;
+
+			private TimeSpan baseUtcOffset;
+			private TimeSpan dstUtcOffset;
+			private TimeSpan dstOffset;
+
+			[SetUp]
+			public void CreateTimeZones ()
+			{
+				/*
+				From 1/1/2014 12:00:00 AM to 6/30/2014 12:00:00 AM
+					Delta: 01:00:00
+					Begins at 12:00 AM on 16 May
+					Ends at 1:00 AM on 29 June
+				From 7/1/2014 12:00:00 AM to 12/31/2014 12:00:00 AM
+					Delta: 01:00:00
+					Begins at 12:00 AM on 29 July
+					Ends at 12:00 AM on 26 September
+				*/
+				dst1Start = new DateTime (2014, 5, 16);
+				dst1End = new DateTime (2014, 6, 29);
+				dst2Start = new DateTime (2014, 7, 29);
+				dst2End = new DateTime (2014, 9, 26);
+
+				baseUtcOffset = new TimeSpan (2, 0, 0);
+				dstUtcOffset = new TimeSpan (3, 0, 0);
+				dstOffset = dstUtcOffset - baseUtcOffset;
+
+				var rule1 = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule (
+					new DateTime (2014, 1, 1), new DateTime (2014, 6, 30), dstOffset,
+					CreateFixedDateRule (dst1Start), CreateFixedDateRule (dst1End));
+
+				var rule2 = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule (
+					new DateTime (2014, 7, 1), new DateTime (2014, 12, 31), dstOffset,
+					CreateFixedDateRule (dst2Start), CreateFixedDateRule (dst2End));
+
+				cairo = TimeZoneInfo.CreateCustomTimeZone ("Africa/Cairo", baseUtcOffset, "Africa/Cairo", "EET", "EEST",
+					new [] {rule1, rule2});
+			}
+
+			private static TimeZoneInfo.TransitionTime CreateFixedDateRule (DateTime dateTime)
+			{
+				var time = new DateTime (dateTime.Ticks - dateTime.Date.Ticks);
+				return TimeZoneInfo.TransitionTime.CreateFixedDateRule (time, dateTime.Month, dateTime.Day);
+			}
+
+			[Test]
+			public void GetUtcOffset_FromUTC ()
+			{
+				var d = dst1Start.Add (-baseUtcOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst1End.Add (-baseUtcOffset-dstOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst2Start.Add (-baseUtcOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst2End.Add (-baseUtcOffset-dstOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+			}
+
+			[Test]
+			public void GetUtcOffset_FromLocal ()
+			{
+				var d = dst1Start.Add (-baseUtcOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				d = d.ToLocalTime ();
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst1End.Add (-baseUtcOffset-dstOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				d = d.ToLocalTime ();
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst2Start.Add (-baseUtcOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				d = d.ToLocalTime ();
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst2End.Add (-baseUtcOffset-dstOffset);
+				d = DateTime.SpecifyKind (d, DateTimeKind.Utc);
+				d = d.ToLocalTime ();
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+			}
+
+			[Test]
+			public void GetUtcOffset_FromUnspecified ()
+			{
+				var d = dst1Start.Add (dstOffset);
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst1End.Add (-dstOffset);
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst2Start.Add (dstOffset);
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
+
+				d = dst2End.Add (-dstOffset);
+				Assert.AreEqual(dstUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0,-1))));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d));
+				Assert.AreEqual(baseUtcOffset, cairo.GetUtcOffset (d.Add (new TimeSpan(0,0,0, 1))));
 			}
 		}
 	}

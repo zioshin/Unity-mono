@@ -28,11 +28,11 @@ enum {
 };
 
 void sgen_pin_stage_ptr (void *ptr) MONO_INTERNAL;
-void sgen_optimize_pin_queue (int start_slot) MONO_INTERNAL;
+void sgen_optimize_pin_queue (void) MONO_INTERNAL;
 void sgen_init_pinning (void) MONO_INTERNAL;
 void sgen_finish_pinning (void) MONO_INTERNAL;
-void sgen_pin_queue_clear_discarded_entries (GCMemSection *section, int max_pin_slot) MONO_INTERNAL;
-int sgen_get_pinned_count (void) MONO_INTERNAL;
+void sgen_pin_queue_clear_discarded_entries (GCMemSection *section, size_t max_pin_slot) MONO_INTERNAL;
+size_t sgen_get_pinned_count (void) MONO_INTERNAL;
 void sgen_pinning_setup_section (GCMemSection *section) MONO_INTERNAL;
 void sgen_pinning_trim_queue_to_section (GCMemSection *section) MONO_INTERNAL;
 
@@ -53,7 +53,7 @@ void sgen_cement_concurrent_start (void) MONO_INTERNAL;
 void sgen_cement_concurrent_finish (void) MONO_INTERNAL;
 gboolean sgen_cement_lookup (char *obj) MONO_INTERNAL;
 gboolean sgen_cement_lookup_or_register (char *obj) MONO_INTERNAL;
-void sgen_cement_iterate (IterateObjectCallbackFunc callback, void *callback_data) MONO_INTERNAL;
+void sgen_pin_cemented_objects (void) MONO_INTERNAL;
 void sgen_cement_clear_below_threshold (void) MONO_INTERNAL;
 
 #endif

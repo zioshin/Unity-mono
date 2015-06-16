@@ -25,6 +25,8 @@
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif
+#include <errno.h>
+
 
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/loader.h>
@@ -55,6 +57,7 @@
 #include <mono/utils/mono-mmap.h>
 #include <mono/utils/dtrace.h>
 #include <mono/utils/mono-signal-handler.h>
+#include <mono/utils/mono-threads.h>
 
 #include "mini.h"
 #include <string.h>
@@ -81,7 +84,7 @@ mono_runtime_shutdown_stat_profiler (void)
 
 
 gboolean
-SIG_HANDLER_SIGNATURE (mono_chain_signal)
+MONO_SIG_HANDLER_SIGNATURE (mono_chain_signal)
 {
 	return FALSE;
 }
@@ -173,19 +176,17 @@ free_saved_signal_handlers (void)
  * was called, false otherwise.
  */
 gboolean
-SIG_HANDLER_SIGNATURE (mono_chain_signal)
+MONO_SIG_HANDLER_SIGNATURE (mono_chain_signal)
 {
-	int signal = _dummy;
+	int signal = MONO_SIG_HANDLER_GET_SIGNO ();
 	struct sigaction *saved_handler = get_saved_signal_handler (signal);
-
-	GET_CONTEXT;
 
 	if (saved_handler && saved_handler->sa_handler) {
 		if (!(saved_handler->sa_flags & SA_SIGINFO)) {
 			saved_handler->sa_handler (signal);
 		} else {
 #ifdef MONO_ARCH_USE_SIGACTION
-			saved_handler->sa_sigaction (signal, info, ctx);
+			saved_handler->sa_sigaction (MONO_SIG_HANDLER_PARAMS);
 #endif /* MONO_ARCH_USE_SIGACTION */
 		}
 		return TRUE;
@@ -193,29 +194,28 @@ SIG_HANDLER_SIGNATURE (mono_chain_signal)
 	return FALSE;
 }
 
-SIG_HANDLER_FUNC (static, sigabrt_signal_handler)
+MONO_SIG_HANDLER_FUNC (static, sigabrt_signal_handler)
 {
 	MonoJitInfo *ji = NULL;
-	GET_CONTEXT;
+	MONO_SIG_HANDLER_GET_CONTEXT;
 
 	if (mono_thread_internal_current ())
-		ji = mono_jit_info_table_find (mono_domain_get (), mono_arch_ip_from_context(ctx));
+		ji = mono_jit_info_table_find (mono_domain_get (), mono_arch_ip_from_context (ctx));
 	if (!ji) {
-        if (mono_chain_signal (SIG_HANDLER_PARAMS))
+        if (mono_chain_signal (MONO_SIG_HANDLER_PARAMS))
 			return;
 		mono_handle_native_sigsegv (SIGABRT, ctx);
 	}
 }
 
-SIG_HANDLER_FUNC (static, sigusr1_signal_handler)
+MONO_SIG_HANDLER_FUNC (static, sigusr1_signal_handler)
 {
 	gboolean running_managed;
 	MonoException *exc;
 	MonoInternalThread *thread = mono_thread_internal_current ();
 	MonoDomain *domain = mono_domain_get ();
 	void *ji;
-	
-	GET_CONTEXT;
+	MONO_SIG_HANDLER_GET_CONTEXT;
 
 	if (!thread || !domain) {
 		/* The thread might not have started up yet */
@@ -296,11 +296,12 @@ SIG_HANDLER_FUNC (static, sigusr1_signal_handler)
 #define FULL_STAT_PROFILER_BACKTRACE 0
 #endif
 
+#ifdef SIGPROF
 #if defined(__ia64__) || defined(__sparc__) || defined(sparc) || defined(__s390__) || defined(s390)
 
-SIG_HANDLER_FUNC (static, sigprof_signal_handler)
+MONO_SIG_HANDLER_FUNC (static, sigprof_signal_handler)
 {
-	if (mono_chain_signal (SIG_HANDLER_PARAMS))
+	if (mono_chain_signal (MONO_SIG_HANDLER_PARAMS))
 		return;
 
 	NOT_IMPLEMENTED;
@@ -308,12 +309,14 @@ SIG_HANDLER_FUNC (static, sigprof_signal_handler)
 
 #else
 
-SIG_HANDLER_FUNC (static, sigprof_signal_handler)
+static int profiling_signal_in_use;
+
+static void
+per_thread_profiler_hit (void *ctx)
 {
 	int call_chain_depth = mono_profiler_stat_get_call_chain_depth ();
 	MonoProfilerCallChainStrategy call_chain_strategy = mono_profiler_stat_get_call_chain_strategy ();
-	GET_CONTEXT;
-	
+
 	if (call_chain_depth == 0) {
 		mono_profiler_stat_hit (mono_arch_ip_from_context (ctx), ctx);
 	} else {
@@ -380,17 +383,51 @@ SIG_HANDLER_FUNC (static, sigprof_signal_handler)
 		
 		mono_profiler_stat_call_chain (current_frame_index, & ips [0], ctx);
 	}
+}
 
-	mono_chain_signal (SIG_HANDLER_PARAMS);
+MONO_SIG_HANDLER_FUNC (static, sigprof_signal_handler)
+{
+	MonoThreadInfo *info;
+	int old_errno = errno;
+	int hp_save_index;
+	MONO_SIG_HANDLER_GET_CONTEXT;
+
+	if (mono_thread_info_get_small_id () == -1)
+		return; //an non-attached thread got the signal
+
+	if (!mono_domain_get () || !mono_native_tls_get_value (mono_jit_tls_id))
+		return; //thread in the process of dettaching
+
+	hp_save_index = mono_hazard_pointer_save_for_signal_handler ();
+
+	/* If we can't consume a profiling request it means we're the initiator. */
+	if (!(mono_threads_consume_async_jobs () & MONO_SERVICE_REQUEST_SAMPLE)) {
+		FOREACH_THREAD_SAFE (info) {
+			if (mono_thread_info_get_tid (info) == mono_native_thread_id_get ())
+				continue;
+
+			mono_threads_add_async_job (info, MONO_SERVICE_REQUEST_SAMPLE);
+			mono_threads_pthread_kill (info, profiling_signal_in_use);
+		} END_FOREACH_THREAD_SAFE;
+	}
+
+	mono_thread_info_set_is_async_context (TRUE);
+	per_thread_profiler_hit (ctx);
+	mono_thread_info_set_is_async_context (FALSE);
+
+	mono_hazard_pointer_restore_for_signal_handler (hp_save_index);
+	errno = old_errno;
+
+	mono_chain_signal (MONO_SIG_HANDLER_PARAMS);
 }
 
 #endif
+#endif
 
-SIG_HANDLER_FUNC (static, sigquit_signal_handler)
+MONO_SIG_HANDLER_FUNC (static, sigquit_signal_handler)
 {
 	gboolean res;
-
-	GET_CONTEXT;
+	MONO_SIG_HANDLER_GET_CONTEXT;
 
 	/* We use this signal to start the attach agent too */
 	res = mono_attach_start ();
@@ -413,16 +450,16 @@ SIG_HANDLER_FUNC (static, sigquit_signal_handler)
 		mono_print_thread_dump (ctx);
 	}
 
-	mono_chain_signal (SIG_HANDLER_PARAMS);
+	mono_chain_signal (MONO_SIG_HANDLER_PARAMS);
 }
 
-SIG_HANDLER_FUNC (static, sigusr2_signal_handler)
+MONO_SIG_HANDLER_FUNC (static, sigusr2_signal_handler)
 {
 	gboolean enabled = mono_trace_is_enabled ();
 
 	mono_trace_enable (!enabled);
 
-	mono_chain_signal (SIG_HANDLER_PARAMS);
+	mono_chain_signal (MONO_SIG_HANDLER_PARAMS);
 }
 
 static void
@@ -521,6 +558,11 @@ mono_runtime_posix_install_handlers (void)
 	 */
 	sigemptyset (&signal_set);
 	sigaddset (&signal_set, mono_thread_get_abort_signal ());
+	if (mono_gc_get_suspend_signal () != -1)
+		sigaddset (&signal_set, mono_gc_get_suspend_signal ());
+	if (mono_gc_get_restart_signal () != -1)
+		sigaddset (&signal_set, mono_gc_get_restart_signal ());
+	sigaddset (&signal_set, SIGCHLD);
 	sigprocmask (SIG_UNBLOCK, &signal_set, NULL);
 
 	signal (SIGPIPE, SIG_IGN);
@@ -599,6 +641,30 @@ mono_runtime_shutdown_stat_profiler (void)
 #endif
 }
 
+#ifdef ITIMER_PROF
+static int
+get_itimer_mode (void)
+{
+	switch (mono_profiler_get_sampling_mode ()) {
+	case MONO_PROFILER_STAT_MODE_PROCESS: return ITIMER_PROF;
+	case MONO_PROFILER_STAT_MODE_REAL: return ITIMER_REAL;
+	}
+	g_assert_not_reached ();
+	return 0;
+}
+
+static int
+get_itimer_signal (void)
+{
+	switch (mono_profiler_get_sampling_mode ()) {
+	case MONO_PROFILER_STAT_MODE_PROCESS: return SIGPROF;
+	case MONO_PROFILER_STAT_MODE_REAL: return SIGALRM;
+	}
+	g_assert_not_reached ();
+	return 0;
+}
+#endif
+
 void
 mono_runtime_setup_stat_profiler (void)
 {
@@ -619,7 +685,8 @@ mono_runtime_setup_stat_profiler (void)
 			perror ("open /dev/rtc");
 			return;
 		}
-		add_signal_handler (SIGPROF, sigprof_signal_handler);
+		profiling_signal_in_use = SIGPROF;
+		add_signal_handler (profiling_signal_in_use, sigprof_signal_handler);
 		if (ioctl (rtc_fd, RTC_IRQP_SET, freq) == -1) {
 			perror ("set rtc freq");
 			return;
@@ -643,14 +710,15 @@ mono_runtime_setup_stat_profiler (void)
 		return;
 #endif
 
-	itval.it_interval.tv_usec = 999;
+	itval.it_interval.tv_usec = (1000000 / mono_profiler_get_sampling_rate ()) - 1;
 	itval.it_interval.tv_sec = 0;
 	itval.it_value = itval.it_interval;
-	setitimer (ITIMER_PROF, &itval, NULL);
 	if (inited)
 		return;
 	inited = 1;
-	add_signal_handler (SIGPROF, sigprof_signal_handler);
+	profiling_signal_in_use = get_itimer_signal ();
+	add_signal_handler (profiling_signal_in_use, sigprof_signal_handler);
+	setitimer (get_itimer_mode (), &itval, NULL);
 #endif
 }
 
@@ -658,7 +726,11 @@ mono_runtime_setup_stat_profiler (void)
 pid_t
 mono_runtime_syscall_fork ()
 {
-#if defined(SYS_fork)
+#if defined(PLATFORM_ANDROID)
+	/* SYS_fork is defined to be __NR_fork which is not defined in some ndk versions */
+	g_assert_not_reached ();
+	return 0;
+#elif defined(SYS_fork)
 	return (pid_t) syscall (SYS_fork);
 #else
 	g_assert_not_reached ();
@@ -691,8 +763,8 @@ mono_gdb_render_native_backtraces (pid_t crashed_pid)
 		commands = fopen (template, "w");
 
 		fprintf (commands, "process attach --pid %ld\n", (long) crashed_pid);
-		fprintf (commands, "script lldb.debugger.HandleCommand (\"thread list\")\n");
-		fprintf (commands, "script lldb.debugger.HandleCommand (\"thread backtrace all\")\n");
+		fprintf (commands, "thread list\n");
+		fprintf (commands, "thread backtrace all\n");
 		fprintf (commands, "detach\n");
 		fprintf (commands, "quit\n");
 
@@ -725,7 +797,7 @@ mono_gdb_render_native_backtraces (pid_t crashed_pid)
 #if !defined (__MACH__)
 
 gboolean
-mono_thread_state_init_from_handle (MonoThreadUnwindState *tctx, MonoNativeThreadId thread_id, MonoNativeThreadHandle thread_handle)
+mono_thread_state_init_from_handle (MonoThreadUnwindState *tctx, MonoThreadInfo *info)
 {
 	g_error ("Posix systems don't support mono_thread_state_init_from_handle");
 	return FALSE;

@@ -564,6 +564,9 @@ namespace Mono.CSharp {
 			{
 				flags |= Options.FieldInitializerScope | Options.ConstructorScope;
 				this.ctor_block = constructorContext.CurrentBlock.Explicit;
+
+				if (ctor_block.IsCompilerGenerated)
+					CurrentBlock = ctor_block;
 			}
 
 			public override ExplicitBlock ConstructorBlock {
@@ -642,6 +645,7 @@ namespace Mono.CSharp {
 		public override void FlowAnalysis (FlowAnalysisContext fc)
 		{
 			source.FlowAnalysis (fc);
+			((FieldExpr) target).SetFieldAssigned (fc);
 		}
 		
 		public bool IsDefaultInitializer {
@@ -658,6 +662,33 @@ namespace Mono.CSharp {
 		public override bool IsSideEffectFree {
 			get {
 				return source.IsSideEffectFree;
+			}
+		}
+	}
+
+	class PrimaryConstructorAssign : SimpleAssign
+	{
+		readonly Field field;
+		readonly Parameter parameter;
+
+		public PrimaryConstructorAssign (Field field, Parameter parameter)
+			: base (null, null, parameter.Location)
+		{
+			this.field = field;
+			this.parameter = parameter;
+		}
+
+		protected override Expression DoResolve (ResolveContext rc)
+		{
+			target = new FieldExpr (field, loc);
+			source = rc.CurrentBlock.ParametersBlock.GetParameterInfo (parameter).CreateReferenceExpression (rc, loc);
+			return base.DoResolve (rc);
+		}
+
+		public override void EmitStatement (EmitContext ec)
+		{
+			using (ec.With (BuilderContext.Options.OmitDebugInfo, true)) {
+				base.EmitStatement (ec);
 			}
 		}
 	}

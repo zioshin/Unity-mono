@@ -4354,7 +4354,7 @@ mono_arch_tls_init (void)
 
 	}
 
-	jit_tls = pthread_getspecific (mono_get_jit_tls_key ());
+	jit_tls = mono_get_jit_tls ();
 
 #ifdef MONO_SPARC_THR_TLS
 	thr_setspecific (lmf_addr_key, &jit_tls->lmf);
@@ -4429,4 +4429,10 @@ mono_arch_context_get_int_reg (MonoContext *ctx, int reg)
 {
 	/* FIXME: implement */
 	g_assert_not_reached ();
+}
+
+gboolean
+mono_arch_opcode_supported (int opcode)
+{
+	return FALSE;
 }

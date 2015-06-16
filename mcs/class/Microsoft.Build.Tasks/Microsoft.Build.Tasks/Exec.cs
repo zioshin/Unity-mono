@@ -27,8 +27,6 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#if NET_2_0
-
 using System;
 using System.Collections;
 using System.Collections.Specialized;
@@ -124,13 +122,13 @@ namespace Microsoft.Build.Tasks {
 			Log.LogMessage (MessageImportance.Normal, "Executing: " + command);
 		}
 		
-		protected override void LogEventsFromTextOutput (string singleLine, MessageImportance importance)
+		protected override void LogEventsFromTextOutput (string singleLine, MessageImportance messageImportance)
 		{
 #if NET_4_0
 			if (IgnoreStandardErrorWarningFormat ||
 				(!errorMatcher (singleLine) && !warningMatcher (singleLine)))
 #endif
-				Log.LogMessage (importance, singleLine);
+				Log.LogMessage (messageImportance, singleLine);
 		}
 
 #if NET_4_0
@@ -252,5 +250,3 @@ namespace Microsoft.Build.Tasks {
 
 	}
 }
-
-#endif

@@ -27,8 +27,6 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#if NET_2_0
-
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -55,7 +53,6 @@ namespace Microsoft.Build.Tasks {
 		bool		findRelatedFiles;
 		bool		findSatellites;
 		bool		findSerializationAssemblies;
-		string[]	installedAssemblyTables;
 		ITaskItem[]	relatedFiles;
 		ITaskItem[]	resolvedDependencyFiles;
 		ITaskItem[]	resolvedFiles;
@@ -158,6 +155,9 @@ namespace Microsoft.Build.Tasks {
 
 				LogWithPrecedingNewLine (MessageImportance.Low, "Primary Reference {0}", item.ItemSpec);
 				ResolvedReference resolved_ref = ResolveReference (item, searchPaths, true);
+				if (resolved_ref == null)
+					resolved_ref = ResolveWithAlternateName (item, allowedAssemblyExtensions ?? default_assembly_extensions);
+
 				if (resolved_ref == null) {
 					Log.LogWarning ("Reference '{0}' not resolved", item.ItemSpec);
 					assembly_resolver.LogSearchLoggerMessages (MessageImportance.Normal);
@@ -182,6 +182,19 @@ namespace Microsoft.Build.Tasks {
 					}
 				}
 			}
+		}
+
+
+		ResolvedReference ResolveWithAlternateName (ITaskItem item, string[] extensions)
+		{
+			foreach (string extn in extensions) {
+				if (item.ItemSpec.EndsWith (extn)) {
+					ITaskItem altitem = new TaskItem (item.ItemSpec.Substring (0, item.ItemSpec.Length - extn.Length));
+					item.CopyMetadataTo (altitem);
+					return ResolveReference (altitem, searchPaths, true);
+				}
+			}
+			return null;
 		}
 
 		// Use @search_paths to resolve the reference
@@ -612,12 +625,15 @@ namespace Microsoft.Build.Tasks {
 			get { return findSerializationAssemblies; }
 			set { findSerializationAssemblies = value; }
 		}
-		
-		public string[] InstalledAssemblyTables {
-			get { return installedAssemblyTables; }
-			set { installedAssemblyTables = value; }
-		}
-		
+
+		public
+#if NET_4_0
+		ITaskItem[]
+#else
+		string[]
+#endif
+		InstalledAssemblyTables { get; set; }
+
 		[Output]
 		public ITaskItem[] RelatedFiles {
 			get { return relatedFiles; }
@@ -728,5 +744,3 @@ namespace Microsoft.Build.Tasks {
 	}
 
 }
-
-#endif

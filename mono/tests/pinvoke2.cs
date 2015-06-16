@@ -71,6 +71,11 @@ public class Tests {
 		public SimpleDelegate del3;
 	}
 
+	[StructLayout (LayoutKind.Sequential)]
+	public struct SingleDoubleStruct {
+		public double d;
+	}
+
 	/* sparcv9 has complex conventions when passing structs with doubles in them 
 	   by value, some simple tests for them */
 	[StructLayout (LayoutKind.Sequential)]
@@ -1320,6 +1325,26 @@ public class Tests {
 		return string_marshal_test3 (null);
 	}
 
+#if FALSE
+	[DllImport ("libtest", EntryPoint="mono_test_stdcall_mismatch_1", CallingConvention=CallingConvention.StdCall)]
+	public static extern int mono_test_stdcall_mismatch_1 (int a, int b, int c);
+
+	/* Test mismatched called conventions, the native function is cdecl */
+	public static int test_0_stdcall_mismatch_1 () {
+		mono_test_stdcall_mismatch_1 (0, 1, 2);
+		return 0;
+	}
+
+	[DllImport ("libtest", EntryPoint="mono_test_stdcall_mismatch_2", CallingConvention=CallingConvention.Cdecl)]
+	public static extern int mono_test_stdcall_mismatch_2 (int a, int b, int c);
+
+	/* Test mismatched called conventions, the native function is stdcall */
+	public static int test_0_stdcall_mismatch_2 () {
+		mono_test_stdcall_mismatch_2 (0, 1, 2);
+		return 0;
+	}
+#endif
+
 	[DllImport ("libtest", EntryPoint="mono_test_stdcall_name_mangling", CallingConvention=CallingConvention.StdCall)]
 	public static extern int mono_test_stdcall_name_mangling (int a, int b, int c);
 
@@ -1779,6 +1804,17 @@ public class Tests {
 			return 6;
 
 		return 0;
+	}
+
+	[DllImport ("libtest", EntryPoint = "mono_test_marshal_return_single_double_struct")]
+	public static extern SingleDoubleStruct mono_test_marshal_return_single_double_struct ();
+
+	public static int test_0_x86_single_double_struct_ret () {
+		double d = mono_test_marshal_return_single_double_struct ().d;
+		if (d != 3.0)
+			return 1;
+		else
+			return 0;
 	}
 }
 

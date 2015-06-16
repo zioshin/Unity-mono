@@ -83,8 +83,6 @@ libmonoldflags=$(monoldflags) -version-info 1:0:0
 endif
 endif
 
-if JIT_SUPPORTED
-
 if SUPPORT_SGEN
 sgen_binaries = mono-sgen
 sgen_libraries = libmonosgen-2.0.la
@@ -115,7 +113,7 @@ mono.exe: mono-$(mono_bin_suffix).exe
 
 install-exec-hook:
 	(cd $(DESTDIR)$(bindir) && ln -sf mono-$(mono_bin_suffix) mono)
-	(cd $(DESTDIR)$(libdir); for i in libmono$(libmono_suffix)*; do ln -sf $$i `echo $$i | sed s/$(libmono_suffix)//` ; done)
+	(cd $(DESTDIR)$(libdir); shopt -s nullglob 2>/dev/null; for i in libmono$(libmono_suffix)*; do ln -sf $$i `echo $$i | sed s/$(libmono_suffix)//` ; done)
 endif
 
 if DISABLE_EXECUTABLES
@@ -166,8 +164,6 @@ libmono_llvm_la_LIBADD += $(top_builddir)/mono/mini/libmonoboehm-$(API_VER).la $
 endif
 endif
 
-endif
-
 mono_boehm_SOURCES = \
 	main.c
 
@@ -204,6 +200,7 @@ buildver-sgen.h: libmini-static.la $(monodir)/mono/metadata/libmonoruntimesgen-s
 endif
 	@echo "const char *build_date = \"`date`\";" > buildver-sgen.h
 mono_sgen-main-sgen.$(OBJEXT): buildver-sgen.h
+main-sgen.$(OBJEXT): buildver-sgen.h
 
 if DTRACE_G_REQUIRED
 LIBMONO_DTRACE_OBJECT = .libs/mono-dtrace.$(OBJEXT)
@@ -276,9 +273,15 @@ endif
 
 # Create monow.exe, linked for the 'windows' subsystem
 if HOST_WIN32
+if SUPPORT_BOEHM
 monow_LDADD = $(mono_boehm_LDADD)
 monow_LDFLAGS = $(mono_boehm_LDFLAGS) -mwindows
 monow_SOURCES = $(mono_boehm_SOURCES)
+else
+monow_LDADD = $(mono_sgen_LDADD)
+monow_LDFLAGS = $(mono_sgen_LDFLAGS) -mwindows
+monow_SOURCES = $(mono_sgen_SOURCES)
+endif
 endif
 
 genmdesc_SOURCES = \
@@ -317,6 +320,12 @@ arm_sources = \
 	exceptions-arm.c	\
 	tramp-arm.c
 
+arm64_sources = \
+	mini-arm64.c		\
+	mini-arm64.h		\
+	exceptions-arm64.c	\
+	tramp-arm64.c
+
 mips_sources = \
 	mini-mips.c		\
 	mini-mips.h		\
@@ -332,6 +341,7 @@ sparc_sources = \
 s390x_sources = \
 	mini-s390x.c		\
 	mini-s390x.h		\
+	support-s390x.h		\
 	exceptions-s390x.c	\
 	tramp-s390x.c
 
@@ -420,7 +430,8 @@ common_sources = \
 	xdebug.c			\
 	mini-llvm.h			\
 	mini-llvm-cpp.h	\
-	alias-analysis.c
+	alias-analysis.c	\
+	mini-cross-helpers.c
 
 test_sources = 			\
 	basic-calls.cs 		\
@@ -484,6 +495,12 @@ ARCH_CFLAGS = -I../arch/arm
 arch_sources = $(arm_sources)
 arch_built=cpu-arm.h
 arch_define=__arm__
+endif
+
+if ARM64
+arch_sources = $(arm64_sources)
+arch_built=cpu-arm64.h
+arch_define=__aarch64__
 endif
 
 if SPARC
@@ -614,6 +631,9 @@ cpu-ppc64.h: cpu-ppc64.md genmdesc$(EXEEXT)
 cpu-arm.h: cpu-arm.md genmdesc$(EXEEXT)
 	$(GENMDESC_PRG) cpu-arm.h arm_cpu_desc $(srcdir)/cpu-arm.md
 
+cpu-arm64.h: cpu-arm64.md genmdesc$(EXEEXT)
+	$(GENMDESC_PRG) cpu-arm64.h arm64_cpu_desc $(srcdir)/cpu-arm64.md
+
 cpu-sparc.h: cpu-sparc.md genmdesc$(EXEEXT)
 	$(GENMDESC_PRG) cpu-sparc.h sparc_desc $(srcdir)/cpu-sparc.md
 
@@ -704,11 +724,7 @@ clean-local:
 
 pkgconfigdir = $(libdir)/pkgconfig
 
-if JIT_SUPPORTED
 BUILT_SOURCES = version.h $(arch_built)
-else
-BUILT_SOURCES = version.h
-endif
 
 CLEANFILES= $(BUILT_SOURCES) *.exe *.dll
 EXTRA_DIST = TestDriver.cs ldscript ldscript.mono \
@@ -718,6 +734,7 @@ EXTRA_DIST = TestDriver.cs ldscript ldscript.mono \
 	$(amd64_sources) cpu-amd64.md 		\
 	$(ppc_sources) cpu-ppc.md cpu-ppc64.md 	\
 	$(arm_sources) cpu-arm.md 		\
+	$(arm64_sources) cpu-arm64.md 		\
 	$(mips_sources) cpu-mips.md 		\
 	$(sparc_sources) cpu-sparc.md 		\
 	$(s390x_sources) cpu-s390x.md 		\

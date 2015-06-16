@@ -229,10 +229,12 @@ STDAPI _CorValidateImage(PVOID *ImageBase, LPCWSTR FileName)
 {
 	IMAGE_DOS_HEADER* DosHeader;
 	IMAGE_NT_HEADERS32* NtHeaders32;
-	IMAGE_NT_HEADERS64* NtHeaders64;
 	IMAGE_DATA_DIRECTORY* CliHeaderDir;
+#ifdef _WIN64
+	IMAGE_NT_HEADERS64* NtHeaders64;
 	MonoCLIHeader* CliHeader;
 	DWORD SizeOfHeaders;
+#endif
 	DWORD* Address;
 	DWORD OldProtect;
 
@@ -413,7 +415,9 @@ HMODULE WINAPI MonoLoadImage(LPCWSTR FileName)
 	HANDLE MapHandle;
 	IMAGE_DOS_HEADER* DosHeader;
 	IMAGE_NT_HEADERS32* NtHeaders32;
+#ifdef _WIN64
 	IMAGE_NT_HEADERS64* NtHeaders64;
+#endif
 	HMODULE ModuleHandle;
 
 	FileHandle = CreateFile(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -461,7 +465,9 @@ InvalidImageFormat:
 		goto UnmapView;
 	}
 
+#ifdef _WIN64
 ValidImage:
+#endif
 	UnmapViewOfFile(DosHeader);
 	CloseHandle(MapHandle);
 

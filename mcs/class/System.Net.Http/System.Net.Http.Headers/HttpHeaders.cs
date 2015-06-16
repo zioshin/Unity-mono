@@ -96,6 +96,7 @@ namespace System.Net.Http.Headers
 				HeaderInfo.CreateSingle<AuthenticationHeaderValue> ("Authorization", AuthenticationHeaderValue.TryParse, HttpHeaderKind.Request),
 				HeaderInfo.CreateSingle<CacheControlHeaderValue> ("Cache-Control", CacheControlHeaderValue.TryParse, HttpHeaderKind.Request | HttpHeaderKind.Response),
 				HeaderInfo.CreateMulti<string> ("Connection", CollectionParser.TryParse, HttpHeaderKind.Request | HttpHeaderKind.Response),
+				HeaderInfo.CreateSingle<ContentDispositionHeaderValue> ("Content-Disposition", ContentDispositionHeaderValue.TryParse, HttpHeaderKind.Content),
 				HeaderInfo.CreateMulti<string> ("Content-Encoding", CollectionParser.TryParse, HttpHeaderKind.Content),
 				HeaderInfo.CreateMulti<string> ("Content-Language", CollectionParser.TryParse, HttpHeaderKind.Content),
 				HeaderInfo.CreateSingle<long> ("Content-Length", Parser.Long.TryParse, HttpHeaderKind.Content),
@@ -372,12 +373,12 @@ namespace System.Net.Http.Headers
 				SetValue (name, value);
 		}
 
-		internal void AddOrRemove<T> (string name, T value) where T : class
+		internal void AddOrRemove<T> (string name, T value, Func<object, string> converter = null) where T : class
 		{
 			if (value == null)
 				Remove (name);
 			else
-				SetValue (name, value);
+				SetValue (name, value, converter);
 		}
 
 		internal void AddOrRemove<T> (string name, T? value) where T : struct

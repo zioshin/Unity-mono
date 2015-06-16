@@ -216,6 +216,14 @@ find_jit_info (MonoDomain *domain, MonoJitTlsData *jit_tls, MonoJitInfo *res, Mo
 	if (!err)
 		return (gpointer)-1;
 
+	if (*lmf && ((*lmf) != jit_tls->first_lmf) && ((gpointer)MONO_CONTEXT_GET_SP (new_ctx) >= (gpointer)(*lmf))) {
+		/*
+		 * Remove any unused lmf.
+		 * Mask out the lower bits which might be used to hold additional information.
+		 */
+		*lmf = (gpointer)(((gsize)(*lmf)->previous_lmf) & ~(SIZEOF_VOID_P -1));
+	}
+
 	/* Convert between the new and the old APIs */
 	switch (frame.type) {
 	case FRAME_TYPE_MANAGED:
@@ -367,6 +375,14 @@ mono_find_jit_info_ext (MonoDomain *domain, MonoJitTlsData *jit_tls,
 	err = mono_arch_find_jit_info (target_domain, jit_tls, ji, ctx, new_ctx, lmf, save_locations, frame);
 	if (!err)
 		return FALSE;
+
+	if (*lmf && ((*lmf) != jit_tls->first_lmf) && ((gpointer)MONO_CONTEXT_GET_SP (new_ctx) >= (gpointer)(*lmf))) {
+		/*
+		 * Remove any unused lmf.
+		 * Mask out the lower bits which might be used to hold additional information.
+		 */
+		*lmf = (gpointer)(((gsize)(*lmf)->previous_lmf) & ~(SIZEOF_VOID_P -1));
+	}
 
 	if (frame->ji && !frame->ji->async)
 		method = jinfo_get_method (frame->ji);
@@ -1806,8 +1822,8 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gboolean resume,
 					jit_tls->orig_ex_ctx_set = TRUE;
 					mono_profiler_exception_clause_handler (method, ei->flags, i);
 					jit_tls->orig_ex_ctx_set = FALSE;
-							MONO_CONTEXT_SET_IP (ctx, ei->handler_start);
-							*(mono_get_lmf_addr ()) = lmf;
+					MONO_CONTEXT_SET_IP (ctx, ei->handler_start);
+					mono_set_lmf (lmf);
 #ifndef DISABLE_PERFCOUNTERS
 							mono_perfcounters->exceptions_depth += frame_count;
 #endif
@@ -1835,7 +1851,7 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gboolean resume,
 #ifndef DISABLE_PERFCOUNTERS
 							mono_perfcounters->exceptions_finallys++;
 #endif
-							*(mono_get_lmf_addr ()) = lmf;
+					mono_set_lmf (lmf);
 					if (ji->from_llvm) {
 						/* 
 						 * LLVM compiled finally handlers follow the design
@@ -2218,8 +2234,8 @@ print_stack_frame_to_string (StackFrameInfo *frame, MonoContext *ctx, gpointer d
 	if (frame->ji)
 		method = jinfo_get_method (frame->ji);
 
-	if (method) {
-		gchar *location = mono_debug_print_stack_frame (method, frame->native_offset, mono_domain_get ());
+	if (method && frame->domain) {
+		gchar *location = mono_debug_print_stack_frame (method, frame->native_offset, frame->domain);
 		g_string_append_printf (p, "  %s\n", location);
 		g_free (location);
 	} else
@@ -2227,6 +2243,8 @@ print_stack_frame_to_string (StackFrameInfo *frame, MonoContext *ctx, gpointer d
 
 	return FALSE;
 }
+
+#ifndef MONO_CROSS_COMPILE
 
 static gboolean handling_sigsegv = FALSE;
 
@@ -2282,7 +2300,7 @@ mono_handle_native_sigsegv (int signal, void *ctx)
 			;
 #else
 		while (1) {
-			sleep (0);
+			sleep (1);
 		}
 #endif
 	}
@@ -2373,13 +2391,25 @@ mono_handle_native_sigsegv (int signal, void *ctx)
 
 #endif
 
-	/*Android abort is a fluke, it doesn't abort, it triggers another segv. */
+	if (!mono_do_crash_chaining) {
+		/*Android abort is a fluke, it doesn't abort, it triggers another segv. */
 #if defined (PLATFORM_ANDROID)
-	exit (-1);
+		exit (-1);
 #else
-	abort ();
+		abort ();
 #endif
+	}
 }
+
+#else
+
+void
+mono_handle_native_sigsegv (int signal, void *ctx)
+{
+	g_assert_not_reached ();
+}
+
+#endif /* !MONO_CROSS_COMPILE */
 
 static void
 mono_print_thread_dump_internal (void *sigctx, MonoContext *start_ctx)
@@ -2389,7 +2419,10 @@ mono_print_thread_dump_internal (void *sigctx, MonoContext *start_ctx)
 	MonoContext ctx;
 #endif
 	GString* text = g_string_new (0);
-	char *name, *wapi_desc;
+	char *name;
+#ifndef HOST_WIN32
+	char *wapi_desc;
+#endif
 	GError *error = NULL;
 
 	if (thread->name) {
@@ -2765,5 +2798,16 @@ mono_jinfo_get_unwind_info (MonoJitInfo *ji, guint32 *unwind_info_len)
 	if (ji->from_aot)
 		return mono_aot_get_unwind_info (ji, unwind_info_len);
 	else
-		return mono_get_cached_unwind_info (ji->used_regs, unwind_info_len);
+		return mono_get_cached_unwind_info (ji->unwind_info, unwind_info_len);
+}
+
+int
+mono_jinfo_get_epilog_size (MonoJitInfo *ji)
+{
+	MonoArchEHJitInfo *info;
+
+	info = mono_jit_info_get_arch_eh_info (ji);
+	g_assert (info);
+
+	return info->epilog_size;
 }

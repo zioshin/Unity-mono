@@ -48,7 +48,7 @@ namespace System.Threading.Tasks
 		static Task current;
 		
 		// parent is the outer task in which this task is created
-		readonly Task parent;
+		Task parent;
 		// A reference to a Task on which this continuation is attached to
 		Task contAncestor;
 		
@@ -533,12 +533,8 @@ namespace System.Threading.Tasks
 				ProcessChildExceptions ();
 				Status = exSlot == null ? TaskStatus.RanToCompletion : TaskStatus.Faulted;
 				ProcessCompleteDelegates ();
-				if (parent != null &&
-#if NET_4_5
-				    !HasFlag (parent.CreationOptions, TaskCreationOptions.DenyChildAttach) &&
-#endif
-					HasFlag (creationOptions, TaskCreationOptions.AttachedToParent))
-					parent.ChildCompleted (this.Exception);
+				if (parent != null && NotifyParentOnFinish ())
+					parent = null;
 			}
 		}
 
@@ -573,12 +569,12 @@ namespace System.Threading.Tasks
 				wait_handle.Set ();
 
 			// Tell parent that we are finished
-			if (parent != null && HasFlag (creationOptions, TaskCreationOptions.AttachedToParent) &&
-#if NET_4_5
-			    !HasFlag (parent.CreationOptions, TaskCreationOptions.DenyChildAttach) &&
-#endif
-				status != TaskStatus.WaitingForChildrenToComplete) {
-				parent.ChildCompleted (this.Exception);
+			if (parent != null && NotifyParentOnFinish ()) {
+				//
+				// Break the reference back to the parent, otherwise any Tasks created from another Task's thread of 
+				// execution will create an undesired linked-list that the GC cannot free. See bug #18398.
+				//
+				parent = null;
 			}
 
 			// Completions are already processed when task is canceled or faulted
@@ -593,6 +589,20 @@ namespace System.Threading.Tasks
 
 			if (cancellationRegistration.HasValue)
 				cancellationRegistration.Value.Dispose ();
+		}
+
+		bool NotifyParentOnFinish ()
+		{
+			if (!HasFlag (creationOptions, TaskCreationOptions.AttachedToParent))
+				return true;
+#if NET_4_5
+			if (HasFlag (parent.CreationOptions, TaskCreationOptions.DenyChildAttach))
+				return true;
+#endif
+			if (status != TaskStatus.WaitingForChildrenToComplete)
+				parent.ChildCompleted (Exception);
+
+			return false;
 		}
 
 		void ProcessCompleteDelegates ()
@@ -625,7 +635,7 @@ namespace System.Threading.Tasks
 		
 		#region Cancel and Wait related method
 		
-		internal void CancelReal ()
+		internal void CancelReal (bool notifyParent = false)
 		{
 			Status = TaskStatus.Canceled;
 
@@ -633,6 +643,9 @@ namespace System.Threading.Tasks
 				wait_handle.Set ();
 
 			ProcessCompleteDelegates ();
+
+			if (notifyParent && parent != null && NotifyParentOnFinish ())
+				parent = null;
 		}
 
 		void HandleGenericException (Exception e)
@@ -889,6 +902,7 @@ namespace System.Threading.Tasks
 			// Set action to null so that the GC can collect the delegate and thus
 			// any big object references that the user might have captured in a anonymous method
 			if (disposing) {
+				parent = null;
 				invoker = null;
 				state = null;
 				if (cancellationRegistration != null)
@@ -1353,7 +1367,7 @@ namespace System.Threading.Tasks
 		
 		bool IAsyncResult.CompletedSynchronously {
 			get {
-				return true;
+				return false;
 			}
 		}
 

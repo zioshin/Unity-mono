@@ -1,12 +1,14 @@
 //
 // ToolTask.cs: Base class for command line tool tasks. 
 //
-// Author:
+// Authors:
 //   Marek Sieradzki (marek.sieradzki@gmail.com)
 //   Ankit Jain (jankit@novell.com)
+//   Marek Safar (marek.safar@gmail.com)
 //
 // (C) 2005 Marek Sieradzki
 // Copyright 2009 Novell, Inc (http://www.novell.com)
+// Copyright 2014 Xamarin Inc
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -27,8 +29,6 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#if NET_2_0
-
 using System;
 using System.Diagnostics;
 using System.Collections;
@@ -39,12 +39,16 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
 using Mono.XBuild.Utilities;
+using System.Threading;
 
 using SCS = System.Collections.Specialized;
 
 namespace Microsoft.Build.Utilities
 {
 	public abstract class ToolTask : Task
+#if NET_4_0
+		, ICancelableTask
+#endif	
 	{
 		int			exitCode;
 		int			timeout;
@@ -54,6 +58,9 @@ namespace Microsoft.Build.Utilities
 		MessageImportance	standardOutputLoggingImportance;
 		StringBuilder toolOutput;
 		bool typeLoadException;
+#if NET_4_0
+		ManualResetEvent canceled;
+#endif
 
 		protected ToolTask ()
 			: this (null, null)
@@ -74,6 +81,9 @@ namespace Microsoft.Build.Utilities
 			this.HelpKeywordPrefix = helpKeywordPrefix;
 			this.responseFileEncoding = Encoding.UTF8;
 			this.timeout = Int32.MaxValue;
+#if NET_4_0
+			canceled = new ManualResetEvent (false);
+#endif
 		}
 
 		[MonoTODO]
@@ -82,12 +92,45 @@ namespace Microsoft.Build.Utilities
 			return true;
 		}
 
+		string CreateToolPath ()
+		{
+			string tp;
+			if (string.IsNullOrEmpty (ToolPath)) {
+				tp = GenerateFullPathToTool ();
+				if (string.IsNullOrEmpty (tp))
+					return null;
+
+				//
+				// GenerateFullPathToTool can return path including tool name
+				//
+				if (string.IsNullOrEmpty (ToolExe))
+					return tp;
+
+				tp = Path.GetDirectoryName (tp);
+			} else {
+				tp = ToolPath;
+			}
+
+			var	path = Path.Combine (tp, ToolExe);
+			if (!File.Exists (path)) {
+				if (Log != null)
+					Log.LogError ("Tool executable '{0}' could not be found", path);
+				return null;
+			}
+
+			return path;
+		}
+
 		public override bool Execute ()
 		{
 			if (SkipTaskExecution ())
 				return true;
 
-			exitCode = ExecuteTool (GenerateFullPathToTool (), GenerateResponseFileCommands (),
+			var tool_path = CreateToolPath ();
+			if (tool_path == null)
+				return false;
+
+			exitCode = ExecuteTool (tool_path, GenerateResponseFileCommands (),
 				GenerateCommandLineCommands ());
 
 			// HandleTaskExecutionErrors is called only if exitCode != 0
@@ -225,10 +268,10 @@ namespace Microsoft.Build.Utilities
 			}
 		}
 
-		protected virtual void LogEventsFromTextOutput (string singleLine, MessageImportance importance)
+		protected virtual void LogEventsFromTextOutput (string singleLine, MessageImportance messageImportance)
 		{
 			if (singleLine.Length == 0) {
-				Log.LogMessage (singleLine, importance);
+				Log.LogMessage (singleLine, messageImportance);
 				return;
 			}
 
@@ -244,46 +287,51 @@ namespace Microsoft.Build.Utilities
 				singleLine.StartsWith ("Compilation failed"))
 				return;
 
-			Match match = CscErrorRegex.Match (singleLine);
-			if (!match.Success) {
-				Log.LogMessage (importance, singleLine);
+			var result = MSBuildErrorParser.TryParseLine (singleLine);
+			if (result == null) {
+				Log.LogMessage (messageImportance, singleLine);
 				return;
 			}
 
-			string filename = match.Result ("${file}") ?? "";
-			string line = match.Result ("${line}");
-			int lineNumber = !string.IsNullOrEmpty (line) ? Int32.Parse (line) : 0;
+			string filename = result.Origin ?? GetType ().Name.ToUpper ();
 
-			string col = match.Result ("${column}");
-			int columnNumber = 0;
-			if (!string.IsNullOrEmpty (col))
-				columnNumber = col.IndexOf ("+") >= 0 ? -1 : Int32.Parse (col);
-
-			string category = match.Result ("${level}");
-			string code = match.Result ("${number}");
-			string text = match.Result ("${message}");
-
-			if (String.Compare (category, "warning", StringComparison.OrdinalIgnoreCase) == 0) {
-				Log.LogWarning (null, code, null, filename, lineNumber, columnNumber, -1,
-					-1, text, null);
-			} else if (String.Compare (category, "error", StringComparison.OrdinalIgnoreCase) == 0) {
-				Log.LogError (null, code, null, filename, lineNumber, columnNumber, -1,
-					-1, text, null);
+			if (result.IsError) {
+				Log.LogError (
+					result.Subcategory,
+					result.Code,
+					null,
+					filename,
+					result.Line,
+					result.Column,
+					result.EndLine,
+					result.EndColumn,
+					result.Message
+				);
 			} else {
-				Log.LogMessage (importance, singleLine);
+				Log.LogWarning (
+					result.Subcategory,
+					result.Code,
+					null,
+					filename,
+					result.Line,
+					result.Column,
+					result.EndLine,
+					result.EndColumn,
+					result.Message
+				);
 			}
 		}
 
 		protected virtual string GenerateCommandLineCommands ()
 		{
-			return null;
+			return "";
 		}
 
 		protected abstract string GenerateFullPathToTool ();
 
 		protected virtual string GenerateResponseFileCommands ()
 		{
-			return null;
+			return "";
 		}
 
 		protected virtual string GetResponseFileSwitch (string responseFilePath)
@@ -291,7 +339,7 @@ namespace Microsoft.Build.Utilities
 			return String.Format ("@{0}", responseFilePath);
 		}
 
-		protected virtual ProcessStartInfo GetProcessStartInfo (string pathToTool, string commandLineCommands, string responseFileSwitch)
+		protected ProcessStartInfo GetProcessStartInfo (string pathToTool, string commandLineCommands, string responseFileSwitch)
 		{
 			var pinfo = new ProcessStartInfo (pathToTool, String.Format ("{0} {1}", commandLineCommands, responseFileSwitch));
 
@@ -458,29 +506,33 @@ namespace Microsoft.Build.Utilities
 			set { toolPath  = value; }
 		}
 
-		// Keep in sync with mcs/class/System/Microsoft.CSharp/CSharpCodeCompiler.cs
-		const string ErrorRegexPattern = @"
-			^
-			(\s*(?<file>[^\(]+)                         # filename (optional)
-			 (\((?<line>\d*)(,(?<column>\d*[\+]*))?\))? # line+column (optional)
-			 :\s+)?
-			(?<level>\w+)                               # error|warning
-			\s+
-			(?<number>[^:]*\d)                          # CS1234
-			:
-			\s*
-			(?<message>.*)$";
-
-		static Regex errorRegex;
-		static Regex CscErrorRegex {
+#if NET_4_0
+		protected ManualResetEvent ToolCanceled {
 			get {
-				if (errorRegex == null)
-					errorRegex = new Regex (ErrorRegexPattern,
-							RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace);
-				return errorRegex;
+				return canceled;
 			}
 		}
+
+		public virtual void Cancel ()
+		{
+			canceled.Set ();
+		}
+#endif
+
+#if XBUILD_12
+		protected MessageImportance StandardErrorImportanceToUse {
+			get {
+				return MessageImportance.Normal;
+			}
+		}
+
+		protected MessageImportance StandardOutputImportanceToUse {
+			get {
+				return MessageImportance.Low;
+			}
+		}
+
+		public bool LogStandardErrorAsError { get; set; }
+#endif
 	}
 }
-
-#endif

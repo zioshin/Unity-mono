@@ -22,6 +22,8 @@
 #ifndef __MONO_SGENCONF_H__
 #define __MONO_SGENCONF_H__
 
+#include <glib.h>
+
 /*Basic defines and static tunables */
 
 #if SIZEOF_VOID_P == 4
@@ -38,6 +40,12 @@ typedef guint64 mword;
  * the managed write barrier.
  */
 // #define HEAVY_STATISTICS
+
+#ifdef HEAVY_STATISTICS
+#define HEAVY_STAT(x)	x
+#else
+#define HEAVY_STAT(x)
+#endif
 
 /*
  * Define this to allow the user to change the nursery size by
@@ -57,10 +65,11 @@ typedef guint64 mword;
 
 /*
  * The binary protocol enables logging a lot of the GC ativity in a way that is not very
- * intrusive and produce a compact file that can be searched using a custom tool.
- *
+ * intrusive and produces a compact file that can be searched using a custom tool.  This
+ * option enables very fine-grained binary protocol events, which will make the GC a tiny
+ * bit less efficient even if no binary protocol file is generated.
  */
-//#define SGEN_BINARY_PROTOCOL
+//#define SGEN_HEAVY_BINARY_PROTOCOL
 
 /*
  * This enables checks whenever objects are enqueued in gray queues.
@@ -97,7 +106,7 @@ typedef guint64 mword;
  */
 //#define SGEN_OBJECT_LAYOUT_STATISTICS
 
-#ifndef SGEN_BINARY_PROTOCOL
+#ifndef SGEN_HEAVY_BINARY_PROTOCOL
 #ifndef HEAVY_STATISTICS
 #define MANAGED_ALLOCATION
 #ifndef XDOMAIN_CHECKS_IN_WBARRIER
@@ -191,16 +200,17 @@ typedef guint64 mword;
 /*
  * Configurable cementing parameters.
  *
- * The hash table size should be a prime.  If there are too many
- * pinned nursery objects with many references from the major heap,
- * this number must be increased.
+ * If there are too many pinned nursery objects with many references
+ * from the major heap, the hash table size must be increased.
  *
  * The threshold is the number of references from the major heap to a
  * pinned nursery object which triggers cementing: if there are more
  * than that number of references, the pinned object is cemented until
  * the next major collection.
  */
-#define SGEN_CEMENT_HASH_SIZE	61
+#define SGEN_CEMENT_HASH_SHIFT	6
+#define SGEN_CEMENT_HASH_SIZE	(1 << SGEN_CEMENT_HASH_SHIFT)
+#define SGEN_CEMENT_HASH(hv)	(((hv) ^ ((hv) >> SGEN_CEMENT_HASH_SHIFT)) & (SGEN_CEMENT_HASH_SIZE - 1))
 #define SGEN_CEMENT_THRESHOLD	1000
 
 #endif

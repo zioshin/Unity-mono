@@ -69,6 +69,7 @@ config.status
 config.sub
 configure
 configure.scan
+cygconfig.h
 depcomp
 install-sh
 libtool
@@ -79,6 +80,7 @@ releases
 stamp-h
 stamp-h1
 stamp-h.in
+/test-driver
 *~
 *.swp
 *.o

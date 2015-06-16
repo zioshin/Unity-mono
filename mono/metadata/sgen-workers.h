@@ -26,6 +26,7 @@
 
 typedef struct _WorkerData WorkerData;
 struct _WorkerData {
+	int index;
 	MonoNativeThreadId thread;
 	void *major_collector_data;
 
@@ -33,7 +34,7 @@ struct _WorkerData {
 
 	mono_mutex_t stealable_stack_mutex;
 	volatile int stealable_stack_fill;
-	char *stealable_stack [STEALABLE_STACK_SIZE];
+	GrayQueueEntry stealable_stack [STEALABLE_STACK_SIZE];
 };
 
 typedef void (*JobFunc) (WorkerData *worker_data, void *job_data);

@@ -12,6 +12,7 @@ monotouch_SUBDIRS := build class
 monotouch_runtime_SUBDIRS := build class
 xammac_SUBDIRS := build class
 mobile_SUBDIRS := build class
+mobile_static_SUBDIRS := build class
 net_3_5_SUBDIRS := build class tools/xbuild
 net_4_0_SUBDIRS := build class
 net_4_5_SUBDIRS := build mcs class nunit24 ilasm tools tests errors docs
@@ -24,7 +25,6 @@ centum_tests := \
 	class/System.XML					\
 	class/Commons.Xml.Relaxng				\
 	class/Cscompmgd						\
-	class/Microsoft.JScript					\
 	class/Mono.Posix					\
 	class/Mono.Security					\
 	class/System.Design					\
@@ -83,7 +83,7 @@ all-local $(STD_TARGETS:=-local):
 	@:
 
 dir-check:
-	@if [ "$(NO_DIR_CHECK)" = "" -a "$(PROFILE)" != "basic" ]; then make -C ../runtime; fi
+	@if [ "$(NO_DIR_CHECK)" = "" -a "$(PROFILE)" != "basic" ]; then $(MAKE) -C ../runtime; fi
 
 # fun specialty targets
 
@@ -115,6 +115,7 @@ $(_boot_:%=profile-do--monotouch--%):         profile-do--monotouch--%:         
 $(_boot_:%=profile-do--monotouch_runtime--%):  profile-do--monotouch_runtime--%:  profile-do--build--%
 $(_boot_:%=profile-do--xammac--%):            profile-do--xammac--%:            profile-do--build--%
 $(_boot_:%=profile-do--mobile--%):            profile-do--mobile--%:         profile-do--build--%
+$(_boot_:%=profile-do--mobile_static--%):     profile-do--mobile_static--%:     profile-do--build--%
 $(_boot_:%=profile-do--net_2_0--%):           profile-do--net_2_0--%:           profile-do--build--%
 $(_boot_:%=profile-do--build--%):             profile-do--build--%:             profile-do--basic--%
 

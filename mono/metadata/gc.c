@@ -29,6 +29,7 @@
 #include <mono/metadata/threadpool.h>
 #include <mono/metadata/threadpool-internals.h>
 #include <mono/metadata/threads-types.h>
+#include <mono/metadata/sgen-conf.h>
 #include <mono/utils/mono-logger-internal.h>
 #include <mono/metadata/gc-internal.h>
 #include <mono/metadata/marshal.h> /* for mono_delegate_free_ftnptr () */
@@ -61,10 +62,10 @@ static gboolean gc_disabled = FALSE;
 
 static gboolean finalizing_root_domain = FALSE;
 
-#define mono_finalizer_lock() EnterCriticalSection (&finalizer_mutex)
-#define mono_finalizer_unlock() LeaveCriticalSection (&finalizer_mutex)
-static CRITICAL_SECTION finalizer_mutex;
-static CRITICAL_SECTION reference_queue_mutex;
+#define mono_finalizer_lock() mono_mutex_lock (&finalizer_mutex)
+#define mono_finalizer_unlock() mono_mutex_unlock (&finalizer_mutex)
+static mono_mutex_t finalizer_mutex;
+static mono_mutex_t reference_queue_mutex;
 
 static GSList *domains_to_finalize= NULL;
 static MonoMList *threads_to_finalize = NULL;
@@ -504,10 +505,10 @@ ves_icall_System_GC_get_ephemeron_tombstone (void)
 	return mono_domain_get ()->ephemeron_tombstone;
 }
 
-#define mono_allocator_lock() EnterCriticalSection (&allocator_section)
-#define mono_allocator_unlock() LeaveCriticalSection (&allocator_section)
-static CRITICAL_SECTION allocator_section;
-static CRITICAL_SECTION handle_section;
+#define mono_allocator_lock() mono_mutex_lock (&allocator_section)
+#define mono_allocator_unlock() mono_mutex_unlock (&allocator_section)
+static mono_mutex_t allocator_section;
+static mono_mutex_t handle_section;
 
 typedef enum {
 	HANDLE_WEAK,
@@ -607,8 +608,8 @@ static HandleData gc_handles [] = {
 	{NULL, NULL, 0, HANDLE_PINNED, 0}
 };
 
-#define lock_handles(handles) EnterCriticalSection (&handle_section)
-#define unlock_handles(handles) LeaveCriticalSection (&handle_section)
+#define lock_handles(handles) mono_mutex_lock (&handle_section)
+#define unlock_handles(handles) mono_mutex_unlock (&handle_section)
 
 static int
 find_first_unset (guint32 bitmap)
@@ -1067,6 +1068,8 @@ finalizer_thread (gpointer unused)
 #if defined(PLATFORM_ANDROID)	
 	prctl(PR_SET_NAME, (unsigned long)"__MONO__",0,0,0);
 #endif
+	gboolean wait = TRUE;
+
 	while (!finished) {
 		/* Wait to be notified that there's at least one
 		 * finaliser to run
@@ -1074,12 +1077,15 @@ finalizer_thread (gpointer unused)
 
 		g_assert (mono_domain_get () == mono_get_root_domain ());
 
+		if (wait) {
 		/* An alertable wait is required so this thread can be suspended on windows */
 #ifdef MONO_HAS_SEMAPHORES
-		MONO_SEM_WAIT_ALERTABLE (&finalizer_sem, TRUE);
+			MONO_SEM_WAIT_ALERTABLE (&finalizer_sem, TRUE);
 #else
-		WaitForSingleObjectEx (finalizer_event, INFINITE, TRUE);
+			WaitForSingleObjectEx (finalizer_event, INFINITE, TRUE);
 #endif
+		}
+		wait = TRUE;
 
 		mono_threads_perform_thread_dump ();
 
@@ -1111,7 +1117,16 @@ finalizer_thread (gpointer unused)
 
 		reference_queue_proccess_all ();
 
-		SetEvent (pending_done_event);
+#ifdef MONO_HAS_SEMAPHORES
+		/* Avoid posting the pending done event until there are pending finalizers */
+		if (MONO_SEM_TIMEDWAIT (&finalizer_sem, 0) == 0)
+			/* Don't wait again at the start of the loop */
+			wait = FALSE;
+		else
+			SetEvent (pending_done_event);
+#else
+			SetEvent (pending_done_event);
+#endif
 	}
 
 	SetEvent (shutdown_event);
@@ -1131,11 +1146,11 @@ mono_gc_init_finalizer_thread (void)
 void
 mono_gc_init (void)
 {
-	InitializeCriticalSection (&handle_section);
-	InitializeCriticalSection (&allocator_section);
+	mono_mutex_init_recursive (&handle_section);
+	mono_mutex_init_recursive (&allocator_section);
 
-	InitializeCriticalSection (&finalizer_mutex);
-	InitializeCriticalSection (&reference_queue_mutex);
+	mono_mutex_init_recursive (&finalizer_mutex);
+	mono_mutex_init_recursive (&reference_queue_mutex);
 
 	MONO_GC_REGISTER_ROOT_FIXED (gc_handles [HANDLE_NORMAL].entries);
 	MONO_GC_REGISTER_ROOT_FIXED (gc_handles [HANDLE_PINNED].entries);
@@ -1143,8 +1158,9 @@ mono_gc_init (void)
 	mono_counters_register ("Created object count", MONO_COUNTER_GC | MONO_COUNTER_ULONG, &mono_stats.new_object_count);
 	mono_counters_register ("Minor GC collections", MONO_COUNTER_GC | MONO_COUNTER_INT, &gc_stats.minor_gc_count);
 	mono_counters_register ("Major GC collections", MONO_COUNTER_GC | MONO_COUNTER_INT, &gc_stats.major_gc_count);
-	mono_counters_register ("Minor GC time", MONO_COUNTER_GC | MONO_COUNTER_TIME_INTERVAL, &gc_stats.minor_gc_time_usecs);
-	mono_counters_register ("Major GC time", MONO_COUNTER_GC | MONO_COUNTER_TIME_INTERVAL, &gc_stats.major_gc_time_usecs);
+	mono_counters_register ("Minor GC time", MONO_COUNTER_GC | MONO_COUNTER_LONG | MONO_COUNTER_TIME, &gc_stats.minor_gc_time);
+	mono_counters_register ("Major GC time", MONO_COUNTER_GC | MONO_COUNTER_LONG | MONO_COUNTER_TIME, &gc_stats.major_gc_time);
+	mono_counters_register ("Major GC time concurrent", MONO_COUNTER_GC | MONO_COUNTER_LONG | MONO_COUNTER_TIME, &gc_stats.major_gc_time_concurrent);
 
 	mono_gc_base_init ();
 
@@ -1179,6 +1195,8 @@ mono_gc_cleanup (void)
 		ResetEvent (shutdown_event);
 		finished = TRUE;
 		if (mono_thread_internal_current () != gc_thread) {
+			gboolean timed_out = FALSE;
+
 			mono_gc_finalize_notify ();
 			/* Finishing the finalizer thread, so wait a little bit... */
 			/* MS seems to wait for about 2 seconds */
@@ -1201,15 +1219,18 @@ mono_gc_cleanup (void)
 					 * state the finalizer thread depends on will vanish.
 					 */
 					g_warning ("Shutting down finalizer thread timed out.");
+					timed_out = TRUE;
 				}
-			} else {
+			}
+
+			if (!timed_out) {
 				int ret;
 
 				/* Wait for the thread to actually exit */
 				ret = WaitForSingleObjectEx (gc_thread->handle, INFINITE, TRUE);
 				g_assert (ret == WAIT_OBJECT_0);
 
-				mono_thread_join ((gpointer)gc_thread->tid);
+				mono_thread_join (MONO_UINT_TO_NATIVE_THREAD_ID (gc_thread->tid));
 			}
 			/*
 			 * FIXME: When the above wait returns, the thread 
@@ -1225,10 +1246,10 @@ mono_gc_cleanup (void)
 
 	mono_reference_queue_cleanup ();
 
-	DeleteCriticalSection (&handle_section);
-	DeleteCriticalSection (&allocator_section);
-	DeleteCriticalSection (&finalizer_mutex);
-	DeleteCriticalSection (&reference_queue_mutex);
+	mono_mutex_destroy (&handle_section);
+	mono_mutex_destroy (&allocator_section);
+	mono_mutex_destroy (&finalizer_mutex);
+	mono_mutex_destroy (&reference_queue_mutex);
 }
 
 #else
@@ -1241,7 +1262,7 @@ mono_gc_finalize_notify (void)
 
 void mono_gc_init (void)
 {
-	InitializeCriticalSection (&handle_section);
+	mono_mutex_init_recursive (&handle_section);
 }
 
 void mono_gc_cleanup (void)
@@ -1300,11 +1321,11 @@ mono_gc_get_mach_exception_thread (void)
  * Returns true if passing was successful
  */
 gboolean
-mono_gc_parse_environment_string_extract_number (const char *str, glong *out)
+mono_gc_parse_environment_string_extract_number (const char *str, size_t *out)
 {
 	char *endptr;
 	int len = strlen (str), shift = 0;
-	glong val;
+	size_t val;
 	gboolean is_suffix = FALSE;
 	char suffix;
 
@@ -1339,18 +1360,18 @@ mono_gc_parse_environment_string_extract_number (const char *str, glong *out)
 		return FALSE;
 
 	if (is_suffix) {
-		gulong unshifted;
+		size_t unshifted;
 
 		if (val < 0)	/* negative numbers cannot be suffixed */
 			return FALSE;
 		if (*(endptr + 1)) /* Invalid string. */
 			return FALSE;
 
-		unshifted = (gulong)val;
+		unshifted = (size_t)val;
 		val <<= shift;
 		if (val < 0)	/* overflow */
 			return FALSE;
-		if (((gulong)val >> shift) != unshifted) /* value too large */
+		if (((size_t)val >> shift) != unshifted) /* value too large */
 			return FALSE;
 	}
 
@@ -1421,7 +1442,7 @@ reference_queue_proccess_all (void)
 		reference_queue_proccess (queue);
 
 restart:
-	EnterCriticalSection (&reference_queue_mutex);
+	mono_mutex_lock (&reference_queue_mutex);
 	for (iter = &ref_queues; *iter;) {
 		queue = *iter;
 		if (!queue->should_be_deleted) {
@@ -1429,14 +1450,14 @@ restart:
 			continue;
 		}
 		if (queue->queue) {
-			LeaveCriticalSection (&reference_queue_mutex);
+			mono_mutex_unlock (&reference_queue_mutex);
 			reference_queue_proccess (queue);
 			goto restart;
 		}
 		*iter = queue->next;
 		g_free (queue);
 	}
-	LeaveCriticalSection (&reference_queue_mutex);
+	mono_mutex_unlock (&reference_queue_mutex);
 }
 
 static void
@@ -1494,10 +1515,10 @@ mono_gc_reference_queue_new (mono_reference_queue_callback callback)
 	MonoReferenceQueue *res = g_new0 (MonoReferenceQueue, 1);
 	res->callback = callback;
 
-	EnterCriticalSection (&reference_queue_mutex);
+	mono_mutex_lock (&reference_queue_mutex);
 	res->next = ref_queues;
 	ref_queues = res;
-	LeaveCriticalSection (&reference_queue_mutex);
+	mono_mutex_unlock (&reference_queue_mutex);
 
 	return res;
 }

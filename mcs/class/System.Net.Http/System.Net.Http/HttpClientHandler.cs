@@ -35,6 +35,8 @@ namespace System.Net.Http
 {
 	public class HttpClientHandler : HttpMessageHandler
 	{
+		static long groupCounter;
+
 		bool allowAutoRedirect;
 		DecompressionMethods automaticDecompression;
 		CookieContainer cookieContainer;
@@ -48,6 +50,8 @@ namespace System.Net.Http
 		bool useProxy;
 		ClientCertificateOption certificate;
 		bool sentRequest;
+		string connectionGroupName;
+		bool disposed;
 
 		public HttpClientHandler ()
 		{
@@ -56,6 +60,7 @@ namespace System.Net.Http
 			maxRequestContentBufferSize = int.MaxValue;
 			useCookies = true;
 			useProxy = true;
+			connectionGroupName = "HttpClientHandler" + Interlocked.Increment (ref groupCounter);
 		}
 
 		internal void EnsureModifiability ()
@@ -215,7 +220,11 @@ namespace System.Net.Http
 
 		protected override void Dispose (bool disposing)
 		{
-			// TODO: ?
+			if (disposing && !disposed) {
+				Volatile.Write (ref disposed, true);
+				ServicePointManager.CloseConnectionGroup (connectionGroupName);
+			}
+
 			base.Dispose (disposing);
 		}
 
@@ -224,7 +233,7 @@ namespace System.Net.Http
 			var wr = new HttpWebRequest (request.RequestUri);
 			wr.ThrowOnError = false;
 
-			wr.ConnectionGroupName = "HttpClientHandler";
+			wr.ConnectionGroupName = connectionGroupName;
 			wr.Method = request.Method.Method;
 			wr.ProtocolVersion = request.Version;
 
@@ -293,12 +302,17 @@ namespace System.Net.Http
 				item_headers.TryAddWithoutValidation (key, value);
 			}
 
+			requestMessage.RequestUri = wr.ResponseUri;
+
 			return response;
 		}
 
 		protected async internal override Task<HttpResponseMessage> SendAsync (HttpRequestMessage request, CancellationToken cancellationToken)
 		{
-			sentRequest = true;
+			if (disposed)
+				throw new ObjectDisposedException (GetType ().ToString ());
+
+			Volatile.Write (ref sentRequest, true);
 			var wrequest = CreateWebRequest (request);
 
 			if (request.Content != null) {
@@ -311,6 +325,11 @@ namespace System.Net.Http
 
 				var stream = await wrequest.GetRequestStreamAsync ().ConfigureAwait (false);
 				await request.Content.CopyToAsync (stream).ConfigureAwait (false);
+			} else if (HttpMethod.Post.Equals (request.Method) || HttpMethod.Put.Equals (request.Method) || HttpMethod.Delete.Equals (request.Method)) {
+				// Explicitly set this to make sure we're sending a "Content-Length: 0" header.
+				// This fixes the issue that's been reported on the forums:
+				// http://forums.xamarin.com/discussion/17770/length-required-error-in-http-post-since-latest-release
+				wrequest.ContentLength = 0;
 			}
 
 			HttpWebResponse wresponse = null;

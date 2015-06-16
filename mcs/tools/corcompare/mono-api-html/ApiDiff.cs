@@ -9,7 +9,7 @@
 // Authors
 //    Sebastien Pouliot  <sebastien@xamarin.com>
 //
-// Copyright 2013 Xamarin Inc. http://www.xamarin.com
+// Copyright 2013-2014 Xamarin Inc. http://www.xamarin.com
 // 
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -63,6 +63,22 @@ namespace Xamarin.ApiDiff {
 		public static List<Regex> IgnoreAdded {
 			get { return ignoreAdded; }
 		}
+
+		static List<Regex> ignoreNew = new List<Regex> ();
+		public static List<Regex> IgnoreNew {
+			get { return ignoreNew; }
+		}
+
+		static List<Regex> ignoreRemoved = new List<Regex> ();
+		public static List<Regex> IgnoreRemoved {
+			get { return ignoreRemoved; }
+		}
+
+		public  static  bool    IgnoreParameterNameChanges  { get; set; }
+		public  static  bool    IgnoreVirtualChanges        { get; set; }
+		public  static  bool    IgnoreAddedPropertySetters  { get; set; }
+
+		public static bool Lax;
 	}
 
 	class Program {
@@ -76,9 +92,33 @@ namespace Xamarin.ApiDiff {
 			var options = new OptionSet {
 				{ "h|help", "Show this help", v => showHelp = true },
 				{ "d|diff=", "HTML diff file out output (omit for stdout)", v => diff = v },
-				{ "i|ignore-added=", "Ignore added members whose description matches a given C# regular expression (see below).",
+				{ "i|ignore=", "Ignore new, added, and removed members whose description matches a given C# regular expression (see below).",
+					v => {
+						var r = new Regex (v);
+						State.IgnoreAdded.Add (r);
+						State.IgnoreRemoved.Add (r);
+						State.IgnoreNew.Add (r);
+					}
+				},
+				{ "a|ignore-added=", "Ignore added members whose description matches a given C# regular expression (see below).",
 					v => State.IgnoreAdded.Add (new Regex (v))
-				}
+				},
+				{ "r|ignore-removed=", "Ignore removed members whose description matches a given C# regular expression (see below).",
+					v => State.IgnoreRemoved.Add (new Regex (v))
+				},
+				{ "n|ignore-new=", "Ignore new namespaces and types whose description matches a given C# regular expression (see below).",
+					v => State.IgnoreNew.Add (new Regex (v))
+				},
+				{ "ignore-changes-parameter-names", "Ignore changes to parameter names for identically prototyped methods.",
+					v => State.IgnoreParameterNameChanges   = v != null
+				},
+				{ "ignore-changes-property-setters", "Ignore adding setters to properties.",
+					v => State.IgnoreAddedPropertySetters = v != null
+				},
+				{ "ignore-changes-virtual", "Ignore changing non-`virtual` to `virtual` or adding `override`.",
+					v => State.IgnoreVirtualChanges = v != null
+				},
+				{ "x|lax", "Ignore duplicate XML entries", v => State.Lax = true }
 			};
 
 			try {

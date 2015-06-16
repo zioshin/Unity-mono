@@ -722,7 +722,7 @@ namespace MonoTests.System.Diagnostics
 			}
 		}
 
-		int bytesRead = -1;
+		public int bytesRead = -1;
 
 #if NET_2_0
 // Not technically a 2.0 only test, but I use lambdas, so I need gmcs
@@ -828,5 +828,16 @@ namespace MonoTests.System.Diagnostics
 			Assert.IsNull (e.InnerException, "IOE inner exception should be null");
 		}
 #endif
+
+		[Test]
+		public void Handle_ThrowsOnNotStarted ()
+		{
+			Process p = new Process ();
+			try {
+				var x = p.Handle;
+				Assert.Fail ("Handle should throw for unstated procs, but returned " + x);
+			} catch (InvalidOperationException) {
+			}
+		}
 	}
 }

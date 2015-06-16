@@ -295,6 +295,12 @@ namespace Mono.CSharp
 			}
 		}
 
+		public bool IsStructOrEnum {
+			get {
+				return (Kind & (MemberKind.Struct | MemberKind.Enum)) != 0;
+			}
+		}
+
 		public bool IsTypeBuilder {
 			get {
 #if STATIC
@@ -645,6 +651,7 @@ namespace Mono.CSharp
 			case MemberKind.Struct:
 			case MemberKind.Enum:
 			case MemberKind.Void:
+			case MemberKind.PointerType:
 				return false;
 			case MemberKind.InternalCompilerType:
 				//
@@ -1439,6 +1446,7 @@ namespace Mono.CSharp
 		public static readonly InternalType FakeInternalType = new InternalType ("<fake$type>");
 		public static readonly InternalType Namespace = new InternalType ("<namespace>");
 		public static readonly InternalType ErrorType = new InternalType ("<error>");
+		public static readonly InternalType VarOutType = new InternalType ("var out");
 
 		readonly string name;
 
@@ -1929,6 +1937,11 @@ namespace Mono.CSharp
 			}
 
 			return ac;
+		}
+
+		public override List<MissingTypeSpecReference> ResolveMissingDependencies (MemberSpec caller)
+		{
+			return Element.ResolveMissingDependencies (caller);
 		}
 	}
 

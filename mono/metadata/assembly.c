@@ -170,9 +170,9 @@ mono_set_corlib_data (void *data, size_t size)
 #endif
 
 /* This protects loaded_assemblies and image->references */
-#define mono_assemblies_lock() EnterCriticalSection (&assemblies_mutex)
-#define mono_assemblies_unlock() LeaveCriticalSection (&assemblies_mutex)
-static CRITICAL_SECTION assemblies_mutex;
+#define mono_assemblies_lock() mono_mutex_lock (&assemblies_mutex)
+#define mono_assemblies_unlock() mono_mutex_unlock (&assemblies_mutex)
+static mono_mutex_t assemblies_mutex;
 
 /* If defined, points to the bundled assembly information */
 const MonoBundledAssembly **bundles;
@@ -239,13 +239,15 @@ mono_set_assemblies_path (const char* path)
 	if (assemblies_path)
 		g_strfreev (assemblies_path);
 	assemblies_path = dest = splitted;
-	while (*splitted){
-		if (**splitted)
-			*dest++ = *splitted;
+	while (*splitted) {
+		char *tmp = *splitted;
+		if (*tmp)
+			*dest++ = mono_path_canonicalize (tmp);
+		g_free (tmp);
 		splitted++;
 	}
 	*dest = *splitted;
-	
+
 	if (g_getenv ("MONO_DEBUG") == NULL)
 		return;
 
@@ -592,7 +594,7 @@ compute_base (char *path)
 		return NULL;
 
 	/* Not a well known Mono executable, we are embedded, cant guess the base  */
-	if (strcmp (p, "/mono") && strcmp (p, "/mono-sgen") && strcmp (p, "/pedump") && strcmp (p, "/monodis") && strcmp (p, "/mint") && strcmp (p, "/monodiet"))
+	if (strcmp (p, "/mono") && strcmp (p, "/mono-boehm") && strcmp (p, "/mono-sgen") && strcmp (p, "/pedump") && strcmp (p, "/monodis"))
 		return NULL;
 	    
 	*p = 0;
@@ -749,7 +751,7 @@ mono_assemblies_init (void)
 	check_path_env ();
 	check_extra_gac_path_env ();
 
-	InitializeCriticalSection (&assemblies_mutex);
+	mono_mutex_init_recursive (&assemblies_mutex);
 	mono_mutex_init (&assembly_binding_mutex);
 }
 
@@ -1114,8 +1116,17 @@ mono_assembly_load_reference (MonoImage *image, int index)
 		*/
 		if (!reference)
 			reference = REFERENCE_MISSING;
-	} else
-		reference = mono_assembly_load (&aname, image->assembly? image->assembly->basedir: NULL, &status);
+	} else {
+		/* we first try without setting the basedir: this can eventually result in a ResolveAssembly
+		 * event which is the MS .net compatible behaviour (the assemblyresolve_event3.cs test has been fixed
+		 * accordingly, it would fail on the MS runtime before).
+		 * The second load attempt has the basedir set to keep compatibility with the old mono behavior, for
+		 * example bug-349190.2.cs and who knows how much more code in the wild.
+		 */
+		reference = mono_assembly_load (&aname, NULL, &status);
+		if (!reference && image->assembly)
+			reference = mono_assembly_load (&aname, image->assembly->basedir, &status);
+	}
 
 	if (reference == NULL){
 		char *extra_msg;
@@ -1483,11 +1494,13 @@ mono_assembly_open_from_bundle (const char *filename, MonoImageOpenStatus *statu
 		}
 	}
 	mono_assemblies_unlock ();
-	g_free (name);
 	if (image) {
 		mono_image_addref (image);
+		mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_ASSEMBLY, "Assembly Loader loaded assembly from bundle: '%s'.", name);
+		g_free (name);
 		return image;
 	}
+	g_free (name);
 	return NULL;
 }
 
@@ -1499,6 +1512,7 @@ mono_assembly_open_full (const char *filename, MonoImageOpenStatus *status, gboo
 	MonoImageOpenStatus def_status;
 	gchar *fname;
 	gchar *new_fname;
+	gboolean loaded_from_bundle;
 	
 	g_return_val_if_fail (filename != NULL, NULL);
 
@@ -1550,8 +1564,11 @@ mono_assembly_open_full (const char *filename, MonoImageOpenStatus *status, gboo
 	
 	image = NULL;
 
-	if (bundles != NULL)
+	loaded_from_bundle = FALSE;
+	if (bundles != NULL) {
 		image = mono_assembly_open_from_bundle (fname, status, refonly);
+		loaded_from_bundle = image != NULL;
+	}
 
 	if (!image)
 		image = mono_image_open_full (fname, status, refonly);
@@ -1574,7 +1591,8 @@ mono_assembly_open_full (const char *filename, MonoImageOpenStatus *status, gboo
 	ass = mono_assembly_load_from_full (image, fname, status, refonly);
 
 	if (ass) {
-		mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_ASSEMBLY,
+		if (!loaded_from_bundle)
+			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_ASSEMBLY,
 				"Assembly Loader loaded assembly from location: '%s'.", filename);
 		if (!refonly)
 			mono_config_for_assembly (ass->image);
@@ -3036,7 +3054,7 @@ mono_assembly_release_gc_roots (MonoAssembly *assembly)
 	if (assembly == NULL || assembly == REFERENCE_MISSING)
 		return;
 
-	if (assembly->dynamic) {
+	if (assembly_is_dynamic (assembly)) {
 		int i;
 		MonoDynamicImage *dynimg = (MonoDynamicImage *)assembly->image;
 		for (i = 0; i < dynimg->image.module_count; ++i)
@@ -3100,7 +3118,7 @@ mono_assembly_close_finish (MonoAssembly *assembly)
 	if (assembly->image)
 		mono_image_close_finish (assembly->image);
 
-	if (assembly->dynamic) {
+	if (assembly_is_dynamic (assembly)) {
 		g_free ((char*)assembly->aname.culture);
 	} else {
 		g_free (assembly);
@@ -3155,7 +3173,7 @@ mono_assemblies_cleanup (void)
 {
 	GSList *l;
 
-	DeleteCriticalSection (&assemblies_mutex);
+	mono_mutex_destroy (&assemblies_mutex);
 	mono_mutex_destroy (&assembly_binding_mutex);
 
 	for (l = loaded_assembly_bindings; l; l = l->next) {

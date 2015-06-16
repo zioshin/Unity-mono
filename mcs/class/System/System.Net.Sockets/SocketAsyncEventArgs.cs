@@ -82,7 +82,7 @@ namespace System.Net.Sockets
 		public SocketFlags SocketFlags { get; set; }
 		public object UserToken { get; set; }
 		internal Socket curSocket;
-#if NET_2_1
+#if (NET_2_1 || NET_4_0)
 		public Socket ConnectSocket {
 			get {
 				switch (SocketError) {
@@ -231,7 +231,7 @@ namespace System.Net.Sockets
 			else if (op == SocketAsyncOperation.Disconnect)
 				args.DisconnectCallback (ares);
 			else if (op == SocketAsyncOperation.Connect)
-				args.ConnectCallback ();
+				args.ConnectCallback (ares);
 			/*
 			else if (op == Socket.SocketOperation.ReceiveMessageFrom)
 			else if (op == Socket.SocketOperation.SendPackets)
@@ -254,10 +254,14 @@ namespace System.Net.Sockets
 			}
 		}
 
-		void ConnectCallback ()
+		void ConnectCallback (IAsyncResult ares)
 		{
 			try {
-				SocketError = (SocketError) Worker.result.error;
+				curSocket.EndConnect (ares);
+ 			} catch (SocketException se) {
+				SocketError = se.SocketErrorCode;
+			} catch (ObjectDisposedException) {
+				SocketError = SocketError.OperationAborted;
 			} finally {
 				OnCompleted (this);
 			}

@@ -1973,6 +1973,18 @@ mono_test_stdcall_name_mangling (int a, int b, int c)
         return a + b + c;
 }
 
+LIBTEST_API int
+mono_test_stdcall_mismatch_1 (int a, int b, int c)
+{
+        return a + b + c;
+}
+
+LIBTEST_API int STDCALL
+mono_test_stdcall_mismatch_2 (int a, int b, int c)
+{
+        return a + b + c;
+}
+
 /*
  * PASSING AND RETURNING SMALL STRUCTURES FROM DELEGATES TESTS
  */
@@ -5297,6 +5309,20 @@ mono_test_marshal_return_lpwstr (void)
 
 	memcpy (res, tmp, 8);
 	g_free (tmp);
+
+	return res;
+}
+
+typedef struct {
+	double d;
+} SingleDoubleStruct;
+
+LIBTEST_API SingleDoubleStruct STDCALL
+mono_test_marshal_return_single_double_struct (void)
+{
+	SingleDoubleStruct res;
+
+	res.d = 3.0;
 
 	return res;
 }

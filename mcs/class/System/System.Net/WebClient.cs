@@ -12,6 +12,7 @@
 // Copyright 2003 Ximian, Inc. (http://www.ximian.com)
 // Copyright 2006, 2010 Novell, Inc. (http://www.novell.com)
 // Copyright 2012 Xamarin Inc. (http://www.xamarin.com)
+// Copyright 2014 Microsoft Inc 
 //
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -408,7 +409,7 @@ namespace System.Net
 				SetBusy ();
 				async = false;
 				WebRequest request = SetupRequest (address, method, true);
-				return request.GetRequestStream ();
+				return OpenWriteStream (request);
 			} catch (WebException) {
 				throw;
 			} catch (Exception ex) {
@@ -417,6 +418,15 @@ namespace System.Net
 			} finally {
 				is_busy = false;
 			}
+		}
+
+		Stream OpenWriteStream (WebRequest request)
+		{
+			var stream = request.GetRequestStream ();
+			var wcs = stream as WebConnectionStream;
+			if (wcs != null)
+				wcs.GetResponseOnClose = true;
+			return stream;
 		}
 
 		private string DetermineMethod (Uri address, string method, bool is_upload)
@@ -544,6 +554,21 @@ namespace System.Net
 			}
 		}
 
+		// From the Microsoft reference source
+	        string MapToDefaultMethod(Uri address) {
+			Uri uri;
+			if (!address.IsAbsoluteUri && baseAddress != null) {
+				uri = new Uri(baseAddress, address);
+			} else {
+				uri = address;
+			}
+			if (uri.Scheme.ToLower(System.Globalization.CultureInfo.InvariantCulture) == "ftp") {
+				return WebRequestMethods.Ftp.UploadFile;
+			} else {
+				return "POST";
+			}
+	        }
+			
 		byte [] UploadFileCore (Uri address, string method, string fileName, object userToken)
 		{
 			string fileCType = Headers ["Content-Type"];
@@ -556,7 +581,10 @@ namespace System.Net
 				fileCType = "application/octet-stream";
 			}
 
-			bool needs_boundary = (method != "PUT"); // only verified case so far
+			if (method == null)
+				method = MapToDefaultMethod (address);
+			
+			bool needs_boundary = (method != "PUT" && method != WebRequestMethods.Ftp.UploadFile); // only verified case so far
 			string boundary = null;
 			if (needs_boundary) {
 				boundary = "------------" + DateTime.Now.Ticks.ToString ("x");
@@ -728,7 +756,7 @@ namespace System.Net
 			if (address == null)
 				throw new ArgumentNullException ("address");
 
-			return encoding.GetString (DownloadData (CreateUri (address)));
+			return ConvertDataToString (DownloadData (CreateUri (address)));
 		}
 
 		public string DownloadString (Uri address)
@@ -736,7 +764,38 @@ namespace System.Net
 			if (address == null)
 				throw new ArgumentNullException ("address");
 
-			return encoding.GetString (DownloadData (CreateUri (address)));
+			return ConvertDataToString (DownloadData (CreateUri (address)));
+		}
+
+		string ConvertDataToString (byte[] data)
+		{
+			int preambleLength = 0;
+			var enc = GetEncodingFromBuffer (data, data.Length, ref preambleLength) ?? encoding;
+			return enc.GetString (data, preambleLength, data.Length - preambleLength);
+		}
+
+		internal static Encoding GetEncodingFromBuffer (byte[] buffer, int length, ref int preambleLength)
+		{
+			var encodings_with_preamble = new [] { Encoding.UTF8, Encoding.UTF32, Encoding.Unicode };
+			foreach (var enc in encodings_with_preamble) {
+				if ((preambleLength = StartsWith (buffer, length, enc.GetPreamble ())) > 0)
+					return enc;
+			}
+
+			return null;
+		}
+
+		static int StartsWith (byte[] array, int length, byte[] value)
+		{
+			if (length < value.Length)
+				return 0;
+
+			for (int i = 0; i < value.Length; ++i) {
+				if (array [i] != value [i])
+					return 0;
+			}
+
+			return value.Length;
 		}
 
 		public string UploadString (string address, string data)
@@ -1155,7 +1214,7 @@ namespace System.Net
 				async_thread = new Thread (delegate (object state) {
 					object [] args = (object []) state;
 					try {
-						string data = encoding.GetString (DownloadDataCore ((Uri) args [0], args [1]));
+						string data = ConvertDataToString (DownloadDataCore ((Uri) args [0], args [1]));
 						OnDownloadStringCompleted (
 							new DownloadStringCompletedEventArgs (data, null, false, args [1]));
 					} catch (Exception e){
@@ -1237,7 +1296,7 @@ namespace System.Net
 					WebRequest request = null;
 					try {
 						request = SetupRequest ((Uri) args [0], (string) args [1], true);
-						Stream stream = request.GetRequestStream ();
+						var stream = OpenWriteStream (request);
 						OnOpenWriteCompleted (
 							new OpenWriteCompletedEventArgs (stream, null, false, args [2]));
 					} catch (ThreadInterruptedException){
@@ -1374,10 +1433,12 @@ namespace System.Net
 						string data2 = UploadString ((Uri) args [0], (string) args [1], (string) args [2]);
 						OnUploadStringCompleted (
 							new UploadStringCompletedEventArgs (data2, null, false, args [3]));
-					} catch (ThreadInterruptedException){
-						OnUploadStringCompleted (
-							new UploadStringCompletedEventArgs (null, null, true, args [3]));
 					} catch (Exception e){
+						if (e is ThreadInterruptedException || e.InnerException is ThreadInterruptedException) {
+							OnUploadStringCompleted (
+								new UploadStringCompletedEventArgs (null, null, true, args [3]));
+							return;
+						}
 						OnUploadStringCompleted (
 							new UploadStringCompletedEventArgs (null, e, false, args [3]));
 					}});
@@ -1756,7 +1817,7 @@ namespace System.Net
 				response = await GetWebResponseTaskAsync (request, cts.Token);
 				var data = await ReadAllTaskAsync (request, response, cts.Token);
 				cts.Token.ThrowIfCancellationRequested ();
-				var text = encoding.GetString (data);
+				var text = ConvertDataToString (data);
 				OnDownloadStringCompleted (new DownloadStringCompletedEventArgs (text, null, false, null));
 				return text;
 			} catch (WebException ex) {
@@ -1808,8 +1869,12 @@ namespace System.Net
 			try {
 				SetBusy ();
 				cts = new CancellationTokenSource ();
-				request = SetupRequest (address);
-				return await request.GetRequestStreamAsync ().ConfigureAwait (false);
+				request = await SetupRequestAsync (address, method, true).ConfigureAwait (false);
+				var stream = await request.GetRequestStreamAsync ();
+				var wcs = stream as WebConnectionStream;
+				if (wcs != null)
+					wcs.GetResponseOnClose = true;
+				return stream;
 			} catch (WebException) {
 				throw;
 			} catch (OperationCanceledException) {
@@ -1926,20 +1991,17 @@ namespace System.Net
 			if (fileName == null)
 				throw new ArgumentNullException ("fileName");
 
-			WebRequest request = null;
 			try {
 				SetBusy ();
 				cts = new CancellationTokenSource ();
-				request = await SetupRequestAsync (address, method, true).ConfigureAwait (false);
-				var result = await UploadFileTaskAsyncCore (request, method, fileName, cts.Token).ConfigureAwait (false);
+
+				var result = await UploadFileTaskAsyncCore (address, method, fileName, cts.Token).ConfigureAwait (false);
 				OnUploadFileCompleted (new UploadFileCompletedEventArgs (result, null, false, null));
 				return result;
 			} catch (WebException ex) {
 				OnUploadFileCompleted (new UploadFileCompletedEventArgs (null, ex, false, null));
 				throw;
 			} catch (OperationCanceledException) {
-				if (request != null)
-					request.Abort ();
 				OnUploadFileCompleted (new UploadFileCompletedEventArgs (null, null, true, null));
 				throw;
 			} catch (Exception ex) {
@@ -1948,8 +2010,7 @@ namespace System.Net
 			}
 		}
 
-		async Task<byte[]> UploadFileTaskAsyncCore (WebRequest request, string method,
-		                                            string fileName, CancellationToken token)
+		async Task<byte[]> UploadFileTaskAsyncCore (Uri address, string method, string fileName, CancellationToken token)
 		{
 			token.ThrowIfCancellationRequested ();
 
@@ -1972,8 +2033,14 @@ namespace System.Net
 			Stream reqStream = null;
 			Stream fStream = null;
 			WebResponse response = null;
+			WebRequest request = null;
 
 			fileName = Path.GetFullPath (fileName);
+
+			try {
+				request = await SetupRequestAsync (address, method, true).ConfigureAwait (false);
+			} catch (OperationCanceledException) {
+			}
 
 			try {
 				fStream = File.OpenRead (fileName);
@@ -1996,7 +2063,9 @@ namespace System.Net
 							Path.GetFileName (fileName), fileCType);
 						byte [] partHeadersBytes = Encoding.UTF8.GetBytes (partHeaders);
 						ms.Write (partHeadersBytes, 0, partHeadersBytes.Length);
-						await ms.CopyToAsync (reqStream, (int)ms.Position, token).ConfigureAwait (false);
+						var msLength = (int)ms.Position;
+						ms.Seek (0, SeekOrigin.Begin);
+						await ms.CopyToAsync (reqStream, msLength, token).ConfigureAwait (false);
 					}
 				}
 				int nread;
@@ -2038,7 +2107,9 @@ namespace System.Net
 						ms.WriteByte ((byte) '-');
 						ms.WriteByte ((byte) '\r');
 						ms.WriteByte ((byte) '\n');
-						await ms.CopyToAsync (reqStream, (int)ms.Position, token).ConfigureAwait (false);
+						var msLength = (int)ms.Position;
+						ms.Seek (0, SeekOrigin.Begin);
+						await ms.CopyToAsync (reqStream, msLength, token).ConfigureAwait (false);
 					}
 				}
 				reqStream.Close ();
@@ -2150,6 +2221,12 @@ namespace System.Net
 			if (data == null)
 				throw new ArgumentNullException ("data");
 
+			string cType = Headers ["Content-Type"];
+				if (cType != null && String.Compare (cType, urlEncodedCType, true) != 0)
+					throw new WebException ("Content-Type header cannot be changed from its default " +
+								"value for this request.");
+			Headers ["Content-Type"] = urlEncodedCType;
+
 			WebRequest request = null;
 			try {
 				SetBusy ();
@@ -2176,14 +2253,8 @@ namespace System.Net
 		                                              CancellationToken token)
 		{
 			token.ThrowIfCancellationRequested ();
-			string cType = Headers ["Content-Type"];
-			if (cType != null && String.Compare (cType, urlEncodedCType, true) != 0)
-				throw new WebException ("Content-Type header cannot be changed from its default " +
-							"value for this request.");
 
 			WebResponse response = null;
-
-			Headers ["Content-Type"] = urlEncodedCType;
 			try {
 				MemoryStream tmpStream = new MemoryStream ();
 				foreach (string key in data) {

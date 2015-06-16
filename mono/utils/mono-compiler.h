@@ -83,6 +83,10 @@
 #endif
 #elif defined(__arm__) && defined(__ARM_EABI__) && !defined(PIC)
 #define MONO_THREAD_VAR_OFFSET(var,offset) __asm ("	ldr	%0, 1f; b 2f; 1: .word " #var "(tpoff); 2:" : "=r" (offset))
+#elif defined(__aarch64__) && !defined(PIC)
+#define MONO_THREAD_VAR_OFFSET(var,offset) \
+	__asm ( "mov %0, #0\n add %0, %0, #:tprel_hi12:" #var "\n add %0, %0, #:tprel_lo12_nc:" #var "\n" \
+			: "=r" (offset))
 #elif defined(__mono_ppc__) && defined(__GNUC__)
 #if defined(PIC)
 #ifdef PIC_INITIAL_EXEC
@@ -157,7 +161,7 @@
 #define MONO_THREAD_VAR_OFFSET(var,offset) (offset) = -1
 #endif
 
-#elif defined(__APPLE__) && (defined(__i386__) || defined(__x86_64__))
+#elif defined(TARGET_MACH) && (defined(__i386__) || defined(__x86_64__))
 
 #define MONO_HAVE_FAST_TLS
 #define MONO_FAST_TLS_SET(x,y) pthread_setspecific(x, y)
@@ -194,10 +198,12 @@
 #endif
 
 #include <float.h>
-#define isnan(x)	_isnan(x)
 #define trunc(x)	(((x) < 0) ? ceil((x)) : floor((x)))
+#if _MSC_VER < 1800 /* VS 2013 */
+#define isnan(x)	_isnan(x)
 #define isinf(x)	(_isnan(x) ? 0 : (_fpclass(x) == _FPCLASS_NINF) ? -1 : (_fpclass(x) == _FPCLASS_PINF) ? 1 : 0)
 #define isnormal(x)	_finite(x)
+#endif
 
 #define popen		_popen
 #define pclose		_pclose
@@ -209,6 +215,23 @@
 #define __builtin_return_address(x)	NULL
 
 #define __func__ __FUNCTION__
+
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+
+/*
+ * SSIZE_MAX is not defined in MSVC, so define it here.
+ *
+ * These values come from MinGW64, and are public domain.
+ *
+ */
+#ifndef SSIZE_MAX
+#ifdef _WIN64
+#define SSIZE_MAX _I64_MAX
+#else
+#define SSIZE_MAX INT_MAX
+#endif
+#endif
 
 #endif /* _MSC_VER */
 
@@ -236,6 +259,14 @@
 #define MONO_ALWAYS_INLINE __forceinline
 #else
 #define MONO_ALWAYS_INLINE
+#endif
+
+#ifdef __GNUC__
+#define MONO_NEVER_INLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+#define MONO_NEVER_INLINE __declspec(noinline)
+#else
+#define MONO_NEVER_INLINE
 #endif
 
 #endif /* __UTILS_MONO_COMPILER_H__*/

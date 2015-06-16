@@ -37,6 +37,13 @@ public class StringTest
 		}
 	}
 
+	class ToNullStringer
+	{
+		public override string ToString()
+		{
+			return null;
+		}
+	}
 
 	private CultureInfo orgCulture;
 
@@ -55,7 +62,6 @@ public class StringTest
 	}
 
 
-#if !TARGET_JVM
 	[Test] // ctor (Char [])
 	public unsafe void Constructor2 ()
 	{
@@ -63,7 +69,6 @@ public class StringTest
 		Assert.AreEqual (String.Empty, new String (new Char [0]), "#2");
 		Assert.AreEqual ("A", new String (new Char [1] {'A'}), "#3");
 	}
-#endif
 
 	[Test] // ctor (Char, Int32)
 	public void Constructor4 ()
@@ -162,7 +167,6 @@ public class StringTest
 		}
 	}
 
-#if !TARGET_JVM
 	[Test]
 	public unsafe void CharPtrConstructor ()
 	{
@@ -517,7 +521,6 @@ public class StringTest
 
 		Assert.AreEqual (String.Empty, new String ((sbyte*) null, 1, 0, Encoding.Default), "#F");
 	}
-#endif
 	[Test]
 	public void Length ()
 	{
@@ -1100,6 +1103,7 @@ public class StringTest
 		Assert.AreEqual ("typedef struct _MonoObject { ... } MonoObject;", String.Format ("typedef struct _{0} {{ ... }} MonoObject;", "MonoObject"), "Escaped bracket");
 		Assert.AreEqual ("Could not find file \"a/b\"", String.Format ("Could not find file \"{0}\"", "a/b"), "With Slash");
 		Assert.AreEqual ("Could not find file \"a\\b\"", String.Format ("Could not find file \"{0}\"", "a\\b"), "With BackSlash");
+		Assert.AreEqual ("{d} ", string.Format ("{{{0:d}} }", 100));
 	}
 
 	[Test] // Format (String, Object)
@@ -1207,6 +1211,13 @@ public class StringTest
 	{
 		var s = String.Format (new NullFormatter (), "{0:}", "test");
 		Assert.AreEqual ("test", s);
+	}
+
+	[Test]
+	public void Format_Arg_ToNullStringer ()
+	{
+		var s = String.Format ("{0}", new ToNullStringer ());
+		Assert.AreEqual ("", s);
 	}
 
 	[Test]
@@ -2628,9 +2639,7 @@ public class StringTest
 		Assert.AreEqual (-1, s1.LastIndexOf("original", s1.Length-11), "stepped string index #3");
 		Assert.AreEqual (-1, s1.LastIndexOf("translator", 2), "stepped string index #4");
 		Assert.AreEqual (0, string.Empty.LastIndexOf(string.Empty, 0), "stepped string index #5");
-#if !TARGET_JVM
 		Assert.AreEqual (-1, string.Empty.LastIndexOf("A", -1), "stepped string index #6");
-#endif
 		Assert.AreEqual (10, s1.LastIndexOf("rig", s1.Length-1, 10), "stepped limited string index #1");
 		Assert.AreEqual (-1, s1.LastIndexOf("rig", s1.Length, 3), "stepped limited string index #2");
 		Assert.AreEqual (10, s1.LastIndexOf("rig", s1.Length-2, 15), "stepped limited string index #3");
@@ -3190,9 +3199,7 @@ public class StringTest
 		Assert.AreEqual (s2.Replace("..", "."), "..aaaaaaa.bbbbbbbbb,......ccccccc.u..");
 
 		// Test replacing null characters (bug #67395)
-#if !TARGET_JVM //bug #7276
 		Assert.AreEqual ("is this ok ?", "is \0 ok ?".Replace ("\0", "this"), "should not strip content after nullchar");
-#endif
 	}
 
 	[Test]

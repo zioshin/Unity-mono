@@ -317,12 +317,14 @@ ICALL(INOW_1, "AddWatch", ves_icall_System_IO_InotifyWatcher_AddWatch)
 ICALL(INOW_2, "GetInotifyInstance", ves_icall_System_IO_InotifyWatcher_GetInotifyInstance)
 ICALL(INOW_3, "RemoveWatch", ves_icall_System_IO_InotifyWatcher_RemoveWatch)
 
-#if defined (TARGET_IOS) || defined (TARGET_ANDROID)
 ICALL_TYPE(MMAPIMPL, "System.IO.MemoryMappedFiles.MemoryMapImpl", MMAPIMPL_1)
-ICALL(MMAPIMPL_1, "mono_filesize_from_fd", mono_filesize_from_fd)
-ICALL(MMAPIMPL_2, "mono_filesize_from_path", mono_filesize_from_path)
-#endif
-
+ICALL(MMAPIMPL_1, "CloseMapping", mono_mmap_close)
+ICALL(MMAPIMPL_2, "ConfigureHandleInheritability", mono_mmap_configure_inheritability)
+ICALL(MMAPIMPL_3, "Flush", mono_mmap_flush)
+ICALL(MMAPIMPL_4, "MapInternal", mono_mmap_map)
+ICALL(MMAPIMPL_5, "OpenFileInternal", mono_mmap_open_file)
+ICALL(MMAPIMPL_6, "OpenHandleInternal", mono_mmap_open_handle)
+ICALL(MMAPIMPL_7, "Unmap", mono_mmap_unmap)
 
 ICALL_TYPE(MONOIO, "System.IO.MonoIO", MONOIO_1)
 ICALL(MONOIO_1, "Close(intptr,System.IO.MonoIOError&)", ves_icall_System_IO_MonoIO_Close)
@@ -506,10 +508,6 @@ ICALL(ASSEM_15, "InternalGetType", ves_icall_System_Reflection_Assembly_Internal
 ICALL(ASSEM_16, "InternalImageRuntimeVersion", ves_icall_System_Reflection_Assembly_InternalImageRuntimeVersion)
 ICALL(ASSEM_17, "LoadFrom", ves_icall_System_Reflection_Assembly_LoadFrom)
 ICALL(ASSEM_18, "LoadPermissions", ves_icall_System_Reflection_Assembly_LoadPermissions)
-	/*
-	 * Private icalls for the Mono Debugger
-	 */
-ICALL(ASSEM_19, "MonoDebugger_GetMethodToken", ves_icall_MonoDebugger_GetMethodToken)
 
 	/* normal icalls again */
 ICALL(ASSEM_20, "get_EntryPoint", ves_icall_System_Reflection_Assembly_get_EntryPoint)
@@ -804,6 +802,7 @@ ICALL(STRING_8a, "GetLOSLimit", ves_icall_System_String_GetLOSLimit)
 ICALL(STRING_9, "InternalAllocateStr", ves_icall_System_String_InternalAllocateStr)
 ICALL(STRING_10, "InternalIntern", ves_icall_System_String_InternalIntern)
 ICALL(STRING_11, "InternalIsInterned", ves_icall_System_String_InternalIsInterned)
+ICALL(STRING_12, "InternalSetLength", ves_icall_System_String_InternalSetLength)
 
 ICALL_TYPE(TENC, "System.Text.Encoding", TENC_1)
 ICALL(TENC_1, "InternalCodePage", ves_icall_System_Text_Encoding_InternalCodePage)

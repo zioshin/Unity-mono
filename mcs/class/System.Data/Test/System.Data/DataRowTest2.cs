@@ -739,6 +739,21 @@ namespace MonoTests.System.Data
 			Assert.AreEqual(true , dr.HasErrors , "DRW48");
 		}
 
+		[Test] public void HasErrorsWithNullError()
+		{
+			DataTable dt = new DataTable("myTable"); 
+			DataRow dr = dt.NewRow();
+
+			// HasErrors (default)
+			Assert.AreEqual(false, dr.HasErrors, "DRW47.2");
+
+			dr.RowError = null;
+
+			// HasErrors (set/get)
+			Assert.AreEqual(string.Empty , dr.RowError , "DRW48.2");
+			Assert.AreEqual(false , dr.HasErrors , "DRW49.2");
+		}
+
 		[Test] public void HasVersion_ByDataRowVersion()
 		{
 			DataTable t = new DataTable("atable");
@@ -2123,6 +2138,59 @@ namespace MonoTests.System.Data
 			}
 
 #endregion
+		}
+
+		[Test]
+		public void IsNull_BeforeGetValue ()
+		{
+			DataTable table = new DataTable ();
+
+			// add the row, with the value in the column
+			DataColumn staticColumn = table.Columns.Add ("static", typeof(string), null); // static
+			DataRow row = table.Rows.Add ("the value");
+			Assert.IsFalse (row.IsNull ("static"), "static null check failed");
+			Assert.AreEqual ("the value", row ["static"], "static value check failed");
+
+			// add the first derived column
+			DataColumn firstColumn = table.Columns.Add ("first", typeof(string), "static"); // first -> static
+			Assert.IsFalse (row.IsNull ("first"), "first level null check failed");
+			Assert.AreEqual ("the value", row ["first"], "first level value check failed");
+
+			// add the second level of related
+			DataColumn secondColumn = table.Columns.Add ("second", typeof(string), "first"); // second -> first -> static
+			Assert.IsFalse (row.IsNull ("second"), "second level null check failed");
+			Assert.AreEqual ("the value", row ["second"], "second level value check failed");
+		}
+
+		[Test]
+		public void IsNull_NullValueArguments ()
+		{
+			DataTable table = new DataTable ();
+
+			// add the row, with the value in the column
+			DataColumn staticColumn = table.Columns.Add ("static", typeof(string), null);
+			DataRow row = table.Rows.Add ("the value");
+
+			try {
+				row.IsNull ((string)null);
+				Assert.Fail ("expected an arg null exception for passing a null string");
+			} catch (ArgumentNullException) {
+				// do nothing as null columns aren't allowed
+			}
+
+			try {
+				row.IsNull ("");
+				Assert.Fail ("expected an arg exception for passing an empty string");
+			} catch (ArgumentException) {
+				// do nothing as we can't find a col with no name
+			}
+
+			try {
+				row.IsNull (null, DataRowVersion.Default);
+				Assert.Fail ("null column with version check failed");
+			} catch (ArgumentNullException) {
+				// do nothing as null columns aren't allowed
+			}
 		}
 
 		[Test] public void Item()

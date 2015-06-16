@@ -180,16 +180,20 @@ namespace System.Web.Script.Serialization
 				return c.ConvertFrom (obj);
 			}
 
-			/*
-			 * Take care of the special case whereas in JSON an empty string ("") really means 
-			 * an empty value 
-			 * (see: https://bugzilla.novell.com/show_bug.cgi?id=328836)
-			 */
-			if ((targetType.IsGenericType) && (targetType.GetGenericTypeDefinition() == typeof(Nullable<>)))
-			{
-				string s = obj as String;
-				if (String.IsNullOrEmpty(s))
+			if ((targetType.IsGenericType) && (targetType.GetGenericTypeDefinition () == typeof (Nullable<>))) {
+				if (obj is String) {
+					/*
+					 * Take care of the special case whereas in JSON an empty string ("") really means 
+					 * an empty value 
+					 * (see: https://bugzilla.novell.com/show_bug.cgi?id=328836)
+					 */
+					if(String.IsNullOrEmpty ((String)obj))
 						return null;
+				} else if (c.CanConvertFrom (typeof (string))) {
+					TypeConverter objConverter = TypeDescriptor.GetConverter (obj);
+					string s = objConverter.ConvertToInvariantString (obj);
+					return c.ConvertFromInvariantString (s);
+				}
 			}
 
 			return Convert.ChangeType (obj, targetType);
@@ -197,6 +201,10 @@ namespace System.Web.Script.Serialization
 
 		public T Deserialize<T> (string input) {
 			return ConvertToType<T> (DeserializeObjectInternal(input));
+		}
+
+		public object Deserialize (string input, Type targetType) {
+			return DeserializeObjectInternal (input);
 		}
 
 		static object Evaluate (object value) {

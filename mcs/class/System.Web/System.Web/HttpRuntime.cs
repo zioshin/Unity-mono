@@ -44,9 +44,7 @@ using System.Web.Configuration;
 using System.Web.Management;
 using System.Web.UI;
 using System.Web.Util;
-#if MONOWEB_DEP
 using Mono.Web.Util;
-#endif
 using System.Threading;
 #if TARGET_J2EE
 using Mainsoft.Web;
@@ -136,9 +134,7 @@ namespace System.Web
 
 			try {
 				WebConfigurationManager.Init ();
-#if MONOWEB_DEP
 				SettingsMappingManager.Init ();
-#endif
 				runtime_section = (HttpRuntimeSection) WebConfigurationManager.GetSection ("system.web/httpRuntime");
 			} catch (Exception ex) {
 				initialException = ex;
@@ -605,13 +601,6 @@ namespace System.Web
 		}
 #endif
 		
-#if TARGET_JVM
-		[MonoNotSupported ("UnloadAppDomain is not supported")]
-		public static void UnloadAppDomain ()
-		{
-			throw new NotImplementedException ("UnloadAppDomain is not supported");
-		}
-#else
 		//
 		// Called when we are shutting down or we need to reload an application
 		// that has been modified (touch global.asax) 
@@ -632,7 +621,6 @@ namespace System.Web
 				}
 			});
 		}
-#endif
 		//
 		// Shuts down the AppDomain
 		//

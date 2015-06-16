@@ -69,6 +69,11 @@ namespace System.Runtime.Serialization.Json
 
 		public object ReadObject (Type type)
 		{
+			return ReadObject (type, null);
+		}
+		
+		public object ReadObject (Type type, object instance)
+		{
 			if (serialized_object_count ++ == serializer.MaxItemsInObjectGraph)
 				throw SerializationError (String.Format ("The object graph exceeded the maximum object count '{0}' specified in the serializer", serializer.MaxItemsInObjectGraph));
 
@@ -175,10 +180,20 @@ namespace System.Runtime.Serialization.Json
 
 					Type ct = GetCollectionElementType (type);
 					if (ct != null) {
-						return DeserializeGenericCollection (type, ct);
+						return DeserializeGenericCollection (type, ct, instance);
 					} else {
-						TypeMap map = GetTypeMap (type);
-						return map.Deserialize (this);
+						string typeHint = reader.GetAttribute ("__type");
+						if (typeHint != null) {
+							// this might be a derived & known type. We allow it when it's both.
+							Type exactType = GetRuntimeType (typeHint, type);
+							if (exactType == null)
+								throw SerializationError (String.Format ("Cannot load type '{0}'", typeHint));
+							 TypeMap map = GetTypeMap (exactType);
+							 return map.Deserialize (this, instance);
+						} else { // no type hint
+							TypeMap map = GetTypeMap (type);
+							 return map.Deserialize (this, instance);
+						}
 					}
 				}
 				else
@@ -193,24 +208,22 @@ namespace System.Runtime.Serialization.Json
 		}
 		
 
-		Type GetRuntimeType (string name)
+		Type GetRuntimeType (string name, Type baseType)
 		{
-			name = ToRuntimeTypeName (name);
+			string properName = ToRuntimeTypeName (name);
+
+			if (baseType != null && baseType.FullName.Equals (properName))
+				return baseType;
+
 			if (serializer.KnownTypes != null)
 				foreach (Type t in serializer.KnownTypes)
-					if (t.FullName == name)
+					if (t.FullName.Equals (properName)) 
 						return t;
-			var ret = root_type.Assembly.GetType (name, false) ?? Type.GetType (name, false);
-			if (ret != null)
-				return ret;
 
-			// We probably have to iterate all the existing
-			// assemblies that are loaded in current domain.
-			foreach (var ass in AppDomain.CurrentDomain.GetAssemblies ()) {
-				ret = ass.GetType (name, false);
-				if (ret != null)
-					return ret;
-			}
+			if (baseType != null)
+				foreach (var attr in baseType.GetCustomAttributes (typeof (KnownTypeAttribute), false))
+					if ((attr as KnownTypeAttribute).Type.FullName.Equals (properName))
+						return (attr as KnownTypeAttribute).Type;
 
 			return null;
 		}
@@ -225,7 +238,7 @@ namespace System.Runtime.Serialization.Json
 			case "object":
 				string runtimeType = reader.GetAttribute ("__type");
 				if (runtimeType != null) {
-					Type t = GetRuntimeType (runtimeType);
+					Type t = GetRuntimeType (runtimeType, null);
 					if (t == null)
 						throw SerializationError (String.Format ("Cannot load type '{0}'", runtimeType));
 					return ReadObject (t);
@@ -259,7 +272,7 @@ namespace System.Runtime.Serialization.Json
 				if (double.TryParse (v, NumberStyles.None, CultureInfo.InvariantCulture, out dbl))
 					return dbl;
 				decimal dec;
-				if (decimal.TryParse (v, NumberStyles.None, CultureInfo.InvariantCulture, out dec))
+				if (decimal.TryParse (v, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out dec))
 					return dec;
 				throw SerializationError (String.Format ("Invalid JSON input: {0}", v));
 			default:
@@ -278,24 +291,15 @@ namespace System.Runtime.Serialization.Json
 			return idx < 0 ? s : String.Concat (s.Substring (idx + 2), ".", s.Substring (0, idx));
 		}
 
-		IEnumerable<Type> GetInterfaces2 (Type type)
-		{
-			if (type.IsInterface)
-				yield return type;
-			foreach (var t in type.GetInterfaces ())
-				yield return t;
-		}
-
 		Type GetCollectionElementType (Type type)
 		{
 			if (type.IsArray)
 				return type.GetElementType ();
-			if (type.IsGenericType) {
-				// returns T for IEnumerable<T>
-				foreach (Type i in GetInterfaces2 (type))
-					if (i.IsGenericType && i.GetGenericTypeDefinition ().Equals (typeof (IEnumerable<>)))
-						return i.GetGenericArguments () [0];
-			}
+			
+			var inter = type.GetInterface ("System.Collections.Generic.IEnumerable`1", false);
+			if (inter != null)
+				return inter.GetGenericArguments () [0];
+			
 			if (typeof (IEnumerable).IsAssignableFrom (type))
 				// return typeof(object) for mere collection.
 				return typeof (object);
@@ -303,16 +307,19 @@ namespace System.Runtime.Serialization.Json
 				return null;
 		}
 
-		object DeserializeGenericCollection (Type collectionType, Type elementType)
+		object DeserializeGenericCollection (Type collectionType, Type elementType, object collectionInstance)
 		{
 			reader.ReadStartElement ();
 			object ret;
 			if (collectionType.IsInterface)
 				collectionType = typeof (List<>).MakeGenericType (elementType);
 			if (TypeMap.IsDictionary (collectionType)) {
-				object dic = Activator.CreateInstance (collectionType);
-				var itemSetter = dic.GetType ().GetProperty ("Item");
-				var keyarr = new object [1];
+				if (collectionInstance == null)
+					collectionInstance = Activator.CreateInstance (collectionType);
+				
+				var keyType = elementType.IsGenericType ? elementType.GetGenericArguments () [0] : typeof (object);
+				var valueType = elementType.IsGenericType ? elementType.GetGenericArguments () [1] : typeof (object);
+				MethodInfo add = collectionType.GetMethod ("Add", new Type [] { keyType, valueType });
 
 				for (reader.MoveToContent (); reader.NodeType != XmlNodeType.EndElement; reader.MoveToContent ()) {
 					if (!reader.IsStartElement ("item"))
@@ -321,21 +328,26 @@ namespace System.Runtime.Serialization.Json
 					// reading a KeyValuePair in the form of <Key .../><Value .../>
 					reader.Read ();
 					reader.MoveToContent ();
-					object key = ReadObject (elementType.GetGenericArguments () [0]);
+					object key = ReadObject (keyType);
 					reader.MoveToContent ();
-					object val = ReadObject (elementType.GetGenericArguments () [1]);
+					object val = ReadObject (valueType);
 					reader.Read ();
-					keyarr [0] = key;
-					itemSetter.SetValue (dic, val, keyarr);
+					add.Invoke (collectionInstance, new [] { key, val });
 				}
-				ret = dic;
+				ret = collectionInstance;
 			} else if (typeof (IList).IsAssignableFrom (collectionType)) {
 #if NET_2_1
 				Type listType = collectionType.IsArray ? typeof (List<>).MakeGenericType (elementType) : null;
 #else
 				Type listType = collectionType.IsArray ? typeof (ArrayList) : null;
 #endif
-				IList c = (IList) Activator.CreateInstance (listType ?? collectionType);
+				
+				IList c;
+				if (collectionInstance == null)
+					c = (IList) Activator.CreateInstance (listType ?? collectionType);
+				else 
+					c = (IList) collectionInstance;
+				
 				for (reader.MoveToContent (); reader.NodeType != XmlNodeType.EndElement; reader.MoveToContent ()) {
 					if (!reader.IsStartElement ("item"))
 						throw SerializationError (String.Format ("Expected element 'item', but found '{0}' in namespace '{1}'", reader.LocalName, reader.NamespaceURI));
@@ -355,21 +367,31 @@ namespace System.Runtime.Serialization.Json
 				ret = collectionType.IsArray ? ((ArrayList) c).ToArray (elementType) : c;
 #endif
 			} else {
-				object c = Activator.CreateInstance (collectionType);
-				MethodInfo add = collectionType.GetMethod ("Add", new Type [] {elementType});
+				if (collectionInstance == null)
+					collectionInstance = Activator.CreateInstance (collectionType);
+				
+				MethodInfo add;
+				if (collectionInstance.GetType ().IsGenericType &&
+					collectionInstance.GetType ().GetGenericTypeDefinition () == typeof (LinkedList<>))
+					add = collectionType.GetMethod ("AddLast", new Type [] { elementType });
+				else
+					add = collectionType.GetMethod ("Add", new Type [] { elementType });
+				
 				if (add == null) {
 					var icoll = typeof (ICollection<>).MakeGenericType (elementType);
-					if (icoll.IsAssignableFrom (c.GetType ()))
+					if (icoll.IsAssignableFrom (collectionInstance.GetType ()))
 						add = icoll.GetMethod ("Add");
 				}
+				if (add == null) 
+					throw new MissingMethodException (elementType.FullName, "Add");
 				
 				for (reader.MoveToContent (); reader.NodeType != XmlNodeType.EndElement; reader.MoveToContent ()) {
 					if (!reader.IsStartElement ("item"))
 						throw SerializationError (String.Format ("Expected element 'item', but found '{0}' in namespace '{1}'", reader.LocalName, reader.NamespaceURI));
-					object elem = ReadObject (elementType);
-					add.Invoke (c, new object [] {elem});
+					object element = ReadObject (elementType);
+					add.Invoke (collectionInstance, new object [] { element });
 				}
-				ret = c;
+				ret = collectionInstance;
 			}
 
 			reader.ReadEndElement ();

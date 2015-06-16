@@ -9,14 +9,16 @@
 #include <mono/metadata/mempool.h>
 #include <mono/metadata/lock-tracer.h>
 #include <mono/utils/mono-codeman.h>
+#include <mono/utils/mono-mutex.h>
 #include <mono/metadata/mono-hash.h>
 #include <mono/utils/mono-compiler.h>
 #include <mono/utils/mono-internal-hash.h>
 #include <mono/io-layer/io-layer.h>
 #include <mono/metadata/mempool-internals.h>
 
-extern CRITICAL_SECTION mono_delegate_section;
-extern CRITICAL_SECTION mono_strtod_mutex;
+
+extern mono_mutex_t mono_delegate_section;
+extern mono_mutex_t mono_strtod_mutex;
 
 /*
  * If this is set, the memory belonging to appdomains is not freed when a domain is
@@ -173,6 +175,7 @@ typedef struct
 typedef struct
 {
 	guint32 stack_size;
+	guint32 epilog_size;
 } MonoArchEHJitInfo;
 
 typedef struct {
@@ -184,6 +187,14 @@ typedef struct {
 	gboolean    cas_method_deny:1;
 	gboolean    cas_method_permitonly:1;
 } MonoMethodCasInfo;
+
+typedef enum {
+	JIT_INFO_NONE = 0,
+	JIT_INFO_HAS_CAS_INFO = (1 << 0),
+	JIT_INFO_HAS_GENERIC_JIT_INFO = (1 << 1),
+	JIT_INFO_HAS_TRY_BLOCK_HOLES = (1 << 2),
+	JIT_INFO_HAS_ARCH_EH_INFO = (1 << 3)
+} MonoJitInfoFlags;
 
 struct _MonoJitInfo {
 	/* NOTE: These first two elements (method and
@@ -197,8 +208,7 @@ struct _MonoJitInfo {
 	} d;
 	struct _MonoJitInfo *next_jit_code_hash;
 	gpointer    code_start;
-	/* This might contain an id for the unwind info instead of a register mask */
-	guint32     used_regs;
+	guint32     unwind_info;
 	int         code_size;
 	guint32     num_clauses:15;
 	/* Whenever the code is domain neutral or 'shared' */
@@ -215,6 +225,8 @@ struct _MonoJitInfo {
 	gboolean    async:1;
 	gboolean    dbg_step_through_inited:1;
 	gboolean    dbg_step_through:1;
+	gboolean    dbg_non_user_code_inited:1;
+	gboolean    dbg_non_user_code:1;
 
 	/* FIXME: Embed this after the structure later */
 	gpointer    gc_info; /* Currently only used by SGen */
@@ -280,7 +292,7 @@ struct _MonoDomain {
 	 * i.e. if both are taken by the same thread, the loader lock
 	 * must taken first.
 	 */
-	CRITICAL_SECTION    lock;
+	mono_mutex_t    lock;
 	MonoMemPool        *mp;
 	MonoCodeManager    *code_mp;
 	/*
@@ -330,7 +342,7 @@ struct _MonoDomain {
 	GHashTable         *proxy_vtable_hash;
 	/* Protected by 'jit_code_hash_lock' */
 	MonoInternalHashTable jit_code_hash;
-	CRITICAL_SECTION    jit_code_hash_lock;
+	mono_mutex_t    jit_code_hash_lock;
 	int		    num_jit_info_tables;
 	MonoJitInfoTable * 
 	  volatile          jit_info_table;
@@ -359,9 +371,9 @@ struct _MonoDomain {
 	GHashTable         *finalizable_objects_hash;
 
 	/* Protects the three hashes above */
-	CRITICAL_SECTION   finalizable_objects_hash_lock;
+	mono_mutex_t   finalizable_objects_hash_lock;
 	/* Used when accessing 'domain_assemblies' */
-	CRITICAL_SECTION    assemblies_lock;
+	mono_mutex_t    assemblies_lock;
 
 	GHashTable	   *method_rgctx_hash;
 
@@ -459,6 +471,19 @@ mono_cleanup (void) MONO_INTERNAL;
 void
 mono_close_exe_image (void) MONO_INTERNAL;
 
+int
+mono_jit_info_size (MonoJitInfoFlags flags, int num_clauses, int num_holes) MONO_INTERNAL;
+
+void
+mono_jit_info_init (MonoJitInfo *ji, MonoMethod *method, guint8 *code, int code_size,
+					MonoJitInfoFlags flags, int num_clauses, int num_holes) MONO_INTERNAL;
+
+MonoJitInfoTable *
+mono_jit_info_table_new (MonoDomain *domain) MONO_INTERNAL;
+
+void
+mono_jit_info_table_free (MonoJitInfoTable *table) MONO_INTERNAL;
+
 void
 mono_jit_info_table_add    (MonoDomain *domain, MonoJitInfo *ji) MONO_INTERNAL;
 
@@ -476,9 +501,6 @@ mono_jit_info_get_generic_sharing_context (MonoJitInfo *ji) MONO_INTERNAL;
 
 void
 mono_jit_info_set_generic_sharing_context (MonoJitInfo *ji, MonoGenericSharingContext *gsctx) MONO_INTERNAL;
-
-MonoJitInfo*
-mono_domain_lookup_shared_generic (MonoDomain *domain, MonoMethod *method) MONO_INTERNAL;
 
 char *
 mono_make_shadow_copy (const char *filename) MONO_INTERNAL;
@@ -664,5 +686,7 @@ void mono_reflection_cleanup_domain (MonoDomain *domain) MONO_INTERNAL;
 void mono_assembly_cleanup_domain_bindings (guint32 domain_id) MONO_INTERNAL;
 
 MonoJitInfo* mono_jit_info_table_find_internal (MonoDomain *domain, char *addr, gboolean try_aot) MONO_INTERNAL;
+
+void mono_enable_debug_domain_unload (gboolean enable);
 
 #endif /* __MONO_METADATA_DOMAIN_INTERNALS_H__ */

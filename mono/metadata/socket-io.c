@@ -20,12 +20,6 @@
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#include <errno.h>
-
-#include <sys/types.h>
 #ifdef HOST_WIN32
 #include <ws2tcpip.h>
 #else
@@ -36,6 +30,12 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#include <errno.h>
+
+#include <sys/types.h>
 
 #include <mono/metadata/object.h>
 #include <mono/io-layer/io-layer.h>
@@ -1218,7 +1218,7 @@ static struct sockaddr *create_sockaddr_from_object(MonoObject *saddr_obj,
 		/* Need a byte for the '\0' terminator/prefix, and the first
 		 * two bytes hold the SocketAddress family
 		 */
-		if (len - 2 >= MONO_SIZEOF_SUNPATH) {
+		if (len - 2 >= sizeof(sock_un->sun_path)) {
 			mono_raise_exception (mono_get_exception_index_out_of_range ());
 		}
 		
@@ -1826,8 +1826,8 @@ static MonoObject* int_to_object (MonoDomain *domain, int val)
 
 void ves_icall_System_Net_Sockets_Socket_GetSocketOption_obj_internal(SOCKET sock, gint32 level, gint32 name, MonoObject **obj_val, gint32 *error)
 {
-	int system_level;
-	int system_name;
+	int system_level = 0;
+	int system_name = 0;
 	int ret;
 	int val;
 	socklen_t valsize=sizeof(val);
@@ -1981,8 +1981,8 @@ void ves_icall_System_Net_Sockets_Socket_GetSocketOption_obj_internal(SOCKET soc
 
 void ves_icall_System_Net_Sockets_Socket_GetSocketOption_arr_internal(SOCKET sock, gint32 level, gint32 name, MonoArray **byte_val, gint32 *error)
 {
-	int system_level;
-	int system_name;
+	int system_level = 0;
+	int system_name = 0;
 	int ret;
 	guchar *buf;
 	socklen_t valsize;
@@ -2096,8 +2096,8 @@ get_local_interface_id (int family)
 void ves_icall_System_Net_Sockets_Socket_SetSocketOption_internal(SOCKET sock, gint32 level, gint32 name, MonoObject *obj_val, MonoArray *byte_val, gint32 int_val, gint32 *error)
 {
 	struct linger linger;
-	int system_level;
-	int system_name;
+	int system_level = 0;
+	int system_name = 0;
 	int ret;
 #ifdef AF_INET6
 	int sol_ip;

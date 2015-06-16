@@ -94,7 +94,7 @@ namespace System.Threading.Tasks
 		public void Execute ()
 		{
 			if (!ContinuationStatusCheck (continuationOptions)) {
-				task.CancelReal ();
+				task.CancelReal (notifyParent : true);
 				task.Dispose ();
 				return;
 			}
@@ -161,7 +161,11 @@ namespace System.Threading.Tasks
 
 		public void Execute ()
 		{
-			ctx.Post (l => ((Action) l) (), action);
+			// No context switch when we are on correct context
+			if (ctx == SynchronizationContext.Current)
+				action ();
+			else
+				ctx.Post (l => ((Action) l) (), action);
 		}
 	}
 

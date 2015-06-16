@@ -25,6 +25,7 @@
 
 #include <mono/arch/arm/arm-codegen.h>
 #include <mono/arch/arm/arm-vfp-codegen.h>
+#include <mono/metadata/abi-details.h>
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/threads.h>
@@ -35,6 +36,7 @@
 #include "mini.h"
 #include "mini-arm.h"
 #include "mono/utils/mono-sigcontext.h"
+#include "mono/utils/mono-compiler.h"
 
 /*
  * arch_get_restore_context:
@@ -61,16 +63,16 @@ mono_arch_get_restore_context (MonoTrampInfo **info, gboolean aot)
 	ctx_reg = ARMREG_R0;
 
 	if (!mono_arch_is_soft_float ()) {
-		ARM_ADD_REG_IMM8 (code, ARMREG_IP, ctx_reg, G_STRUCT_OFFSET (MonoContext, fregs));
+		ARM_ADD_REG_IMM8 (code, ARMREG_IP, ctx_reg, MONO_STRUCT_OFFSET (MonoContext, fregs));
 		ARM_FLDMD (code, ARM_VFP_D0, 16, ARMREG_IP);
 	}
 
 	/* move pc to PC */
-	ARM_LDR_IMM (code, ARMREG_IP, ctx_reg, G_STRUCT_OFFSET (MonoContext, pc));
-	ARM_STR_IMM (code, ARMREG_IP, ctx_reg, G_STRUCT_OFFSET (MonoContext, regs) + (ARMREG_PC * sizeof (mgreg_t)));
+	ARM_LDR_IMM (code, ARMREG_IP, ctx_reg, MONO_STRUCT_OFFSET (MonoContext, pc));
+	ARM_STR_IMM (code, ARMREG_IP, ctx_reg, MONO_STRUCT_OFFSET (MonoContext, regs) + (ARMREG_PC * sizeof (mgreg_t)));
 
 	/* restore everything */
-	ARM_ADD_REG_IMM8 (code, ARMREG_IP, ctx_reg, G_STRUCT_OFFSET(MonoContext, regs));
+	ARM_ADD_REG_IMM8 (code, ARMREG_IP, ctx_reg, MONO_STRUCT_OFFSET(MonoContext, regs));
 	ARM_LDM (code, ARMREG_IP, 0xffff);
 
 	/* never reached */
@@ -111,8 +113,8 @@ mono_arch_get_call_filter (MonoTrampInfo **info, gboolean aot)
 
 	/* restore all the regs from ctx (in r0), but not sp, the stack pointer */
 	ctx_reg = ARMREG_R0;
-	ARM_LDR_IMM (code, ARMREG_IP, ctx_reg, G_STRUCT_OFFSET (MonoContext, pc));
-	ARM_ADD_REG_IMM8 (code, ARMREG_LR, ctx_reg, G_STRUCT_OFFSET(MonoContext, regs) + (MONO_ARM_FIRST_SAVED_REG * sizeof (mgreg_t)));
+	ARM_LDR_IMM (code, ARMREG_IP, ctx_reg, MONO_STRUCT_OFFSET (MonoContext, pc));
+	ARM_ADD_REG_IMM8 (code, ARMREG_LR, ctx_reg, MONO_STRUCT_OFFSET(MonoContext, regs) + (MONO_ARM_FIRST_SAVED_REG * sizeof (mgreg_t)));
 	ARM_LDM (code, ARMREG_LR, MONO_ARM_REGSAVE_MASK);
 	/* call handler at eip (r1) and set the first arg with the exception (r2) */
 	ARM_MOV_REG_REG (code, ARMREG_R0, ARMREG_R2);
@@ -136,9 +138,10 @@ void
 mono_arm_throw_exception (MonoObject *exc, mgreg_t pc, mgreg_t sp, mgreg_t *int_regs, gdouble *fp_regs)
 {
 	MonoContext ctx;
-	gboolean rethrow = pc & 1;
+	gboolean rethrow = sp & 1;
 
-	pc &= ~1; /* clear the optional rethrow bit */
+	sp &= ~1; /* clear the optional rethrow bit */
+	pc &= ~1; /* clear the thumb bit */
 	/* adjust eip so that it point into the call instruction */
 	pc -= 4;
 
@@ -231,6 +234,12 @@ get_throw_trampoline (int size, gboolean corlib, gboolean rethrow, gboolean llvm
 	/* call throw_exception (exc, ip, sp, int_regs, fp_regs) */
 	/* caller sp */
 	ARM_ADD_REG_IMM8 (code, ARMREG_R2, ARMREG_SP, cfa_offset);
+	/* we encode rethrow in sp */
+	if (rethrow) {
+		g_assert (!resume_unwind);
+		g_assert (!corlib);
+		ARM_ORR_REG_IMM8 (code, ARMREG_R2, ARMREG_R2, rethrow);
+	}
 	/* exc is already in place in r0 */
 	if (corlib) {
 		/* The caller ip is already in R1 */
@@ -242,8 +251,6 @@ get_throw_trampoline (int size, gboolean corlib, gboolean rethrow, gboolean llvm
 	}
 	/* int regs */
 	ARM_ADD_REG_IMM8 (code, ARMREG_R3, ARMREG_SP, (cfa_offset - (MONO_ARM_NUM_SAVED_REGS * sizeof (mgreg_t))));
-	/* we encode rethrow in the ip */
-	ARM_ORR_REG_IMM8 (code, ARMREG_R1, ARMREG_R1, rethrow);
 	/* fp regs */
 	ARM_ADD_REG_IMM8 (code, ARMREG_LR, ARMREG_SP, 8);
 	ARM_STR_IMM (code, ARMREG_LR, ARMREG_SP, 0);
@@ -418,7 +425,7 @@ mono_arch_find_jit_info (MonoDomain *domain, MonoJitTlsData *jit_tls,
 
 		mono_unwind_frame (unwind_info, unwind_info_len, ji->code_start, 
 						   (guint8*)ji->code_start + ji->code_size,
-						   ip, regs, MONO_MAX_IREGS + 8,
+						   ip, NULL, regs, MONO_MAX_IREGS + 8,
 						   save_locations, MONO_MAX_IREGS, &cfa);
 
 		for (i = 0; i < 16; ++i)
@@ -429,11 +436,6 @@ mono_arch_find_jit_info (MonoDomain *domain, MonoJitTlsData *jit_tls,
 		for (i = 0; i < 8; ++i)
 			new_ctx->fregs [8 + i] = regs [MONO_MAX_IREGS + i];
 #endif
-
-		if (*lmf && (MONO_CONTEXT_GET_SP (ctx) >= (gpointer)(*lmf)->sp)) {
-			/* remove any unused lmf */
-			*lmf = (gpointer)(((gsize)(*lmf)->previous_lmf) & ~3);
-		}
 
 		/* Clear thumb bit */
 		new_ctx->pc &= ~1;
@@ -535,10 +537,7 @@ handle_signal_exception (gpointer obj)
  * This works around a gcc 4.5 bug:
  * https://bugs.launchpad.net/ubuntu/+source/gcc-4.5/+bug/721531
  */
-#if defined(__GNUC__)
-__attribute__((noinline))
-#endif
-static gpointer
+static MONO_NEVER_INLINE gpointer
 get_handle_signal_exception_addr (void)
 {
 	return handle_signal_exception;

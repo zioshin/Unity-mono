@@ -35,12 +35,13 @@ using System.Configuration.Assemblies;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
-#if !TARGET_JVM && !MONOTOUCH
+#if !MONOTOUCH
 using System.Reflection.Emit;
 #endif
 using System.Threading;
 using System.Runtime.Serialization;
 using System.Security;
+using System.Linq;
 
 namespace MonoTests.System.Reflection
 {
@@ -140,18 +141,18 @@ namespace MonoTests.System.Reflection
 			string fname = AppDomain.CurrentDomain.FriendlyName;
 			if (fname.EndsWith (".dll")) { // nunit-console
 				Assert.IsNull (Assembly.GetEntryAssembly (), "GetEntryAssembly");
-#if NET_2_0 && !TARGET_JVM // IsDefaultAppDomain not supported for TARGET_JVM
+#if NET_2_0
 				Assert.IsFalse (AppDomain.CurrentDomain.IsDefaultAppDomain (), "!default appdomain");
 #endif
 			} else { // gnunit
 				Assert.IsNotNull (Assembly.GetEntryAssembly (), "GetEntryAssembly");
-#if NET_2_0 && !TARGET_JVM // IsDefaultAppDomain not supported for TARGET_JVM
+#if NET_2_0
 				Assert.IsTrue (AppDomain.CurrentDomain.IsDefaultAppDomain (), "!default appdomain");
 #endif
 			}
 		}
 
-#if !TARGET_JVM && !MONOTOUCH // Reflection.Emit is not supported.
+#if !MONOTOUCH // Reflection.Emit is not supported.
 		[Test]
 		public void GetModules_MissingFile ()
 		{
@@ -176,7 +177,6 @@ namespace MonoTests.System.Reflection
 		}
 #endif
 
-#if !TARGET_JVM // ManifestModule not supported under TARGET_JVM.
 		[Category ("NotWorking")]
 		[Test]
 		public void Corlib () 
@@ -223,7 +223,6 @@ namespace MonoTests.System.Reflection
 			Assert.IsNotNull (corlib_test.ManifestModule, "ManifestModule");
 			Assert.IsFalse (corlib_test.ReflectionOnly, "ReflectionOnly");
 		}
-#endif
 
 		[Test]
 		public void GetAssembly ()
@@ -233,7 +232,6 @@ namespace MonoTests.System.Reflection
 		}
 
 		[Test]
-		[Category("TargetJvmNotWorking")] // Not yet supported for TARGET_JVM
 		public void GetFile_Null ()
 		{
 			try {
@@ -248,7 +246,6 @@ namespace MonoTests.System.Reflection
 		}
 
 		[Test]
-		[Category("TargetJvmNotWorking")] // Not yet supported for TARGET_JVM
 		public void GetFile_Empty ()
 		{
 			try {
@@ -264,7 +261,6 @@ namespace MonoTests.System.Reflection
 		}
 
 		[Test]
-		[Category("TargetJvmNotWorking")] // Not yet supported for TARGET_JVM
 		public void GetFiles_False ()
 		{
 			Assembly corlib = typeof (int).Assembly;
@@ -277,7 +273,6 @@ namespace MonoTests.System.Reflection
 		}
 
 		[Test]
-		[Category("TargetJvmNotWorking")] // Not yet supported for TARGET_JVM
 		public void GetFiles_True ()
 		{
 			Assembly corlib = typeof (int).Assembly;
@@ -426,7 +421,6 @@ namespace MonoTests.System.Reflection
 			Assert.Fail ("Was not able to load any corlib test");
 		}
 
-#if !TARGET_JVM // GetObjectData currently not implemented for Assembly.
 		[Test]
 		public void GetObjectData_Info_Null ()
 		{
@@ -443,7 +437,6 @@ namespace MonoTests.System.Reflection
 				Assert.AreEqual ("info", ex.ParamName, "#6");
 			}
 		}
-#endif // TARGET_JVM
 
 		[Test]
 		public void GetReferencedAssemblies ()
@@ -465,7 +458,7 @@ namespace MonoTests.System.Reflection
 			}
 		}
 
-#if !TARGET_JVM && !MONOTOUCH // Reflection.Emit is not supported.
+#if !MONOTOUCH // Reflection.Emit is not supported.
 		[Test]
 		public void Location_Empty() {
 			string assemblyFileName = Path.Combine (
@@ -1084,7 +1077,7 @@ namespace MonoTests.System.Reflection
 
 			Directory.Delete (outdir, true);
 		}
-#endif // TARGET_JVM
+#endif
 
 		[Test]
 		public void ManifestModule ()
@@ -1169,5 +1162,19 @@ namespace MonoTests.System.Reflection
 			} catch (ArgumentException) {}
 		}
 
+#if NET_4_5
+		[Test]
+		public void DefinedTypes_Equality ()
+		{
+			var x1 = Assembly.GetExecutingAssembly ().DefinedTypes.Where (l => l.FullName == "MonoTests.System.Reflection.TestDefinedTypes").Single ();
+			var x2 = Assembly.GetExecutingAssembly ().GetTypes ().Where (l => l.FullName == "MonoTests.System.Reflection.TestDefinedTypes").Single ();
+
+			Assert.AreSame (x1, x2, "#1");
+		}
+#endif
+	}
+
+	public class TestDefinedTypes
+	{
 	}
 }

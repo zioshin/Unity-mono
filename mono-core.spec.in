@@ -62,7 +62,6 @@ Provides:       mono(Mono.Cairo) = 1.0.5000.0
 Provides:       mono(Mono.CompilerServices.SymbolWriter) = 1.0.5000.0
 Provides:       mono(Mono.Posix) = 1.0.5000.0
 Provides:       mono(Mono.Security) = 1.0.5000.0
-Provides:       mono(OpenSystem.C) = 1.0.5000.0
 Provides:       mono(System) = 1.0.5000.0
 Provides:       mono(System.Security) = 1.0.5000.0
 Provides:       mono(System.Xml) = 1.0.5000.0
@@ -168,6 +167,7 @@ rm -rf %buildroot
 %_bindir/gacutil
 %_bindir/gacutil2
 %_bindir/gmcs
+%_bindir/ikdasm
 %_bindir/mcs
 %_bindir/mono
 %_bindir/mono-configuration-crypto
@@ -209,7 +209,6 @@ rm -rf %buildroot
 %_prefix/lib/mono/2.0/Mono.Security.dll
 %_prefix/lib/mono/2.0/Mono.Simd.dll
 %_prefix/lib/mono/2.0/Mono.Tasklets.dll
-%_prefix/lib/mono/2.0/OpenSystem.C.dll
 %_prefix/lib/mono/2.0/System.Configuration.dll
 %_prefix/lib/mono/2.0/System.Core.dll
 %_prefix/lib/mono/2.0/System.Drawing.dll
@@ -240,7 +239,6 @@ rm -rf %buildroot
 %_prefix/lib/mono/4.0/Mono.Security.dll
 %_prefix/lib/mono/4.0/Mono.Simd.dll
 %_prefix/lib/mono/4.0/Mono.Tasklets.dll
-%_prefix/lib/mono/4.0/OpenSystem.C.dll
 %_prefix/lib/mono/4.0/System.Configuration.dll
 %_prefix/lib/mono/4.0/System.Core.dll
 %_prefix/lib/mono/4.0/System.Drawing.dll
@@ -260,6 +258,7 @@ rm -rf %buildroot
 %_prefix/lib/mono/4.0/cscompmgd.dll
 %_prefix/lib/mono/4.5/csharp.exe*
 %_prefix/lib/mono/4.5/gacutil.exe*
+%_prefix/lib/mono/4.5/ikdasm.exe*
 %_prefix/lib/mono/4.5/mcs.exe*
 %_prefix/lib/mono/4.5/mozroots.exe*
 %_prefix/lib/mono/4.0/mscorlib.dll*
@@ -287,7 +286,6 @@ rm -rf %buildroot
 %_prefix/lib/mono/4.5/Mono.Security.dll
 %_prefix/lib/mono/4.5/Mono.Simd.dll
 %_prefix/lib/mono/4.5/Mono.Tasklets.dll
-%_prefix/lib/mono/4.5/OpenSystem.C.dll
 %_prefix/lib/mono/4.5/System.Configuration.dll
 %_prefix/lib/mono/4.5/System.Core.dll
 %_prefix/lib/mono/4.5/System.Drawing.dll
@@ -330,7 +328,6 @@ rm -rf %buildroot
 %_prefix/lib/mono/gac/Mono.Security
 %_prefix/lib/mono/gac/Mono.Simd
 %_prefix/lib/mono/gac/Mono.Tasklets
-%_prefix/lib/mono/gac/OpenSystem.C
 %_prefix/lib/mono/gac/System
 %_prefix/lib/mono/gac/System.Configuration
 %_prefix/lib/mono/gac/System.Core
@@ -924,14 +921,12 @@ Mono implementation of ASP.NET, Remoting and Web Services.
 %_bindir/wsdl2
 %_bindir/xsd
 %_libdir/pkgconfig/aspnetwebstack.pc
-%_libdir/pkgconfig/mono.web.pc
 %_mandir/man1/disco.1%ext_man
 %_mandir/man1/mconfig.1%ext_man
 %_mandir/man1/soapsuds.1%ext_man
 %_mandir/man1/wsdl.1%ext_man
 %_mandir/man1/xsd.1%ext_man
 %_prefix/lib/mono/2.0/Mono.Http.dll
-%_prefix/lib/mono/2.0/Mono.Web.dll
 %_prefix/lib/mono/2.0/System.ComponentModel.DataAnnotations.dll
 %_prefix/lib/mono/2.0/System.Runtime.Remoting.dll
 %_prefix/lib/mono/2.0/System.Runtime.Serialization.Formatters.Soap.dll
@@ -943,7 +938,6 @@ Mono implementation of ASP.NET, Remoting and Web Services.
 %_prefix/lib/mono/2.0/xsd.exe*
 %_prefix/lib/mono/4.0/Microsoft.Web.Infrastructure.dll
 %_prefix/lib/mono/4.0/Mono.Http.dll
-%_prefix/lib/mono/4.0/Mono.Web.dll
 %_prefix/lib/mono/4.0/System.ComponentModel.Composition.dll
 %_prefix/lib/mono/4.0/System.ComponentModel.DataAnnotations.dll
 %_prefix/lib/mono/4.0/System.Runtime.Remoting.dll
@@ -954,7 +948,6 @@ Mono implementation of ASP.NET, Remoting and Web Services.
 %_prefix/lib/mono/4.0/System.Web.Services.dll
 %_prefix/lib/mono/4.0/System.Web.dll
 %_prefix/lib/mono/4.5/Mono.Http.dll
-%_prefix/lib/mono/4.5/Mono.Web.dll
 %_prefix/lib/mono/4.5/System.ComponentModel.Composition.dll
 %_prefix/lib/mono/4.5/System.ComponentModel.DataAnnotations.dll
 %_prefix/lib/mono/4.5/System.Net.Http.Formatting.dll
@@ -980,7 +973,6 @@ Mono implementation of ASP.NET, Remoting and Web Services.
 %_prefix/lib/mono/4.5/Microsoft.Web.Infrastructure.dll
 %_prefix/lib/mono/gac/Microsoft.Web.Infrastructure
 %_prefix/lib/mono/gac/Mono.Http
-%_prefix/lib/mono/gac/Mono.Web
 %_prefix/lib/mono/gac/System.ComponentModel.Composition
 %_prefix/lib/mono/gac/System.ComponentModel.DataAnnotations
 %_prefix/lib/mono/gac/System.Net.Http.Formatting

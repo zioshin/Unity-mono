@@ -1,5 +1,9 @@
 /* config.h.  Generated from config.h.in by configure.  */
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+#ifndef _MSC_VER
+#include "cygconfig.h"
+#else
 
 /* The architecture this is running on */
 #if defined(_M_IA64)
@@ -11,6 +15,10 @@
 #else
 #error Unknown architecture
 #endif
+
+#if _WIN32_WINNT < 0x0502
+#error "Mono requires WinXP SP2 or later"
+#endif /* _WIN32_WINNT < 0x0502 */
 
 /*
  * Features that are not required in the Windows port
@@ -190,9 +198,7 @@
 /* #undef HAVE_GETPRIORITY */
 
 /* Define to 1 if you have the `GetProcessId' function. */
-#if (_WIN32_WINNT >= 0x0502)
 #define HAVE_GETPROCESSID 1
-#endif
 
 /* Define to 1 if you have the `getpwnam_r' function. */
 /* #undef HAVE_GETPWNAM_R */
@@ -557,9 +563,6 @@
 /* Enable the allocation and indexing of arrays greater than Int32.MaxValue */
 /* #undef MONO_BIG_ARRAYS */
 
-/* Sizeof sock_un.sun_path */
-/* #undef MONO_SIZEOF_SUNPATH */
-
 /* Xen-specific behaviour */
 /* #define MONO_XEN_OPT 1 */
 
@@ -630,4 +633,5 @@
 /* #undef USE_MONO_MUTEX */
 
 /* Version number of package */
-#define VERSION "2.11"
+#define VERSION "3.12.0"
+#endif
