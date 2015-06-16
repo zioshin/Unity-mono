@@ -54,7 +54,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v100</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_SGen|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -149,7 +149,7 @@
     </ClCompile>
     <ProjectReference />
     <Link>
-      <AdditionalDependencies>mono-2.0.lib;libgc.lib;eglib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mono.lib;libgc.lib;eglib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(Platform)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
