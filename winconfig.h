@@ -16,10 +16,6 @@
 #error Unknown architecture
 #endif
 
-#if _WIN32_WINNT < 0x0502
-#error "Mono requires WinXP SP2 or later"
-#endif /* _WIN32_WINNT < 0x0502 */
-
 /*
  * Features that are not required in the Windows port
  */
