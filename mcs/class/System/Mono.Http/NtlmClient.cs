@@ -96,7 +96,7 @@ namespace Mono.Http
 				if (password == null)
 					password = "";
 
-				Type3Message type3 = new Type3Message (type2);
+				Type3Message type3 = new Type3Message ();
 				type3.Username = userName;
 				type3.Password = password;
 				type3.Domain = domain;
