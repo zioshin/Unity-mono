@@ -9482,7 +9482,7 @@ namespace Mono.CSharp {
 
 			ArrayList element_names = null;
 			for (int i = 0; i < initializers.Count; ++i) {
-				Expression initializer =  (Expression)initializers [i];
+				Expression initializer = (Expression) initializers [i];
 				ElementInitializer element_initializer = initializer as ElementInitializer;
 
 				if (i == 0) {
