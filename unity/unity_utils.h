@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <mono/metadata/object.h>
+#include <mono/metadata/reflection.h>
 
 /**
  *	Custom exit function, called instead of system exit()
@@ -38,5 +39,15 @@ unity_mono_method_is_inflated (MonoMethod* method);
 
 gboolean
 unity_mono_method_is_generic (MonoMethod* method);
+
+// Opaque struct that represents a length-prefixed string in the metadata.
+typedef const char UnityMonoMetadataString;
+
+typedef void (*UnityMonoCustomAttrNamedParameterFunc)(void* output, UnityMonoMetadataString* parameterName, int type, void* parameterValue);
+
+void unity_mono_unpack_custom_attr_params(MonoImage* image, MonoCustomAttrEntry* entry, void* output, UnityMonoCustomAttrNamedParameterFunc namedParameterHandler);
+
+guint32 unity_mono_metadata_string_length(UnityMonoMetadataString* string);
+void unity_mono_metadata_string_copy(UnityMonoMetadataString* string, char* buffer, size_t bufferSize);
 
 #endif
