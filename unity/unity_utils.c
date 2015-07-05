@@ -291,12 +291,13 @@ void unity_mono_unpack_custom_attr_params(MonoImage* image, MonoCustomAttrEntry*
 	// Also helpful: http://geekswithblogs.net/simonc/archive/2011/06/03/anatomy-of-a-.net-assembly---custom-attribute-encoding.aspx
 	const char *src = (const char*)entry->data;
 	char *dest = (char*)output;
+	int i;
 	
 	MonoMethodSignature *sig = mono_method_signature(entry->ctor);
 	
 	// Skip prolog
 	src += 2;
-	for(int i = 0; i < sig->param_count; ++i)
+	for(i = 0; i < sig->param_count; ++i)
 	{
 		MonoType* paramType = sig->params[i];
 		int type = paramType->type;
@@ -353,7 +354,7 @@ void unity_mono_unpack_custom_attr_params(MonoImage* image, MonoCustomAttrEntry*
 	if(namedParameterHandler == NULL) return;
 	guint32 num_named = read16(src);
 	src += 2;
-	for (int j = 0; j < num_named; ++j)
+	for (i = 0; i < num_named; ++i)
 	{
 		UnityMonoMetadataString* paramName;
 		src++; // skip the field/property specifier
