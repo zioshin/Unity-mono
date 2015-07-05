@@ -244,6 +244,7 @@ static size_t unpack_custom_attr_value(const char* src, int type, char* dest, Mo
 			return 8;
 		}
 		case MONO_TYPE_STRING: {
+			const char* oldSrc = src;
 			// if the first byte is 0xFF, it's a null/empty string
 			UnityMonoMetadataString** str = (UnityMonoMetadataString**)dest;
 			if(*src == (char)0xFF)
@@ -253,11 +254,14 @@ static size_t unpack_custom_attr_value(const char* src, int type, char* dest, Mo
 			}
 			
 			*str = (UnityMonoMetadataString*)src;
-			const char* oldSrc = src;
 			src += mono_metadata_decode_value(src, &src);
 			return src - oldSrc;
 		}
 		case MONO_TYPE_CLASS: {
+			const char* oldSrc = src;
+			guint32 length;
+			char* utf8Str;
+
 			// type references (i.e. typeof(SomeClass)) are stored as string names
 			MonoType** result = (MonoType**)dest;
 			if(*src == (char)0xFF)
@@ -266,9 +270,8 @@ static size_t unpack_custom_attr_value(const char* src, int type, char* dest, Mo
 				return 1;
 			}
 			
-			const char* oldSrc = src;
-			guint32 length = mono_metadata_decode_value (src, &src);
-			char *utf8Str = g_memdup (src, length + 1);
+			length = mono_metadata_decode_value (src, &src);
+			utf8Str = g_memdup (src, length + 1);
 			utf8Str [length] = 0;
 			src += length;
 			*result = mono_reflection_type_from_name (utf8Str, image);
@@ -292,6 +295,7 @@ void unity_mono_unpack_custom_attr_params(MonoImage* image, MonoCustomAttrEntry*
 	const char *src = (const char*)entry->data;
 	char *dest = (char*)output;
 	int i;
+	guint32 num_named;
 	
 	MonoMethodSignature *sig = mono_method_signature(entry->ctor);
 	
@@ -352,13 +356,18 @@ void unity_mono_unpack_custom_attr_params(MonoImage* image, MonoCustomAttrEntry*
 	
 	// Now, named parameters
 	if(namedParameterHandler == NULL) return;
-	guint32 num_named = read16(src);
+	num_named = read16(src);
 	src += 2;
 	for (i = 0; i < num_named; ++i)
 	{
 		UnityMonoMetadataString* paramName;
+		int type;
+		// The value will be unpacked into this buffer. The actual value size depends on the type,
+		// but the largest thing we can unpack right now is an int64, so an 8 byte buffer should be sufficient.
+		char buffer[8];
+		
 		src++; // skip the field/property specifier
-		int type = *(src++);
+		type = *(src++);
 		
 		if (type == MONO_TYPE_SZARRAY)
 		{
@@ -377,9 +386,6 @@ void unity_mono_unpack_custom_attr_params(MonoImage* image, MonoCustomAttrEntry*
 		paramName = (UnityMonoMetadataString*)src;
 		src += mono_metadata_decode_blob_size (src, &src);
 		
-		// Unpack the attribute value to a buffer. The unpacked size depends on the data type
-		// but right now the largest thing we could unpack is an int64 so make the buffer that big.
-		char buffer[8];
 		src += unpack_custom_attr_value(src, type, buffer, image);
 		
 		namedParameterHandler(output, paramName, type, &buffer[0]);
@@ -394,13 +400,14 @@ guint32 unity_mono_metadata_string_length(UnityMonoMetadataString* string)
 
 void unity_mono_metadata_string_copy(UnityMonoMetadataString* string, char* buffer, size_t bufferSize)
 {
+	guint32 strLen;
 	if(bufferSize == 0) return;
 	if(string == NULL)
 	{
 		buffer[0] = 0;
 		return;
 	}
-	guint32 strLen = mono_metadata_decode_blob_size(string, &string);
+	strLen = mono_metadata_decode_blob_size(string, &string);
 	if(strLen + 1 > bufferSize)
 		strLen = bufferSize - 1;
 	memcpy(buffer, string, strLen);
