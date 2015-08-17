@@ -821,10 +821,9 @@ void
 sgen_conservatively_pin_objects_from (void **start, void **end, void *start_nursery, void *end_nursery, int pin_type)
 {
 	int count = 0;
-
 	SGEN_ASSERT (0, ((mword)start & (SIZEOF_VOID_P - 1)) == 0, "Why are we scanning for references in unaligned memory ?");
 
-#ifdef VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE
+#if defined(VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE) && !defined(_WIN64)
 	VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE (start, (char*)end - (char*)start);
 #endif
 
