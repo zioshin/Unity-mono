@@ -253,6 +253,8 @@ namespace Mono.CSharp
 			if (compiler.Settings.StdLib) {
 				var corlib_path = Path.GetDirectoryName (typeof (object).Assembly.Location);
 				string fx_path = corlib_path.Substring (0, corlib_path.LastIndexOf (Path.DirectorySeparatorChar));
+				if (!string.IsNullOrEmpty(compiler.Settings.SdkDirectory))
+					fx_path = compiler.Settings.SdkDirectory;
 
 				string sdk_path = null;
 
