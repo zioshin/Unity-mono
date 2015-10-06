@@ -67,6 +67,7 @@ namespace Mono.CSharp {
 		public bool EnhancedWarnings;
 		public bool LoadDefaultReferences;
 		public string SdkVersion;
+		public string SdkDirectory;
 
 		public string StrongNameKeyFile;
 		public string StrongNameKeyContainer;
@@ -1060,6 +1061,16 @@ namespace Mono.CSharp {
 				}
 
 				settings.SdkVersion = value;
+				return ParseResult.Success;
+
+			case "/sdkdir":
+				if (value.Length == 0)
+				{
+					Error_RequiresArgument (option);
+					return ParseResult.Error;
+				}
+
+				settings.SdkDirectory = value;
 				return ParseResult.Success;
 
 			// We just ignore this.
