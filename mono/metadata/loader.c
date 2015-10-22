@@ -1225,7 +1225,7 @@ cached_module_load (const char *name, int flags, char **err)
 }
 
 
-static const char*(*unity_find_plugin_callback)(const char*) = NULL;
+static const char*(*unity_find_plugin_callback)(const char*, void**) = NULL;
 
 void mono_set_find_plugin_callback (gconstpointer find)
 {
@@ -1294,7 +1294,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 
 	if (unity_find_plugin_callback)
 	{
-		const char* unity_new_scope = unity_find_plugin_callback (new_scope);
+		const char* unity_new_scope = unity_find_plugin_callback (new_scope, NULL);
 		if (unity_new_scope == NULL)
 		{
 			if (exc_class)
