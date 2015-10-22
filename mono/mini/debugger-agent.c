@@ -3915,6 +3915,11 @@ process_breakpoint_inner (DebuggerTlsData *tls, MonoContext *ctx)
 			if (minfo)
 				loc = mono_debug_symfile_lookup_location (minfo, sp->il_offset);
 
+			/* Continue single stepping if mono_debug_symfile_lookup_location returns
+			   an IL offset that is less than the requested one. */
+			if(loc && loc->il_offset < sp->il_offset)
+				hit = FALSE;
+
 			if (!loc || (loc && ji->method == ss_req->last_method && loc->row == ss_req->last_line)) {
 				/* Have to continue single stepping */
 				DEBUG(1, fprintf (log_file, "[%p] Same source line, continuing single stepping.\n", (gpointer)GetCurrentThreadId ()));
