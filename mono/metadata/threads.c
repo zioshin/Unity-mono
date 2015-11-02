@@ -1299,12 +1299,26 @@ mono_thread_current (void)
 
 	current_thread_ptr = get_current_thread_ptr_for_domain (domain, internal);
 
-// UNITY: we don't want to attach just because we call mono_thread_current
-//	if (!*current_thread_ptr) {
-//		g_assert (domain != mono_get_root_domain ());
-//		*current_thread_ptr = new_thread_with_internal (domain, internal);
-//	}
+	if (!*current_thread_ptr) {
+		g_assert (domain != mono_get_root_domain ());
+		*current_thread_ptr = new_thread_with_internal (domain, internal);
+	}
 	return *current_thread_ptr;
+}
+
+MonoBoolean
+mono_unity_thread_is_attached ()
+{
+	MonoDomain *domain = mono_domain_get ();
+        MonoInternalThread *internal = mono_thread_internal_current ();
+        MonoThread **current_thread_ptr;
+
+        if (!domain || !internal)
+        return FALSE;
+
+        current_thread_ptr = get_current_thread_ptr_for_domain (domain, internal);
+
+	return *current_thread_ptr != NULL;
 }
 
 MonoInternalThread*
