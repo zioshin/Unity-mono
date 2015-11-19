@@ -499,7 +499,7 @@ namespace System.Net.Sockets {
 			{
 				if (!CheckEndPoint(sa))
 				{
-					throw new SecurityException("Unable to connect, as no valid crossdomain policy was found");
+					throw new SecurityException("Socket_2_1: Unable to connect, as no valid crossdomain policy was found " + sa);
 				}
 			}
 #endif

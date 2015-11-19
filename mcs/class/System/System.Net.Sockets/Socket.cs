@@ -2679,7 +2679,7 @@ namespace System.Net.Sockets
 				if (!CheckEndPoint(sockaddr))
 				{
 					buf.Initialize ();
-					throw new System.Security.SecurityException("Unable to connect, as no valid crossdomain policy was found");
+					throw new System.Security.SecurityException("Socket: Unable to connect, as no valid crossdomain policy was found" + sockaddr);
 				}
 			}
 #endif
