@@ -303,7 +303,13 @@ void
 mono_field_get_value (MonoObject *obj, MonoClassField *field, void *value);
 
 void
+mono_unity_field_get_addr (MonoObject *obj, MonoClassField *field, void **addr);
+
+void
 mono_field_static_get_value (MonoVTable *vt, MonoClassField *field, void *value);
+
+void
+mono_unity_field_static_get_addr (MonoVTable *vt, MonoClassField *field, void **addr);
 
 MonoObject *
 mono_field_get_value_object (MonoDomain *domain, MonoClassField *field, MonoObject *obj);

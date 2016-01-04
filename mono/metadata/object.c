@@ -2890,6 +2890,18 @@ mono_field_get_value (MonoObject *obj, MonoClassField *field, void *value)
 	set_value (field->type, value, src, TRUE);
 }
 
+void
+mono_unity_field_get_addr(MonoObject *obj, MonoClassField *field, void **addr)
+{
+	void *src;
+
+	g_assert(obj);
+
+	g_return_if_fail(!(field->type->attrs & FIELD_ATTRIBUTE_STATIC));
+
+	*addr = (char*)obj + field->offset;
+}
+
 /**
  * mono_field_get_value_object:
  * @domain: domain where the object will be created (if boxing)
@@ -3076,6 +3088,28 @@ mono_field_static_get_value (MonoVTable *vt, MonoClassField *field, void *value)
 		src = (char*)vt->data + field->offset;
 	}
 	set_value (field->type, value, src, TRUE);
+}
+
+void
+mono_unity_field_static_get_addr(MonoVTable *vt, MonoClassField *field, void **addr)
+{
+	void *src;
+
+	g_return_if_fail(field->type->attrs & FIELD_ATTRIBUTE_STATIC);
+
+	if (field->type->attrs & FIELD_ATTRIBUTE_LITERAL) {
+		g_assert_not_reached();
+		return;
+	}
+
+	if (field->offset == -1) {
+		/* Special static */
+		gpointer addr = g_hash_table_lookup(vt->domain->special_static_fields, field);
+		src = mono_get_special_static_data(GPOINTER_TO_UINT(addr));
+	}
+	else {
+		*addr = (char*)vt->data + field->offset;
+	}
 }
 
 /**

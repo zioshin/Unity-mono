@@ -116,7 +116,7 @@ void array_safe_grow(LivenessState* state, custom_growable_array* array)
 	int i;
 	for (i = 0; i < state->all_objects->len; i++)
 	{
-		MonoObject* object = array_at_index(state->all_objects,i);
+		MonoObject* object = *(MonoObject**)array_at_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
 	GC_start_world_external ();
@@ -124,7 +124,7 @@ void array_safe_grow(LivenessState* state, custom_growable_array* array)
 	GC_stop_world_external ();
 	for (i = 0; i < state->all_objects->len; i++)
 	{
-		MonoObject* object = array_at_index(state->all_objects,i);
+		MonoObject* object = *(MonoObject**)array_at_index(state->all_objects,i);
 		MARK_OBJ(object);
 	}
 }
@@ -157,8 +157,9 @@ static void mono_traverse_generic_object( MonoObject* object, LivenessState* sta
 }
 
 
-static void mono_add_process_object (MonoObject* object, LivenessState* state)
+static void mono_add_process_object (MonoObject** object_handle, LivenessState* state)
 {
+	MonoObject* object = *object_handle;
 	if (object && !IS_MARKED(object))
 	{
 		gboolean has_references = GET_VTABLE(object)->klass->has_references;
@@ -166,7 +167,7 @@ static void mono_add_process_object (MonoObject* object, LivenessState* state)
 		{
 			if (array_is_full(state->all_objects))
 				array_safe_grow(state, state->all_objects);
-			array_push_back(state->all_objects, object);
+			array_push_back(state->all_objects, object_handle);
 			MARK_OBJ(object);
 		}
 		// Check if klass has further references - if not skip adding
@@ -232,9 +233,8 @@ static void mono_traverse_object_internal (MonoObject* object, gboolean isStruct
 			if (field->offset == -1) {
 				g_assert_not_reached ();
 			} else {
-				MonoObject* val = NULL;
-				MonoVTable *vtable = NULL;
-				mono_field_get_value (object, field, &val);
+				MonoObject** val = NULL;
+				mono_unity_field_get_addr (object, field, &val);
 				mono_add_process_object (val, state);
 			}
 		}
@@ -259,7 +259,7 @@ static void mono_traverse_gc_desc (MonoObject* object, LivenessState* state)
 		gsize offset = ((gsize)1 << (WORDSIZE - 1 - i));
 		if (mask & offset)
 		{
-			MonoObject* val = *(MonoObject**)(((char*)object) + i * sizeof(void*));
+			MonoObject** val = (MonoObject**)(((char*)object) + i * sizeof(void*));
 			mono_add_process_object(val, state);
 		}
 	}
@@ -320,7 +320,7 @@ static void mono_traverse_array (MonoArray* array, LivenessState* state)
 	{
 		for (i = 0; i < array_length; i++)
 		{
-			MonoObject* val =  mono_array_get(array, MonoObject*, i);
+			MonoObject** val = mono_array_addr(array, MonoObject*, i);
 			mono_add_process_object(val, state);
 			
 			// Add 128 objects at a time and then traverse, 64 seems not be enough
@@ -339,7 +339,7 @@ void mono_filter_objects(LivenessState* state)
 	int i = state->first_index_in_all_objects;
 	for ( ; i < state->all_objects->len; i++)
 	{
-		MonoObject* object = state->all_objects->pdata[i];
+		MonoObject* object = *(MonoObject**)state->all_objects->pdata[i];
 		if (should_process_value (object, state->filter))
 			filtered_objects[num_objects++] = object;
 		if (num_objects == 64)
@@ -404,9 +404,9 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 			}
 			else
 			{
-				MonoObject* val = NULL;
+				MonoObject** val = NULL;
 
-				mono_field_static_get_value (mono_class_vtable (domain, klass), field, &val);
+				mono_unity_field_static_get_addr (mono_class_vtable (domain, klass), field, &val);
 
 				if (val)
 				{
@@ -556,7 +556,7 @@ void mono_unity_liveness_finalize (LivenessState* state)
 	int i;
 	for (i = 0; i < state->all_objects->len; i++)
 	{
-		MonoObject* object = g_ptr_array_index(state->all_objects,i);
+		MonoObject* object = *(MonoObject**)g_ptr_array_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
 }
