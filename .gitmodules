@@ -28,4 +28,4 @@
 [submodule "external/buildscripts"]
 	path = external/buildscripts
 	url = https://github.com/Unity-Technologies/monobuildtools
-	branch = unity-future-update-sdk
+	branch = unity-future
