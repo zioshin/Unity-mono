@@ -33,3 +33,4 @@
 [submodule "external/buildscripts"]
 	path = external/buildscripts
 	url = git@github.com:Unity-Technologies/monobuildtools.git
+	branch = unity-mono-4.2.0-branch
