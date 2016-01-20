@@ -136,14 +136,14 @@ namespace object_traversal
         {
             Node root = new Node();
 
-            VerifyObjects("Test4", 1, root);
+            VerifyObjects("Test4", 0, root);
         }
 
         static void Test5()
         {
             Node root = new Node(new Node(), new NodeDerived());
 
-            VerifyObjects("Test5", 3, root);
+            VerifyObjects("Test5", 2, root);
         }
 
         static void Test6()
@@ -151,7 +151,7 @@ namespace object_traversal
             Node useMeTwice = new Node();
             Node root = new Node(useMeTwice, useMeTwice);
 
-            VerifyObjects("Test6", 2, root);
+            VerifyObjects("Test6", 1, root);
         }
 
         static void Test7()
@@ -159,7 +159,7 @@ namespace object_traversal
             Node useMeTwice = new Node();
             Node root = new NodeDerived(useMeTwice, useMeTwice, new Node());
 
-            VerifyObjects("Test7", 3, root);
+            VerifyObjects("Test7", 2, root);
         }
 
         static void Test8()
@@ -179,7 +179,7 @@ namespace object_traversal
             root.o1 = new Node();
             root.o2 = new NodeNotDerived();
 
-            VerifyObjects("Test9", 4, root);
+            VerifyObjects("Test9", 3, root);
         }
 
         static void Test10()
@@ -189,7 +189,7 @@ namespace object_traversal
             root.o1 = new NodeBase();
             root.o2 = new NodeDerived();
 
-            VerifyObjects("Test10", 4, root);
+            VerifyObjects("Test10", 3, root);
         }
 
         static void Test11()
@@ -199,7 +199,7 @@ namespace object_traversal
             root.o1 = new Node();
             root.o2 = root.o1;
 
-            VerifyObjects("Test11", 4, root);
+            VerifyObjects("Test11", 3, root);
         }
 
         static void Test12()
@@ -231,13 +231,13 @@ namespace object_traversal
         static void Test_BigObject1()
         {
             var b = new BigObject() { o1 = new BigObject(), o27 = new BigObject() };
-            VerifyObjects("Test_BigObject1", 3, b, false);
+            VerifyObjects("Test_BigObject1", 2, b, false);
         }
 
         static void Test_BigObject2()
         {
             var b = new TooBigObject() { o1 = new BigObject(), o27 = new BigObject(), o28 = new BigObject() };
-            VerifyObjects("Test_BigObject2", 4, b, false);
+            VerifyObjects("Test_BigObject2", 3, b, false);
         }
 
         static int i = 0;
