@@ -19,6 +19,9 @@ namespace object_traversal
         [DllImport("__Internal", CallingConvention = CallingConvention.Cdecl)]
         static extern IntPtr mono_unity_liveness_calculation_from_root_managed(IntPtr rootHandle, IntPtr typeHandle);
 
+        [DllImport("__Internal", CallingConvention = CallingConvention.Cdecl)]
+        static extern void mono_unity_liveness_calculation_from_root_managed_mutable(IntPtr rootHandle, IntPtr typeHandle, IntPtr targetHandle, IntPtr replacementHandle);
+
         static void Main(string[] args)
         {
             Action[] tests = new Action[] {
@@ -39,6 +42,7 @@ namespace object_traversal
                 Test_Array3,
                 Test_BigObject1,
                 Test_BigObject2,
+                TestMutableFromRoot,
             };
 
             foreach (var test in tests)
@@ -99,6 +103,30 @@ namespace object_traversal
             else
             {
                 Console.WriteLine("PASSED: {0}", label);
+            }
+        }
+
+        static void VerifyMutable(string label, object root, object target, object replacement, bool useFilter, Func<bool> validate)
+        {
+            var typeHandle = GCHandle.Alloc(typeof(Node));
+            var rootHandle = GCHandle.Alloc(root);
+            var targetHandle = GCHandle.Alloc(target);
+            var replacementHandle = GCHandle.Alloc(replacement);
+
+            mono_unity_liveness_calculation_from_root_managed_mutable((IntPtr)rootHandle, useFilter? (IntPtr)typeHandle : IntPtr.Zero, (IntPtr)targetHandle, (IntPtr)replacementHandle);
+
+            typeHandle.Free();
+            rootHandle.Free();
+            targetHandle.Free();
+            replacementHandle.Free();
+
+            if (validate())
+            {
+                Console.WriteLine("PASSED: {0}", label);
+            }
+            else
+            {
+                Console.WriteLine("FAILED: {0}", label);
             }
         }
 
@@ -238,6 +266,16 @@ namespace object_traversal
         {
             var b = new TooBigObject() { o1 = new BigObject(), o27 = new BigObject(), o28 = new BigObject() };
             VerifyObjects("Test_BigObject2", 3, b, false);
+        }
+
+        static void TestMutableFromRoot()
+        {
+            var target = "Old value";
+            var replacement = "New value";
+            var node = new Node ();
+            node.o1 = target;
+
+            VerifyMutable ("TestMutableFromRoot", node, target, replacement, false, () => node.o1 == replacement);
         }
 
         static int i = 0;

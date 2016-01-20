@@ -431,6 +431,24 @@ void mono_unity_liveness_add_object_callback(gpointer* objs, gint count, void* a
 	}
 }
 
+typedef struct
+{
+	MonoObject* targetObject;
+	MonoObject* replacementObject;
+} LivenessReplaceData;
+
+void mono_unity_liveness_replace_object_callback(gpointer* objs, gint count, void* arr)
+{
+	int i;
+	LivenessReplaceData* replaceData = (LivenessReplaceData*)arr;
+	MonoObject*** objects = (MonoObject***)objs;
+	for (i = 0; i < count; i++)
+	{
+		if (*objects[i] == replaceData->targetObject)
+			*objects[i] = replaceData->replacementObject;
+	}
+}
+
 /**
  * mono_unity_liveness_calculation_from_statics_managed:
  *
@@ -525,6 +543,29 @@ gpointer mono_unity_liveness_calculation_from_root_managed(gpointer root_handle,
 	g_ptr_array_free (objects, TRUE);
 
 	return (gpointer)mono_gchandle_new ((MonoObject*)res, FALSE);
+}
+
+void mono_unity_liveness_calculation_from_root_managed_mutable(gpointer root_handle, gpointer filter_handle, gpointer target_handle, gpointer replacement_handle)
+{
+	int i = 0;
+	MonoArray *res = NULL;
+	MonoReflectionType* filter_type = (MonoReflectionType*)mono_gchandle_get_target(GPOINTER_TO_UINT(filter_handle));
+	MonoObject* root = mono_gchandle_get_target(GPOINTER_TO_UINT(root_handle));
+	MonoClass* filter = NULL;
+	LivenessState* liveness_state = NULL;
+	LivenessReplaceData replaceData = { 0 };
+
+	if (filter_type)
+		filter = mono_class_from_mono_type(filter_type->type);
+
+	replaceData.targetObject = mono_gchandle_get_target(GPOINTER_TO_UINT(target_handle));
+	replaceData.replacementObject = mono_gchandle_get_target(GPOINTER_TO_UINT(replacement_handle));
+
+	liveness_state = mono_unity_liveness_calculation_begin(filter, 1000, mono_unity_liveness_replace_object_callback, &replaceData);
+
+	mono_unity_liveness_calculation_from_root(root, liveness_state);
+
+	mono_unity_liveness_calculation_end(liveness_state);
 }
 
 LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata)
