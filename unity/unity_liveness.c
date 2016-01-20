@@ -69,16 +69,20 @@ struct _LivenessState
 	void*               callback_userdata;
 
 	register_object_callback filter_callback;
+
+	register_object_callback mutable_callback;
 };
 
 /* Liveness calculation */
 LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
+LivenessState* mono_unity_liveness_allocate_struct_mutable (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
 void           mono_unity_liveness_stop_gc_world ();
 void           mono_unity_liveness_finalize (LivenessState* state);
 void           mono_unity_liveness_start_gc_world ();
 void           mono_unity_liveness_free_struct (LivenessState* state);
 
 LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
+LivenessState* mono_unity_liveness_calculation_begin_mutable (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
 void           mono_unity_liveness_calculation_end (LivenessState* state);
 
 void           mono_unity_liveness_calculation_from_root (MonoObject* root, LivenessState* state);
@@ -101,7 +105,7 @@ void           mono_unity_liveness_calculation_from_statics (LivenessState* stat
 	((MonoVTable*)(((gsize)(obj)->vtable) & ~(gsize)1))
 
 
-void mono_filter_objects(LivenessState* state);
+void mono_filter_or_mutate_objects(LivenessState* state);
 
 void mono_reset_state(LivenessState* state)
 {
@@ -330,27 +334,36 @@ static void mono_traverse_array (MonoArray* array, LivenessState* state)
 	}
 }
 
+#define PROCESS_OBJECTS(state, callback, read_data) \
+do \
+{ \
+	gpointer filtered_objects[64]; \
+	gint num_objects = 0; \
+\
+	int i = state->first_index_in_all_objects; \
+	for (; i < state->all_objects->len; i++) \
+	{ \
+		gpointer data = state->all_objects->pdata[i]; \
+		MonoObject* object = *(MonoObject**)data; \
+		if (should_process_value(object, state->filter)) \
+			filtered_objects[num_objects++] = read_data(data); \
+		if (num_objects == 64) \
+		{ \
+			callback(filtered_objects, 64, state->callback_userdata); \
+			num_objects = 0; \
+		} \
+	} \
+\
+	if (num_objects != 0) \
+		callback(filtered_objects, num_objects, state->callback_userdata); \
+} while (0)
 
-void mono_filter_objects(LivenessState* state)
+void mono_filter_or_mutate_objects(LivenessState* state)
 {
-	gpointer filtered_objects[64];
-	gint num_objects = 0;
-
-	int i = state->first_index_in_all_objects;
-	for ( ; i < state->all_objects->len; i++)
-	{
-		MonoObject* object = *(MonoObject**)state->all_objects->pdata[i];
-		if (should_process_value (object, state->filter))
-			filtered_objects[num_objects++] = object;
-		if (num_objects == 64)
-		{
-			state->filter_callback(filtered_objects, 64, state->callback_userdata);
-			num_objects = 0;
-		}
-	}
-
-	if (num_objects != 0)
-		state->filter_callback(filtered_objects, num_objects, state->callback_userdata);
+	if (state->mutable_callback)
+		PROCESS_OBJECTS (state, state->mutable_callback, (MonoObject*));
+	else
+		PROCESS_OBJECTS (state, state->filter_callback, *(MonoObject**));
 }
 
 /**
@@ -417,7 +430,7 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 	}
 	mono_traverse_objects (liveness_state);
 	//Filter objects and call callback to register found objects
-	mono_filter_objects(liveness_state);
+	mono_filter_or_mutate_objects (liveness_state);
 }
 
 void mono_unity_liveness_add_object_callback(gpointer* objs, gint count, void* arr)
@@ -503,7 +516,7 @@ void mono_unity_liveness_calculation_from_root (MonoObject* root, LivenessState*
 	mono_traverse_objects (liveness_state);
 
 	//Filter objects and call callback to register found objects
-	mono_filter_objects (liveness_state);
+	mono_filter_or_mutate_objects (liveness_state);
 }
 
 /**
@@ -561,14 +574,14 @@ void mono_unity_liveness_calculation_from_root_managed_mutable(gpointer root_han
 	replaceData.targetObject = mono_gchandle_get_target(GPOINTER_TO_UINT(target_handle));
 	replaceData.replacementObject = mono_gchandle_get_target(GPOINTER_TO_UINT(replacement_handle));
 
-	liveness_state = mono_unity_liveness_calculation_begin(filter, 1000, mono_unity_liveness_replace_object_callback, &replaceData);
+	liveness_state = mono_unity_liveness_calculation_begin_mutable(filter, 1000, mono_unity_liveness_replace_object_callback, &replaceData);
 
 	mono_unity_liveness_calculation_from_root(root, liveness_state);
 
 	mono_unity_liveness_calculation_end(liveness_state);
 }
 
-LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata)
+static LivenessState* mono_unity_liveness_allocate_struct_internal (MonoClass* filter, guint max_count)
 {
 	LivenessState* state = NULL;
 
@@ -578,7 +591,7 @@ LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max
 	// process_array. array that contains the objcets that should be processed. this should run depth first to reduce memory usage
 	// if all_objects run out of space, run through list, add objects that match the filter, clear bit in vtable and then clear the array.
 
-	state = g_new(LivenessState, 1);
+	state = g_new0(LivenessState, 1);
 	max_count = max_count < 1000 ? 1000 : max_count;
 	state->all_objects = array_create_and_initialize(max_count*4);
 	state->process_array = array_create_and_initialize (max_count);
@@ -586,8 +599,23 @@ LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max
 	state->first_index_in_all_objects = 0; 
 	state->filter = filter;
 
-	state->callback_userdata = callback_userdata;
+	return state;
+}
+
+LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata)
+{
+	LivenessState* state = mono_unity_liveness_allocate_struct_internal(filter, max_count);
 	state->filter_callback = callback;
+	state->callback_userdata = callback_userdata;
+
+	return state;
+}
+
+LivenessState* mono_unity_liveness_allocate_struct_mutable (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata)
+{
+	LivenessState* state = mono_unity_liveness_allocate_struct_internal(filter, max_count);
+	state->mutable_callback = callback;
+	state->callback_userdata = callback_userdata;
 
 	return state;
 }
@@ -625,6 +653,14 @@ LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint m
 {
 	LivenessState* state = mono_unity_liveness_allocate_struct (filter, max_count, callback, callback_userdata);
 	mono_unity_liveness_stop_gc_world ();
+	// no allocations can happen beyond this point
+	return state;
+}
+
+LivenessState* mono_unity_liveness_calculation_begin_mutable (MonoClass* filter, guint max_count, register_object_callback mutable_callback, void* callback_userdata)
+{
+	LivenessState* state = mono_unity_liveness_allocate_struct_mutable (filter, max_count, mutable_callback, callback_userdata);
+	mono_unity_liveness_stop_gc_world();
 	// no allocations can happen beyond this point
 	return state;
 }
