@@ -164,22 +164,44 @@ static void mono_traverse_generic_object( MonoObject* object, LivenessState* sta
 static void mono_add_process_object (MonoObject** object_handle, LivenessState* state)
 {
 	MonoObject* object = *object_handle;
-	if (object && !IS_MARKED(object))
+
+	if (object)
 	{
-		gboolean has_references = GET_VTABLE(object)->klass->has_references;
-		if(has_references || should_process_value(object,state->filter))
+		if (state->filter_callback)
+		{
+			if (!IS_MARKED(object))
+			{
+				gboolean has_references = GET_VTABLE(object)->klass->has_references;
+				if (has_references || should_process_value(object, state->filter))
+				{
+					if (array_is_full(state->all_objects))
+						array_safe_grow(state, state->all_objects);
+					array_push_back(state->all_objects, object_handle);
+					MARK_OBJ(object);
+				}
+				// Check if klass has further references - if not skip adding
+				if (has_references)
+				{
+					if (array_is_full(state->process_array))
+						array_safe_grow(state, state->process_array);
+					array_push_back(state->process_array, object);
+				}
+			}
+		}
+		else
 		{
 			if (array_is_full(state->all_objects))
 				array_safe_grow(state, state->all_objects);
 			array_push_back(state->all_objects, object_handle);
+
+			// Check if klass has further references - if not skip adding
+			if (!IS_MARKED(object) && GET_VTABLE(object)->klass->has_references)
+			{
+				if (array_is_full(state->process_array))
+					array_safe_grow(state, state->process_array);
+				array_push_back(state->process_array, object);
+			}
 			MARK_OBJ(object);
-		}
-		// Check if klass has further references - if not skip adding
-		if (has_references)
-		{
-			if(array_is_full(state->process_array))
-				array_safe_grow(state, state->process_array);
-			array_push_back(state->process_array, object);
 		}
 	}
 }

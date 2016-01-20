@@ -43,6 +43,7 @@ namespace object_traversal
                 Test_BigObject1,
                 Test_BigObject2,
                 TestMutableFromRoot,
+                TestMutableFromRoot2
             };
 
             foreach (var test in tests)
@@ -274,8 +275,20 @@ namespace object_traversal
             var replacement = "New value";
             var node = new Node ();
             node.o1 = target;
+            node.o2 = target;
 
-            VerifyMutable ("TestMutableFromRoot", node, target, replacement, false, () => node.o1 == replacement);
+            VerifyMutable ("TestMutableFromRoot", node, target, replacement, false, () => node.o1 == replacement && node.o2 == replacement);
+        }
+
+        static void TestMutableFromRoot2()
+        {
+            var target = new Node ();
+            var replacement = new Node ();
+            var node = new Node ();
+            node.o1 = target;
+            node.o2 = target;
+
+            VerifyMutable ("TestMutableFromRoot2", node, target, replacement, false, () => node.o1 == replacement && node.o2 == replacement);
         }
 
         static int i = 0;
