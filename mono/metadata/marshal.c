@@ -1968,7 +1968,7 @@ emit_struct_conv_full (MonoMethodBuilder *mb, MonoClass *klass, gboolean to_obje
 static void
 emit_struct_conv (MonoMethodBuilder *mb, MonoClass *klass, gboolean to_object)
 {
-	emit_struct_conv_full(mb, klass, to_object, 0);
+	emit_struct_conv_full(mb, klass, to_object, offset_of_first_nonstatic_field(klass));
 }
 
 static void
