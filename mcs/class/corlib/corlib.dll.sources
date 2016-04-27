@@ -160,7 +160,6 @@ System.Deployment.Internal/InternalApplicationIdentityHelper.cs
 System.Diagnostics/Debugger.cs
 System.Diagnostics/StackFrame.cs
 System.Diagnostics/StackTrace.cs
-System.Diagnostics/StackTraceHelper.cs
 System.Diagnostics.Tracing/EventAttribute.cs
 System.Diagnostics.Tracing/EventCommand.cs
 System.Diagnostics.Tracing/EventSource.cs
@@ -196,13 +195,11 @@ System.IO/DriveType.cs
 System.IO/File.cs
 System.IO/FileAccess.cs
 System.IO/FileAttributes.cs
-System.IO/FileInfo.cs
 System.IO/FileMode.cs
 System.IO/FileOptions.cs
 System.IO/FileShare.cs
 System.IO/FileStream.cs
 System.IO/FileStreamAsyncResult.cs
-System.IO/FileSystemInfo.cs
 System.IO/HGlobalUnmanagedMemoryStream.cs
 System.IO/LogcatTextWriter.cs
 System.IO/MonoIO.cs
@@ -1001,7 +998,6 @@ ReferenceSources/SecurityContext.cs
 ../../../external/referencesource/mscorlib/system/int64.cs
 ../../../external/referencesource/mscorlib/system/iobservable.cs
 ../../../external/referencesource/mscorlib/system/iobserver.cs
-../../../external/referencesource/mscorlib/system/io/unmanagedmemoryaccessor.cs
 ../../../external/referencesource/mscorlib/system/iprogress.cs
 ../../../external/referencesource/mscorlib/system/iserviceobjectprovider.cs
 ../../../external/referencesource/mscorlib/system/invalidtimezoneexception.cs
@@ -1199,8 +1195,10 @@ ReferenceSources/SecurityContext.cs
 ../../../external/referencesource/mscorlib/system/io/drivenotfoundexception.cs
 ../../../external/referencesource/mscorlib/system/io/endofstreamexception.cs
 ../../../external/referencesource/mscorlib/system/io/ioexception.cs
+../../../external/referencesource/mscorlib/system/io/fileinfo.cs
 ../../../external/referencesource/mscorlib/system/io/fileloadexception.cs
 ../../../external/referencesource/mscorlib/system/io/filenotfoundexception.cs
+../../../external/referencesource/mscorlib/system/io/filesysteminfo.cs
 ../../../external/referencesource/mscorlib/system/io/memorystream.cs
 ../../../external/referencesource/mscorlib/system/io/pathtoolongexception.cs
 ../../../external/referencesource/mscorlib/system/io/pinnedbuffermemorystream.cs
@@ -1211,6 +1209,7 @@ ReferenceSources/SecurityContext.cs
 ../../../external/referencesource/mscorlib/system/io/stringwriter.cs
 ../../../external/referencesource/mscorlib/system/io/textreader.cs
 ../../../external/referencesource/mscorlib/system/io/textwriter.cs
+../../../external/referencesource/mscorlib/system/io/unmanagedmemoryaccessor.cs
 ../../../external/referencesource/mscorlib/system/io/unmanagedmemorystream.cs
 ../../../external/referencesource/mscorlib/system/io/unmanagedmemorystreamwrapper.cs
 

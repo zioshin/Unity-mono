@@ -453,6 +453,8 @@ mono_domain_finalize (MonoDomain *domain, guint32 timeout)
 		mono_gc_finalize_threadpool_threads ();
 	}
 
+	mono_profiler_appdomain_event (domain, MONO_PROFILE_END_UNLOAD);
+
 	return TRUE;
 }
 
@@ -826,7 +828,9 @@ static
 void
 mono_gc_init_finalizer_thread (void)
 {
-	gc_thread = mono_thread_create_internal (mono_domain_get (), finalizer_thread, NULL, FALSE, 0);
+	MonoError error;
+	gc_thread = mono_thread_create_internal (mono_domain_get (), finalizer_thread, NULL, FALSE, 0, &error);
+	mono_error_assert_ok (&error);
 }
 
 void
