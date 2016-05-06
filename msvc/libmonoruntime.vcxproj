@@ -95,6 +95,8 @@
     <ClCompile Include="..\mono\metadata\sgen-mono.c" />
     <ClCompile Include="..\mono\metadata\threadpool-ms-io.c" />
     <ClCompile Include="..\mono\metadata\threadpool-ms.c" />
+    <ClCompile Include="..\mono\metadata\unity-liveness.c" />
+    <ClCompile Include="..\mono\metadata\unity-utils.c" />
     <ClCompile Include="..\mono\sgen\sgen-alloc.c" />
     <ClCompile Include="..\mono\metadata\sgen-bridge.c" />
     <ClCompile Include="..\mono\sgen\sgen-cardtable.c" />
@@ -162,6 +164,7 @@
     <ClInclude Include="..\mono\metadata\seq-points-data.h" />
     <ClInclude Include="..\mono\metadata\threadpool-ms-io.h" />
     <ClInclude Include="..\mono\metadata\threadpool-ms.h" />
+    <ClInclude Include="..\mono\metadata\unity-utils.h" />
     <ClInclude Include="..\mono\sgen\gc-internal-agnostic.h" />
     <ClInclude Include="..\mono\metadata\icall-def.h" />
     <ClInclude Include="..\mono\metadata\image.h" />

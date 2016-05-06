@@ -410,6 +410,10 @@ struct _MonoDomain {
 	MonoClass *sockaddr_class;
 	MonoClassField *sockaddr_data_field;
 
+	/* unity specific, cache the class for each static field */
+	/* a GC-tracked array to keep references to the static fields of types */
+	MonoClass **static_data_class_array;
+
 	/* Cache function pointers for architectures  */
 	/* that require wrappers */
 	GHashTable *ftnptrs_hash;
