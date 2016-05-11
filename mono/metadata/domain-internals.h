@@ -664,7 +664,7 @@ mono_runtime_set_no_exec (gboolean val);
 gboolean
 mono_runtime_get_no_exec (void);
 
-gboolean
+MONO_API gboolean
 mono_assembly_name_parse (const char *name, MonoAssemblyName *aname);
 
 MonoImage *mono_assembly_open_from_bundle (const char *filename,

@@ -22,6 +22,11 @@ custom_growable_array* array_create_and_initialize (guint capacity)
 	return array;
 }
 
+gboolean array_is_full(custom_growable_array* array)
+{
+	return g_ptr_array_reserved_size(array) == array->len;
+}
+
 void array_destroy (custom_growable_array* array)
 {
 	g_ptr_array_free(array, TRUE);
@@ -38,11 +43,6 @@ gpointer array_pop_back(custom_growable_array* array)
 {
 	array->len--;
 	return array->pdata[array->len];
-}
-
-gboolean array_is_full(custom_growable_array* array)
-{
-	return g_ptr_array_reserved_size(array) == array->len;
 }
 
 void array_clear(custom_growable_array* array)
@@ -80,11 +80,11 @@ void           mono_unity_liveness_finalize (LivenessState* state);
 void           mono_unity_liveness_start_gc_world ();
 void           mono_unity_liveness_free_struct (LivenessState* state);
 
-LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
-void           mono_unity_liveness_calculation_end (LivenessState* state);
+MONO_API LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
+MONO_API void           mono_unity_liveness_calculation_end (LivenessState* state);
 
-void           mono_unity_liveness_calculation_from_root (MonoObject* root, LivenessState* state);
-void           mono_unity_liveness_calculation_from_statics (LivenessState* state);
+MONO_API void           mono_unity_liveness_calculation_from_root (MonoObject* root, LivenessState* state);
+MONO_API void           mono_unity_liveness_calculation_from_statics (LivenessState* state);
 
 #define MARK_OBJ(obj) \
 	do { \
@@ -447,6 +447,7 @@ gpointer mono_unity_liveness_calculation_from_statics_managed(gpointer filter_ha
 	MonoClass* filter = NULL;
 	GPtrArray* objects = NULL;
 	LivenessState* liveness_state = NULL;
+	MonoError* error = NULL;
 
 	if (filter_type)
 		filter = mono_class_from_mono_type (filter_type->type);
@@ -460,7 +461,7 @@ gpointer mono_unity_liveness_calculation_from_statics_managed(gpointer filter_ha
 
 	mono_unity_liveness_calculation_end (liveness_state);
 
-	res = mono_array_new (mono_domain_get (), filter ? filter: mono_defaults.object_class, objects->len);
+	res = mono_array_new_checked (mono_domain_get (), filter ? filter: mono_defaults.object_class, objects->len, error);
 	for (i = 0; i < objects->len; ++i) {
 		MonoObject* o = g_ptr_array_index (objects, i);
 		mono_array_setref (res, i, o);
@@ -505,6 +506,7 @@ gpointer mono_unity_liveness_calculation_from_root_managed(gpointer root_handle,
 	MonoClass* filter = NULL;
 	GPtrArray* objects = NULL;
 	LivenessState* liveness_state = NULL;
+	MonoError* error = NULL;
 
 	objects = g_ptr_array_sized_new(1000);
 	objects->len = 0;
@@ -518,7 +520,7 @@ gpointer mono_unity_liveness_calculation_from_root_managed(gpointer root_handle,
 
 	mono_unity_liveness_calculation_end (liveness_state);
 
-	res = mono_array_new (mono_domain_get (), filter ? filter: mono_defaults.object_class, objects->len);
+	res = mono_array_new_checked (mono_domain_get (), filter ? filter: mono_defaults.object_class, objects->len, error);
 	for (i = 0; i < objects->len; ++i) {
 		MonoObject* o = g_ptr_array_index (objects, i);
 		mono_array_setref (res, i, o);

@@ -217,7 +217,10 @@ common_sources = \
 	seq-points-data.h	\
 	seq-points-data.c	\
 	handle.c	\
-	handle.h
+	handle.h	\
+	unity-utils.c	\
+	unity-utils.h	\
+	unity-liveness.c
 
 
 # These source files have compile time dependencies on GC code

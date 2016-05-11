@@ -1,4 +1,5 @@
 #include <config.h>
+#include <mono/utils/mono-publib.h>
 #include <mono/metadata/unity-utils.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +62,7 @@ void mono_unity_write_to_unity_log(MonoString* str)
 }
 
 
-void mono_unity_set_embeddinghostname(const char* name)
+MONO_API void mono_unity_set_embeddinghostname(const char* name)
 {
 	gEmbeddingHostName = g_string_new(name);
 }
@@ -94,13 +95,13 @@ void mono_unity_set_vprintf_func (vprintf_func func)
 	//set_vprintf_func (func);
 }
 
-gboolean
+MONO_API gboolean
 mono_unity_class_is_interface (MonoClass* klass)
 {
 	return MONO_CLASS_IS_INTERFACE(klass);
 }
 
-gboolean
+MONO_API gboolean
 mono_unity_class_is_abstract (MonoClass* klass)
 {
 	return (klass->flags & TYPE_ATTRIBUTE_ABSTRACT);
@@ -140,7 +141,7 @@ unsigned mono_unity_get_all_classes_with_name_case (MonoImage *image, const char
 	return length;
 }
 
-gboolean
+MONO_API gboolean
 unity_mono_method_is_inflated (MonoMethod* method)
 {
 	return method->is_inflated;
@@ -161,44 +162,45 @@ unity_mono_reflection_method_get_method(MonoReflectionMethod* mrf)
 	return mrf->method;
 }
 
-void mono_unity_g_free(void *ptr)
+MONO_API void
+mono_unity_g_free(void *ptr)
 {
 	g_free (ptr);
 }
 
-gboolean
+MONO_API gboolean
 mono_class_is_generic (MonoClass *klass)
 {
 	g_assert(klass);
 	return (klass->is_generic);
 }
 
-gboolean
+MONO_API gboolean
 mono_class_is_inflated (MonoClass *klass)
 {
 	g_assert(klass);
 	return (klass->is_inflated);
 }
 
-void
+MONO_API void
 mono_thread_pool_cleanup (void)
 {
 	mono_threadpool_ms_cleanup ();
 }
 
-void*
+MONO_API void*
 mono_class_get_userdata (MonoClass* klass)
 {
 	return klass->unity_user_data;
 }
 
-void
+MONO_API void
 mono_class_set_userdata(MonoClass* klass, void* userdata)
 {
 	klass->unity_user_data = userdata;
 }
 
-int
+MONO_API int
 mono_class_get_userdata_offset()
 {
 	return offsetof(struct _MonoClass, unity_user_data);
