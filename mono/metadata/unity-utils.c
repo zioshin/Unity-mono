@@ -205,3 +205,19 @@ mono_class_get_userdata_offset()
 {
 	return offsetof(struct _MonoClass, unity_user_data);
 }
+
+
+static UnityFindPluginCallback unity_find_plugin_callback;
+
+MONO_API void
+mono_set_find_plugin_callback (UnityFindPluginCallback find)
+{
+	unity_find_plugin_callback = find;
+}
+
+MONO_API UnityFindPluginCallback
+mono_get_find_plugin_callback ()
+{
+	return unity_find_plugin_callback;
+}
+
