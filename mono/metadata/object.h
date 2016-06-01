@@ -120,6 +120,7 @@ MONO_RT_EXTERNAL_ONLY
 MONO_API MonoString*
 mono_string_new_size	    (MonoDomain *domain, int32_t len);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API MonoString*
 mono_ldstr		    (MonoDomain *domain, MonoImage *image, uint32_t str_index);
 
@@ -144,6 +145,7 @@ MONO_RT_EXTERNAL_ONLY
 MONO_API MonoString*
 mono_string_new_utf32	    (MonoDomain *domain, const mono_unichar4 *text, int32_t len);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API char *
 mono_string_to_utf8	    (MonoString *string_obj);
 
@@ -156,9 +158,11 @@ mono_string_to_utf16	    (MonoString *string_obj);
 MONO_API mono_unichar4 *
 mono_string_to_utf32	    (MonoString *string_obj);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API MonoString *
 mono_string_from_utf16	    (mono_unichar2 *data);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API MonoString *
 mono_string_from_utf32	    (mono_unichar4 *data);
 
@@ -252,10 +256,12 @@ mono_get_delegate_begin_invoke (MonoClass *klass);
 MONO_API MonoMethod *
 mono_get_delegate_end_invoke (MonoClass *klass);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API MonoObject*
 mono_runtime_delegate_invoke (MonoObject *delegate, void **params, 
 			      MonoObject **exc);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API MonoObject*
 mono_runtime_invoke_array   (MonoMethod *method, void *obj, MonoArray *params,
 			     MonoObject **exc);
@@ -309,6 +315,7 @@ mono_unhandled_exception    (MonoObject *exc);
 MONO_API void
 mono_print_unhandled_exception (MonoObject *exc);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API void* 
 mono_compile_method	   (MonoMethod *method);
 
@@ -322,6 +329,7 @@ mono_field_static_set_value (MonoVTable *vt, MonoClassField *field, void *value)
 MONO_API void
 mono_field_get_value (MonoObject *obj, MonoClassField *field, void *value);
 
+MONO_RT_EXTERNAL_ONLY
 MONO_API void
 mono_field_static_get_value (MonoVTable *vt, MonoClassField *field, void *value);
 

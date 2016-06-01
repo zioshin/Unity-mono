@@ -585,6 +585,12 @@ endif
 
 endif
 
+if ENABLE_COOP
+COOP_DISABLED_TESTS= thunks.exe
+else
+COOP_DISABLED_TESTS= 
+endif
+
 # The two finalizer tests only work under sgen
 # gc-altstack.exe fails under boehm because it has no support for altstack
 # bug-459094.exe creates an extremely deep directory tree
@@ -598,7 +604,8 @@ DISABLED_TESTS=			\
 	delegate-invoke.exe \
 	bug-Xamarin-5278.exe \
 	$(PLATFORM_DISABLED_TESTS) \
-	$(EXTRA_DISABLED_TESTS)
+	$(EXTRA_DISABLED_TESTS) \
+	$(COOP_DISABLED_TESTS)
 
 DISABLED_TESTS_WRENCH=	\
 	$(DISABLED_TESTS)	\
@@ -768,25 +775,7 @@ endif
 test-env-options:
 	MONO_ENV_OPTIONS="--version" $(RUNTIME) array-init.exe | grep -q Architecture:
 
-if AMD64
 test-sgen : sgen-tests
-else
-if X86
-if HOST_WIN32
-test-sgen :
-else
-test-sgen : sgen-tests
-endif
-else
-if ARM
-test-sgen : sgen-tests
-else
-if S390X
-test-sgen : sgen-regular-tests
-endif
-endif
-endif
-endif
 
 # Precompile the test assemblies in parallel
 compile-tests:
@@ -964,14 +953,16 @@ debug-casts:
 	@$(MCS) -r:TestDriver.dll $(srcdir)/debug-casts.cs
 	@$(RUNTIME) --debug=casts debug-casts.exe
 
-EXTRA_DIST += sgen-bridge.cs sgen-descriptors.cs sgen-gshared-vtype.cs sgen-bridge-major-fragmentation.cs sgen-domain-unload.cs sgen-weakref-stress.cs sgen-cementing-stress.cs sgen-case-23400.cs 	finalizer-wait.cs critical-finalizers.cs sgen-domain-unload-2.cs sgen-suspend.cs sgen-new-threads-dont-join-stw.cs sgen-bridge-xref.cs bug-17590.cs sgen-toggleref.cs sgen-bridge-gchandle.cs
+EXTRA_DIST += sgen-bridge.cs sgen-descriptors.cs sgen-gshared-vtype.cs sgen-bridge-major-fragmentation.cs sgen-domain-unload.cs sgen-weakref-stress.cs sgen-cementing-stress.cs sgen-case-23400.cs 	finalizer-wait.cs critical-finalizers.cs sgen-domain-unload-2.cs sgen-suspend.cs sgen-new-threads-dont-join-stw.cs sgen-new-threads-dont-join-stw-2.cs sgen-bridge-xref.cs bug-17590.cs sgen-toggleref.cs sgen-bridge-gchandle.cs
 
 
 sgen-tests:
 	$(MAKE) sgen-regular-tests
+if !S390X
 	$(MAKE) sgen-toggleref-tests
 	$(MAKE) sgen-bridge-tests
 	$(MAKE) sgen-bridge2-tests
+endif
 
 SGEN_REGULAR_TESTS =	\
 	finalizer-wait.exe	\
@@ -984,6 +975,7 @@ SGEN_REGULAR_TESTS =	\
 	sgen-cementing-stress.exe	\
 	sgen-case-23400.exe	\
 	sgen-new-threads-dont-join-stw.exe	\
+	sgen-new-threads-dont-join-stw-2.exe	\
 	gc-graystack-stress.exe	\
 	bug-17590.exe
 

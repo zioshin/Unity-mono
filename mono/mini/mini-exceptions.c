@@ -1332,7 +1332,8 @@ setup_stack_trace (MonoException *mono_ex, GSList *dynamic_methods, MonoArray *i
 					if (dis_link) {
 						MonoObject *o = mono_gchandle_get_target (dis_link);
 						if (o) {
-							list = mono_mlist_prepend (list, o);
+							list = mono_mlist_prepend_checked (list, o, &error);
+							mono_error_assert_ok (&error);
 						}
 					}
 				}
@@ -1506,6 +1507,7 @@ mono_handle_exception_internal_first_pass (MonoContext *ctx, MonoObject *obj, gi
 					if (is_user_frame)
 						setup_stack_trace (mono_ex, dynamic_methods, initial_trace_ips, &trace_ips);
 
+#ifndef MONO_CROSS_COMPILE
 #ifdef MONO_CONTEXT_SET_LLVM_EXC_REG
 					if (ji->from_llvm)
 						MONO_CONTEXT_SET_LLVM_EXC_REG (ctx, ex_obj);
@@ -1516,6 +1518,7 @@ mono_handle_exception_internal_first_pass (MonoContext *ctx, MonoObject *obj, gi
 					g_assert (!ji->from_llvm);
 					/* store the exception object in bp + ei->exvar_offset */
 					*((gpointer *)(gpointer)((char *)MONO_CONTEXT_GET_BP (ctx) + ei->exvar_offset)) = ex_obj;
+#endif
 #endif
 
 #ifdef MONO_CONTEXT_SET_LLVM_EH_SELECTOR_REG
@@ -1548,6 +1551,8 @@ mono_handle_exception_internal_first_pass (MonoContext *ctx, MonoObject *obj, gi
 					}
 				}
 
+				MonoError isinst_error;
+				mono_error_init (&isinst_error);
 				if (ei->flags == MONO_EXCEPTION_CLAUSE_NONE && mono_object_isinst_checked (ex_obj, catch_class, &error)) {
 					setup_stack_trace (mono_ex, dynamic_methods, initial_trace_ips, &trace_ips);
 					g_slist_free (dynamic_methods);
@@ -1559,7 +1564,7 @@ mono_handle_exception_internal_first_pass (MonoContext *ctx, MonoObject *obj, gi
 					MONO_CONTEXT_SET_IP (ctx, ei->handler_start);
 					return TRUE;
 				}
-				mono_error_cleanup (&error);
+				mono_error_cleanup (&isinst_error);
 			}
 		}
 
@@ -1692,7 +1697,15 @@ mono_handle_exception_internal (MonoContext *ctx, MonoObject *obj, gboolean resu
 				mono_error_assert_ok (&error);
 			}
 			if (msg == NULL) {
-				msg = message ? mono_string_to_utf8 ((MonoString *) message) : g_strdup ("(System.Exception.Message property not available)");
+				if (message) {
+					msg = mono_string_to_utf8_checked ((MonoString *) message, &error);
+					if (!is_ok (&error)) {
+						mono_error_cleanup (&error);
+						msg = g_strdup ("(error while display System.Exception.Message property)");
+					}
+				} else {
+					msg = g_strdup ("(System.Exception.Message property not available)");
+				}
 			}
 			g_print ("[%p:] EXCEPTION handling: %s.%s: %s\n", (void*)mono_native_thread_id_get (), mono_object_class (obj)->name_space, mono_object_class (obj)->name, msg);
 			g_free (msg);
@@ -1821,12 +1834,14 @@ mono_handle_exception_internal (MonoContext *ctx, MonoObject *obj, gboolean resu
 					ex_obj = obj;
 
 				if (((ei->flags == MONO_EXCEPTION_CLAUSE_NONE) || (ei->flags == MONO_EXCEPTION_CLAUSE_FILTER))) {
+#ifndef MONO_CROSS_COMPILE
 #ifdef MONO_CONTEXT_SET_LLVM_EXC_REG
 					MONO_CONTEXT_SET_LLVM_EXC_REG (ctx, ex_obj);
 #else
 					g_assert (!ji->from_llvm);
 					/* store the exception object in bp + ei->exvar_offset */
 					*((gpointer *)(gpointer)((char *)MONO_CONTEXT_GET_BP (ctx) + ei->exvar_offset)) = ex_obj;
+#endif
 #endif
 				}
 
@@ -2001,6 +2016,8 @@ mono_debugger_run_finally (MonoContext *start_ctx)
 gboolean
 mono_handle_exception (MonoContext *ctx, MonoObject *obj)
 {
+	MONO_REQ_GC_UNSAFE_MODE;
+
 #ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->exceptions_thrown++;
 #endif
@@ -2141,6 +2158,8 @@ restore_stack_protection (void)
 gpointer
 mono_altstack_restore_prot (mgreg_t *regs, guint8 *code, gpointer *tramp_data, guint8* tramp)
 {
+	MONO_REQ_GC_UNSAFE_MODE;
+
 	void (*func)(void) = (void (*)(void))tramp_data;
 	func ();
 	return NULL;
@@ -2542,6 +2561,8 @@ mono_print_thread_dump_from_ctx (MonoContext *ctx)
 void
 mono_resume_unwind (MonoContext *ctx)
 {
+	MONO_REQ_GC_UNSAFE_MODE;
+
 	MonoJitTlsData *jit_tls = (MonoJitTlsData *)mono_native_tls_get_value (mono_jit_tls_id);
 	MonoContext new_ctx;
 
@@ -2818,8 +2839,14 @@ mono_invoke_unhandled_exception_hook (MonoObject *exc)
 		MonoString *str = mono_object_to_string (exc, &other);
 		char *msg = NULL;
 		
-		if (str)
-			msg = mono_string_to_utf8 (str);
+		if (str) {
+			MonoError inner_error;
+			msg = mono_string_to_utf8_checked (str, &inner_error);
+			if (!is_ok (&inner_error)) {
+				msg = g_strdup_printf ("Nested exception while formatting original exception");
+				mono_error_cleanup (&inner_error);
+			}
+		}
 		else if (other) {
 			char *original_backtrace = mono_exception_get_managed_backtrace ((MonoException*)exc);
 			char *nested_backtrace = mono_exception_get_managed_backtrace ((MonoException*)other);

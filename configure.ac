@@ -1,7 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 #AC_PREREQ([2.62])
 
-AC_INIT(mono, [4.5.1],
+# when bumping version number below, keep it in sync with man/mono.1 too
+AC_INIT(mono, [4.5.2],
         [http://bugzilla.xamarin.com/enter_bug.cgi?classification=Mono])
 
 AC_CONFIG_SRCDIR([README.md])
@@ -2549,9 +2550,6 @@ if test "x$enable_nacl_codegen" = "xyes"; then
    MONO_NACL_ALIGN_MASK_OFF=1
    AC_DEFINE(TARGET_NACL, 1, [...])
    AC_DEFINE(__native_client_codegen__, 1, [...])
-else
-   MONO_NACL_ALIGN_MASK_OFF=0
-   AC_DEFINE(__default_codegen__, 1, [...])
 fi
 if test "x$enable_nacl_gc" = "xyes"; then
    if test "x$TARGET" = "xAMD64" -o "x$TARGET" = "xX86"; then
@@ -2873,6 +2871,7 @@ case "$host" in
 		TARGET=ARM;
 		TARGET_SYS=WATCHOS
 		arch_target=arm;
+		arm_fpu=VFP_HARD
 		ACCESS_UNALIGNED="no"
 		CPPFLAGS="$CPPFLAGS -D__ARM_EABI__"
 		;;
@@ -2908,6 +2907,7 @@ case "$host" in
 		TARGET=ARM64
 		arch_target=arm64
 		boehm_supported=false
+		AOT_SUPPORTED="yes"
 		;;
 	s390x-*-linux*)
 		TARGET=S390X;
@@ -2933,6 +2933,7 @@ if test "x$host" != "x$target"; then
 		with_tls=pthread
 		case "$target" in
 		armv7k-*)
+			arm_fpu=VFP_HARD
 			AC_DEFINE(TARGET_WATCHOS, 1, [...])
 			;;
 		esac		
@@ -3447,6 +3448,10 @@ if test ${TARGET} = ARM; then
 		])
 	fi
 
+	if test x$arm_fpu != x; then
+	   fpu=$arm_fpu
+	fi
+
 	AC_MSG_RESULT($fpu)
 	CPPFLAGS="$CPPFLAGS -DARM_FPU_$fpu=1"
 	unset fpu
@@ -3510,12 +3515,6 @@ if test ${TARGET} = ARM; then
 	fi
 fi
 
-if test ${TARGET} = ARM; then
-	if test "x${with_jumptables}" = "xyes"; then
-                AC_DEFINE(USE_JUMP_TABLES, 1, Use jump tables in JIT)
-        fi
-fi
-
 if test ${TARGET} = unknown; then
 	CPPFLAGS="$CPPFLAGS -DNO_PORT"
 	AC_MSG_WARN("mono has not been ported to $host: some things may not work.")
@@ -3558,20 +3557,6 @@ AC_ARG_WITH(bitcode,         [  --with-bitcode=yes,no           If bitcode is en
 AC_ARG_WITH(xammac,          [  --with-xammac=yes,no            If you want to build the Xamarin.Mac assemblies (defaults to no)],    [], [with_xammac=no])
 AC_ARG_WITH(mobile_static,   [  --with-mobile_static=yes,no     If you want to build the mobile_static assemblies (defaults to no)],  [], [with_mobile_static=no])
 
-OPROFILE=no
-AC_ARG_WITH(oprofile,[  --with-oprofile=no,<oprofile install dir>   Enable oprofile support (defaults to no)],[
-	if test x$with_oprofile != xno; then
-	    oprofile_include=$with_oprofile/include
-	    if test ! -f $oprofile_include/opagent.h; then
-	   	  AC_MSG_ERROR([oprofile include file not found at $oprofile_include/opagent.h])
-		fi
-	    OPROFILE=yes
-		OPROFILE_CFLAGS="-I$oprofile_include"
-	    OPROFILE_LIBS="-L$with_oprofile/lib/oprofile -lopagent"
-	    AC_DEFINE(HAVE_OPROFILE,1,[Have oprofile support])
-	fi
-])
-
 MALLOC_MEMPOOLS=no
 AC_ARG_WITH(malloc_mempools,[  --with-malloc-mempools=yes,no  Use malloc for each single mempool allocation (only for runtime debugging, defaults to no)],[
 	if test x$with_malloc_mempools = xyes; then
@@ -3602,6 +3587,8 @@ AC_ARG_WITH(cooperative_gc, [  --with-cooperative-gc=yes|no      Enable cooperat
 		AC_DEFINE(USE_COOP_GC,1,[Enable cooperative stop-the-world garbage collection.])
 	fi
 ], [with_cooperative_gc=no])
+
+AM_CONDITIONAL([ENABLE_COOP], [test x$with_cooperative_gc != xno])
 
 AC_ARG_ENABLE(checked_build, [  --enable-checked-build=LIST      To enable checked build (expensive asserts), configure with a comma-separated LIST of checked build modules and then include that same list in the environment variable MONO_CHECK_MODE at runtime. Recognized checked build modules: all, gc, metadata, thread],[
 
@@ -3680,10 +3667,6 @@ AC_SUBST(docs_dir)
 
 ## Maybe should also disable if mcsdir is invalid.  Let's punt the issue for now.
 AM_CONDITIONAL(BUILD_MCS, [test x$cross_compiling = xno && test x$enable_mcs_build != xno])
-
-AM_CONDITIONAL(HAVE_OPROFILE, test x$OPROFILE = xyes)
-AC_SUBST(OPROFILE_CFLAGS)
-AC_SUBST(OPROFILE_LIBS)
 
 libmono_ldflags="$libmono_ldflags $LIBS"
 
@@ -4106,7 +4089,6 @@ echo "
 	TLS:           $with_tls
 	SIGALTSTACK:   $with_sigaltstack
 	Engine:        $jit_status
-	oprofile:      $OPROFILE
 	BigArrays:     $enable_big_arrays
 	DTrace:        $enable_dtrace
 	LLVM Back End: $enable_llvm (dynamically loaded: $enable_loadedllvm)
