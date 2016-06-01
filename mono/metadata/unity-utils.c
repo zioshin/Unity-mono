@@ -55,13 +55,6 @@ void mono_unity_set_unhandled_exception_handler(void* handler)
 GString* gEmbeddingHostName = 0;
 
 
-void mono_unity_write_to_unity_log(MonoString* str)
-{
-	fprintf(stdout, mono_string_to_utf8(str));
-	fflush(stdout);
-}
-
-
 MONO_API void mono_unity_set_embeddinghostname(const char* name)
 {
 	gEmbeddingHostName = g_string_new(name);
