@@ -6,6 +6,7 @@
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/domain-internals.h>
+#include <mono/utils/mono-error.h>
 
 typedef struct _LivenessState LivenessState;
 
@@ -406,14 +407,16 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 			}
 			else
 			{
+				MonoError error;
 				MonoObject* val = NULL;
 
-				mono_field_static_get_value (mono_class_vtable (domain, klass), field, &val);
+				mono_field_static_get_value_checked (mono_class_vtable (domain, klass), field, &val, &error);
 
-				if (val)
+				if (val && mono_error_ok (&error))
 				{
 					mono_add_process_object(val, liveness_state);
 				}
+				mono_error_cleanup (&error);
 			}
 		}
 	}
