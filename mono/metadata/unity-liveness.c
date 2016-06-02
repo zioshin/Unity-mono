@@ -74,11 +74,11 @@ struct _LivenessState
 };
 
 /* Liveness calculation */
-LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
-void           mono_unity_liveness_stop_gc_world ();
-void           mono_unity_liveness_finalize (LivenessState* state);
-void           mono_unity_liveness_start_gc_world ();
-void           mono_unity_liveness_free_struct (LivenessState* state);
+MONO_API LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
+MONO_API void           mono_unity_liveness_stop_gc_world ();
+MONO_API void           mono_unity_liveness_finalize (LivenessState* state);
+MONO_API void           mono_unity_liveness_start_gc_world ();
+MONO_API void           mono_unity_liveness_free_struct (LivenessState* state);
 
 MONO_API LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata);
 MONO_API void           mono_unity_liveness_calculation_end (LivenessState* state);
