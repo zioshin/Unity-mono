@@ -1282,7 +1282,7 @@ mono_class_get_exception_data (MonoClass *klass);
 MonoException*
 mono_class_get_exception_for_failure (MonoClass *klass);
 
-char*
+MONO_API char*
 mono_type_get_name_full (MonoType *type, MonoTypeNameFormat format);
 
 char*
