@@ -929,3 +929,4 @@ mono_unity_liveness_calculation_from_statics
 unity_mono_reflection_method_get_method
 mono_unity_g_free
 mono_set_find_plugin_callback
+mono_type_get_name_full
