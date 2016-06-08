@@ -326,7 +326,7 @@ nursery_canaries_enabled (void)
 
 #define safe_object_get_size	sgen_safe_object_get_size
 
-#if defined(PLATFORM_MACOSX) || defined(HOST_WIN32) || (defined(__linux__) && !defined(PLATFORM_ANDROID))
+#if defined(HAVE_CONC_GC_AS_DEFAULT)
 /* Use concurrent major on deskstop platforms */
 #define DEFAULT_MAJOR_INIT sgen_marksweep_conc_init
 #define DEFAULT_MAJOR_NAME "marksweep-conc"
@@ -1462,6 +1462,7 @@ enqueue_scan_from_roots_jobs (char *heap_start, char *heap_end, SgenObjectOperat
 	/* Threads */
 
 	stdj = (ScanThreadDataJob*)sgen_thread_pool_job_alloc ("scan thread data", job_scan_thread_data, sizeof (ScanThreadDataJob));
+	stdj->ops = ops;
 	stdj->heap_start = heap_start;
 	stdj->heap_end = heap_end;
 	sgen_workers_enqueue_job (&stdj->job, enqueue);
