@@ -605,7 +605,9 @@ compute_base (char *path)
 	if (p == NULL)
 		return NULL;
 	
-	if (strcmp (p, "/bin") != 0)
+	/* Unity overlays multiple platform installs in a single top level directory 
+	 * but puts executables in their own platform specific directories. */
+	if (strcmp (p, "/bin") && strcmp (p, "/bin-linux32") && strcmp (p, "/bin-linux64"))
 		return NULL;
 	*p = 0;
 	return path;
