@@ -31,5 +31,5 @@
 	path = external/Lucene.Net.Light
 	url = git://github.com/mono/Lucene.Net.Light.git
 [submodule "external/monobuildtools"]
-	path = external/monobuildtools
+	path = external/buildscripts
 	url = git@github.com:Unity-Technologies/monobuildtools.git
