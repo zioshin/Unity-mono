@@ -24,6 +24,7 @@
 #define TLS_VECTOR_OFFSET_CATS 0x60
 #define TLS_VECTOR_OFFSET_10_9 0xe0
 #define TLS_VECTOR_OFFSET_10_11 0x100
+#define TLS_VECTOR_OFFSET_10_12 0xf0
 
 /* This is 2 slots less than the known low */
 #define TLS_PROBE_LOW_WATERMARK 0x50
@@ -139,6 +140,10 @@ mono_mach_init (pthread_key_t key)
 		goto ok;
 
 	tls_vector_offset = TLS_VECTOR_OFFSET_10_11;
+	if (mono_mach_arch_get_tls_value_from_thread (pthread_self (), key) == canary)
+		goto ok;
+
+	tls_vector_offset = TLS_VECTOR_OFFSET_10_12;
 	if (mono_mach_arch_get_tls_value_from_thread (pthread_self (), key) == canary)
 		goto ok;
 
