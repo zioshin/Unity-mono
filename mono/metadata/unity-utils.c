@@ -221,3 +221,59 @@ mono_get_find_plugin_callback ()
 	return unity_find_plugin_callback;
 }
 
+MonoAssembly* mono_unity_mscorlib()
+{
+	return mono_defaults.corlib->assembly;
+}
+
+const char* mono_unity_image_name_for(MonoMethod* method)
+{
+	return method->klass->image->assembly_name;
+}
+
+void* mono_unity_get_field_address(MonoObject *obj, MonoVTable *vt, MonoClassField *field)
+{
+	// This is a copy of mono_field_get_addr - we need to consider how to expose that on the public API.
+	MONO_REQ_GC_UNSAFE_MODE;
+
+	guint8 *src;
+
+	if (field->type->attrs & FIELD_ATTRIBUTE_STATIC) {
+		if (field->offset == -1) {
+			/* Special static */
+			gpointer addr;
+
+			mono_domain_lock(vt->domain);
+			addr = g_hash_table_lookup(vt->domain->special_static_fields, field);
+			mono_domain_unlock(vt->domain);
+			src = (guint8 *)mono_get_special_static_data(GPOINTER_TO_UINT(addr));
+		}
+		else {
+			src = (guint8*)mono_vtable_get_static_field_data(vt) + field->offset;
+		}
+	}
+	else {
+		src = (guint8*)obj + field->offset;
+	}
+
+	return src;
+}
+
+MonoObject* mono_unity_compare_exchange(MonoObject **location, MonoObject *value, MonoObject *comparand)
+{
+	return ves_icall_System_Threading_Interlocked_CompareExchange_T(location, value, comparand);
+}
+
+void mono_unity_init_obj(void* obj, MonoClass* klass)
+{
+	if (klass->valuetype)
+		memset(obj, 0, klass->instance_size - sizeof(MonoObject));
+	else
+		*(MonoObject**)obj = NULL;
+}
+
+MonoObject* mono_unity_isinst_sealed(MonoObject* obj, MonoClass* targetType)
+{
+	return obj->vtable->klass == targetType ? obj : NULL;
+}
+
