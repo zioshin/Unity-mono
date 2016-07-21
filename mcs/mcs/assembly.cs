@@ -909,7 +909,7 @@ namespace Mono.CSharp
 					Builder.Save (module.Builder.ScopeName, pekind, machine);
 				}
 			} catch (ArgumentOutOfRangeException) {
-				Report.Error (16, "Output file `{0}' exceeds the 4GB limit");
+				Report.Error (16, "Output file `{0}' exceeds the 4GB limit", name);
 			} catch (Exception e) {
 				Report.Error (16, "Could not write to file `{0}'. {1}", name, e.Message);
 			}
@@ -1196,7 +1196,7 @@ namespace Mono.CSharp
 			paths.AddRange (compiler.Settings.ReferencesLookupPaths);
 		}
 
-		public abstract bool HasObjectType (T assembly);
+		public abstract T HasObjectType (T assembly);
 		protected abstract string[] GetDefaultReferences ();
 		public abstract T LoadAssemblyFile (string fileName, bool isImplicitReference);
 		public abstract void LoadReferences (ModuleContainer module);
@@ -1263,8 +1263,13 @@ namespace Mono.CSharp
 					//
 					// corlib assembly is the first referenced assembly which contains System.Object
 					//
-					if (HasObjectType (assembly.Item2)) {
-						corlib_assembly = assembly.Item2;
+					corlib_assembly = HasObjectType (assembly.Item2);
+					if (corlib_assembly != null) {
+						if (corlib_assembly != assembly.Item2) {
+							var ca = corlib_assembly;
+							i = loaded.FindIndex (l => l.Item2 == ca);
+						}
+
 						loaded.RemoveAt (i);
 						break;
 					}

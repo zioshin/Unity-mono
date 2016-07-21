@@ -67,6 +67,10 @@ get-monolite-latest:
 	cd $(mcslib) && { (wget -O- $(monolite_url) || curl $(monolite_url)) | gzip -d | tar xf - ; }
 	cd $(mcslib) && mv -f monolite-* monolite
 
+.PHONY: check-ci
+check-ci:
+	MONO_LLVMONLY=$(MONO_LLVMONLY) $(srcdir)/scripts/ci/run-test-$(TEST_PROFILE).sh
+
 .PHONY: validate do-build-mono-mcs mcs-do-clean mcs-do-tests
 validate: do-build-mono-mcs
 	$(MAKE) mcs-do-tests
@@ -152,6 +156,7 @@ package-inputs:
 		 read libou;  echo "      <library_output>$$libou</library_output>"; \
 		 read fx_ver; echo "      <fx_version>$$fx_ver</fx_version>"; \
 		 read profile; echo "      <profile>$$profile</profile>"; \
+		 read resxt;  echo "      <resources>$$resxt</resources>"; \
 		 read resp;   echo "      <response>$$resp</response>"; \
 		 echo "    </project>") >> msvc/scripts/order.xml; \
 	done

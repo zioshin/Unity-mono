@@ -21,11 +21,11 @@ PROFILE_MCS_FLAGS = \
 	-d:NET_4_0 \
 	-d:NET_4_5 \
 	-d:MONO \
-	-d:DISABLE_CAS_USE \
 	-d:MOBILE,MOBILE_LEGACY \
 	-d:MOBILE_DYNAMIC \
 	-d:MONODROID \
 	-d:ANDROID \
+	-d:NETSTANDARD \
 	-nowarn:1699 \
 	-nostdlib \
 	$(DEFAULT_REFERENCES) \

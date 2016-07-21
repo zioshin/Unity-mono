@@ -922,9 +922,6 @@ decode_method_ref_with_target (MonoAotModule *module, MethodRef *ref, MonoMethod
 			}
 			break;
 		}
-		case MONO_WRAPPER_LDFLD_REMOTE:
-			ref->method = mono_marshal_get_ldfld_remote_wrapper (NULL);
-			break;
 		case MONO_WRAPPER_STFLD_REMOTE:
 			ref->method = mono_marshal_get_stfld_remote_wrapper (NULL);
 			break;
@@ -1785,17 +1782,6 @@ check_usable (MonoAssembly *assembly, MonoAotFileInfo *info, guint8 *blob, char 
 		msg = g_strdup_printf ("not compiled with --aot=llvmonly");
 		usable = FALSE;
 	}
-#ifdef TARGET_ARM
-	/* mono_arch_find_imt_method () requires this */
-	if ((info->flags & MONO_AOT_FILE_FLAG_WITH_LLVM) && !mono_use_llvm) {
-		msg = g_strdup_printf ("compiled against LLVM");
-		usable = FALSE;
-	}
-	if (!(info->flags & MONO_AOT_FILE_FLAG_WITH_LLVM) && mono_use_llvm) {
-		msg = g_strdup_printf ("not compiled against LLVM");
-		usable = FALSE;
-	}
-#endif
 	if (mini_get_debug_options ()->mdb_optimizations && !(info->flags & MONO_AOT_FILE_FLAG_DEBUG) && !full_aot) {
 		msg = g_strdup_printf ("not compiled for debugging");
 		usable = FALSE;
@@ -2015,6 +2001,9 @@ load_aot_module (MonoAssembly *assembly, gpointer user_data)
 		find_symbol (sofile, globals, "mono_aot_version", (gpointer *) &version_symbol);
 		find_symbol (sofile, globals, "mono_aot_file_info", (gpointer*)&info);
 	}
+
+	// Copy aotid to MonoImage
+	memcpy(&assembly->image->aotid, info->aotid, 16);
 
 	if (version_symbol) {
 		/* Old file format */
@@ -4523,7 +4512,15 @@ mono_aot_get_method_checked (MonoDomain *domain, MonoMethod *method, MonoError *
 			if (info->subtype == WRAPPER_SUBTYPE_ARRAY_ACCESSOR) {
 				MonoMethod *array_method = info->d.array_accessor.method;
 				if (MONO_TYPE_IS_REFERENCE (&array_method->klass->element_class->byval_arg)) {
-					MonoClass *obj_array_class = mono_array_class_get (mono_defaults.object_class, 1);
+					int rank;
+
+					if (!strcmp (array_method->name, "Set"))
+						rank = mono_method_signature (array_method)->param_count - 1;
+					else if (!strcmp (array_method->name, "Get") || !strcmp (array_method->name, "Address"))
+						rank = mono_method_signature (array_method)->param_count;
+					else
+						g_assert_not_reached ();
+					MonoClass *obj_array_class = mono_array_class_get (mono_defaults.object_class, rank);
 					MonoMethod *m = mono_class_get_method_from_name (obj_array_class, array_method->name, mono_method_signature (array_method)->param_count);
 					g_assert (m);
 
@@ -5837,7 +5834,7 @@ mono_aot_get_method (MonoDomain *domain, MonoMethod *method)
 
 gpointer
 mono_aot_get_method_checked (MonoDomain *domain,
-							 MonoMethod *method, MonoError *error);
+							 MonoMethod *method, MonoError *error)
 {
 	mono_error_init (error);
 	return NULL;

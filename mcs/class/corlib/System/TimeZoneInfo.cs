@@ -873,7 +873,7 @@ namespace System
 				return true;
 
 			// We might be in the dateTime previous year's DST period
-			return IsInDSTForYear (rule, dateTime, dateTime.Year - 1);
+			return dateTime.Year > 1 && IsInDSTForYear (rule, dateTime, dateTime.Year - 1);
 		}
 
 		bool IsInDSTForYear (AdjustmentRule rule, DateTime dateTime, int year)
@@ -912,7 +912,7 @@ namespace System
 
 		public bool IsDaylightSavingTime (DateTimeOffset dateTimeOffset)
 		{
-			throw new NotImplementedException ();
+			return IsDaylightSavingTime (dateTimeOffset.DateTime);
 		}
 
 		internal DaylightTime GetDaylightChanges (int year)
