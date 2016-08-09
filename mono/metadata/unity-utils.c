@@ -277,3 +277,29 @@ MonoObject* mono_unity_isinst_sealed(MonoObject* obj, MonoClass* targetType)
 	return obj->vtable->klass == targetType ? obj : NULL;
 }
 
+MonoClass* mono_unity_get_generic_definition(MonoClass* klass)
+{
+	if (klass->generic_class && klass->generic_class->container_class)
+		return klass->generic_class->container_class;
+
+	return NULL;
+}
+
+MonoClass* mono_unity_get_class_for_generic_parameter(MonoGenericContainer* generic_container, gint index)
+{
+	g_assert(index < generic_container->type_argc);
+	return generic_container->type_params[index].info.pklass;
+}
+
+MonoClass* mono_unity_class_inflate_generic_class(MonoClass *gklass, MonoGenericContext *context)
+{
+	MonoError error;
+	return mono_class_inflate_generic_class_checked(gklass, context, &error);
+}
+
+MonoVTable* mono_unity_class_get_vtable(MonoClass* klass)
+{
+	return klass->vtable;
+}
+
+
