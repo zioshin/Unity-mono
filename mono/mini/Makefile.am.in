@@ -635,8 +635,8 @@ generics.exe: generics.cs TestDriver.dll generics-variant-types.dll
 %.exe: %.il
 	$(ILASM) -output=$@ $<
 
-TestDriver.dll: $(srcdir)/TestDriver.cs
-	$(MCS) -out:$@ -target:library $<
+TestDriver.dll: $(srcdir)/TestDriver.cs $(srcdir)/TestHelpers.cs
+	$(MCS) -out:$@ -target:library $^
 
 generics-variant-types.dll: generics-variant-types.il
 	$(ILASM) -dll -output=$@ $<
@@ -698,15 +698,11 @@ testi: mono test.exe
 checktests: $(regtests)
 	for i in $(regtests); do $(MINI_RUNTIME) $$i; done
 
-rcheck: mono $(regtests)
-if NACL_CODEGEN
-	for i in $(regtests); do echo "running test $$i"; $(MINI_RUNTIME) $$i --exclude 'NaClDisable' || exit 1; done
-else
+rcheck-nunit: mono $(regtests)
 	-($(MINI_RUNTIME) --regression $(regtests); echo $$? > regressionexitcode.out) | $(srcdir)/emitnunit.pl
 	exit $$(cat regressionexitcode.out)
-endif
 
-rcheck2: mono $(regtests)
+rcheck: mono $(regtests)
 	$(MINI_RUNTIME) --regression $(regtests)
 
 if ARM
@@ -744,8 +740,7 @@ fullaot_regtests = $(regtests) aot-tests.exe $(if $(GSHAREDVT),gshared.exe)
 # on mobile profiles
 FULLAOT_LIBS_MOBILE_STATIC_BLACKLIST = \
 	Mono.Posix.dll \
-	System.Configuration.dll \
-	Mono.Simd.dll
+	System.Configuration.dll
 
 FULLAOT_LIBS_UNIVERSAL = \
 	mscorlib.dll \
@@ -753,6 +748,7 @@ FULLAOT_LIBS_UNIVERSAL = \
 	System.dll \
 	System.Xml.dll \
 	System.Security.dll \
+	Mono.Simd.dll \
 	Mono.Security.dll
 
 if INSTALL_MOBILE_STATIC
@@ -771,9 +767,9 @@ FULLAOT_TMP_DIR=$(top_builddir)/mono/mini/fullaot-tmp
 fullaotcheck: $(mono) $(fullaot_regtests)
 	rm -rf $(FULLAOT_TMP_DIR)
 	mkdir $(FULLAOT_TMP_DIR)
-	$(MAKE) fullaot-libs AOT_FLAGS="full,$(MONO_FULLAOT_ADDITIONAL_ARGS)" GSHAREDVT=$(GSHAREDVT)
+	$(MAKE) fullaot-libs AOT_FLAGS="full,$(MONO_FULLAOT_ADDITIONAL_ARGS)$(INVARIANT_AOT_OPTIONS)" GSHAREDVT=$(GSHAREDVT)
 	cp $(regtests) $(fullaot_regtests) generics-variant-types.dll TestDriver.dll $(FULLAOT_TMP_DIR)/
-	MONO_PATH=$(FULLAOT_TMP_DIR) $(top_builddir)/runtime/mono-wrapper $(LLVM_AOT_RUNTIME_OPTS) $(GSHAREDVT_RUNTIME_OPTS) --aot="full,$(MONO_FULLAOT_ADDITIONAL_ARGS)" $(FULLAOT_TMP_DIR)/{generics-variant-types.dll,TestDriver.dll,*.exe} || exit 1
+	MONO_PATH=$(FULLAOT_TMP_DIR) $(top_builddir)/runtime/mono-wrapper $(LLVM_AOT_RUNTIME_OPTS) $(GSHAREDVT_RUNTIME_OPTS) --aot="full,$(MONO_FULLAOT_ADDITIONAL_ARGS)$(INVARIANT_AOT_OPTIONS)" $(FULLAOT_TMP_DIR)/{generics-variant-types.dll,TestDriver.dll,*.exe} || exit 1
 	ln -s $(if $(MONO_EXECUTABLE),$(MONO_EXECUTABLE),$$PWD/mono) $(FULLAOT_TMP_DIR)/
 	for i in $(fullaot_regtests); do echo $$i; MONO_PATH=$(FULLAOT_TMP_DIR) $(top_builddir)/runtime/mono-wrapper --full-aot $(FULLAOT_TMP_DIR)/$$i --exclude '!FULLAOT' $(ARCH_FULLAOT_EXCLUDE) || exit 1; done
 
@@ -794,7 +790,7 @@ llvmonly_regtests = $(fullaot_regtests) gshared.exe
 llvmonlycheck: mono $(llvmonly_regtests)
 	rm -rf fullaot-tmp
 	mkdir fullaot-tmp
-	$(MAKE) fullaot-libs AOT_FLAGS="llvmonly,$(MONO_FULLAOT_ADDITIONAL_ARGS)"
+	$(MAKE) fullaot-libs AOT_FLAGS="llvmonly,$(MONO_FULLAOT_ADDITIONAL_ARGS)$(INVARIANT_AOT_OPTIONS)"
 	cp $(llvmonly_regtests) generics-variant-types.dll TestDriver.dll fullaot-tmp/
 	MONO_PATH=fullaot-tmp $(top_builddir)/runtime/mono-wrapper  --aot=llvmonly fullaot-tmp/{generics-variant-types.dll,TestDriver.dll,*.exe} || exit 1
 	ln -s $$PWD/mono fullaot-tmp/
@@ -824,7 +820,10 @@ stat3: mono bench.exe
 docu: mini.sgm
 	docbook2txt mini.sgm
 
-check-local: rcheck check-seq-points
+# We need these because automake can't process normal make conditionals
+check_local_targets = $(if $(EMIT_NUNIT), rcheck-nunit, rcheck)
+
+check-local: $(check_local_targets)
 
 clean-local:
 	rm -f mono a.out gmon.out *.o buildver-boehm.h buildver-sgen.h test.exe regressionexitcode.out TestResult-op_il_seq_point.xml*
@@ -835,6 +834,7 @@ BUILT_SOURCES = version.h $(arch_built)
 
 CLEANFILES= $(BUILT_SOURCES) *.exe *.dll
 EXTRA_DIST = TestDriver.cs \
+	TestHelpers.cs \
 	genmdesc.pl				\
 	emitnunit.pl			\
 	$(test_sources) 			\

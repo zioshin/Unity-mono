@@ -27,7 +27,6 @@ mobile_common_dirs := \
 	System.XML	\
 	I18N		\
 	System.ServiceModel.Internals	\
-	SMDiagnostics	\
 	System.Runtime.Serialization	\
 	System.Xml.Linq	\
 	System.ServiceModel	\
@@ -39,7 +38,6 @@ mobile_common_dirs := \
 	System.Numerics	\
 	System.Numerics.Vectors		\
 	System.Data	\
-	Mono.Cairo	\
 	Mono.Data.Sqlite	\
 	System.Data.Services.Client \
 	System.IO.Compression \
@@ -291,6 +289,7 @@ net_4_x_parallel_dirs := \
 	System.Workflow.ComponentModel \
 	System.Workflow.Runtime \
 	System.Reflection.Context \
+	legacy/Mono.Cecil \
 	$(pcl_facade_dirs)
 
 xbuild_2_0_dirs := \

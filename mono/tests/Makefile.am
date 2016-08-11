@@ -34,6 +34,8 @@ else
 TEST_RUNNER_ARGS=--config tests-config --runtime $(if $(MONO_EXECUTABLE),$(MONO_EXECUTABLE),mono)
 endif
 
+TEST_RUNNER_ARGS += $(if $(V), --verbose,)
+
 CLASS=$(mcs_topdir)/class/lib/$(DEFAULT_PROFILE)
 
 with_mono_path = MONO_PATH=$(CLASS)
@@ -915,13 +917,13 @@ endif
 # Remove empty .stdout and .stderr files for wrench
 rm-empty-logs:
 	@echo "Removing empty logs..."
-	@find . '(' -name "*.stdout" -o -name "*.stderr" ')' -empty -exec rm {} \;
+	find . '(' -name "*.stdout" -o -name "*.stderr" ')' -size 0 -exec rm {} \;
 
 assemblyresolve/test/asm.dll:
 	$(MAKE) -C assemblyresolve prereq
 
 TestDriver.dll:
-	$(MCS) -target:library -out:$@ $(srcdir)/../mini/TestDriver.cs
+	$(MCS) -target:library -out:$@ $(srcdir)/../mini/TestDriver.cs $(srcdir)/../mini/TestHelpers.cs
 
 test_cs: $(TEST_PROG) $(TESTSI_CS) libtest.la
 	@failed=0; \
