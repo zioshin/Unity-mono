@@ -227,6 +227,11 @@
 #define strtoull _strtoui64
 #endif
 
+/* VS 2015 added support for __func__ but there was a bug pre SP1 for C compilation */
+#if _MSC_FULL_VER < 190023506
+#define __func__ __FUNCTION__
+#endif
+
 #include <float.h>
 #define trunc(x)	(((x) < 0) ? ceil((x)) : floor((x)))
 #if _MSC_VER < 1800 /* VS 2013 */
@@ -243,8 +248,6 @@
 
 /* GCC specific functions aren't available */
 #define __builtin_return_address(x)	NULL
-
-#define __func__ __FUNCTION__
 
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
