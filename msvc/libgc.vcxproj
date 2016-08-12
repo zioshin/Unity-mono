@@ -86,7 +86,6 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4311;4312;4996;4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <WarningLevel>Level1</WarningLevel>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
@@ -103,7 +102,6 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Lib>
@@ -123,7 +121,6 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4311;4312;4996;4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
@@ -142,7 +139,6 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Lib>

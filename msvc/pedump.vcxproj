@@ -105,7 +105,6 @@
       <XMLDocumentationFileName>$(IntDir)</XMLDocumentationFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4018;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <ProjectReference>
@@ -164,7 +163,6 @@
       <XMLDocumentationFileName>$(IntDir)</XMLDocumentationFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4018;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <ProjectReference>

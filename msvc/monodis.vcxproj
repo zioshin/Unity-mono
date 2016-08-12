@@ -103,7 +103,6 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4996;4018;4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <ProjectReference>
@@ -160,7 +159,6 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4996;4018;4244;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <ProjectReference>
