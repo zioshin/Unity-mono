@@ -530,8 +530,7 @@ ICALL(ASSEMN_2, "get_public_token", mono_digest_get_public_token)
 ICALL_TYPE(CATTR_DATA, "System.Reflection.CustomAttributeData", CATTR_DATA_1)
 ICALL(CATTR_DATA_1, "ResolveArgumentsInternal", ves_icall_System_Reflection_CustomAttributeData_ResolveArgumentsInternal)
 
-ICALL_TYPE(ASSEMB, "System.Reflection.Emit.AssemblyBuilder", ASSEMB_1)
-ICALL(ASSEMB_1, "InternalAddModule", ves_icall_AssemblyBuilder_InternalAddModule)
+ICALL_TYPE(ASSEMB, "System.Reflection.Emit.AssemblyBuilder", ASSEMB_2)
 ICALL(ASSEMB_2, "basic_init", ves_icall_AssemblyBuilder_basic_init)
 
 #ifndef DISABLE_REFLECTION_EMIT
@@ -574,7 +573,6 @@ ICALL(SYMBOLTYPE_1, "create_unmanaged_type", ves_icall_SymbolType_create_unmanag
 
 ICALL_TYPE(TYPEB, "System.Reflection.Emit.TypeBuilder", TYPEB_1)
 ICALL(TYPEB_1, "create_generic_class", ves_icall_TypeBuilder_create_generic_class)
-ICALL(TYPEB_2, "create_internal_class", ves_icall_TypeBuilder_create_internal_class)
 ICALL(TYPEB_3, "create_runtime_class", ves_icall_TypeBuilder_create_runtime_class)
 ICALL(TYPEB_4, "get_IsGenericParameter", ves_icall_TypeBuilder_get_IsGenericParameter)
 ICALL(TYPEB_5, "get_event_info", ves_icall_TypeBuilder_get_event_info)
@@ -924,8 +922,8 @@ ICALL(MUTEX_3, "ReleaseMutex_internal(intptr)", ves_icall_System_Threading_Mutex
 
 ICALL_TYPE(NATIVEC, "System.Threading.NativeEventCalls", NATIVEC_1)
 ICALL(NATIVEC_1, "CloseEvent_internal", ves_icall_System_Threading_Events_CloseEvent_internal)
-ICALL(NATIVEC_2, "CreateEvent_internal(bool,bool,string,bool&)", ves_icall_System_Threading_Events_CreateEvent_internal)
-ICALL(NATIVEC_3, "OpenEvent_internal(string,System.Security.AccessControl.EventWaitHandleRights,System.IO.MonoIOError&)", ves_icall_System_Threading_Events_OpenEvent_internal)
+ICALL(NATIVEC_2, "CreateEvent_internal(bool,bool,string,int&)", ves_icall_System_Threading_Events_CreateEvent_internal)
+ICALL(NATIVEC_3, "OpenEvent_internal(string,System.Security.AccessControl.EventWaitHandleRights,int&)", ves_icall_System_Threading_Events_OpenEvent_internal)
 ICALL(NATIVEC_4, "ResetEvent_internal",  ves_icall_System_Threading_Events_ResetEvent_internal)
 ICALL(NATIVEC_5, "SetEvent_internal",    ves_icall_System_Threading_Events_SetEvent_internal)
 
