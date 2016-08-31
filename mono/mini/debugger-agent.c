@@ -9847,9 +9847,6 @@ debugger_thread (void *arg)
 	} else {
 		mono_set_is_debugger_attached (TRUE);
 	}
-	else {
-		mono_set_is_debugger_attached(TRUE);
-	}
 	
 	while (!attach_failed) {
 		res = transport_recv (header, HEADER_LENGTH);
