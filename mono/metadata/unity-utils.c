@@ -302,4 +302,8 @@ MonoVTable* mono_unity_class_get_vtable(MonoClass* klass)
 	return klass->vtable;
 }
 
+gboolean mono_unity_class_has_parent_unsafe(MonoClass *klass, MonoClass *parent)
+{
+	return mono_class_has_parent_fast(klass, parent);
+}
 
