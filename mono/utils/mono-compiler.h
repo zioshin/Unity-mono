@@ -13,6 +13,12 @@
 #define MONO_ATTR_USED
 #endif
 
+#ifdef __GNUC__
+#define MONO_ATTR_FORMAT_PRINTF(fmt_pos,arg_pos) __attribute__((format(printf,fmt_pos,arg_pos)))
+#else
+#define MONO_ATTR_FORMAT_PRINTF(fmt_pos,arg_pos)
+#endif
+
 #ifdef HAVE_KW_THREAD
 
 #define MONO_HAVE_FAST_TLS
@@ -276,12 +282,6 @@ typedef SSIZE_T ssize_t;
 #endif
 #else
 #define MONO_LLVM_INTERNAL 
-#endif
-
-#if HAVE_DEPRECATED
-#define MONO_DEPRECATED __attribute__ ((deprecated))
-#else
-#define MONO_DEPRECATED 
 #endif
 
 #ifdef __GNUC__

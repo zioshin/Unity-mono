@@ -266,6 +266,7 @@ namespace MonoTests.System
 #endif
 		const string ASSEMBLY_NAME = "MonoTests.System.TypeTest";
 		static int typeIndexer = 0;
+		static bool isMono = Type.GetType ("Mono.Runtime", false) != null;
 
 		[SetUp]
 		public void SetUp ()
@@ -1834,8 +1835,8 @@ namespace MonoTests.System
 
 			Assert.AreEqual (t1.FullName, "System.__ComObject");
 
-			if (Environment.OSVersion.Platform == PlatformID.Win32Windows ||
-				Environment.OSVersion.Platform == PlatformID.Win32NT)
+			if (!isMono && (Environment.OSVersion.Platform == PlatformID.Win32Windows ||
+				Environment.OSVersion.Platform == PlatformID.Win32NT))
 				Activator.CreateInstance(t1);
 
 			Assert.AreEqual (t2.FullName, "System.__ComObject");
@@ -3057,9 +3058,15 @@ namespace MonoTests.System
 		public void MakeArrayTypeTest ()
 		{
 			// This should not crash:
-			typeof (void).MakeArrayType ();
+			Type t = typeof (void).MakeArrayType ();
 		}
 		
+		[Test]
+		[ExpectedException (typeof (InvalidProgramException))]
+		public void MakeArrayTypedReferenceInstanceTest ()
+		{
+			object o = Array.CreateInstance (typeof (global::System.TypedReference), 1);
+		}
 
 		[ComVisible (true)]
 		public class ComFoo<T> {

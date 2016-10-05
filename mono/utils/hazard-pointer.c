@@ -52,7 +52,7 @@ static volatile gint32 overflow_busy [HAZARD_TABLE_OVERFLOW];
 
 /* The table where we keep pointers to blocks to be freed but that
    have to wait because they're guarded by a hazard pointer. */
-static MonoLockFreeArrayQueue delayed_free_queue = MONO_LOCK_FREE_ARRAY_QUEUE_INIT (sizeof (DelayedFreeItem));
+static MonoLockFreeArrayQueue delayed_free_queue = MONO_LOCK_FREE_ARRAY_QUEUE_INIT (sizeof (DelayedFreeItem), MONO_MEM_ACCOUNT_HAZARD_POINTERS);
 
 /* The table for small ID assignment */
 static mono_mutex_t small_id_mutex;
@@ -112,7 +112,7 @@ mono_thread_small_id_alloc (void)
 		if (hazard_table == NULL) {
 			hazard_table = (MonoThreadHazardPointers *volatile) mono_valloc (NULL,
 				sizeof (MonoThreadHazardPointers) * HAZARD_TABLE_MAX_SIZE,
-				MONO_MMAP_NONE);
+				MONO_MMAP_NONE, MONO_MEM_ACCOUNT_HAZARD_POINTERS);
 		}
 
 		g_assert (hazard_table != NULL);
@@ -286,25 +286,6 @@ mono_hazard_pointer_restore_for_signal_handler (int small_id)
 	overflow_busy [small_id] = 0;
 }
 
-static gboolean
-try_free_delayed_free_item (void)
-{
-	DelayedFreeItem item;
-	gboolean popped = mono_lock_free_array_queue_pop (&delayed_free_queue, &item);
-
-	if (!popped)
-		return FALSE;
-
-	if (is_pointer_hazardous (item.p)) {
-		mono_lock_free_array_queue_push (&delayed_free_queue, &item);
-		return FALSE;
-	}
-
-	item.free_func (item.p);
-
-	return TRUE;
-}
-
 /**
  * mono_thread_hazardous_try_free:
  * @p: the pointer to free
@@ -364,19 +345,48 @@ mono_hazard_pointer_install_free_queue_size_callback (MonoHazardFreeQueueSizeCal
 	queue_size_cb = cb;
 }
 
+static void
+try_free_delayed_free_items (guint32 limit)
+{
+	GArray *hazardous = NULL;
+	DelayedFreeItem item;
+	guint32 freed = 0;
+
+	// Free all the items we can and re-add the ones we can't to the queue.
+	while (mono_lock_free_array_queue_pop (&delayed_free_queue, &item)) {
+		if (is_pointer_hazardous (item.p)) {
+			if (!hazardous)
+				hazardous = g_array_sized_new (FALSE, FALSE, sizeof (DelayedFreeItem), delayed_free_queue.num_used_entries);
+
+			g_array_append_val (hazardous, item);
+			continue;
+		}
+
+		item.free_func (item.p);
+		freed++;
+
+		if (limit && freed == limit)
+			break;
+	}
+
+	if (hazardous) {
+		for (gint i = 0; i < hazardous->len; i++)
+			mono_lock_free_array_queue_push (&delayed_free_queue, &g_array_index (hazardous, DelayedFreeItem, i));
+
+		g_array_free (hazardous, TRUE);
+	}
+}
+
 void
 mono_thread_hazardous_try_free_all (void)
 {
-	while (try_free_delayed_free_item ())
-		;
+	try_free_delayed_free_items (0);
 }
 
 void
 mono_thread_hazardous_try_free_some (void)
 {
-	int i;
-	for (i = 0; i < 10; ++i)
-		try_free_delayed_free_item ();
+	try_free_delayed_free_items (10);
 }
 
 void

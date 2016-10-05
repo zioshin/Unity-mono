@@ -33,6 +33,7 @@
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/threadpool-ms.h>
 #include <mono/metadata/threadpool-ms-io.h>
+#include <mono/metadata/w32event.h>
 #include <mono/utils/atomic.h>
 #include <mono/utils/mono-compiler.h>
 #include <mono/utils/mono-complex.h>
@@ -158,6 +159,11 @@ typedef struct {
 	/* suspended by the debugger */
 	gboolean suspended;
 } ThreadPool;
+
+typedef struct {
+	gint32 ref;
+	MonoCoopCond cond;
+} ThreadPoolDomainCleanupSemaphore;
 
 typedef enum {
 	TRANSITION_WARMUP,
@@ -430,8 +436,13 @@ domain_get (MonoDomain *domain, gboolean create)
 	}
 
 	if (create) {
+		ThreadPoolDomainCleanupSemaphore *cleanup_semaphore;
+		cleanup_semaphore = g_new0 (ThreadPoolDomainCleanupSemaphore, 1);
+		cleanup_semaphore->ref = 2;
+		mono_coop_cond_init (&cleanup_semaphore->cond);
+
 		g_assert(!domain->cleanup_semaphore);
-		domain->cleanup_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
+		domain->cleanup_semaphore = cleanup_semaphore;
 
 		tpdomain = g_new0 (ThreadPoolDomain, 1);
 		tpdomain->domain = domain;
@@ -647,7 +658,7 @@ worker_thread (gpointer data)
 		tpdomain->outstanding_request --;
 		g_assert (tpdomain->outstanding_request >= 0);
 
-		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_THREADPOOL, "[%p] worker running in domain %p",
+		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_THREADPOOL, "[%p] worker running in domain %p (outstanding requests %d) ",
 			mono_native_thread_id_get (), tpdomain->domain, tpdomain->outstanding_request);
 
 		g_assert (tpdomain->domain);
@@ -684,13 +695,22 @@ worker_thread (gpointer data)
 		g_assert (tpdomain->domain->threadpool_jobs >= 0);
 
 		if (tpdomain->domain->threadpool_jobs == 0 && mono_domain_is_unloading (tpdomain->domain)) {
+			ThreadPoolDomainCleanupSemaphore *cleanup_semaphore;
 			gboolean removed;
 
 			removed = domain_remove(tpdomain);
 			g_assert (removed);
+			cleanup_semaphore = (ThreadPoolDomainCleanupSemaphore*) tpdomain->domain->cleanup_semaphore;
+			g_assert (cleanup_semaphore);
 
-			g_assert(tpdomain->domain->cleanup_semaphore);
-			ReleaseSemaphore (tpdomain->domain->cleanup_semaphore, 1, NULL);
+			mono_coop_cond_signal (&cleanup_semaphore->cond);
+
+			if (InterlockedDecrement (&cleanup_semaphore->ref) == 0) {
+				mono_coop_cond_destroy (&cleanup_semaphore->cond);
+				g_free (cleanup_semaphore);
+				tpdomain->domain->cleanup_semaphore = NULL;
+			}
+
 			domain_free (tpdomain);
 			tpdomain = NULL;
 		}
@@ -757,7 +777,7 @@ worker_try_create (void)
 	if ((thread = mono_thread_create_internal (mono_get_root_domain (), worker_thread, NULL, TRUE, 0, &error)) != NULL) {
 		threadpool->worker_creation_current_count += 1;
 
-		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_THREADPOOL, "[%p] try create worker, created %p, now = %d count = %d", mono_native_thread_id_get (), thread->tid, now, threadpool->worker_creation_current_count);
+		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_THREADPOOL, "[%p] try create worker, created %p, now = %d count = %d", mono_native_thread_id_get (), GUINT_TO_POINTER(thread->tid), now, threadpool->worker_creation_current_count);
 		mono_coop_mutex_unlock (&threadpool->worker_creation_lock);
 		return TRUE;
 	}
@@ -1407,7 +1427,7 @@ mono_threadpool_ms_end_invoke (MonoAsyncResult *ares, MonoArray **out_args, Mono
 		if (ares->handle) {
 			wait_event = mono_wait_handle_get_handle ((MonoWaitHandle*) ares->handle);
 		} else {
-			wait_event = CreateEvent (NULL, TRUE, FALSE, NULL);
+			wait_event = mono_w32event_create (TRUE, FALSE);
 			g_assert(wait_event);
 			MonoWaitHandle *wait_handle = mono_wait_handle_new (mono_object_domain (ares), wait_event, error);
 			if (!is_ok (error)) {
@@ -1433,9 +1453,10 @@ mono_threadpool_ms_end_invoke (MonoAsyncResult *ares, MonoArray **out_args, Mono
 gboolean
 mono_threadpool_ms_remove_domain_jobs (MonoDomain *domain, int timeout)
 {
-	guint32 res;
-	gint64 now, end;
+	gint64 end;
 	ThreadPoolDomain *tpdomain;
+	ThreadPoolDomainCleanupSemaphore *cleanup_semaphore;
+	gboolean ret;
 
 	g_assert (domain);
 	g_assert (timeout >= -1);
@@ -1466,31 +1487,47 @@ mono_threadpool_ms_remove_domain_jobs (MonoDomain *domain, int timeout)
 	mono_lazy_initialize(&status, initialize);
 	mono_coop_mutex_lock(&threadpool->domains_lock);
 
-	tpdomain = domain_get(domain, FALSE);
+	tpdomain = domain_get (domain, FALSE);
 	if (!tpdomain || tpdomain->outstanding_request == 0) {
 		mono_coop_mutex_unlock(&threadpool->domains_lock);
 		return TRUE;
 	}
-	g_assert(domain->cleanup_semaphore);
 
-	if (timeout != -1) {
-		now = mono_msec_ticks();
-		if (now > end) {
-			mono_coop_mutex_unlock(&threadpool->domains_lock);
-			return FALSE;
+	g_assert (domain->cleanup_semaphore);
+	cleanup_semaphore = (ThreadPoolDomainCleanupSemaphore*) domain->cleanup_semaphore;
+
+	ret = TRUE;
+
+	do {
+		if (timeout == -1) {
+			mono_coop_cond_wait (&cleanup_semaphore->cond, &threadpool->domains_lock);
+		} else {
+			gint64 now;
+			gint res;
+
+			now = mono_msec_ticks();
+			if (now > end) {
+				ret = FALSE;
+				break;
+			}
+
+			res = mono_coop_cond_timedwait (&cleanup_semaphore->cond, &threadpool->domains_lock, end - now);
+			if (res != 0) {
+				ret = FALSE;
+				break;
+			}
 		}
+	} while (tpdomain->outstanding_request != 0);
+
+	if (InterlockedDecrement (&cleanup_semaphore->ref) == 0) {
+		mono_coop_cond_destroy (&cleanup_semaphore->cond);
+		g_free (cleanup_semaphore);
+		domain->cleanup_semaphore = NULL;
 	}
-
-	MONO_ENTER_GC_SAFE;
-	res = WaitForSingleObjectEx(domain->cleanup_semaphore, timeout != -1 ? end - now : timeout, FALSE);
-	MONO_EXIT_GC_SAFE;
-
-	CloseHandle(domain->cleanup_semaphore);
-	domain->cleanup_semaphore = NULL;
 
 	mono_coop_mutex_unlock(&threadpool->domains_lock);
 
-	return res == WAIT_OBJECT_0;
+	return ret;
 }
 
 void

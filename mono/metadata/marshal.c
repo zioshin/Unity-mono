@@ -52,6 +52,10 @@
 #include <string.h>
 #include <errno.h>
 
+#if defined(HOST_WIN32)
+#include <objbase.h>
+#endif
+
 /* #define DEBUG_RUNTIME_CODE */
 
 #define OPDEF(a,b,c,d,e,f,g,h,i,j) \
@@ -778,7 +782,7 @@ mono_free_lparray (MonoArray *array, gpointer* nativeArray)
 	if (klass->element_class->byval_arg.type == MONO_TYPE_CLASS) {
 		for(i = 0; i < array->max_length; ++i)
 			mono_marshal_free_ccw (mono_array_get (array, MonoObject*, i));
-		free(nativeArray);
+		g_free (nativeArray);
 	}
 #endif
 }
@@ -1940,10 +1944,9 @@ emit_object_to_ptr_conv (MonoMethodBuilder *mb, MonoType *type, MonoMarshalConv 
 static int offset_of_first_nonstatic_field(MonoClass *klass)
 {
 	int i;
-	for (i = 0; i < klass->field.count; i++)
-	{
-		if (!(klass->fields[i].type->attrs & FIELD_ATTRIBUTE_STATIC) && !mono_field_is_deleted(&klass->fields[i]))
-			return klass->fields[i].offset - sizeof(MonoObject);
+	for (i = 0; i < klass->field.count; i++) {
+		if (!(klass->fields[i].type->attrs & FIELD_ATTRIBUTE_STATIC) && !mono_field_is_deleted (&klass->fields[i]))
+			return klass->fields[i].offset - sizeof (MonoObject);
 	}
 
 	return 0;
@@ -1957,7 +1960,7 @@ emit_struct_conv_full (MonoMethodBuilder *mb, MonoClass *klass, gboolean to_obje
 	int i;
 
 	if (klass->parent)
-		emit_struct_conv_full(mb, klass->parent, to_object, offset_of_first_nonstatic_field(klass), string_encoding);
+		emit_struct_conv_full (mb, klass->parent, to_object, offset_of_first_nonstatic_field (klass), string_encoding);
 
 	info = mono_marshal_load_type_info (klass);
 
@@ -1973,15 +1976,12 @@ emit_struct_conv_full (MonoMethodBuilder *mb, MonoClass *klass, gboolean to_obje
 		mono_mb_emit_byte (mb, CEE_PREFIX1);
 		mono_mb_emit_byte (mb, CEE_CPBLK);
 
-		if (to_object)
-		{
-			mono_mb_emit_add_to_local(mb, 0, usize);
-			mono_mb_emit_add_to_local(mb, 1, offset_of_first_child_field);
-		}
-		else
-		{
-			mono_mb_emit_add_to_local(mb, 0, offset_of_first_child_field);
-			mono_mb_emit_add_to_local(mb, 1, usize);
+		if (to_object) {
+			mono_mb_emit_add_to_local (mb, 0, usize);
+			mono_mb_emit_add_to_local (mb, 1, offset_of_first_child_field);
+		} else {
+			mono_mb_emit_add_to_local (mb, 0, offset_of_first_child_field);
+			mono_mb_emit_add_to_local (mb, 1, usize);
 		}
 		return;
 	}
@@ -2695,6 +2695,11 @@ mono_marshal_method_from_wrapper (MonoMethod *wrapper)
 			return info->d.runtime_invoke.method;
 		else
 			return NULL;
+	case MONO_WRAPPER_DELEGATE_INVOKE:
+		if (info)
+			return info->d.delegate_invoke.method;
+		else
+			return NULL;
 	default:
 		return NULL;
 	}
@@ -3275,7 +3280,7 @@ mono_marshal_get_delegate_invoke_internal (MonoMethod *method, gboolean callvirt
 	gboolean closed_over_null = FALSE;
 	MonoGenericContext *ctx = NULL;
 	MonoGenericContainer *container = NULL;
-	MonoMethod *orig_method = NULL;
+	MonoMethod *orig_method = method;
 	WrapperInfo *info;
 	WrapperSubtype subtype = WRAPPER_SUBTYPE_NONE;
 	gboolean found;
@@ -3319,7 +3324,6 @@ mono_marshal_get_delegate_invoke_internal (MonoMethod *method, gboolean callvirt
 	 * For generic delegates, create a generic wrapper, and return an instance to help AOT.
 	 */
 	if (method->is_inflated && subtype == WRAPPER_SUBTYPE_NONE) {
-		orig_method = method;
 		ctx = &((MonoMethodInflated*)method)->context;
 		method = ((MonoMethodInflated*)method)->declaring;
 
@@ -3568,7 +3572,7 @@ mono_marshal_get_delegate_invoke_internal (MonoMethod *method, gboolean callvirt
 #endif /* DISABLE_JIT */
 
 	info = mono_wrapper_info_create (mb, subtype);
-	info->d.delegate_invoke.method = method;
+	info->d.delegate_invoke.method = orig_method;
 
 	if (ctx) {
 		MonoMethod *def;
@@ -9365,7 +9369,8 @@ mono_marshal_get_synchronized_wrapper (MonoMethod *method)
 #endif
 
 	if (method->klass->valuetype && !(method->flags & MONO_METHOD_ATTR_STATIC)) {
-		mono_class_set_failure (method->klass, MONO_EXCEPTION_TYPE_LOAD, NULL);
+		/* FIXME Is this really the best way to signal an error here?  Isn't this called much later after class setup? -AK */
+		mono_class_set_type_load_failure (method->klass, "");
 #ifndef DISABLE_JIT
 		/* This will throw the type load exception when the wrapper is compiled */
 		mono_mb_emit_byte (mb, CEE_LDNULL);
@@ -10531,7 +10536,7 @@ mono_marshal_alloc (gulong size, MonoError *error)
 #else
 	res = g_try_malloc ((gulong)size);
 	if (!res)
-		mono_error_set_out_of_memory (error, "Could not allocate %i bytes", size);
+		mono_error_set_out_of_memory (error, "Could not allocate %lu bytes", size);
 #endif
 	return res;
 }

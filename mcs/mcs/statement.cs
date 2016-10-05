@@ -270,10 +270,14 @@ namespace Mono.CSharp {
 			var da_false = new DefiniteAssignmentBitSet (fc.DefiniteAssignmentOnFalse);
 
 			fc.DefiniteAssignment = fc.DefiniteAssignmentOnTrue;
+			var labels = fc.CopyLabelStack ();
 
 			var res = TrueStatement.FlowAnalysis (fc);
 
+			fc.SetLabelStack (labels);
+
 			if (FalseStatement == null) {
+
 				var c = expr as Constant;
 				if (c != null && !c.IsDefaultValue)
 					return true_returns;
@@ -288,13 +292,19 @@ namespace Mono.CSharp {
 
 			if (true_returns) {
 				fc.DefiniteAssignment = da_false;
-				return FalseStatement.FlowAnalysis (fc);
+
+				res = FalseStatement.FlowAnalysis (fc);
+				fc.SetLabelStack (labels);
+				return res;
 			}
 
 			var da_true = fc.DefiniteAssignment;
 
 			fc.DefiniteAssignment = da_false;
+
 			res &= FalseStatement.FlowAnalysis (fc);
+
+			fc.SetLabelStack (labels);
 
 			if (!TrueStatement.IsUnreachable) {
 				if (false_returns || FalseStatement.IsUnreachable)
@@ -2280,6 +2290,9 @@ namespace Mono.CSharp {
 
 		public override void Emit (EmitContext ec)
 		{
+			if (!Variable.IsUsed)
+				ec.Report.Warning (219, 3, loc, "The constant `{0}' is never used", Variable.Name);
+			
 			// Nothing to emit, not even sequence point
 		}
 
@@ -2438,6 +2451,12 @@ namespace Mono.CSharp {
 			}
 		}
 
+		public bool IsUsed {
+			get {
+				return (flags & Flags.Used) != 0;
+			}
+		}
+
 		public bool IsFixed {
 			get {
 				return (flags & Flags.FixedVariable) != 0;
@@ -2527,8 +2546,10 @@ namespace Mono.CSharp {
 
 		public Expression CreateReferenceExpression (ResolveContext rc, Location loc)
 		{
-			if (IsConstant && const_value != null)
+			if (IsConstant && const_value != null) {
+				SetIsUsed ();
 				return Constant.CreateConstantFromValue (Type, const_value.GetValue (), loc);
+			}
 
 			return new LocalVariableReference (this, loc);
 		}
@@ -3258,6 +3279,7 @@ namespace Mono.CSharp {
 			//
 			storey.CreateContainer ();
 			storey.DefineContainer ();
+			storey.ExpandBaseInterfaces ();
 
 			if (Original.Explicit.HasCapturedThis && Original.ParametersBlock.TopBlock.ThisReferencesFromChildrenBlock != null) {
 

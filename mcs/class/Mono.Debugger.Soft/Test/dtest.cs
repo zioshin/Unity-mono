@@ -69,9 +69,17 @@ public class DebuggerTests
 		if (!listening) {
 			var pi = new Diag.ProcessStartInfo ();
 
-			if (runtime != null)
+			if (runtime != null) {
 				pi.FileName = runtime;
-			else
+			} else if (Path.DirectorySeparatorChar == '\\') {
+				string processExe = Diag.Process.GetCurrentProcess ().MainModule.FileName;
+				if (processExe != null) {
+					string fileName = Path.GetFileName (processExe);
+					if (fileName.StartsWith ("mono") && fileName.EndsWith (".exe"))
+						pi.FileName = processExe;
+				}
+			}
+			if (string.IsNullOrEmpty (pi.FileName))
 				pi.FileName = "mono";
 			pi.Arguments = String.Join (" ", args);
 			vm = VirtualMachineManager.Launch (pi, new LaunchOptions { AgentArgs = agent_args });
@@ -550,7 +558,11 @@ public class DebuggerTests
 		MethodMirror m = entry_point.DeclaringType.Assembly.GetType ("LocalReflectClass").GetMethod ("RunMe");
 
 		Assert.IsNotNull (m);
-		//Console.WriteLine ("X: " + name + " " + m.ILOffsets.Count + " " + m.Locations.Count);
+
+//		foreach (var x in m.Locations) {
+//			Console.WriteLine (x);
+//		}
+
 		var offset = -1;
 		int method_base_linum = m.Locations [0].LineNumber;
 		foreach (var location in m.Locations)
@@ -578,7 +590,11 @@ public class DebuggerTests
 		e = single_step (e.Thread);
 
 		var frame = e.Thread.GetFrames ()[0];
-		Value variable = frame.GetValue (frame.Method.GetLocal ("reflectMe"));
+
+		Assert.IsNotNull (frame);
+		var field = frame.Method.GetLocal ("reflectMe");
+		Assert.IsNotNull (field);
+		Value variable = frame.GetValue (field);
 
 		ObjectMirror thisObj = (ObjectMirror)variable;
 		TypeMirror thisType = thisObj.Type;
@@ -1767,6 +1783,16 @@ public class DebuggerTests
 		AssertValue ("T", s ["s"]);
 		AssertValue (45, s ["k"]);
 
+		// Test SetThis ()
+		s ["i"] = vm.CreateValue (55);
+		frame.SetThis (s);
+		obj = frame.GetThis ();
+		Assert.IsTrue (obj is StructMirror);
+		s = obj as StructMirror;
+		AssertValue (55, s ["i"]);
+		AssertValue ("T", s ["s"]);
+		AssertValue (45, s ["k"]);
+
 		// this on static vtype methods
 		e = run_until ("vtypes3");
 		e = step_until (e.Thread, "static_foo");
@@ -1846,6 +1872,9 @@ public class DebuggerTests
 				Assert.Fail ();
 			}
 		}
+
+		var scopes = frame.Method.GetScopes ();
+		Assert.AreEqual (2, scopes.Length);
 	}
 
 	Event step_once () {
@@ -3572,6 +3601,8 @@ public class DebuggerTests
 			return;
 
 		string srcfile = (e as BreakpointEvent).Method.DeclaringType.GetSourceFiles (true)[0];
+		srcfile = srcfile.Replace ("dtest-app.cs", "TypeLoadClass.cs");
+		Assert.IsTrue (srcfile.Contains ("TypeLoadClass.cs"));
 
 		var req = vm.CreateTypeLoadRequest ();
 		req.SourceFileFilter = new string [] { srcfile.ToUpper () };
