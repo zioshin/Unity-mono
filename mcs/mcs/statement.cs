@@ -2657,6 +2657,7 @@ namespace Mono.CSharp {
 			AwaitBlock = 1 << 13,
 			FinallyBlock = 1 << 14,
 			CatchBlock = 1 << 15,
+			HasReferenceToStoreyForInstanceLambdas = 1 << 16,
 			Iterator = 1 << 20,
 			NoFlowAnalysis = 1 << 21,
 			InitializationEmitted = 1 << 22
@@ -3281,7 +3282,7 @@ namespace Mono.CSharp {
 							break;
 					}
 				}
-				
+
 				//
 				// We are the first storey on path and 'this' has to be hoisted
 				//
@@ -3349,7 +3350,7 @@ namespace Mono.CSharp {
 
 								//
 								// If we are state machine with no parent. We can hook into parent without additional
- 								// reference and capture this directly
+								// reference and capture this directly
 								//
 								ExplicitBlock parent_storey_block = pb;
 								while (parent_storey_block.Parent != null) {
@@ -3665,6 +3666,15 @@ namespace Mono.CSharp {
 		}
 
 		#region Properties
+
+		public bool HasReferenceToStoreyForInstanceLambdas {
+			get {
+				return (flags & Flags.HasReferenceToStoreyForInstanceLambdas) != 0;
+			}
+			set {
+				flags = value ? flags | Flags.HasReferenceToStoreyForInstanceLambdas : flags & ~Flags.HasReferenceToStoreyForInstanceLambdas;
+			}
+		}
 
 		public bool IsAsync {
 			get {
@@ -5378,18 +5388,30 @@ namespace Mono.CSharp {
 						continue;
 					}
 
-					if (constant_label != null && constant_label != sl)
+					if (section_rc.IsUnreachable) {
+						//
+						// Common case. Previous label section end is unreachable as
+						// it ends with break, return, etc. For next section revert
+						// to reachable again unless we have constant switch block
+						//
+						section_rc = constant_label != null && constant_label != sl ?
+							Reachability.CreateUnreachable () :
+							new Reachability ();
+					} else if (prev_label != null) {
+						//
+						// Error case as control cannot fall through from one case label
+						//
+						sl.SectionStart = false;
+						s = new MissingBreak (prev_label);
+						s.MarkReachable (rc);
+						block.Statements.Insert (i - 1, s);
+						++i;
+					} else if (constant_label != null && constant_label != sl) {
+						//
+						// Special case for the first unreachable label in constant
+						// switch block
+						//
 						section_rc = Reachability.CreateUnreachable ();
-					else if (section_rc.IsUnreachable) {
-						section_rc = new Reachability ();
-					} else {
-						if (prev_label != null) {
-							sl.SectionStart = false;
-							s = new MissingBreak (prev_label);
-							s.MarkReachable (rc);
-							block.Statements.Insert (i - 1, s);
-							++i;
-						}
 					}
 
 					prev_label = sl;
@@ -5990,7 +6012,7 @@ namespace Mono.CSharp {
 				ec.EmitInt (first_resume_pc);
 				ec.Emit (OpCodes.Sub);
 
-				var labels = new Label[resume_points.Count - System.Math.Max (first_catch_resume_pc, 0)];
+				var labels = new Label [first_catch_resume_pc > 0 ? first_catch_resume_pc : resume_points.Count];
 				for (int i = 0; i < labels.Length; ++i)
 					labels[i] = resume_points[i].PrepareForEmit (ec);
 				ec.Emit (OpCodes.Switch, labels);
@@ -7029,6 +7051,7 @@ namespace Mono.CSharp {
 			ec.Emit (OpCodes.Stloc, temp);
 
 			var exception_field = ec.GetTemporaryField (type);
+			exception_field.AutomaticallyReuse = false;
 			ec.EmitThis ();
 			ec.Emit (OpCodes.Ldloc, temp);
 			exception_field.EmitAssignFromStack (ec);
@@ -7052,7 +7075,7 @@ namespace Mono.CSharp {
 			ec.Emit (OpCodes.Throw);
 			ec.MarkLabel (skip_throw);
 
-			exception_field.IsAvailableForReuse = true;
+			exception_field.PrepareCleanup (ec);
 
 			EmitUnwindFinallyTable (ec);
 		}

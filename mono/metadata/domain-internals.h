@@ -325,7 +325,10 @@ struct _MonoDomain {
 	/* hashtables for Reflection handles */
 	MonoGHashTable     *type_hash;
 	MonoGHashTable     *refobject_hash;
-	/* a GC-tracked array to keep references to the static fields of types */
+	/*
+	 * A GC-tracked array to keep references to the static fields of types.
+	 * See note [Domain Static Data Array].
+	 */
 	gpointer           *static_data_array;
 	/* maps class -> type initialization exception object */
 	MonoGHashTable    *type_init_exception_hash;
@@ -409,6 +412,7 @@ struct _MonoDomain {
 	MonoImage *socket_assembly;
 	MonoClass *sockaddr_class;
 	MonoClassField *sockaddr_data_field;
+	MonoClassField *sockaddr_data_length_field;
 
 	/* unity specific, cache the class for each static field */
 	/* a GC-tracked array to keep references to the static fields of types */
@@ -445,8 +449,8 @@ typedef struct  {
 
 typedef MonoDomain* (*MonoLoadFunc) (const char *filename, const char *runtime_version);
 
-void mono_domain_lock (MonoDomain *domain);
-void mono_domain_unlock (MonoDomain *domain);
+void mono_domain_lock (MonoDomain *domain) MONO_LLVM_INTERNAL;
+void mono_domain_unlock (MonoDomain *domain) MONO_LLVM_INTERNAL;
 
 void
 mono_install_runtime_load  (MonoLoadFunc func);
@@ -524,12 +528,6 @@ mono_domain_code_reserve_align (MonoDomain *domain, int size, int alignment);
 
 void
 mono_domain_code_commit (MonoDomain *domain, void *data, int size, int newsize);
-
-void *
-nacl_domain_get_code_dest (MonoDomain *domain, void *data);
-
-void 
-nacl_domain_code_validate (MonoDomain *domain, guint8 **buf_base, int buf_size, guint8 **code_end);
 
 void
 mono_domain_code_foreach (MonoDomain *domain, MonoCodeManagerFunc func, void *user_data);

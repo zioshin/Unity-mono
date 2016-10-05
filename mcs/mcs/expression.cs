@@ -2362,6 +2362,11 @@ namespace Mono.CSharp
 			eclass = ExprClass.Value;
 			TypeSpec etype = expr.Type;
 
+			if (type == null) {
+				type = InternalType.ErrorType;
+				return this;
+			}
+
 			if (!TypeSpec.IsReferenceType (type) && !type.IsNullableType) {
 				if (TypeManager.IsGenericParameter (type)) {
 					ec.Report.Error (413, loc,
@@ -8084,11 +8089,21 @@ namespace Mono.CSharp
 			if (element == null)
 				return null;
 
-			if (element is CompoundAssign.TargetExpression) {
-				if (first_emit != null)
-					throw new InternalErrorException ("Can only handle one mutator at a time");
-				first_emit = element;
-				element = first_emit_temp = new LocalTemporary (element.Type);
+			var te = element as CompoundAssign.TargetExpression;
+			if (te != null) {
+				for (int i = 1; i < initializers.Count; ++i) {
+					if (initializers [i].ContainsEmitWithAwait ()) {
+						te.RequiresEmitWithAwait = true;
+						break;
+					}
+				}
+
+				if (!te.RequiresEmitWithAwait) {
+					if (first_emit != null)
+						throw new InternalErrorException ("Can only handle one mutator at a time");
+					first_emit = element;
+					element = first_emit_temp = new LocalTemporary (element.Type);
+				}
 			}
 
 			return Convert.ImplicitConversionRequired (
@@ -9949,7 +9964,7 @@ namespace Mono.CSharp
 
 			TypeSpec nested = null;
 			while (expr_type != null) {
-				nested = MemberCache.FindNestedType (expr_type, Name, Arity);
+				nested = MemberCache.FindNestedType (expr_type, Name, Arity, false);
 				if (nested == null) {
 					if (expr_type == tnew_expr) {
 						Error_IdentifierNotFound (rc, expr_type);
@@ -9957,7 +9972,7 @@ namespace Mono.CSharp
 					}
 
 					expr_type = tnew_expr;
-					nested = MemberCache.FindNestedType (expr_type, Name, Arity);
+					nested = MemberCache.FindNestedType (expr_type, Name, Arity, false);
 					ErrorIsInaccesible (rc, nested.GetSignatureForError (), loc);
 					break;
 				}
@@ -9998,7 +10013,7 @@ namespace Mono.CSharp
 
 		public void Error_IdentifierNotFound (IMemberContext rc, TypeSpec expr_type)
 		{
-			var nested = MemberCache.FindNestedType (expr_type, Name, -System.Math.Max (1, Arity));
+			var nested = MemberCache.FindNestedType (expr_type, Name, -System.Math.Max (1, Arity), false);
 
 			if (nested != null) {
 				Error_TypeArgumentsCannotBeUsed (rc, nested, expr.Location);
@@ -12241,6 +12256,7 @@ namespace Mono.CSharp
 						throw new NotImplementedException ();
 
 					sf = ec.GetTemporaryField (type);
+					sf.AutomaticallyReuse = false;
 					sf.EmitAssign (ec, temp, false, false);
 					temp_target = sf;
 					temp.Release (ec);
@@ -12258,8 +12274,8 @@ namespace Mono.CSharp
 				temp.Release (ec);
 
 			if (sf != null)
-				sf.IsAvailableForReuse = true;
-
+				sf.PrepareCleanup (ec);
+			
 			return true;
 		}
 

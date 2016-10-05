@@ -138,14 +138,14 @@ namespace System.Net
 		public const int DefaultPersistentConnectionLimit = 2;
 #endif
 
-#if !NET_2_1
+#if !MOBILE
 		const string configKey = "system.net/connectionManagement";
 		static ConnectionManagementData manager;
 #endif
 		
 		static ServicePointManager ()
 		{
-#if !NET_2_1
+#if !MOBILE
 #if CONFIGURATION_DEP
 			object cfg = ConfigurationManager.GetSection (configKey);
 			ConnectionManagementSection s = cfg as ConnectionManagementSection;
@@ -200,7 +200,7 @@ namespace System.Net
 					throw new ArgumentOutOfRangeException ("value");
 
 				defaultConnectionLimit = value; 
-#if !NET_2_1
+#if !MOBILE
                 if (manager != null)
 					manager.Add ("*", defaultConnectionLimit);
 #endif
@@ -294,6 +294,10 @@ namespace System.Net
 			get { return false; }
 		}
 
+		internal static bool DisableSendAuxRecord {
+			get { return false; }
+		}
+
 		// Methods
 		public static void SetTcpKeepAlive (bool enabled, int keepAliveTime, int keepAliveInterval)
 		{
@@ -311,7 +315,7 @@ namespace System.Net
 
 		public static ServicePoint FindServicePoint (Uri address) 
 		{
-			return FindServicePoint (address, GlobalProxySelection.Select);
+			return FindServicePoint (address, null);
 		}
 		
 		public static ServicePoint FindServicePoint (string uriString, IWebProxy proxy)
@@ -352,7 +356,7 @@ namespace System.Net
 					throw new InvalidOperationException ("maximum number of service points reached");
 
 				int limit;
-#if NET_2_1
+#if MOBILE
 				limit = defaultConnectionLimit;
 #else
 				string addr = address.ToString ();

@@ -27,6 +27,9 @@ monoutils_sources = \
 	mono-dl-darwin.c	\
 	mono-dl-posix.c		\
 	mono-dl.h		\
+	mono-log-windows.c	\
+	mono-log-common.c	\
+	mono-log-posix.c	\
 	mono-internal-hash.c	\
 	mono-internal-hash.h	\
 	mono-io-portability.c 	\
@@ -109,6 +112,7 @@ monoutils_sources = \
 	mono-threads-windows.c	\
 	mono-threads-linux.c	\
 	mono-threads-freebsd.c	\
+	mono-threads-netbsd.c	\
 	mono-threads-openbsd.c	\
 	mono-threads-android.c	\
 	mono-threads.h	\
@@ -126,6 +130,7 @@ monoutils_sources = \
 	atomic.c	\
 	mono-hwcap.h	\
 	mono-hwcap.c	\
+	mono-hwcap-vars.h	\
 	bsearch.h	\
 	bsearch.c	\
 	mono-signal-handler.h	\
@@ -148,7 +153,9 @@ monoutils_sources = \
 	parse.c \
 	parse.h	\
 	checked-build.c \
-	checked-build.h
+	checked-build.h \
+	w32handle.c \
+	w32handle.h
 
 arch_sources = 
 
@@ -176,48 +183,56 @@ arch_sources += mach-support-unknown.c
 
 endif
 
+if !CROSS_COMPILE
+
 if X86
-arch_sources += mono-hwcap-x86.c mono-hwcap-x86.h
+arch_sources += mono-hwcap-x86.c
 endif
 
 if AMD64
-arch_sources += mono-hwcap-x86.c mono-hwcap-x86.h
+arch_sources += mono-hwcap-x86.c
 endif
 
 if ARM
-arch_sources += mono-hwcap-arm.c mono-hwcap-arm.h
+arch_sources += mono-hwcap-arm.c
 endif
 
 if ARM64
-arch_sources += mono-hwcap-arm64.c mono-hwcap-arm64.h
+arch_sources += mono-hwcap-arm64.c
 endif
 
 if MIPS
-arch_sources += mono-hwcap-mips.c mono-hwcap-mips.h
+arch_sources += mono-hwcap-mips.c
 endif
 
 if POWERPC
-arch_sources += mono-hwcap-ppc.c mono-hwcap-ppc.h
+arch_sources += mono-hwcap-ppc.c
 endif
 
 if POWERPC64
-arch_sources += mono-hwcap-ppc.c mono-hwcap-ppc.h
+arch_sources += mono-hwcap-ppc.c
 endif
 
 if SPARC
-arch_sources += mono-hwcap-sparc.c mono-hwcap-sparc.h
+arch_sources += mono-hwcap-sparc.c
 endif
 
 if SPARC64
-arch_sources += mono-hwcap-sparc.c mono-hwcap-sparc.h
+arch_sources += mono-hwcap-sparc.c
 endif
 
 if IA64
-arch_sources += mono-hwcap-ia64.c mono-hwcap-ia64.h
+arch_sources += mono-hwcap-ia64.c
 endif
 
 if S390X
-arch_sources += mono-hwcap-s390x.c mono-hwcap-s390x.h
+arch_sources += mono-hwcap-s390x.c
+endif
+
+else
+
+arch_sources += mono-hwcap-cross.c
+
 endif
 
 libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources)

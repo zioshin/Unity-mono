@@ -56,6 +56,8 @@ DECL_SIZE(gpointer)
 DECL_OFFSET(MonoObject, vtable)
 DECL_OFFSET(MonoObject, synchronisation)
 
+DECL_OFFSET(MonoObjectHandlePayload, __obj)
+
 DECL_OFFSET(MonoClass, interface_bitmap)
 DECL_OFFSET(MonoClass, byval_arg)
 DECL_OFFSET(MonoClass, cast_class)
@@ -129,8 +131,9 @@ DECL_OFFSET(MonoTypedRef, value)
 DECL_OFFSET(MonoThreadsSync, status)
 DECL_OFFSET(MonoThreadsSync, nest)
 
-#if defined (HAVE_SGEN_GC) && !defined (HAVE_KW_THREAD)
-DECL_OFFSET(SgenThreadInfo, tlab_next_addr)
+#ifdef HAVE_SGEN_GC
+DECL_OFFSET(SgenClientThreadInfo, in_critical_region)
+DECL_OFFSET(SgenThreadInfo, tlab_next)
 DECL_OFFSET(SgenThreadInfo, tlab_temp_end)
 #endif
 

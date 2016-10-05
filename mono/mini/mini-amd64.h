@@ -6,26 +6,6 @@
 #include <mono/utils/mono-context.h>
 #include <glib.h>
 
-#ifdef __native_client_codegen__
-#define kNaClAlignmentAMD64 32
-#define kNaClAlignmentMaskAMD64 (kNaClAlignmentAMD64 - 1)
-
-/* TODO: use kamd64NaClLengthOfCallImm    */
-/* temporarily using kNaClAlignmentAMD64 so padding in */
-/* image-writer.c doesn't happen                       */
-#define kNaClLengthOfCallImm kNaClAlignmentAMD64
-
-int is_nacl_call_reg_sequence (guint8* code);
-void amd64_nacl_clear_legacy_prefix_tag ();
-void amd64_nacl_tag_legacy_prefix (guint8* code);
-void amd64_nacl_tag_rex (guint8* code);
-guint8* amd64_nacl_get_legacy_prefix_tag ();
-guint8* amd64_nacl_get_rex_tag ();
-void amd64_nacl_instruction_pre ();
-void amd64_nacl_instruction_post (guint8 **start, guint8 **end);
-void amd64_nacl_membase_handler (guint8** code, gint8 basereg, gint32 offset, gint8 dreg);
-#endif
-
 #ifdef HOST_WIN32
 #include <windows.h>
 /* use SIG* defines if possible */
@@ -175,13 +155,7 @@ struct MonoLMF {
 	 * the 'rbp' field is not valid.
 	 */
 	gpointer    previous_lmf;
-#if defined(__default_codegen__) || defined(HOST_WIN32)
 	guint64     rip;
-#elif defined(__native_client_codegen__)
-	/* On 64-bit compilers, default alignment is 8 for this field, */
-	/* this allows the structure to match for 32-bit compilers.    */
-	guint64     rip __attribute__ ((aligned(8)));
-#endif
 	guint64     rbp;
 	guint64     rsp;
 };
@@ -214,12 +188,20 @@ typedef struct MonoCompileArch {
 } MonoCompileArch;
 
 #ifdef TARGET_WIN32
-#define PARAM_REGS 4
-#define FLOAT_PARAM_REGS 4
 
 static AMD64_Reg_No param_regs [] = { AMD64_RCX, AMD64_RDX, AMD64_R8, AMD64_R9 };
 
-static AMD64_Reg_No return_regs [] = { AMD64_RAX, AMD64_RDX };
+static AMD64_Reg_No float_param_regs [] = { AMD64_XMM0, AMD64_XMM1, AMD64_XMM2, AMD64_XMM3 };
+
+static AMD64_Reg_No return_regs [] = { AMD64_RAX };
+
+static AMD64_Reg_No float_return_regs [] = { AMD64_XMM0 };
+
+#define PARAM_REGS G_N_ELEMENTS(param_regs)
+#define FLOAT_PARAM_REGS G_N_ELEMENTS(float_param_regs)
+#define RETURN_REGS G_N_ELEMENTS(return_regs)
+#define FLOAT_RETURN_REGS G_N_ELEMENTS(float_return_regs)
+
 #else
 #define PARAM_REGS 6
 #define FLOAT_PARAM_REGS 8
@@ -256,8 +238,10 @@ typedef struct {
 	gpointer bp_addrs [MONO_ZERO_LEN_ARRAY];
 } SeqPointInfo;
 
+#define DYN_CALL_STACK_ARGS 6
+
 typedef struct {
-	mgreg_t regs [PARAM_REGS];
+	mgreg_t regs [PARAM_REGS + DYN_CALL_STACK_ARGS];
 	mgreg_t res;
 	guint8 *ret;
 	double fregs [8];
@@ -272,6 +256,7 @@ typedef enum {
 	ArgOnStack,
 	ArgValuetypeInReg,
 	ArgValuetypeAddrInIReg,
+	ArgValuetypeAddrOnStack,
 	/* gsharedvt argument passed by addr */
 	ArgGSharedVtInReg,
 	ArgGSharedVtOnStack,
@@ -293,6 +278,7 @@ typedef struct {
 	int nregs;
 	/* Only if storage == ArgOnStack */
 	int arg_size; // Bytes, will always be rounded up/aligned to 8 byte boundary
+	guint8 pass_empty_struct : 1; // Set in scenarios when empty structs needs to be represented as argument.
 } ArgInfo;
 
 typedef struct {
@@ -349,7 +335,7 @@ typedef struct {
  */
 #define MONO_ARCH_VARARG_ICALLS 1
 
-#if (!defined( HOST_WIN32 ) && !defined(__native_client__) && !defined(__native_client_codegen__)) && defined (HAVE_SIGACTION)
+#if !defined( HOST_WIN32 ) && defined (HAVE_SIGACTION)
 
 #define MONO_ARCH_USE_SIGACTION 1
 
@@ -359,7 +345,7 @@ typedef struct {
 
 #endif
 
-#endif /* !HOST_WIN32 && !__native_client__ */
+#endif /* !HOST_WIN32 */
 
 #if !defined(__linux__)
 #define MONO_ARCH_NOMAP32BIT 1
@@ -406,18 +392,17 @@ typedef struct {
 #define MONO_ARCH_HAVE_GET_TRAMPOLINES 1
 
 #define MONO_ARCH_AOT_SUPPORTED 1
-#if !defined( __native_client__ )
 #define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
-#endif
 
 #define MONO_ARCH_SUPPORT_TASKLETS 1
 
 #define MONO_ARCH_GSHARED_SUPPORTED 1
 #define MONO_ARCH_DYN_CALL_SUPPORTED 1
-#define MONO_ARCH_DYN_CALL_PARAM_AREA 0
+#define MONO_ARCH_DYN_CALL_PARAM_AREA (DYN_CALL_STACK_ARGS * 8)
 
 #define MONO_ARCH_LLVM_SUPPORTED 1
 #define MONO_ARCH_HAVE_HANDLER_BLOCK_GUARD 1
+#define MONO_ARCH_HAVE_HANDLER_BLOCK_GUARD_AOT 1
 #define MONO_ARCH_HAVE_CARD_TABLE_WBARRIER 1
 #define MONO_ARCH_HAVE_SETUP_RESUME_FROM_SIGNAL_HANDLER_CTX 1
 #define MONO_ARCH_GC_MAPS_SUPPORTED 1
@@ -430,18 +415,17 @@ typedef struct {
 #define MONO_ARCH_HAVE_SDB_TRAMPOLINES 1
 #define MONO_ARCH_HAVE_PATCH_CODE_NEW 1
 #define MONO_ARCH_HAVE_OP_GENERIC_CLASS_INIT 1
+#define MONO_ARCH_HAVE_GENERAL_RGCTX_LAZY_FETCH_TRAMPOLINE 1
 
 #if defined(TARGET_OSX) || defined(__linux__)
 #define MONO_ARCH_HAVE_UNWIND_BACKTRACE 1
 #endif
 
-#if defined(TARGET_OSX) || defined(__linux__)
+#if defined(TARGET_OSX) || defined(__linux__) || defined(TARGET_WIN32)
 #define MONO_ARCH_HAVE_TLS_GET_REG 1
 #endif
 
-#if !defined (TARGET_WIN32)
 #define MONO_ARCH_GSHAREDVT_SUPPORTED 1
-#endif
 
 
 #if defined(TARGET_APPLETVOS)
@@ -497,6 +481,9 @@ mono_amd64_get_exception_trampolines (gboolean aot);
 
 int
 mono_amd64_get_tls_gs_offset (void) MONO_LLVM_INTERNAL;
+
+gpointer
+mono_amd64_handler_block_trampoline_helper (void);
 
 #ifdef TARGET_WIN32
 

@@ -22,6 +22,7 @@
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/marshal.h>
 #include <mono/metadata/runtime.h>
+#include <mono/metadata/handle.h>
 #include <mono/metadata/sgen-toggleref.h>
 #include <mono/utils/atomic.h>
 #include <mono/utils/mono-logger-internals.h>
@@ -388,6 +389,9 @@ boehm_thread_register (MonoThreadInfo* info, void *baseptr)
 	res = GC_register_my_thread (&sb);
 	if (res == GC_UNIMPLEMENTED)
 	    return NULL; /* Cannot happen with GC v7+. */
+
+	info->handle_stack = mono_handle_stack_alloc ();
+
 	return info;
 }
 
@@ -424,7 +428,6 @@ on_gc_notification (GC_EventType event)
 	switch (e) {
 	case MONO_GC_EVENT_PRE_STOP_WORLD:
 		MONO_GC_WORLD_STOP_BEGIN ();
-		mono_thread_info_suspend_lock ();
 		break;
 
 	case MONO_GC_EVENT_POST_STOP_WORLD:
@@ -437,7 +440,6 @@ on_gc_notification (GC_EventType event)
 
 	case MONO_GC_EVENT_POST_START_WORLD:
 		MONO_GC_WORLD_RESTART_END (1);
-		mono_thread_info_suspend_unlock ();
 		break;
 
 	case MONO_GC_EVENT_START:
@@ -477,7 +479,21 @@ on_gc_notification (GC_EventType event)
 	}
 
 	mono_profiler_gc_event (e, 0);
+
+	switch (e) {
+	case MONO_GC_EVENT_PRE_STOP_WORLD:
+		mono_thread_info_suspend_lock ();
+		mono_profiler_gc_event (MONO_GC_EVENT_PRE_STOP_WORLD_LOCKED, 0);
+		break;
+	case MONO_GC_EVENT_POST_START_WORLD:
+		mono_thread_info_suspend_unlock ();
+		mono_profiler_gc_event (MONO_GC_EVENT_POST_START_WORLD_UNLOCKED, 0);
+		break;
+	default:
+		break;
+	}
 }
+
  
 static void
 on_gc_heap_resize (size_t new_size)
@@ -769,7 +785,7 @@ mono_gc_invoke_finalizers (void)
 	return 0;
 }
 
-gboolean
+MonoBoolean
 mono_gc_pending_finalizers (void)
 {
 	return GC_should_invoke_finalizers ();
@@ -826,6 +842,11 @@ mono_gc_wbarrier_object_copy (MonoObject* obj, MonoObject *src)
 
 void
 mono_gc_clear_domain (MonoDomain *domain)
+{
+}
+
+void
+mono_gc_suspend_finalizers (void)
 {
 }
 
@@ -1125,7 +1146,9 @@ mono_gc_get_managed_allocator (MonoClass *klass, gboolean for_box, gboolean know
 		return NULL;
 	if (!SMALL_ENOUGH (klass->instance_size))
 		return NULL;
-	if (mono_class_has_finalizer (klass) || mono_class_is_marshalbyref (klass) || (mono_profiler_get_events () & MONO_PROFILE_ALLOCATIONS))
+	if (mono_class_has_finalizer (klass) || mono_class_is_marshalbyref (klass))
+		return NULL;
+	if (mono_profiler_get_events () & (MONO_PROFILE_ALLOCATIONS | MONO_PROFILE_STATISTICAL))
 		return NULL;
 	if (klass->rank)
 		return NULL;
@@ -1151,7 +1174,7 @@ mono_gc_get_managed_allocator (MonoClass *klass, gboolean for_box, gboolean know
 			atype = ATYPE_NORMAL;
 		*/
 	}
-	return mono_gc_get_managed_allocator_by_type (atype, FALSE);
+	return mono_gc_get_managed_allocator_by_type (atype, MANAGED_ALLOCATOR_REGULAR);
 }
 
 MonoMethod*
@@ -1166,10 +1189,11 @@ mono_gc_get_managed_array_allocator (MonoClass *klass)
  *   Return a managed allocator method corresponding to allocator type ATYPE.
  */
 MonoMethod*
-mono_gc_get_managed_allocator_by_type (int atype, gboolean slowpath)
+mono_gc_get_managed_allocator_by_type (int atype, ManagedAllocatorVariant variant)
 {
 	int offset = -1;
 	MonoMethod *res;
+	gboolean slowpath = variant != MANAGED_ALLOCATOR_REGULAR;
 	MonoMethod **cache = slowpath ? slowpath_alloc_method_cache : alloc_method_cache;
 	MONO_THREAD_VAR_OFFSET (GC_thread_tls, offset);
 
@@ -1226,7 +1250,7 @@ mono_gc_get_managed_array_allocator (MonoClass *klass)
 }
 
 MonoMethod*
-mono_gc_get_managed_allocator_by_type (int atype, gboolean slowpath)
+mono_gc_get_managed_allocator_by_type (int atype, ManagedAllocatorVariant variant)
 {
 	return NULL;
 }
@@ -1904,5 +1928,9 @@ mono_gchandle_free_domain (MonoDomain *domain)
 	}
 
 }
-
+#else
+	#ifdef _MSC_VER
+		// Quiet Visual Studio linker warning, LNK4221, in cases when this source file intentional ends up empty.
+		void __mono_win32_boehm_gc_quiet_lnk4221(void) {}
+	#endif
 #endif /* no Boehm GC */

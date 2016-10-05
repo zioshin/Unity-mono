@@ -66,7 +66,7 @@
 /* useful until we keep track of gc-references in corlib etc. */
 #define IS_GC_REFERENCE(class,t) (mono_gc_is_moving () ? FALSE : ((t)->type == MONO_TYPE_U && (class)->image == mono_defaults.corlib))
 
-void   mono_object_register_finalizer               (MonoObject  *obj, MonoError *error);
+void   mono_object_register_finalizer               (MonoObject  *obj);
 void   ves_icall_System_GC_InternalCollect          (int          generation);
 gint64 ves_icall_System_GC_GetTotalMemory           (MonoBoolean  forceCollection);
 void   ves_icall_System_GC_KeepAlive                (MonoObject  *obj);
@@ -145,10 +145,6 @@ void     mono_gchandle_free_domain  (MonoDomain *domain);
 
 typedef void (*FinalizerThreadCallback) (gpointer user_data);
 
-/* if there are finalizers to run, run them. Returns the number of finalizers run */
-gboolean mono_gc_pending_finalizers (void);
-void     mono_gc_finalize_notify    (void);
-
 void* mono_gc_alloc_pinned_obj (MonoVTable *vtable, size_t size);
 void* mono_gc_alloc_obj (MonoVTable *vtable, size_t size);
 void* mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length);
@@ -161,9 +157,11 @@ void  mono_gc_register_for_finalization (MonoObject *obj, void *user_data);
 void  mono_gc_add_memory_pressure (gint64 value);
 MONO_API int   mono_gc_register_root (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char *msg);
 void  mono_gc_deregister_root (char* addr);
-int   mono_gc_finalizers_for_domain (MonoDomain *domain, MonoObject **out_array, int out_size);
+void  mono_gc_finalize_domain (MonoDomain *domain);
 void  mono_gc_run_finalize (void *obj, void *data);
 void  mono_gc_clear_domain (MonoDomain * domain);
+/* Signal early termination of finalizer processing inside the gc */
+void  mono_gc_suspend_finalizers (void);
 
 
 /* 
@@ -189,10 +187,17 @@ void  mono_gc_finalize_threadpool_threads (void);
 
 /* fast allocation support */
 
+typedef enum {
+	// Regular fast path allocator.
+	MANAGED_ALLOCATOR_REGULAR,
+	// Managed allocator that just calls into the runtime. Used when allocation profiling w/ AOT.
+	MANAGED_ALLOCATOR_SLOW_PATH,
+} ManagedAllocatorVariant;
+
 int mono_gc_get_aligned_size_for_allocator (int size);
 MonoMethod* mono_gc_get_managed_allocator (MonoClass *klass, gboolean for_box, gboolean known_instance_size);
 MonoMethod* mono_gc_get_managed_array_allocator (MonoClass *klass);
-MonoMethod *mono_gc_get_managed_allocator_by_type (int atype, gboolean slowpath);
+MonoMethod *mono_gc_get_managed_allocator_by_type (int atype, ManagedAllocatorVariant variant);
 
 guint32 mono_gc_get_managed_allocator_types (void);
 

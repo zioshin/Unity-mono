@@ -150,6 +150,29 @@ namespace MonoTests.System.Net.Http
 			}
 		}
 
+		class ThrowOnlyProxy : IWebProxy
+		{
+			public ICredentials Credentials {
+				get {
+					throw new NotImplementedException ();
+				}
+
+				set {
+					throw new NotImplementedException ();
+				}
+			}
+
+			public Uri GetProxy (Uri destination)
+			{
+				throw new NotImplementedException ();
+			}
+
+			public bool IsBypassed (Uri host)
+			{
+				throw new NotImplementedException ();
+			}
+		}
+
 		const int WaitTimeout = 5000;
 
 		string TestHost, LocalServer;
@@ -298,6 +321,26 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
+		public void Proxy_Disabled ()
+		{
+			var pp = WebRequest.DefaultWebProxy;
+
+			try {
+				WebRequest.DefaultWebProxy = new ThrowOnlyProxy ();
+
+				var request = new HttpClientHandler {
+					UseProxy = false
+				};
+
+				var client = new HttpClient (request);
+				Assert.IsTrue (client.GetAsync ("http://google.com").Wait (5000), "needs internet access");
+			} finally {
+				WebRequest.DefaultWebProxy = pp;
+			}
+		}
+
+		[Test]
 		public void Send ()
 		{
 			var mh = new HttpMessageHandlerMock ();
@@ -355,6 +398,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_Default ()
 		{
 			bool? failed = null;
@@ -399,6 +443,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_Version_1_0 ()
 		{
 			bool? failed = null;
@@ -446,6 +491,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_ClientHandlerSettings ()
 		{
 			bool? failed = null;
@@ -510,6 +556,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_CustomHeaders ()
 		{
 			bool? failed = null;
@@ -574,6 +621,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_CustomHeaders_SpecialSeparators ()
 		{
 			bool? failed = null;
@@ -608,6 +656,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_CustomHeaders_Host ()
 		{
 			bool? failed = null;
@@ -641,6 +690,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Transfer_Encoding_Chunked ()
 		{
 			bool? failed = null;
@@ -670,6 +720,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Transfer_Encoding_Custom ()
 		{
 			bool? failed = null;
@@ -698,6 +749,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_Content ()
 		{
 			var listener = CreateListener (l => {
@@ -725,6 +777,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_Content_MaxResponseContentBufferSize ()
 		{
 			var listener = CreateListener (l => {
@@ -747,6 +800,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_Content_MaxResponseContentBufferSize_Error ()
 		{
 			var listener = CreateListener (l => {
@@ -773,6 +827,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_NoContent ()
 		{
 			foreach (var method in new HttpMethod[] { HttpMethod.Post, HttpMethod.Put, HttpMethod.Delete }) {
@@ -805,6 +860,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Complete_Error ()
 		{
 			var listener = CreateListener (l => {
@@ -825,6 +881,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Content_Get ()
 		{
 			var listener = CreateListener (l => {
@@ -844,6 +901,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Content_BomEncoding ()
 		{
 			var listener = CreateListener (l => {
@@ -868,6 +926,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Content_Put ()
 		{
 			bool passed = false;
@@ -893,6 +952,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void Send_Content_Put_CustomStream ()
 		{
 			bool passed = false;
@@ -995,6 +1055,7 @@ namespace MonoTests.System.Net.Http
 
 		[Test]
 		[Category ("MobileNotWorking")] // Missing encoding
+		[Category ("RequiresBSDSockets")]
 		public void GetString_Many ()
 		{
 			Action<HttpListenerContext> context = (HttpListenerContext l) => {
@@ -1024,6 +1085,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void GetByteArray_ServerError ()
 		{
 			var listener = CreateListener (l => {
@@ -1046,6 +1108,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void DisallowAutoRedirect ()
 		{
 			var listener = CreateListener (l => {
@@ -1074,6 +1137,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		public void RequestUriAfterRedirect ()
 		{
 			var listener = CreateListener (l => {
@@ -1114,6 +1178,7 @@ namespace MonoTests.System.Net.Http
 		}
 
 		[Test]
+		[Category ("RequiresBSDSockets")]
 		/*
 		 * Properties may only be modified before sending the first request.
 		 */

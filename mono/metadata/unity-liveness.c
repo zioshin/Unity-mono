@@ -6,14 +6,26 @@
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/domain-internals.h>
+#include <mono/utils/mono-error.h>
 
 typedef struct _LivenessState LivenessState;
 
 typedef struct _GPtrArray custom_growable_array;
 #define array_at_index(array,index) (array)->pdata[(index)]
 
+#if defined(HAVE_SGEN_GC)
+void sgen_stop_world (int generation);
+void sgen_restart_world (int generation);
+#define LIVENESS_STOP_WORLD() do { sgen_stop_world (1); } while (0)
+#define LIVENESS_START_WORLD() do { sgen_restart_world (1); } while (0)
+#elif defined(HAVE_BOEHM_GC)
 extern void GC_stop_world_external();
 extern void GC_start_world_external();
+#define LIVENESS_STOP_WORLD() do { GC_stop_world_external (); } while (0)
+#define LIVENESS_START_WORLD() do { GC_start_world_external (); } while (0)
+#else
+#error need to implement liveness GC API
+#endif
 
 custom_growable_array* array_create_and_initialize (guint capacity)
 {
@@ -121,9 +133,9 @@ void array_safe_grow(LivenessState* state, custom_growable_array* array)
 		MonoObject* object = array_at_index(state->all_objects,i);
 		CLEAR_OBJ(object);
 	}
-	GC_start_world_external ();
+	LIVENESS_START_WORLD ();
 	array_grow(array);
-	GC_stop_world_external ();
+	LIVENESS_STOP_WORLD ();
 	for (i = 0; i < state->all_objects->len; i++)
 	{
 		MonoObject* object = array_at_index(state->all_objects,i);
@@ -148,7 +160,11 @@ static void mono_traverse_objects (LivenessState* state);
 
 static void mono_traverse_generic_object( MonoObject* object, LivenessState* state ) 
 {
+#ifdef HAVE_SGEN_GC
+	gsize gc_desc = 0;
+#else
 	gsize gc_desc = (gsize)(GET_VTABLE(object)->gc_descr);
+#endif
 
 	if (gc_desc & (gsize)1)
 		mono_traverse_gc_desc (object, state);
@@ -406,14 +422,16 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 			}
 			else
 			{
+				MonoError error;
 				MonoObject* val = NULL;
 
-				mono_field_static_get_value (mono_class_vtable (domain, klass), field, &val);
+				mono_field_static_get_value_checked (mono_class_vtable (domain, klass), field, &val, &error);
 
-				if (val)
+				if (val && mono_error_ok (&error))
 				{
 					mono_add_process_object(val, liveness_state);
 				}
+				mono_error_cleanup (&error);
 			}
 		}
 	}
@@ -575,13 +593,13 @@ void mono_unity_liveness_free_struct (LivenessState* state)
 
 void mono_unity_liveness_stop_gc_world ()
 {
-	GC_stop_world_external ();
+	LIVENESS_STOP_WORLD ();
 	// no allocations can happen beyond this point
 }
 
 void mono_unity_liveness_start_gc_world ()
 {
-	GC_start_world_external ();
+	LIVENESS_START_WORLD ();
 }
 
 LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata)

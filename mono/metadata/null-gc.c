@@ -321,7 +321,7 @@ mono_gc_get_managed_array_allocator (MonoClass *klass)
 }
 
 MonoMethod*
-mono_gc_get_managed_allocator_by_type (int atype, gboolean slowpath)
+mono_gc_get_managed_allocator_by_type (int atype, ManagedAllocatorVariant variant)
 {
 	return NULL;
 }
@@ -361,6 +361,11 @@ mono_gc_remove_weak_track_object (MonoDomain *domain, MonoObject *obj)
 
 void
 mono_gc_clear_domain (MonoDomain *domain)
+{
+}
+
+void
+mono_gc_suspend_finalizers (void)
 {
 }
 
@@ -546,5 +551,9 @@ mono_gc_is_null (void)
 {
 	return TRUE;
 }
-
-#endif
+#else
+	#ifdef _MSC_VER
+		// Quiet Visual Studio linker warning, LNK4221, in cases when this source file intentional ends up empty.
+		void __mono_win32_null_gc_quiet_lnk4221(void) {}
+	#endif
+#endif /* HAVE_NULL_GC */
