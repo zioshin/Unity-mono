@@ -307,3 +307,185 @@ gboolean mono_unity_class_has_parent_unsafe(MonoClass *klass, MonoClass *parent)
 	return mono_class_has_parent_fast(klass, parent);
 }
 
+//must match the hash in il2cpp code generation
+static guint32 hash_string_djb2(guchar *str)
+{
+	guint32 hash = 5381;
+	int c;
+
+	while (c = *str++)
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+	return hash;
+}
+
+static guint32 get_array_structure_hash(MonoArrayType *atype)
+{
+	char buffer[100];
+	char *ptr = buffer;
+
+	*ptr++ = '[';
+
+	char numbuffer[10];
+
+	for (int i = 0; i < atype->rank; ++i)
+	{
+		if (atype->numlobounds > 0 && atype->lobounds[i] != 0)
+		{
+			itoa(atype->lobounds[i], numbuffer, 10);
+			char *ptrnum = numbuffer;
+			while (*ptrnum)
+				*ptr++ = *ptrnum++;
+
+			*ptr++ = ':';
+		}
+
+		if (atype->numsizes > 0 && atype->sizes[i] != 0)
+		{
+			itoa(atype->sizes[i], numbuffer, 10);
+			char *ptrnum = numbuffer;
+			while (*ptrnum)
+				*ptr++ = *ptrnum++;
+		}
+
+		if (i < atype->rank - 1)
+			*ptr++ = ',';
+	}
+
+	*ptr++ = ']';
+	*ptr++ = 0;
+
+	return hash_string_djb2(buffer);
+}
+
+void get_type_hashes(MonoType *type, GList *hashes);
+void get_type_hashes_generic_class(MonoGenericClass *generic_class, GList *hashes);
+
+
+static void get_type_hashes_generic_class(MonoGenericClass *generic_class, GList *hashes)
+{
+	MonoGenericInst *inst = generic_class->context.class_inst;
+	for (int i = 0; i < inst->type_argc; ++i)
+	{
+		MonoType *type = inst->type_argv[i];
+		get_type_hashes(type, hashes);
+	}
+}
+
+static void get_type_hashes(MonoType *type, GList *hashes)
+{
+	if (type->type != MONO_TYPE_GENERICINST)
+	{
+		MonoClass *klass = NULL;
+
+		switch (type->type)
+		{
+		case MONO_TYPE_ARRAY:
+		{
+			MonoArrayType *atype = type->data.array;
+			g_list_append(hashes, MONO_TOKEN_TYPE_SPEC);
+			g_list_append(hashes, get_array_structure_hash(atype));
+			get_type_hashes(&(atype->eklass->this_arg), hashes);
+			break;
+		}
+		case MONO_TYPE_CLASS:
+			klass = type->data.klass;
+			break;
+		case MONO_TYPE_BOOLEAN:
+			klass = mono_defaults.boolean_class;
+			break;
+		case MONO_TYPE_CHAR:
+			klass = mono_defaults.char_class;
+			break;
+		case MONO_TYPE_I1:
+			klass = mono_defaults.sbyte_class;
+			break;
+		case MONO_TYPE_U1:
+			klass = mono_defaults.byte_class;
+			break;
+		case MONO_TYPE_I2:
+			klass = mono_defaults.int16_class;
+			break;
+		case MONO_TYPE_U2:
+			klass = mono_defaults.uint16_class;
+			break;
+		case MONO_TYPE_I4:
+			klass = mono_defaults.int32_class;
+			break;
+		case MONO_TYPE_U4:
+			klass = mono_defaults.uint32_class;
+			break;
+		case MONO_TYPE_I8:
+			klass = mono_defaults.int64_class;
+			break;
+		case MONO_TYPE_U8:
+			klass = mono_defaults.uint64_class;
+			break;
+		case MONO_TYPE_R4:
+			klass = mono_defaults.single_class;
+			break;
+		case MONO_TYPE_R8:
+			klass = mono_defaults.double_class;
+			break;
+		case MONO_TYPE_STRING:
+			klass = mono_defaults.string_class;
+			break;
+		case MONO_TYPE_OBJECT:
+			klass = mono_defaults.object_class;
+			break;
+		}
+
+		if (klass)
+		{
+			g_list_append(hashes, klass->type_token);
+			g_list_append(hashes, hash_string_djb2(klass->image->module_name));
+		}
+		
+		return;
+	}
+	else
+	{
+		get_type_hashes_generic_class(type->data.generic_class, hashes);
+	}
+
+}
+
+static GList* get_type_hashes_method(MonoMethod *method)
+{
+	GList *hashes = monoeg_g_list_alloc();
+
+	hashes->data = method->token;
+
+	if (method->klass->is_inflated)
+		get_type_hashes_generic_class(method->klass->generic_class, hashes);
+	
+	return hashes;
+}
+
+//hash combination function must match the one used in IL2CPP codegen
+static guint64 combine_hashes(guint64 hash1, guint64 hash2)
+{
+	return hash1 * 486187739 + hash2;
+}
+
+static void combine_all_hashes(gpointer data, gpointer user_data)
+{
+	guint64 *hash = (guint64*)user_data;
+	if (*hash == 0)
+		*hash = (guint64)data;
+	else
+		*hash = combine_hashes(*hash, (guint64)data);
+}
+
+guint64 mono_unity_get_method_hash(MonoMethod *method)
+{
+	GList *hashes = get_type_hashes_method(method);
+
+	guint64 hash = 0;
+
+	g_list_first(hashes);
+	g_list_foreach(hashes, combine_all_hashes, &hash);
+	g_list_free(hashes);
+
+	return hash;
+}
