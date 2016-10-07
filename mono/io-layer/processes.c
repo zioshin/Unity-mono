@@ -95,9 +95,7 @@
 
 #include <mono/io-layer/wapi.h>
 #include <mono/io-layer/wapi-private.h>
-#include <mono/io-layer/handles-private.h>
 #include <mono/io-layer/process-private.h>
-#include <mono/io-layer/threads.h>
 #include <mono/io-layer/io-trace.h>
 #include <mono/utils/strenc.h>
 #include <mono/utils/mono-path.h>
@@ -109,6 +107,9 @@
 #include <mono/utils/mono-proclib.h>
 #include <mono/utils/mono-once.h>
 #include <mono/utils/mono-logger-internals.h>
+#include <mono/utils/w32handle.h>
+
+#define STILL_ACTIVE STATUS_PENDING
 
 /* The process' environment strings */
 #if defined(__APPLE__)
@@ -127,8 +128,11 @@ static char *mono_environ[1] = { NULL };
 extern char **environ;
 #endif
 
-static guint32 process_wait (gpointer handle, guint32 timeout, gboolean alertable);
+static guint32 process_wait (gpointer handle, guint32 timeout, gboolean *alerted);
 static void process_close (gpointer handle, gpointer data);
+static void process_details (gpointer data);
+static const gchar* process_typename (void);
+static gsize process_typesize (void);
 static gboolean is_pid_valid (pid_t pid);
 
 #if !(defined(USE_OSX_LOADER) || defined(USE_BSD_LOADER) || defined(USE_HAIKU_LOADER))
@@ -136,13 +140,16 @@ static FILE *
 open_process_map (int pid, const char *mode);
 #endif
 
-struct _WapiHandleOps _wapi_process_ops = {
+static MonoW32HandleOps _wapi_process_ops = {
 	process_close,		/* close_shared */
 	NULL,				/* signal */
 	NULL,				/* own */
 	NULL,				/* is_owned */
 	process_wait,			/* special_wait */
-	NULL				/* prewait */	
+	NULL,				/* prewait */
+	process_details,	/* details */
+	process_typename,	/* typename */
+	process_typesize,	/* typesize */
 };
 
 #if HAVE_SIGACTION
@@ -178,7 +185,7 @@ lookup_process_handle (gpointer handle)
 	WapiHandle_process *process_data;
 	gboolean ret;
 
-	ret = _wapi_lookup_handle (handle, WAPI_HANDLE_PROCESS,
+	ret = mono_w32handle_lookup (handle, MONO_W32HANDLE_PROCESS,
 							   (gpointer *)&process_data);
 	if (!ret)
 		return NULL;
@@ -577,7 +584,6 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 	GError *gerr = NULL;
 	int in_fd, out_fd, err_fd;
 	pid_t pid = 0;
-	int thr_ret;
 	int startup_pipe [2] = {-1, -1};
 	int dummy;
 	struct MonoProcess *mono_process;
@@ -895,8 +901,8 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 
 	process_set_defaults (&process_handle);
 	
-	handle = _wapi_handle_new (WAPI_HANDLE_PROCESS, &process_handle);
-	if (handle == _WAPI_HANDLE_INVALID) {
+	handle = mono_w32handle_new (MONO_W32HANDLE_PROCESS, &process_handle);
+	if (handle == INVALID_HANDLE_VALUE) {
 		g_warning ("%s: error creating process handle", __func__);
 
 		ret = FALSE;
@@ -999,7 +1005,7 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 		}
 		
 		/* Close all file descriptors */
-		for (i = wapi_getdtablesize () - 1; i > 2; i--)
+		for (i = mono_w32handle_fd_reserve - 1; i > 2; i--)
 			close (i);
 
 #ifdef DEBUG_ENABLED
@@ -1027,13 +1033,10 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 		break;
 	}
 	default: /* Parent */ {
-		thr_ret = _wapi_handle_lock_shared_handles ();
-		g_assert (thr_ret == 0);
-
 		process_handle_data = lookup_process_handle (handle);
 		if (!process_handle_data) {
 			g_warning ("%s: error looking up process handle %p", __func__, handle);
-			_wapi_handle_unref (handle);
+			mono_w32handle_unref (handle);
 		} else {
 			process_handle_data->id = pid;
 
@@ -1041,25 +1044,19 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 			mono_process = (struct MonoProcess *) g_malloc0 (sizeof (struct MonoProcess));
 			mono_process->pid = pid;
 			mono_process->handle_count = 1;
-			if (mono_os_sem_init (&mono_process->exit_sem, 0) != 0) {
-				/* If we can't create the exit semaphore, we just don't add anything
-				 * to our list of mono processes. Waiting on the process will return 
-				 * immediately. */
-				g_warning ("%s: could not create exit semaphore for process.", strerror (errno));
-				g_free (mono_process);
-			} else {
-				/* Keep the process handle artificially alive until the process
-				 * exits so that the information in the handle isn't lost. */
-				_wapi_handle_ref (handle);
-				mono_process->handle = handle;
+			mono_os_sem_init (&mono_process->exit_sem, 0);
 
-				process_handle_data->mono_process = mono_process;
+			/* Keep the process handle artificially alive until the process
+			 * exits so that the information in the handle isn't lost. */
+			mono_w32handle_ref (handle);
+			mono_process->handle = handle;
 
-				mono_os_mutex_lock (&mono_processes_mutex);
-				mono_process->next = mono_processes;
-				mono_processes = mono_process;
-				mono_os_mutex_unlock (&mono_processes_mutex);
-			}
+			process_handle_data->mono_process = mono_process;
+
+			mono_os_mutex_lock (&mono_processes_mutex);
+			mono_process->next = mono_processes;
+			mono_processes = mono_process;
+			mono_os_mutex_unlock (&mono_processes_mutex);
 
 			if (process_info != NULL) {
 				process_info->hProcess = handle;
@@ -1071,14 +1068,12 @@ gboolean CreateProcess (const gunichar2 *appname, const gunichar2 *cmdline,
 			}
 		}
 
-		_wapi_handle_unlock_shared_handles ();
-
 		break;
 	}
 	}
 
 	if (fork_failed)
-		_wapi_handle_unref (handle);
+		mono_w32handle_unref (handle);
 
 	if (startup_pipe [1] != -1) {
 		/* Write 1 byte, doesn't matter what */
@@ -1136,20 +1131,22 @@ process_set_name (WapiHandle_process *process_handle)
 }
 
 void
-wapi_processes_init (void)
+_wapi_processes_init (void)
 {
-	pid_t pid = _wapi_getpid ();
+	pid_t pid = wapi_getpid ();
 	WapiHandle_process process_handle = {0};
 
-	_wapi_handle_register_capabilities (WAPI_HANDLE_PROCESS,
-		(WapiHandleCapability)(WAPI_HANDLE_CAP_WAIT | WAPI_HANDLE_CAP_SPECIAL_WAIT));
+	mono_w32handle_register_ops (MONO_W32HANDLE_PROCESS, &_wapi_process_ops);
+
+	mono_w32handle_register_capabilities (MONO_W32HANDLE_PROCESS,
+		(MonoW32HandleCapability)(MONO_W32HANDLE_CAP_WAIT | MONO_W32HANDLE_CAP_SPECIAL_WAIT));
 	
 	process_handle.id = pid;
 
 	process_set_defaults (&process_handle);
 	process_set_name (&process_handle);
 
-	current_process = _wapi_handle_new (WAPI_HANDLE_PROCESS,
+	current_process = mono_w32handle_new (MONO_W32HANDLE_PROCESS,
 					    &process_handle);
 	g_assert (current_process);
 
@@ -1159,7 +1156,7 @@ wapi_processes_init (void)
 gpointer
 _wapi_process_duplicate (void)
 {
-	_wapi_handle_ref (current_process);
+	mono_w32handle_ref (current_process);
 	
 	return current_process;
 }
@@ -1215,9 +1212,9 @@ process_open_compare (gpointer handle, gpointer user_data)
 	 * unsignalled
 	 */
 	if (checking_pid == wanted_pid &&
-	    !_wapi_handle_issignalled (handle)) {
+	    !mono_w32handle_issignalled (handle)) {
 		/* If the handle is blown away in the window between
-		 * returning TRUE here and _wapi_search_handle pinging
+		 * returning TRUE here and mono_w32handle_search pinging
 		 * the timestamp, the search will continue
 		 */
 		return TRUE;
@@ -1245,7 +1242,7 @@ OpenProcess (guint32 req_access G_GNUC_UNUSED, gboolean inherit G_GNUC_UNUSED, g
 	
 	MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s: looking for process %d", __func__, pid);
 
-	handle = _wapi_search_handle (WAPI_HANDLE_PROCESS,
+	handle = mono_w32handle_search (MONO_W32HANDLE_PROCESS,
 				      process_open_compare,
 				      GUINT_TO_POINTER (pid), NULL, TRUE);
 	if (handle == 0) {
@@ -1263,7 +1260,7 @@ OpenProcess (guint32 req_access G_GNUC_UNUSED, gboolean inherit G_GNUC_UNUSED, g
 		}
 	}
 
-	/* _wapi_search_handle () already added a ref */
+	/* mono_w32handle_search () already added a ref */
 	return handle;
 }
 
@@ -1272,6 +1269,7 @@ GetExitCodeProcess (gpointer process, guint32 *code)
 {
 	WapiHandle_process *process_handle;
 	guint32 pid = -1;
+	gboolean alerted;
 	
 	if (!code)
 		return FALSE;
@@ -1297,7 +1295,7 @@ GetExitCodeProcess (gpointer process, guint32 *code)
 		return FALSE;
 	}
 
-	if (process_handle->id == _wapi_getpid ()) {
+	if (process_handle->id == wapi_getpid ()) {
 		*code = STILL_ACTIVE;
 		return TRUE;
 	}
@@ -1308,9 +1306,9 @@ GetExitCodeProcess (gpointer process, guint32 *code)
 	/* Make sure any process exit has been noticed, before
 	 * checking if the process is signalled.  Fixes bug 325463.
 	 */
-	process_wait (process, 0, TRUE);
+	process_wait (process, 0, &alerted);
 	
-	if (_wapi_handle_issignalled (process))
+	if (mono_w32handle_issignalled (process))
 		*code = process_handle->exitstatus;
 	else
 		*code = STILL_ACTIVE;
@@ -1356,7 +1354,7 @@ GetProcessTimes (gpointer process, WapiFileTime *create_time,
 	/* A process handle is only signalled if the process has
 	 * exited.  Otherwise exit_time isn't set
 	 */
-	if (_wapi_handle_issignalled (process))
+	if (mono_w32handle_issignalled (process))
 		*exit_time = process_handle->exit_time;
 
 #ifdef HAVE_GETRUSAGE
@@ -2594,7 +2592,7 @@ mono_processes_cleanup (void)
 			mp->handle = NULL;
 			mono_os_mutex_unlock (&mono_processes_mutex);
 			if (unref_handle)
-				_wapi_handle_unref (unref_handle);
+				mono_w32handle_unref (unref_handle);
 		}
 	}
 
@@ -2663,6 +2661,23 @@ process_close (gpointer handle, gpointer data)
 	mono_processes_cleanup ();
 }
 
+static void process_details (gpointer data)
+{
+	WapiHandle_process *process_handle = (WapiHandle_process *) data;
+	g_print ("id: %d, exited: %s, exitstatus: %d",
+		process_handle->id, process_handle->exited ? "true" : "false", process_handle->exitstatus);
+}
+
+static const gchar* process_typename (void)
+{
+	return "Process";
+}
+
+static gsize process_typesize (void)
+{
+	return sizeof (WapiHandle_process);
+}
+
 #if HAVE_SIGACTION
 MONO_SIGNAL_HANDLER_FUNC (static, mono_sigchld_signal_handler, (int _dummy, siginfo_t *info, void *context))
 {
@@ -2720,13 +2735,12 @@ process_add_sigchld_handler (void)
 }
 
 static guint32
-process_wait (gpointer handle, guint32 timeout, gboolean alertable)
+process_wait (gpointer handle, guint32 timeout, gboolean *alerted)
 {
 	WapiHandle_process *process_handle;
 	pid_t pid G_GNUC_UNUSED, ret;
 	int status;
-	guint32 start;
-	guint32 now;
+	gint64 start, now;
 	struct MonoProcess *mp;
 
 	/* FIXME: We can now easily wait on processes that aren't our own children,
@@ -2734,6 +2748,9 @@ process_wait (gpointer handle, guint32 timeout, gboolean alertable)
 	g_assert ((GPOINTER_TO_UINT (handle) & _WAPI_PROCESS_UNHANDLED) != _WAPI_PROCESS_UNHANDLED);
 
 	MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u)", __func__, handle, timeout);
+
+	if (alerted)
+		*alerted = FALSE;
 
 	process_handle = lookup_process_handle (handle);
 	if (!process_handle) {
@@ -2790,26 +2807,20 @@ process_wait (gpointer handle, guint32 timeout, gboolean alertable)
 		if (timeout != INFINITE) {
 			MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u): waiting on semaphore for %li ms...", 
 				   __func__, handle, timeout, (timeout - (now - start)));
-			ret = mono_os_sem_timedwait (&mp->exit_sem, (timeout - (now - start)), alertable ? MONO_SEM_FLAGS_ALERTABLE : MONO_SEM_FLAGS_NONE);
+			ret = mono_os_sem_timedwait (&mp->exit_sem, (timeout - (now - start)), alerted ? MONO_SEM_FLAGS_ALERTABLE : MONO_SEM_FLAGS_NONE);
 		} else {
 			MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u): waiting on semaphore forever...", 
 				   __func__, handle, timeout);
-			ret = mono_os_sem_wait (&mp->exit_sem, alertable ? MONO_SEM_FLAGS_ALERTABLE : MONO_SEM_FLAGS_NONE);
+			ret = mono_os_sem_wait (&mp->exit_sem, alerted ? MONO_SEM_FLAGS_ALERTABLE : MONO_SEM_FLAGS_NONE);
 		}
 
-		if (ret == -1 && errno != EINTR && errno != ETIMEDOUT) {
-			MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u): sem_timedwait failure: %s", 
-				   __func__, handle, timeout, g_strerror (errno));
-			/* Should we return a failure here? */
-		}
-
-		if (ret == 0) {
+		if (ret == MONO_SEM_TIMEDWAIT_RET_SUCCESS) {
 			/* Success, process has exited */
 			mono_os_sem_post (&mp->exit_sem);
 			break;
 		}
 
-		if (timeout == 0) {
+		if (ret == MONO_SEM_TIMEDWAIT_RET_TIMEDOUT) {
 			MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u): WAIT_TIMEOUT (timeout = 0)", __func__, handle, timeout);
 			return WAIT_TIMEOUT;
 		}
@@ -2820,17 +2831,15 @@ process_wait (gpointer handle, guint32 timeout, gboolean alertable)
 			return WAIT_TIMEOUT;
 		}
 		
-		if (alertable && _wapi_thread_cur_apc_pending ()) {
+		if (alerted && ret == MONO_SEM_TIMEDWAIT_RET_ALERTED) {
 			MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u): WAIT_IO_COMPLETION", __func__, handle, timeout);
+			*alerted = TRUE;
 			return WAIT_IO_COMPLETION;
 		}
 	}
 
 	/* Process must have exited */
 	MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u): Waited successfully", __func__, handle, timeout);
-
-	ret = _wapi_handle_lock_shared_handles ();
-	g_assert (ret == 0);
 
 	status = mp ? mp->status : 0;
 	if (WIFSIGNALED (status))
@@ -2844,9 +2853,7 @@ process_wait (gpointer handle, guint32 timeout, gboolean alertable)
 	MONO_TRACE (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s (%p, %u): Setting pid %d signalled, exit status %d",
 		   __func__, handle, timeout, process_handle->id, process_handle->exitstatus);
 
-	_wapi_handle_set_signal_state (handle, TRUE, TRUE);
-
-	_wapi_handle_unlock_shared_handles ();
+	mono_w32handle_set_signal_state (handle, TRUE, TRUE);
 
 	return WAIT_OBJECT_0;
 }

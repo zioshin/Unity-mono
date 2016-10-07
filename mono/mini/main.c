@@ -1,6 +1,7 @@
 #include <config.h>
 #include <fcntl.h>
 #include <mono/metadata/assembly.h>
+#include <mono/metadata/mono-config.h>
 #include <mono/utils/mono-mmap.h>
 #include "mini.h"
 
@@ -52,7 +53,7 @@ probe_embedded (const char *program, int *ref_argc, char **ref_argv [])
 	int fd = open (program, O_RDONLY);
 	if (fd == -1)
 		return FALSE;
-	if ((sigstart = lseek (fd, -(16+sizeof(uint64_t)), SEEK_END)) == -1)
+	if ((sigstart = lseek (fd, -24, SEEK_END)) == -1)
 		goto doclose;
 	if (read (fd, sigbuffer, sizeof (sigbuffer)) == -1)
 		goto doclose;
@@ -100,17 +101,18 @@ probe_embedded (const char *program, int *ref_argc, char **ref_argv [])
 			if (entry_point == NULL)
 				entry_point = aname;
 		} else if (strncmp (kind, "config:", strlen ("config:")) == 0){
-			printf ("c-Found: %s %llx\n", kind, offset);
 			char *config = kind + strlen ("config:");
 			char *aname = g_strdup (config);
 			aname [strlen(aname)-strlen(".config")] = 0;
 			mono_register_config_for_assembly (aname, config);
-		} else if (strncmp (kind, "system_config:", strlen ("system_config:")) == 0){
-			printf ("TODO s-Found: %s %llx\n", kind, offset);
+		} else if (strncmp (kind, "systemconfig:", strlen ("systemconfig:")) == 0){
+			mono_config_parse_memory (kind + strlen ("systemconfig:"));
 		} else if (strncmp (kind, "options:", strlen ("options:")) == 0){
 			mono_parse_options_from (kind + strlen("options:"), ref_argc, ref_argv);
 		} else if (strncmp (kind, "config_dir:", strlen ("config_dir:")) == 0){
-			printf ("TODO Found: %s %llx\n", kind, offset);
+			mono_set_dirs (getenv ("MONO_PATH"), kind + strlen ("config_dir:"));
+		} else if (strncmp (kind, "machineconfig:", strlen ("machineconfig:")) == 0) {
+			mono_register_machine_config (kind + strlen ("machineconfig:"));
 		} else {
 			fprintf (stderr, "Unknown stream on embedded package: %s\n", kind);
 			exit (1);

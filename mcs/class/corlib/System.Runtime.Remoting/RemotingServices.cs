@@ -477,7 +477,7 @@ namespace System.Runtime.Remoting
 		public static bool IsMethodOverloaded(IMethodMessage msg)
 		{
 			const BindingFlags bfinst = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
-			MonoType type = (MonoType) msg.MethodBase.DeclaringType;
+			RuntimeType type = (RuntimeType) msg.MethodBase.DeclaringType;
 			return type.GetMethodsByName (msg.MethodName, bfinst, false, type).Length > 1;
 		}
 
@@ -581,7 +581,7 @@ namespace System.Runtime.Remoting
 			RemotingProxy proxy = new RemotingProxy (type, ChannelServices.CrossContextUrl, activationAttributes);
 			return proxy.GetTransparentProxy();
 		}
-#if !NET_2_1
+#if !MOBILE
 		internal static object CreateClientProxyForComInterop (Type type)
 		{
 			Mono.Interop.ComInteropProxy proxy = Mono.Interop.ComInteropProxy.CreateProxy (type);

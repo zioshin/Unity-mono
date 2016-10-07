@@ -305,7 +305,7 @@ namespace System.Reflection {
 				o = InternalInvoke (obj, parameters, out exc);
 			} catch (ThreadAbortException) {
 				throw;
-#if NET_2_1
+#if MOBILE
 			} catch (MethodAccessException) {
 				throw;
 #endif
@@ -438,7 +438,7 @@ namespace System.Reflection {
 			foreach (Type type in methodInstantiation) {
 				if (type == null)
 					throw new ArgumentNullException ();
-				if (!(type is MonoType))
+				if (!(type is RuntimeType))
 					hasUserType = true;
 			}
 
@@ -659,7 +659,7 @@ namespace System.Reflection {
 
 			try {
 				o = InternalInvoke (obj, parameters, out exc);
-#if NET_2_1
+#if MOBILE
 			} catch (MethodAccessException) {
 				throw;
 #endif

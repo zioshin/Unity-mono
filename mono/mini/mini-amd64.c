@@ -8,6 +8,7 @@
  *   Dietmar Maurer (dietmar@ximian.com)
  *   Patrik Torstensson
  *   Zoltan Varga (vargaz@gmail.com)
+ *   Johan Lorensson (lateralusx.github@gmail.com)
  *
  * (C) 2003 Ximian, Inc.
  * Copyright 2003-2011 Novell, Inc (http://www.novell.com)
@@ -32,7 +33,7 @@
 #include <mono/utils/mono-mmap.h>
 #include <mono/utils/mono-memory-model.h>
 #include <mono/utils/mono-tls.h>
-#include <mono/utils/mono-hwcap-x86.h>
+#include <mono/utils/mono-hwcap.h>
 #include <mono/utils/mono-threads.h>
 
 #include "trace.h"
@@ -174,277 +175,10 @@ amd64_use_imm32 (gint64 val)
 	return amd64_is_imm32 (val);
 }
 
-#ifdef __native_client_codegen__
-
-/* Keep track of instruction "depth", that is, the level of sub-instruction */
-/* for any given instruction.  For instance, amd64_call_reg resolves to     */
-/* amd64_call_reg_internal, which uses amd64_alu_* macros, etc.             */
-/* We only want to force bundle alignment for the top level instruction,    */
-/* so NaCl pseudo-instructions can be implemented with sub instructions.    */
-static MonoNativeTlsKey nacl_instruction_depth;
-
-static MonoNativeTlsKey nacl_rex_tag;
-static MonoNativeTlsKey nacl_legacy_prefix_tag;
-
-void
-amd64_nacl_clear_legacy_prefix_tag ()
-{
-	mono_native_tls_set_value (nacl_legacy_prefix_tag, NULL);
-}
-
-void
-amd64_nacl_tag_legacy_prefix (guint8* code)
-{
-	if (mono_native_tls_get_value (nacl_legacy_prefix_tag) == NULL)
-		mono_native_tls_set_value (nacl_legacy_prefix_tag, code);
-}
-
-void
-amd64_nacl_tag_rex (guint8* code)
-{
-	mono_native_tls_set_value (nacl_rex_tag, code);
-}
-
-guint8*
-amd64_nacl_get_legacy_prefix_tag ()
-{
-	return (guint8*)mono_native_tls_get_value (nacl_legacy_prefix_tag);
-}
-
-guint8*
-amd64_nacl_get_rex_tag ()
-{
-	return (guint8*)mono_native_tls_get_value (nacl_rex_tag);
-}
-
-/* Increment the instruction "depth" described above */
-void
-amd64_nacl_instruction_pre ()
-{
-	intptr_t depth = (intptr_t) mono_native_tls_get_value (nacl_instruction_depth);
-	depth++;
-	mono_native_tls_set_value (nacl_instruction_depth, (gpointer)depth);
-}
-
-/* amd64_nacl_instruction_post: Decrement instruction "depth", force bundle */
-/* alignment if depth == 0 (top level instruction)                          */
-/* IN: start, end    pointers to instruction beginning and end              */
-/* OUT: start, end   pointers to beginning and end after possible alignment */
-/* GLOBALS: nacl_instruction_depth     defined above                        */
-void
-amd64_nacl_instruction_post (guint8 **start, guint8 **end)
-{
-	intptr_t depth = (intptr_t) mono_native_tls_get_value (nacl_instruction_depth);
-	depth--;
-	mono_native_tls_set_value (nacl_instruction_depth, (void*)depth);
-
-	g_assert ( depth >= 0 );
-	if (depth == 0) {
-  		uintptr_t space_in_block;
-		uintptr_t instlen;
-		guint8 *prefix = amd64_nacl_get_legacy_prefix_tag ();
-		/* if legacy prefix is present, and if it was emitted before */
-		/* the start of the instruction sequence, adjust the start   */
-		if (prefix != NULL && prefix < *start) {
-			g_assert (*start - prefix <= 3);/* only 3 are allowed */
-			*start = prefix;
-		}
-		space_in_block = kNaClAlignment - ((uintptr_t)(*start) & kNaClAlignmentMask);
-		instlen = (uintptr_t)(*end - *start);
-		/* Only check for instructions which are less than        */
-		/* kNaClAlignment. The only instructions that should ever */
-		/* be that long are call sequences, which are already     */
-		/* padded out to align the return to the next bundle.     */
-		if (instlen > space_in_block && instlen < kNaClAlignment) {
-			const size_t MAX_NACL_INST_LENGTH = kNaClAlignment;
-  			guint8 copy_of_instruction[MAX_NACL_INST_LENGTH];
-  			const size_t length = (size_t)((*end)-(*start));
-  			g_assert (length < MAX_NACL_INST_LENGTH);
-			
-  			memcpy (copy_of_instruction, *start, length);
-			*start = mono_arch_nacl_pad (*start, space_in_block);
-			memcpy (*start, copy_of_instruction, length);
-			*end = *start + length;
-		}
-		amd64_nacl_clear_legacy_prefix_tag ();
-		amd64_nacl_tag_rex (NULL);
-	}
-}
-
-/* amd64_nacl_membase_handler: ensure all access to memory of the form      */
-/*   OFFSET(%rXX) is sandboxed.  For allowable base registers %rip, %rbp,   */
-/*   %rsp, and %r15, emit the membase as usual.  For all other registers,   */
-/*   make sure the upper 32-bits are cleared, and use that register in the  */
-/*   index field of a new address of this form: OFFSET(%r15,%eXX,1)         */
-/* IN:      code                                                            */
-/*             pointer to current instruction stream (in the                */
-/*             middle of an instruction, after opcode is emitted)           */
-/*          basereg/offset/dreg                                             */
-/*             operands of normal membase address                           */
-/* OUT:     code                                                            */
-/*             pointer to the end of the membase/memindex emit              */
-/* GLOBALS: nacl_rex_tag                                                    */
-/*             position in instruction stream that rex prefix was emitted   */
-/*          nacl_legacy_prefix_tag                                          */
-/*             (possibly NULL) position in instruction of legacy x86 prefix */
-void
-amd64_nacl_membase_handler (guint8** code, gint8 basereg, gint32 offset, gint8 dreg)
-{
-	gint8 true_basereg = basereg;
-
-	/* Cache these values, they might change  */
- 	/* as new instructions are emitted below. */
-	guint8* rex_tag = amd64_nacl_get_rex_tag ();
-	guint8* legacy_prefix_tag = amd64_nacl_get_legacy_prefix_tag ();
-
-	/* 'basereg' is given masked to 0x7 at this point, so check */
-	/* the rex prefix to see if this is an extended register.   */
-	if ((rex_tag != NULL) && IS_REX(*rex_tag) && (*rex_tag & AMD64_REX_B)) {
-		true_basereg |= 0x8;
-	}
-
-#define X86_LEA_OPCODE (0x8D)
-
-	if (!amd64_is_valid_nacl_base (true_basereg) && (*(*code-1) != X86_LEA_OPCODE)) {
-		guint8* old_instruction_start;
-		
-		/* This will hold the 'mov %eXX, %eXX' that clears the upper */
-		/* 32-bits of the old base register (new index register)     */
-		guint8 buf[32];
-		guint8* buf_ptr = buf;
-		size_t insert_len;
-
-		g_assert (rex_tag != NULL);
-
-		if (IS_REX(*rex_tag)) {
-			/* The old rex.B should be the new rex.X */
-			if (*rex_tag & AMD64_REX_B) {
-				*rex_tag |= AMD64_REX_X;
-			}
-			/* Since our new base is %r15 set rex.B */
-			*rex_tag |= AMD64_REX_B;
-		} else {
-			/* Shift the instruction by one byte  */
-			/* so we can insert a rex prefix      */
-			memmove (rex_tag + 1, rex_tag, (size_t)(*code - rex_tag));
-			*code += 1;
-			/* New rex prefix only needs rex.B for %r15 base */
-			*rex_tag = AMD64_REX(AMD64_REX_B);
-		}
-
-		if (legacy_prefix_tag) {
-			old_instruction_start = legacy_prefix_tag;
-		} else {
-			old_instruction_start = rex_tag;
-		}
-		
-		/* Clears the upper 32-bits of the previous base register */
-		amd64_mov_reg_reg_size (buf_ptr, true_basereg, true_basereg, 4);
-		insert_len = buf_ptr - buf;
-		
-		/* Move the old instruction forward to make */
-		/* room for 'mov' stored in 'buf_ptr'       */
-		memmove (old_instruction_start + insert_len, old_instruction_start, (size_t)(*code - old_instruction_start));
-		*code += insert_len;
-		memcpy (old_instruction_start, buf, insert_len);
-
-		/* Sandboxed replacement for the normal membase_emit */
-		x86_memindex_emit (*code, dreg, AMD64_R15, offset, basereg, 0);
-		
-	} else {
-		/* Normal default behavior, emit membase memory location */
-		x86_membase_emit_body (*code, dreg, basereg, offset);
-	}
-}
-
-
-static inline unsigned char*
-amd64_skip_nops (unsigned char* code)
-{
-	guint8 in_nop;
-	do {
-		in_nop = 0;
-		if (   code[0] == 0x90) {
-			in_nop = 1;
-			code += 1;
-		}
-		if (   code[0] == 0x66 && code[1] == 0x90) {
-			in_nop = 1;
-			code += 2;
-		}
-		if (code[0] == 0x0f && code[1] == 0x1f
-		 && code[2] == 0x00) {
-			in_nop = 1;
-			code += 3;
-		}
-		if (code[0] == 0x0f && code[1] == 0x1f
-		 && code[2] == 0x40 && code[3] == 0x00) {
-			in_nop = 1;
-			code += 4;
-		}
-		if (code[0] == 0x0f && code[1] == 0x1f
-		 && code[2] == 0x44 && code[3] == 0x00
-		 && code[4] == 0x00) {
-			in_nop = 1;
-			code += 5;
-		}
-		if (code[0] == 0x66 && code[1] == 0x0f
-		 && code[2] == 0x1f && code[3] == 0x44
-		 && code[4] == 0x00 && code[5] == 0x00) {
-			in_nop = 1;
-			code += 6;
-		}
-		if (code[0] == 0x0f && code[1] == 0x1f
-		 && code[2] == 0x80 && code[3] == 0x00
-		 && code[4] == 0x00 && code[5] == 0x00
-		 && code[6] == 0x00) {
-			in_nop = 1;
-			code += 7;
-		}
-		if (code[0] == 0x0f && code[1] == 0x1f
-		 && code[2] == 0x84 && code[3] == 0x00
-		 && code[4] == 0x00 && code[5] == 0x00
-		 && code[6] == 0x00 && code[7] == 0x00) {
-			in_nop = 1;
-			code += 8;
-		}
-	} while ( in_nop );
-	return code;
-}
-
-guint8*
-mono_arch_nacl_skip_nops (guint8* code)
-{
-  return amd64_skip_nops(code);
-}
-
-#endif /*__native_client_codegen__*/
-
 static void
 amd64_patch (unsigned char* code, gpointer target)
 {
 	guint8 rex = 0;
-
-#ifdef __native_client_codegen__
-	code = amd64_skip_nops (code);
-#endif
-#if defined(__native_client_codegen__) && defined(__native_client__)
-	if (nacl_is_code_address (code)) {
-		/* For tail calls, code is patched after being installed */
-		/* but not through the normal "patch callsite" method.   */
-		unsigned char buf[kNaClAlignment];
-		unsigned char *aligned_code = (uintptr_t)code & ~kNaClAlignmentMask;
-		int ret;
-		memcpy (buf, aligned_code, kNaClAlignment);
-		/* Patch a temp buffer of bundle size, */
-		/* then install to actual location.    */
-		amd64_patch (buf + ((uintptr_t)code - (uintptr_t)aligned_code), target);
-		ret = nacl_dyncode_modify (aligned_code, buf, kNaClAlignment);
-		g_assert (ret == 0);
-		return;
-	}
-	target = nacl_modify_patch_target (target);
-#endif
 
 	/* Skip REX */
 	if ((code [0] >= 0x40) && (code [0] <= 0x4f)) {
@@ -604,257 +338,302 @@ merge_argument_class_from_type (MonoType *type, ArgumentClass class1)
 
 	return class1;
 }
-#ifdef __native_client_codegen__
-
-/* Default alignment for Native Client is 32-byte. */
-gint8 nacl_align_byte = -32; /* signed version of 0xe0 */
-
-/* mono_arch_nacl_pad: Add pad bytes of alignment instructions at code,  */
-/* Check that alignment doesn't cross an alignment boundary.             */
-guint8*
-mono_arch_nacl_pad(guint8 *code, int pad)
-{
-	const int kMaxPadding = 8; /* see amd64-codegen.h:amd64_padding_size() */
-
-	if (pad == 0) return code;
-	/* assertion: alignment cannot cross a block boundary */
-	g_assert (((uintptr_t)code & (~kNaClAlignmentMask)) ==
-	         (((uintptr_t)code + pad - 1) & (~kNaClAlignmentMask)));
-	while (pad >= kMaxPadding) {
-		amd64_padding (code, kMaxPadding);
-		pad -= kMaxPadding;
-	}
-	if (pad != 0) amd64_padding (code, pad);
-	return code;
-}
-#endif
 
 static int
-count_fields_nested (MonoClass *klass)
+count_fields_nested (MonoClass *klass, gboolean pinvoke)
 {
 	MonoMarshalType *info;
 	int i, count;
 
-	info = mono_marshal_load_type_info (klass);
-	g_assert(info);
 	count = 0;
-	for (i = 0; i < info->num_fields; ++i) {
-		if (MONO_TYPE_ISSTRUCT (info->fields [i].field->type))
-			count += count_fields_nested (mono_class_from_mono_type (info->fields [i].field->type));
-		else
-			count ++;
+	if (pinvoke) {
+		info = mono_marshal_load_type_info (klass);
+		g_assert(info);
+		for (i = 0; i < info->num_fields; ++i) {
+			if (MONO_TYPE_ISSTRUCT (info->fields [i].field->type))
+				count += count_fields_nested (mono_class_from_mono_type (info->fields [i].field->type), pinvoke);
+			else
+				count ++;
+		}
+	} else {
+		gpointer iter;
+		MonoClassField *field;
+
+		iter = NULL;
+		while ((field = mono_class_get_fields (klass, &iter))) {
+			if (field->type->attrs & FIELD_ATTRIBUTE_STATIC)
+				continue;
+			if (MONO_TYPE_ISSTRUCT (field->type))
+				count += count_fields_nested (mono_class_from_mono_type (field->type), pinvoke);
+			else
+				count ++;
+		}
 	}
 	return count;
 }
 
+typedef struct {
+	MonoType *type;
+	int size, offset;
+} StructFieldInfo;
+
+/*
+ * collect_field_info_nested:
+ *
+ *   Collect field info from KLASS recursively into FIELDS.
+ */
 static int
-collect_field_info_nested (MonoClass *klass, MonoMarshalField *fields, int index, int offset)
+collect_field_info_nested (MonoClass *klass, StructFieldInfo *fields, int index, int offset, gboolean pinvoke, gboolean unicode)
 {
 	MonoMarshalType *info;
 	int i;
 
-	info = mono_marshal_load_type_info (klass);
-	g_assert(info);
-	for (i = 0; i < info->num_fields; ++i) {
-		if (MONO_TYPE_ISSTRUCT (info->fields [i].field->type)) {
-			index = collect_field_info_nested (mono_class_from_mono_type (info->fields [i].field->type), fields, index, info->fields [i].offset);
-		} else {
-			memcpy (&fields [index], &info->fields [i], sizeof (MonoMarshalField));
-			fields [index].offset += offset;
-			index ++;
+	if (pinvoke) {
+		info = mono_marshal_load_type_info (klass);
+		g_assert(info);
+		for (i = 0; i < info->num_fields; ++i) {
+			if (MONO_TYPE_ISSTRUCT (info->fields [i].field->type)) {
+				index = collect_field_info_nested (mono_class_from_mono_type (info->fields [i].field->type), fields, index, info->fields [i].offset, pinvoke, unicode);
+			} else {
+				guint32 align;
+
+				fields [index].type = info->fields [i].field->type;
+				fields [index].size = mono_marshal_type_size (info->fields [i].field->type,
+															   info->fields [i].mspec,
+															   &align, TRUE, unicode);
+				fields [index].offset = offset + info->fields [i].offset;
+				if (i == info->num_fields - 1 && fields [index].size + fields [index].offset < info->native_size) {
+					/* This can happen with .pack directives eg. 'fixed' arrays */
+					fields [index].size = info->native_size - fields [index].offset;
+				}
+				index ++;
+			}
+		}
+	} else {
+		gpointer iter;
+		MonoClassField *field;
+
+		iter = NULL;
+		while ((field = mono_class_get_fields (klass, &iter))) {
+			if (field->type->attrs & FIELD_ATTRIBUTE_STATIC)
+				continue;
+			if (MONO_TYPE_ISSTRUCT (field->type)) {
+				index = collect_field_info_nested (mono_class_from_mono_type (field->type), fields, index, field->offset - sizeof (MonoObject), pinvoke, unicode);
+			} else {
+				int align;
+
+				fields [index].type = field->type;
+				fields [index].size = mono_type_size (field->type, &align);
+				fields [index].offset = field->offset - sizeof (MonoObject) + offset;
+				index ++;
+			}
 		}
 	}
 	return index;
 }
 
 #ifdef TARGET_WIN32
-static void
-add_valuetype_win64 (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
-					 gboolean is_return,
-					 guint32 *gr, guint32 *fr, guint32 *stack_size)
+
+/* Windows x64 ABI can pass/return value types in register of size 1,2,4,8 bytes. */
+#define MONO_WIN64_VALUE_TYPE_FITS_REG(arg_size) (arg_size <= SIZEOF_REGISTER && (arg_size == 1 || arg_size == 2 || arg_size == 4 || arg_size == 8))
+
+static gboolean
+allocate_register_for_valuetype_win64 (ArgInfo *arg_info, ArgumentClass arg_class, guint32 arg_size, AMD64_Reg_No int_regs [], int int_reg_count, AMD64_Reg_No float_regs [], int float_reg_count, guint32 *current_int_reg, guint32 *current_float_reg)
 {
-	guint32 size, i, nfields;
-	guint32 argsize = 8;
-	ArgumentClass arg_class;
-	MonoMarshalType *info = NULL;
-	MonoMarshalField *fields = NULL;
-	MonoClass *klass;
-	gboolean pass_on_stack = FALSE;
+	gboolean result = FALSE;
 
-	klass = mono_class_from_mono_type (type);
-	size = mini_type_stack_size_full (&klass->byval_arg, NULL, sig->pinvoke);
-	if (!sig->pinvoke)
-		pass_on_stack = TRUE;
+	assert (arg_info != NULL && int_regs != NULL && float_regs != NULL && current_int_reg != NULL && current_float_reg != NULL);
+	assert (arg_info->storage == ArgValuetypeInReg || arg_info->storage == ArgValuetypeAddrInIReg);
 
-	/* If this struct can't be split up naturally into 8-byte */
-	/* chunks (registers), pass it on the stack.              */
-	if (sig->pinvoke && !pass_on_stack) {
-		guint32 align;
-		guint32 field_size;
+	arg_info->pair_storage [0] = arg_info->pair_storage [1] = ArgNone;
+	arg_info->pair_regs [0] = arg_info->pair_regs [1] = ArgNone;
+	arg_info->pair_size [0] = 0;
+	arg_info->pair_size [1] = 0;
+	arg_info->nregs = 0;
 
-		info = mono_marshal_load_type_info (klass);
-		g_assert (info);
+	if (arg_class == ARG_CLASS_INTEGER && *current_int_reg < int_reg_count) {
+		/* Pass parameter in integer register. */
+		arg_info->pair_storage [0] = ArgInIReg;
+		arg_info->pair_regs [0] = int_regs [*current_int_reg];
+		(*current_int_reg) ++;
+		result = TRUE;
+	} else if (arg_class == ARG_CLASS_SSE && *current_float_reg < float_reg_count) {
+		/* Pass parameter in float register. */
+		arg_info->pair_storage [0] = (arg_size <= sizeof (gfloat)) ? ArgInFloatSSEReg : ArgInDoubleSSEReg;
+		arg_info->pair_regs [0] = float_regs [*current_float_reg];
+		(*current_float_reg) ++;
+		result = TRUE;
+	}
 
-		/*
-		 * Collect field information recursively to be able to
-		 * handle nested structures.
-		 */
-		nfields = count_fields_nested (klass);
-		fields = g_new0 (MonoMarshalField, nfields);
-		collect_field_info_nested (klass, fields, 0, 0);
+	if (result == TRUE) {
+		arg_info->pair_size [0] = arg_size;
+		arg_info->nregs = 1;
+	}
 
-		for (i = 0; i < nfields; ++i) {
-			field_size = mono_marshal_type_size (fields [i].field->type,
-							   fields [i].mspec,
-							   &align, TRUE, klass->unicode);
-			if ((fields [i].offset < 8) && (fields [i].offset + field_size) > 8) {
-				pass_on_stack = TRUE;
-				break;
+	return result;
+}
+
+inline gboolean
+allocate_parameter_register_for_valuetype_win64 (ArgInfo *arg_info, ArgumentClass arg_class, guint32 arg_size, guint32 *current_int_reg, guint32 *current_float_reg)
+{
+	return allocate_register_for_valuetype_win64 (arg_info, arg_class, arg_size, param_regs, PARAM_REGS, float_param_regs, FLOAT_PARAM_REGS, current_int_reg, current_float_reg);
+}
+
+inline gboolean
+allocate_return_register_for_valuetype_win64 (ArgInfo *arg_info, ArgumentClass arg_class, guint32 arg_size, guint32 *current_int_reg, guint32 *current_float_reg)
+{
+	return allocate_register_for_valuetype_win64 (arg_info, arg_class, arg_size, return_regs, RETURN_REGS, float_return_regs, FLOAT_RETURN_REGS, current_int_reg, current_float_reg);
+}
+
+static void
+allocate_storage_for_valuetype_win64 (ArgInfo *arg_info, MonoType *type, gboolean is_return, ArgumentClass arg_class,
+									  guint32 arg_size, guint32 *current_int_reg, guint32 *current_float_reg, guint32 *stack_size)
+{
+	/* Windows x64 value type ABI.
+	*
+	* Parameters: https://msdn.microsoft.com/en-us/library/zthk2dkh.aspx
+	*
+	* Integer/Float types smaller than or equals to 8 bytes or porperly sized struct/union (1,2,4,8)
+	*    Try pass in register using ArgValuetypeInReg/(ArgInIReg|ArgInFloatSSEReg|ArgInDoubleSSEReg) as storage and size of parameter(1,2,4,8), if no more registers, pass on stack using ArgOnStack as storage and size of parameter(1,2,4,8).
+	* Integer/Float types bigger than 8 bytes or struct/unions larger than 8 bytes or (3,5,6,7).
+	*    Try to pass pointer in register using ArgValuetypeAddrInIReg, if no more registers, pass pointer on stack using ArgValuetypeAddrOnStack as storage and parameter size of register (8 bytes).
+	*
+	* Return values:  https://msdn.microsoft.com/en-us/library/7572ztz4.aspx.
+	*
+	* Integers/Float types smaller than or equal to 8 bytes
+	*    Return in corresponding register RAX/XMM0 using ArgValuetypeInReg/(ArgInIReg|ArgInFloatSSEReg|ArgInDoubleSSEReg) as storage and size of parameter(1,2,4,8).
+	* Properly sized struct/unions (1,2,4,8)
+	*    Return in register RAX using ArgValuetypeInReg as storage and size of parameter(1,2,4,8).
+	* Types bigger than 8 bytes or struct/unions larger than 8 bytes or (3,5,6,7).
+	*    Return pointer to allocated stack space (allocated by caller) using ArgValuetypeAddrInIReg as storage and parameter size.
+	*/
+
+	assert (arg_info != NULL && type != NULL && current_int_reg != NULL && current_float_reg != NULL && stack_size != NULL);
+
+	if (!is_return) {
+
+		/* Parameter cases. */
+		if (arg_class != ARG_CLASS_MEMORY && MONO_WIN64_VALUE_TYPE_FITS_REG (arg_size)) {
+			assert (arg_size == 1 || arg_size == 2 || arg_size == 4 || arg_size == 8);
+
+			/* First, try to use registers for parameter. If type is struct it can only be passed by value in integer register. */
+			arg_info->storage = ArgValuetypeInReg;
+			if (!allocate_parameter_register_for_valuetype_win64 (arg_info, !MONO_TYPE_ISSTRUCT (type) ? arg_class : ARG_CLASS_INTEGER, arg_size, current_int_reg, current_float_reg)) {
+				/* No more registers, fallback passing parameter on stack as value. */
+				assert (arg_info->pair_storage [0] == ArgNone && arg_info->pair_storage [1] == ArgNone && arg_info->pair_size [0] == 0 && arg_info->pair_size [1] == 0 && arg_info->nregs == 0);
+				
+				/* Passing value directly on stack, so use size of value. */
+				arg_info->storage = ArgOnStack;
+				arg_size = ALIGN_TO (arg_size, sizeof (mgreg_t));
+				arg_info->offset = *stack_size;
+				arg_info->arg_size = arg_size;
+				*stack_size += arg_size;
+			}
+		} else {
+			/* Fallback to stack, try to pass address to parameter in register. Always use integer register to represent stack address. */
+			arg_info->storage = ArgValuetypeAddrInIReg;
+			if (!allocate_parameter_register_for_valuetype_win64 (arg_info, ARG_CLASS_INTEGER, arg_size, current_int_reg, current_float_reg)) {
+				/* No more registers, fallback passing address to parameter on stack. */
+				assert (arg_info->pair_storage [0] == ArgNone && arg_info->pair_storage [1] == ArgNone && arg_info->pair_size [0] == 0 && arg_info->pair_size [1] == 0 && arg_info->nregs == 0);
+								
+				/* Passing an address to value on stack, so use size of register as argument size. */
+				arg_info->storage = ArgValuetypeAddrOnStack;
+				arg_size = sizeof (mgreg_t);
+				arg_info->offset = *stack_size;
+				arg_info->arg_size = arg_size;
+				*stack_size += arg_size;
 			}
 		}
-	}
-
-	if (pass_on_stack) {
-		/* Allways pass in memory */
-		ainfo->offset = *stack_size;
-		*stack_size += ALIGN_TO (size, 8);
-		ainfo->storage = is_return ? ArgValuetypeAddrInIReg : ArgOnStack;
-		if (!is_return)
-			ainfo->arg_size = ALIGN_TO (size, 8);
-
-		g_free (fields);
-		return;
-	}
-
-	if (!sig->pinvoke) {
-		int n = mono_class_value_size (klass, NULL);
-
-		argsize = n;
-
-		if (n > 8)
-			arg_class = ARG_CLASS_MEMORY;
-		else
-			/* Always pass in 1 integer register */
-			arg_class = ARG_CLASS_INTEGER;
 	} else {
-		g_assert (info);
+		/* Return value cases. */
+		if (arg_class != ARG_CLASS_MEMORY && MONO_WIN64_VALUE_TYPE_FITS_REG (arg_size)) {
+			assert (arg_size == 1 || arg_size == 2 || arg_size == 4 || arg_size == 8);
 
-		if (!fields) {
-			ainfo->storage = ArgValuetypeInReg;
-			ainfo->pair_storage [0] = ainfo->pair_storage [1] = ArgNone;
-			return;
-		}
+			/* Return value fits into return registers. If type is struct it can only be returned by value in integer register. */
+			arg_info->storage = ArgValuetypeInReg;
+			allocate_return_register_for_valuetype_win64 (arg_info, !MONO_TYPE_ISSTRUCT (type) ? arg_class : ARG_CLASS_INTEGER, arg_size, current_int_reg, current_float_reg);
 
-		switch (info->native_size) {
-		case 1: case 2: case 4: case 8:
-			break;
-		default:
-			if (is_return) {
-				ainfo->storage = ArgValuetypeAddrInIReg;
-				ainfo->offset = *stack_size;
-				*stack_size += ALIGN_TO (info->native_size, 8);
-			}
-			else {
-				ainfo->storage = ArgValuetypeAddrInIReg;
+			/* Only RAX/XMM0 should be used to return valuetype. */
+			assert ((arg_info->pair_regs[0] == AMD64_RAX && arg_info->pair_regs[1] == ArgNone) || (arg_info->pair_regs[0] == AMD64_XMM0 && arg_info->pair_regs[1] == ArgNone));
+		} else {
+			/* Return value doesn't fit into return register, return address to allocated stack space (allocated by caller and passed as input). */
+			arg_info->storage = ArgValuetypeAddrInIReg;
+			allocate_return_register_for_valuetype_win64 (arg_info, ARG_CLASS_INTEGER, arg_size, current_int_reg, current_float_reg);
 
-				if (*gr < PARAM_REGS) {
-					ainfo->pair_storage [0] = ArgInIReg;
-					ainfo->pair_regs [0] = param_regs [*gr];
-					(*gr) ++;
-				}
-				else {
-					ainfo->pair_storage [0] = ArgOnStack;
-					ainfo->offset = *stack_size;
-					ainfo->arg_size = sizeof (mgreg_t);
-					*stack_size += 8;
-				}
-			}
+			/* Only RAX should be used to return valuetype address. */
+			assert (arg_info->pair_regs[0] == AMD64_RAX && arg_info->pair_regs[1] == ArgNone);
 
-			g_free (fields);
-			return;
-		}
-
-		int size;
-		guint32 align;
-		ArgumentClass class1;
-
-		if (nfields == 0)
-			class1 = ARG_CLASS_MEMORY;
-		else
-			class1 = ARG_CLASS_NO_CLASS;
-		for (i = 0; i < nfields; ++i) {
-			size = mono_marshal_type_size (fields [i].field->type,
-										   fields [i].mspec,
-										   &align, TRUE, klass->unicode);
-			/* How far into this quad this data extends.*/
-			/* (8 is size of quad) */
-			argsize = fields [i].offset + size;
-
-			class1 = merge_argument_class_from_type (fields [i].field->type, class1);
-		}
-		g_assert (class1 != ARG_CLASS_NO_CLASS);
-		arg_class = class1;
-	}
-
-	g_free (fields);
-
-	/* Allocate registers */
-	{
-		int orig_gr = *gr;
-		int orig_fr = *fr;
-
-		while (argsize != 1 && argsize != 2 && argsize != 4 && argsize != 8)
-			argsize ++;
-
-		ainfo->storage = ArgValuetypeInReg;
-		ainfo->pair_storage [0] = ainfo->pair_storage [1] = ArgNone;
-		ainfo->pair_size [0] = argsize;
-		ainfo->pair_size [1] = 0;
-		ainfo->nregs = 1;
-		switch (arg_class) {
-		case ARG_CLASS_INTEGER:
-			if (*gr >= PARAM_REGS)
-				arg_class = ARG_CLASS_MEMORY;
-			else {
-				ainfo->pair_storage [0] = ArgInIReg;
-				if (is_return)
-					ainfo->pair_regs [0] = return_regs [*gr];
-				else
-					ainfo->pair_regs [0] = param_regs [*gr];
-				(*gr) ++;
-			}
-			break;
-		case ARG_CLASS_SSE:
-			if (*fr >= FLOAT_PARAM_REGS)
-				arg_class = ARG_CLASS_MEMORY;
-			else {
-				if (argsize <= 4)
-					ainfo->pair_storage [0] = ArgInFloatSSEReg;
-				else
-					ainfo->pair_storage [0] = ArgInDoubleSSEReg;
-				ainfo->pair_regs [0] = *fr;
-				(*fr) ++;
-			}
-			break;
-		case ARG_CLASS_MEMORY:
-			break;
-		default:
-			g_assert_not_reached ();
-		}
-
-		if (arg_class == ARG_CLASS_MEMORY) {
-			/* Revert possible register assignments */
-			*gr = orig_gr;
-			*fr = orig_fr;
-
-			ainfo->offset = *stack_size;
-			*stack_size += sizeof (mgreg_t);
-			ainfo->storage = is_return ? ArgValuetypeAddrInIReg : ArgOnStack;
-			if (!is_return)
-				ainfo->arg_size = sizeof (mgreg_t);
+			arg_size = ALIGN_TO (arg_size, sizeof (mgreg_t));
+			arg_info->offset = *stack_size;
+			*stack_size += arg_size;
 		}
 	}
 }
+
+static void
+get_valuetype_size_win64 (MonoClass *klass, gboolean pinvoke, ArgInfo *arg_info, MonoType *type, ArgumentClass *arg_class, guint32 *arg_size)
+{
+	*arg_size = 0;
+	*arg_class = ARG_CLASS_NO_CLASS;
+
+	assert (klass != NULL && arg_info != NULL && type != NULL && arg_class != NULL && arg_size != NULL);
+	
+	if (pinvoke) {
+		/* Calculate argument class type and size of marshalled type. */
+		MonoMarshalType *info = mono_marshal_load_type_info (klass);
+		*arg_size = info->native_size;
+	} else {
+		/* Calculate argument class type and size of managed type. */
+		*arg_size = mono_class_value_size (klass, NULL);
+	}
+
+	/* Windows ABI only handle value types on stack or passed in integer register (if it fits register size). */
+	*arg_class = MONO_WIN64_VALUE_TYPE_FITS_REG (*arg_size) ? ARG_CLASS_INTEGER : ARG_CLASS_MEMORY;
+
+	if (*arg_class == ARG_CLASS_MEMORY) {
+		/* Value type has a size that doesn't seem to fit register according to ABI. Try to used full stack size of type. */
+		*arg_size = mini_type_stack_size_full (&klass->byval_arg, NULL, pinvoke);
+	}
+
+	/*
+	* Standard C and C++ doesn't allow empty structs, empty structs will always have a size of 1 byte.
+	* GCC have an extension to allow empty structs, https://gcc.gnu.org/onlinedocs/gcc/Empty-Structures.html.
+	* This cause a little dilemma since runtime build using none GCC compiler will not be compatible with
+	* GCC build C libraries and the other way around. On platforms where empty structs has size of 1 byte
+	* it must be represented in call and cannot be dropped.
+	*/
+	if (*arg_size == 0 && MONO_TYPE_ISSTRUCT (type)) {
+		arg_info->pass_empty_struct = TRUE;
+		*arg_size = SIZEOF_REGISTER;
+		*arg_class = ARG_CLASS_INTEGER;
+	}
+
+	assert (*arg_class != ARG_CLASS_NO_CLASS);
+}
+
+static void
+add_valuetype_win64 (MonoMethodSignature *signature, ArgInfo *arg_info, MonoType *type,
+						gboolean is_return, guint32 *current_int_reg, guint32 *current_float_reg, guint32 *stack_size)
+{
+	guint32 arg_size = SIZEOF_REGISTER;
+	MonoClass *klass = NULL;
+	ArgumentClass arg_class;
+	
+	assert (signature != NULL && arg_info != NULL && type != NULL && current_int_reg != NULL && current_float_reg != NULL && stack_size != NULL);
+
+	klass = mono_class_from_mono_type (type);
+	get_valuetype_size_win64 (klass, signature->pinvoke, arg_info, type, &arg_class, &arg_size);
+
+	/* Only drop value type if its not an empty struct as input that must be represented in call */
+	if ((arg_size == 0 && !arg_info->pass_empty_struct) || (arg_size == 0 && arg_info->pass_empty_struct && is_return)) {
+		arg_info->storage = ArgValuetypeInReg;
+		arg_info->pair_storage [0] = arg_info->pair_storage [1] = ArgNone;
+	} else {
+		/* Alocate storage for value type. */
+		allocate_storage_for_valuetype_win64 (arg_info, type, is_return, arg_class, arg_size, current_int_reg, current_float_reg, stack_size);
+	}
+}
+
 #endif /* TARGET_WIN32 */
 
 static void
@@ -870,13 +649,14 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 	/* use the right size when copying args/return vars.  */
 	guint32 quadsize [2] = {8, 8};
 	ArgumentClass args [2];
-	MonoMarshalType *info = NULL;
-	MonoMarshalField *fields = NULL;
+	StructFieldInfo *fields = NULL;
 	MonoClass *klass;
 	gboolean pass_on_stack = FALSE;
+	int struct_size;
 
 	klass = mono_class_from_mono_type (type);
 	size = mini_type_stack_size_full (&klass->byval_arg, NULL, sig->pinvoke);
+
 	if (!sig->pinvoke && ((is_return && (size == 8)) || (!is_return && (size <= 16)))) {
 		/* We pass and return vtypes of size 8 in a register */
 	} else if (!sig->pinvoke || (size == 0) || (size > 16)) {
@@ -885,29 +665,25 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 
 	/* If this struct can't be split up naturally into 8-byte */
 	/* chunks (registers), pass it on the stack.              */
-	if (sig->pinvoke && !pass_on_stack) {
-		guint32 align;
-		guint32 field_size;
-
-		info = mono_marshal_load_type_info (klass);
+	if (sig->pinvoke) {
+		MonoMarshalType *info = mono_marshal_load_type_info (klass);
 		g_assert (info);
+		struct_size = info->native_size;
+	} else {
+		struct_size = mono_class_value_size (klass, NULL);
+	}
+	/*
+	 * Collect field information recursively to be able to
+	 * handle nested structures.
+	 */
+	nfields = count_fields_nested (klass, sig->pinvoke);
+	fields = g_new0 (StructFieldInfo, nfields);
+	collect_field_info_nested (klass, fields, 0, 0, sig->pinvoke, klass->unicode);
 
-		/*
-		 * Collect field information recursively to be able to
-		 * handle nested structures.
-		 */
-		nfields = count_fields_nested (klass);
-		fields = g_new0 (MonoMarshalField, nfields);
-		collect_field_info_nested (klass, fields, 0, 0);
-
-		for (i = 0; i < nfields; ++i) {
-			field_size = mono_marshal_type_size (fields [i].field->type,
-							   fields [i].mspec,
-							   &align, TRUE, klass->unicode);
-			if ((fields [i].offset < 8) && (fields [i].offset + field_size) > 8) {
-				pass_on_stack = TRUE;
-				break;
-			}
+	for (i = 0; i < nfields; ++i) {
+		if ((fields [i].offset < 8) && (fields [i].offset + fields [i].size) > 8) {
+			pass_on_stack = TRUE;
+			break;
 		}
 	}
 
@@ -954,20 +730,18 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 		 * The X87 and SSEUP stuff is left out since there are no such types in
 		 * the CLR.
 		 */
-		g_assert (info);
-
-		if (!fields) {
+		if (!nfields) {
 			ainfo->storage = ArgValuetypeInReg;
 			ainfo->pair_storage [0] = ainfo->pair_storage [1] = ArgNone;
 			return;
 		}
 
-		if (info->native_size > 16) {
+		if (struct_size > 16) {
 			ainfo->offset = *stack_size;
-			*stack_size += ALIGN_TO (info->native_size, 8);
+			*stack_size += ALIGN_TO (struct_size, 8);
 			ainfo->storage = is_return ? ArgValuetypeAddrInIReg : ArgOnStack;
 			if (!is_return)
-				ainfo->arg_size = ALIGN_TO (info->native_size, 8);
+				ainfo->arg_size = ALIGN_TO (struct_size, 8);
 
 			g_free (fields);
 			return;
@@ -976,8 +750,6 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 		args [0] = ARG_CLASS_NO_CLASS;
 		args [1] = ARG_CLASS_NO_CLASS;
 		for (quad = 0; quad < nquads; ++quad) {
-			int size;
-			guint32 align;
 			ArgumentClass class1;
 
 			if (nfields == 0)
@@ -985,10 +757,7 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 			else
 				class1 = ARG_CLASS_NO_CLASS;
 			for (i = 0; i < nfields; ++i) {
-				size = mono_marshal_type_size (fields [i].field->type,
-											   fields [i].mspec,
-											   &align, TRUE, klass->unicode);
-				if ((fields [i].offset < 8) && (fields [i].offset + size) > 8) {
+				if ((fields [i].offset < 8) && (fields [i].offset + fields [i].size) > 8) {
 					/* Unaligned field */
 					NOT_IMPLEMENTED;
 				}
@@ -1001,11 +770,13 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 
 				/* How far into this quad this data extends.*/
 				/* (8 is size of quad) */
-				quadsize [quad] = fields [i].offset + size - (quad * 8);
+				quadsize [quad] = fields [i].offset + fields [i].size - (quad * 8);
 
-				class1 = merge_argument_class_from_type (fields [i].field->type, class1);
+				class1 = merge_argument_class_from_type (fields [i].type, class1);
 			}
-			g_assert (class1 != ARG_CLASS_NO_CLASS);
+			/* Empty structs have a nonzero size, causing this assert to be hit */
+			if (sig->pinvoke)
+				g_assert (class1 != ARG_CLASS_NO_CLASS);
 			args [quad] = class1;
 		}
 	}
@@ -1060,6 +831,8 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 				break;
 			case ARG_CLASS_MEMORY:
 				break;
+			case ARG_CLASS_NO_CLASS:
+				break;
 			default:
 				g_assert_not_reached ();
 			}
@@ -1073,7 +846,7 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 
 			ainfo->offset = *stack_size;
 			if (sig->pinvoke)
-				arg_size = ALIGN_TO (info->native_size, 8);
+				arg_size = ALIGN_TO (struct_size, 8);
 			else
 				arg_size = nquads * sizeof(mgreg_t);
 			*stack_size += arg_size;
@@ -1088,9 +861,11 @@ add_valuetype (MonoMethodSignature *sig, ArgInfo *ainfo, MonoType *type,
 /*
  * get_call_info:
  *
- *  Obtain information about a call according to the calling convention.
- * For AMD64, see the "System V ABI, x86-64 Architecture Processor Supplement 
+ * Obtain information about a call according to the calling convention.
+ * For AMD64 System V, see the "System V ABI, x86-64 Architecture Processor Supplement
  * Draft Version 0.23" document for more information.
+ * For AMD64 Windows, see "Overview of x64 Calling Conventions",
+ * https://msdn.microsoft.com/en-us/library/ms235286.aspx
  */
 static CallInfo*
 get_call_info (MonoMemPool *mp, MonoMethodSignature *sig)
@@ -1287,7 +1062,7 @@ get_call_info (MonoMemPool *mp, MonoMethodSignature *sig)
 			/* fall through */
 		case MONO_TYPE_VALUETYPE:
 		case MONO_TYPE_TYPEDBYREF:
-			add_valuetype (sig, ainfo, sig->params [i], FALSE, &gr, &fr, &stack_size);
+			add_valuetype (sig, ainfo, ptype, FALSE, &gr, &fr, &stack_size);
 			break;
 		case MONO_TYPE_U8:
 
@@ -1413,17 +1188,13 @@ void
 mono_arch_init (void)
 {
 	mono_os_mutex_init_recursive (&mini_arch_mutex);
-#if defined(__native_client_codegen__)
-	mono_native_tls_alloc (&nacl_instruction_depth, NULL);
-	mono_native_tls_set_value (nacl_instruction_depth, (gpointer)0);
-	mono_native_tls_alloc (&nacl_rex_tag, NULL);
-	mono_native_tls_alloc (&nacl_legacy_prefix_tag, NULL);
-#endif
 
 	mono_aot_register_jit_icall ("mono_amd64_throw_exception", mono_amd64_throw_exception);
 	mono_aot_register_jit_icall ("mono_amd64_throw_corlib_exception", mono_amd64_throw_corlib_exception);
 	mono_aot_register_jit_icall ("mono_amd64_resume_unwind", mono_amd64_resume_unwind);
 	mono_aot_register_jit_icall ("mono_amd64_get_original_ip", mono_amd64_get_original_ip);
+	mono_aot_register_jit_icall ("mono_amd64_handler_block_trampoline_helper", mono_amd64_handler_block_trampoline_helper);
+
 #if defined(MONO_ARCH_GSHAREDVT_SUPPORTED)
 	mono_aot_register_jit_icall ("mono_amd64_start_gsharedvt_call", mono_amd64_start_gsharedvt_call);
 #endif
@@ -1439,11 +1210,6 @@ void
 mono_arch_cleanup (void)
 {
 	mono_os_mutex_destroy (&mini_arch_mutex);
-#if defined(__native_client_codegen__)
-	mono_native_tls_free (nacl_instruction_depth);
-	mono_native_tls_free (nacl_rex_tag);
-	mono_native_tls_free (nacl_legacy_prefix_tag);
-#endif
 }
 
 /*
@@ -1466,6 +1232,15 @@ mono_arch_cpu_optimizations (guint32 *exclude_mask)
 	} else {
 		*exclude_mask |= MONO_OPT_CMOV;
 	}
+
+#ifdef TARGET_WIN32
+	/* The current SIMD doesn't support the argument used by a LD_ADDR to be of type OP_VTARG_ADDR. */
+	/* This will now be used for value types > 8 or of size 3,5,6,7 as dictated by windows x64 value type ABI. */
+	/* Since OP_VTARG_ADDR needs to be resolved in mono_spill_global_vars and the SIMD implementation optimize */
+	/* away the LD_ADDR in load_simd_vreg, that will cause an error in mono_spill_global_vars since incorrect opcode */
+	/* will now have a reference to an argument that won't be fully decomposed. */
+	*exclude_mask |= MONO_OPT_SIMD;
+#endif
 
 	return opts;
 }
@@ -1567,13 +1342,6 @@ mono_arch_compute_omit_fp (MonoCompile *cfg)
 	cfg->arch.omit_fp = TRUE;
 	cfg->arch.omit_fp_computed = TRUE;
 
-#ifdef __native_client_codegen__
-	/* NaCl modules may not change the value of RBP, so it cannot be */
-	/* used as a normal register, but it can be used as a frame pointer*/
-	cfg->disable_omit_fp = TRUE;
-	cfg->arch.omit_fp = FALSE;
-#endif
-
 	if (cfg->disable_omit_fp)
 		cfg->arch.omit_fp = FALSE;
 
@@ -1597,7 +1365,7 @@ mono_arch_compute_omit_fp (MonoCompile *cfg)
 	for (i = 0; i < sig->param_count + sig->hasthis; ++i) {
 		ArgInfo *ainfo = &cinfo->args [i];
 
-		if (ainfo->storage == ArgOnStack) {
+		if (ainfo->storage == ArgOnStack || ainfo->storage == ArgValuetypeAddrInIReg || ainfo->storage == ArgValuetypeAddrOnStack) {
 			/* 
 			 * The stack offset can only be determined when the frame
 			 * size is known.
@@ -1630,9 +1398,7 @@ mono_arch_get_global_int_regs (MonoCompile *cfg)
 	regs = g_list_prepend (regs, (gpointer)AMD64_R12);
 	regs = g_list_prepend (regs, (gpointer)AMD64_R13);
 	regs = g_list_prepend (regs, (gpointer)AMD64_R14);
-#ifndef __native_client_codegen__
 	regs = g_list_prepend (regs, (gpointer)AMD64_R15);
-#endif
 #ifdef TARGET_WIN32
 	regs = g_list_prepend (regs, (gpointer)AMD64_RDI);
 	regs = g_list_prepend (regs, (gpointer)AMD64_RSI);
@@ -1667,9 +1433,7 @@ mono_arch_get_iregs_clobbered_by_call (MonoCallInst *call)
 		regs = g_list_prepend (regs, (gpointer)AMD64_R12);
 		regs = g_list_prepend (regs, (gpointer)AMD64_R13);
 		regs = g_list_prepend (regs, (gpointer)AMD64_R14);
-#ifndef __native_client_codegen__
 		regs = g_list_prepend (regs, (gpointer)AMD64_R15);
-#endif
 
 		regs = g_list_prepend (regs, (gpointer)AMD64_R10);
 		regs = g_list_prepend (regs, (gpointer)AMD64_R9);
@@ -1841,9 +1605,11 @@ mono_arch_allocate_vars (MonoCompile *cfg)
 	}
 
 	cfg->arch.saved_iregs = cfg->used_int_regs;
-	if (cfg->method->save_lmf)
-		/* Save all callee-saved registers normally, and restore them when unwinding through an LMF */
-		cfg->arch.saved_iregs |= (1 << AMD64_RBX) | (1 << AMD64_R12) | (1 << AMD64_R13) | (1 << AMD64_R14) | (1 << AMD64_R15);
+	if (cfg->method->save_lmf) {
+		/* Save all callee-saved registers normally (except RBP, if not already used), and restore them when unwinding through an LMF */
+		guint32 iregs_to_save = AMD64_CALLEE_SAVED_REGS & ~(1<<AMD64_RBP);
+		cfg->arch.saved_iregs |= iregs_to_save;
+	}
 
 	if (cfg->arch.omit_fp)
 		cfg->arch.reg_save_area_offset = offset;
@@ -1978,11 +1744,13 @@ mono_arch_allocate_vars (MonoCompile *cfg)
 				break;
 			case ArgValuetypeInReg:
 				break;
-			case ArgValuetypeAddrInIReg: {
+			case ArgValuetypeAddrInIReg:
+			case ArgValuetypeAddrOnStack: {
 				MonoInst *indir;
 				g_assert (!cfg->arch.omit_fp);
-				
+				g_assert (ainfo->storage == ArgValuetypeAddrInIReg || (ainfo->storage == ArgValuetypeAddrOnStack && ainfo->pair_storage [0] == ArgNone));
 				MONO_INST_NEW (cfg, indir, 0);
+
 				indir->opcode = OP_REGOFFSET;
 				if (ainfo->pair_storage [0] == ArgInIReg) {
 					indir->inst_basereg = cfg->frame_reg;
@@ -2004,7 +1772,7 @@ mono_arch_allocate_vars (MonoCompile *cfg)
 				NOT_IMPLEMENTED;
 			}
 
-			if (!inreg && (ainfo->storage != ArgOnStack) && (ainfo->storage != ArgValuetypeAddrInIReg) && (ainfo->storage != ArgGSharedVtOnStack)) {
+			if (!inreg && (ainfo->storage != ArgOnStack) && (ainfo->storage != ArgValuetypeAddrInIReg) && (ainfo->storage != ArgValuetypeAddrOnStack) && (ainfo->storage != ArgGSharedVtOnStack)) {
 				ins->opcode = OP_REGOFFSET;
 				ins->inst_basereg = cfg->frame_reg;
 				/* These arguments are saved to the stack in the prolog */
@@ -2248,6 +2016,7 @@ mono_arch_get_llvm_call_info (MonoCompile *cfg, MonoMethodSignature *sig)
 			t = sig->params [i - sig->hasthis];
 		else
 			t = &mono_defaults.int_class->byval_arg;
+		t = mini_type_get_underlying_type (t);
 
 		linfo->args [i].storage = LLVMArgNone;
 
@@ -2389,6 +2158,7 @@ mono_arch_emit_call (MonoCompile *cfg, MonoCallInst *call)
 		case ArgOnStack:
 		case ArgValuetypeInReg:
 		case ArgValuetypeAddrInIReg:
+		case ArgValuetypeAddrOnStack:
 		case ArgGSharedVtInReg:
 		case ArgGSharedVtOnStack: {
 			if (ainfo->storage == ArgOnStack && !MONO_TYPE_ISSTRUCT (t) && !call->tail_call)
@@ -2423,7 +2193,7 @@ mono_arch_emit_call (MonoCompile *cfg, MonoCallInst *call)
 				/* Continue normally */
 			}
 
-			if (size > 0) {
+			if (size > 0 || ainfo->pass_empty_struct) {
 				MONO_INST_NEW (cfg, arg, OP_OUTARG_VT);
 				arg->sreg1 = in->dreg;
 				arg->klass = mono_class_from_mono_type (t);
@@ -2521,29 +2291,40 @@ mono_arch_emit_outarg_vt (MonoCompile *cfg, MonoInst *ins, MonoInst *src)
 			if (ainfo->pair_storage [part] == ArgNone)
 				continue;
 
-			MONO_INST_NEW (cfg, load, arg_storage_to_load_membase (ainfo->pair_storage [part]));
-			load->inst_basereg = src->dreg;
-			load->inst_offset = part * sizeof(mgreg_t);
-
-			switch (ainfo->pair_storage [part]) {
-			case ArgInIReg:
-				load->dreg = mono_alloc_ireg (cfg);
-				break;
-			case ArgInDoubleSSEReg:
-			case ArgInFloatSSEReg:
-				load->dreg = mono_alloc_freg (cfg);
-				break;
-			default:
-				g_assert_not_reached ();
+			if (ainfo->pass_empty_struct) {
+				//Pass empty struct value as 0 on platforms representing empty structs as 1 byte.
+				NEW_ICONST (cfg, load, 0);
 			}
+			else {
+				MONO_INST_NEW (cfg, load, arg_storage_to_load_membase (ainfo->pair_storage [part]));
+				load->inst_basereg = src->dreg;
+				load->inst_offset = part * sizeof(mgreg_t);
+
+				switch (ainfo->pair_storage [part]) {
+				case ArgInIReg:
+					load->dreg = mono_alloc_ireg (cfg);
+					break;
+				case ArgInDoubleSSEReg:
+				case ArgInFloatSSEReg:
+					load->dreg = mono_alloc_freg (cfg);
+					break;
+				default:
+					g_assert_not_reached ();
+				}
+			}
+
 			MONO_ADD_INS (cfg->cbb, load);
 
 			add_outarg_reg (cfg, call, ainfo->pair_storage [part], ainfo->pair_regs [part], load);
 		}
 		break;
 	}
-	case ArgValuetypeAddrInIReg: {
+	case ArgValuetypeAddrInIReg:
+	case ArgValuetypeAddrOnStack: {
 		MonoInst *vtaddr, *load;
+
+		g_assert (ainfo->storage == ArgValuetypeAddrInIReg || (ainfo->storage == ArgValuetypeAddrOnStack && ainfo->pair_storage [0] == ArgNone));
+		
 		vtaddr = mono_compile_create_var (cfg, &ins->klass->byval_arg, OP_LOCAL);
 		
 		MONO_INST_NEW (cfg, load, OP_LDADDR);
@@ -2638,25 +2419,14 @@ dyn_call_supported (MonoMethodSignature *sig, CallInfo *cinfo)
 {
 	int i;
 
-#ifdef HOST_WIN32
-	return FALSE;
-#endif
-
 	switch (cinfo->ret.storage) {
 	case ArgNone:
 	case ArgInIReg:
 	case ArgInFloatSSEReg:
 	case ArgInDoubleSSEReg:
+	case ArgValuetypeAddrInIReg:
+	case ArgValuetypeInReg:
 		break;
-	case ArgValuetypeInReg: {
-		ArgInfo *ainfo = &cinfo->ret;
-
-		if (ainfo->pair_storage [0] != ArgNone && ainfo->pair_storage [0] != ArgInIReg)
-			return FALSE;
-		if (ainfo->pair_storage [1] != ArgNone && ainfo->pair_storage [1] != ArgInIReg)
-			return FALSE;
-		break;
-	}
 	default:
 		return FALSE;
 	}
@@ -2667,11 +2437,10 @@ dyn_call_supported (MonoMethodSignature *sig, CallInfo *cinfo)
 		case ArgInIReg:
 		case ArgInFloatSSEReg:
 		case ArgInDoubleSSEReg:
-			break;
 		case ArgValuetypeInReg:
-			if (ainfo->pair_storage [0] != ArgNone && ainfo->pair_storage [0] != ArgInIReg)
-				return FALSE;
-			if (ainfo->pair_storage [1] != ArgNone && ainfo->pair_storage [1] != ArgInIReg)
+			break;
+		case ArgOnStack:
+			if (!(ainfo->offset + (ainfo->arg_size / 8) <= DYN_CALL_STACK_ARGS))
 				return FALSE;
 			break;
 		default:
@@ -2725,14 +2494,8 @@ mono_arch_dyn_call_free (MonoDynCallInfo *info)
 	g_free (ainfo);
 }
 
-#if !defined(__native_client__)
 #define PTR_TO_GREG(ptr) (mgreg_t)(ptr)
 #define GREG_TO_PTR(greg) (gpointer)(greg)
-#else
-/* Correctly handle casts to/from 32-bit pointers without compiler warnings */
-#define PTR_TO_GREG(ptr) (mgreg_t)(uintptr_t)(ptr)
-#define GREG_TO_PTR(greg) (gpointer)(guint32)(greg)
-#endif
 
 /*
  * mono_arch_get_start_dyn_call:
@@ -2756,6 +2519,15 @@ mono_arch_start_dyn_call (MonoDynCallInfo *info, gpointer **args, guint8 *ret, g
 	int arg_index, greg, freg, i, pindex;
 	MonoMethodSignature *sig = dinfo->sig;
 	int buffer_offset = 0;
+	static int param_reg_to_index [16];
+	static gboolean param_reg_to_index_inited;
+
+	if (!param_reg_to_index_inited) {
+		for (i = 0; i < PARAM_REGS; ++i)
+			param_reg_to_index [param_regs [i]] = i;
+		mono_memory_barrier ();
+		param_reg_to_index_inited = 1;
+	}
 
 	g_assert (buf_len >= sizeof (DynCallArgs));
 
@@ -2776,12 +2548,21 @@ mono_arch_start_dyn_call (MonoDynCallInfo *info, gpointer **args, guint8 *ret, g
 	if (dinfo->cinfo->ret.storage == ArgValuetypeAddrInIReg || dinfo->cinfo->ret.storage == ArgGsharedvtVariableInReg)
 		p->regs [greg ++] = PTR_TO_GREG(ret);
 
-	for (i = pindex; i < sig->param_count; i++) {
-		MonoType *t = mini_get_underlying_type (sig->params [i]);
+	for (; pindex < sig->param_count; pindex++) {
+		MonoType *t = mini_get_underlying_type (sig->params [pindex]);
 		gpointer *arg = args [arg_index ++];
+		ArgInfo *ainfo = &dinfo->cinfo->args [pindex + sig->hasthis];
+		int slot;
+
+		if (ainfo->storage == ArgOnStack) {
+			slot = PARAM_REGS + (ainfo->offset / sizeof (mgreg_t));
+		} else {
+			slot = param_reg_to_index [ainfo->reg];
+		}
 
 		if (t->byref) {
-			p->regs [greg ++] = PTR_TO_GREG(*(arg));
+			p->regs [slot] = PTR_TO_GREG(*(arg));
+			greg ++;
 			continue;
 		}
 
@@ -2798,33 +2579,31 @@ mono_arch_start_dyn_call (MonoDynCallInfo *info, gpointer **args, guint8 *ret, g
 		case MONO_TYPE_I8:
 		case MONO_TYPE_U8:
 #endif
-			g_assert (dinfo->cinfo->args [i + sig->hasthis].reg == param_regs [greg]);
-			p->regs [greg ++] = PTR_TO_GREG(*(arg));
+			p->regs [slot] = PTR_TO_GREG(*(arg));
 			break;
 #if defined(__mono_ilp32__)
 		case MONO_TYPE_I8:
 		case MONO_TYPE_U8:
-			g_assert (dinfo->cinfo->args [i + sig->hasthis].reg == param_regs [greg]);
-			p->regs [greg ++] = *(guint64*)(arg);
+			p->regs [slot] = *(guint64*)(arg);
 			break;
 #endif
 		case MONO_TYPE_U1:
-			p->regs [greg ++] = *(guint8*)(arg);
+			p->regs [slot] = *(guint8*)(arg);
 			break;
 		case MONO_TYPE_I1:
-			p->regs [greg ++] = *(gint8*)(arg);
+			p->regs [slot] = *(gint8*)(arg);
 			break;
 		case MONO_TYPE_I2:
-			p->regs [greg ++] = *(gint16*)(arg);
+			p->regs [slot] = *(gint16*)(arg);
 			break;
 		case MONO_TYPE_U2:
-			p->regs [greg ++] = *(guint16*)(arg);
+			p->regs [slot] = *(guint16*)(arg);
 			break;
 		case MONO_TYPE_I4:
-			p->regs [greg ++] = *(gint32*)(arg);
+			p->regs [slot] = *(gint32*)(arg);
 			break;
 		case MONO_TYPE_U4:
-			p->regs [greg ++] = *(guint32*)(arg);
+			p->regs [slot] = *(guint32*)(arg);
 			break;
 		case MONO_TYPE_R4: {
 			double d;
@@ -2840,7 +2619,7 @@ mono_arch_start_dyn_call (MonoDynCallInfo *info, gpointer **args, guint8 *ret, g
 			break;
 		case MONO_TYPE_GENERICINST:
 		    if (MONO_TYPE_IS_REFERENCE (t)) {
-				p->regs [greg ++] = PTR_TO_GREG(*(arg));
+				p->regs [slot] = PTR_TO_GREG(*(arg));
 				break;
 			} else if (t->type == MONO_TYPE_GENERICINST && mono_class_is_nullable (mono_class_from_mono_type (t))) {
 					MonoClass *klass = mono_class_from_mono_type (t);
@@ -2862,16 +2641,33 @@ mono_arch_start_dyn_call (MonoDynCallInfo *info, gpointer **args, guint8 *ret, g
 				/* Fall through */
 			}
 		case MONO_TYPE_VALUETYPE: {
-			ArgInfo *ainfo = &dinfo->cinfo->args [i + sig->hasthis];
-
-			g_assert (ainfo->storage == ArgValuetypeInReg);
-			if (ainfo->pair_storage [0] != ArgNone) {
-				g_assert (ainfo->pair_storage [0] == ArgInIReg);
-				p->regs [greg ++] = ((mgreg_t*)(arg))[0];
-			}
-			if (ainfo->pair_storage [1] != ArgNone) {
-				g_assert (ainfo->pair_storage [1] == ArgInIReg);
-				p->regs [greg ++] = ((mgreg_t*)(arg))[1];
+			switch (ainfo->storage) {
+			case ArgValuetypeInReg:
+				for (i = 0; i < 2; ++i) {
+					switch (ainfo->pair_storage [i]) {
+					case ArgNone:
+						break;
+					case ArgInIReg:
+						slot = param_reg_to_index [ainfo->pair_regs [i]];
+						p->regs [slot] = ((mgreg_t*)(arg))[i];
+						break;
+					case ArgInDoubleSSEReg:
+						p->has_fp = 1;
+						p->fregs [ainfo->pair_regs [i]] = ((double*)(arg))[i];
+						break;
+					default:
+						g_assert_not_reached ();
+						break;
+					}
+				}
+				break;
+			case ArgOnStack:
+				for (i = 0; i < ainfo->arg_size / 8; ++i)
+					p->regs [slot + i] = ((mgreg_t*)(arg))[i];
+				break;
+			default:
+				g_assert_not_reached ();
+				break;
 			}
 			break;
 		}
@@ -2879,8 +2675,6 @@ mono_arch_start_dyn_call (MonoDynCallInfo *info, gpointer **args, guint8 *ret, g
 			g_assert_not_reached ();
 		}
 	}
-
-	g_assert (greg <= PARAM_REGS);
 }
 
 /*
@@ -2901,6 +2695,7 @@ mono_arch_finish_dyn_call (MonoDynCallInfo *info, guint8 *buf)
 	guint8 *ret = dargs->ret;
 	mgreg_t res = dargs->res;
 	MonoType *sig_ret = mini_get_underlying_type (sig->ret);
+	int i;
 
 	switch (sig_ret->type) {
 	case MONO_TYPE_VOID:
@@ -2961,12 +2756,21 @@ mono_arch_finish_dyn_call (MonoDynCallInfo *info, guint8 *buf)
 
 			g_assert (ainfo->storage == ArgValuetypeInReg);
 
-			if (ainfo->pair_storage [0] != ArgNone) {
-				g_assert (ainfo->pair_storage [0] == ArgInIReg);
-				((mgreg_t*)ret)[0] = res;
+			for (i = 0; i < 2; ++i) {
+				switch (ainfo->pair_storage [0]) {
+				case ArgInIReg:
+					((mgreg_t*)ret)[i] = res;
+					break;
+				case ArgInDoubleSSEReg:
+					((double*)ret)[i] = dargs->fregs [i];
+					break;
+				case ArgNone:
+					break;
+				default:
+					g_assert_not_reached ();
+					break;
+				}
 			}
-
-			g_assert (ainfo->pair_storage [1] == ArgNone);
 		}
 		break;
 	default:
@@ -3088,10 +2892,6 @@ emit_call_body (MonoCompile *cfg, guint8 *code, MonoJumpInfoType patch_type, gco
 
 #ifdef MONO_ARCH_NOMAP32BIT
 		near_call = FALSE;
-#endif
-#if defined(__native_client__)
-		/* Always use near_call == TRUE for Native Client */
-		near_call = TRUE;
 #endif
 		/* The 64bit XEN kernel does not honour the MAP_32BIT flag. (#522894) */
 		if (optimize_for_xen)
@@ -3374,7 +3174,6 @@ mono_arch_lowering_pass (MonoCompile *cfg, MonoBasicBlock *bb)
 		case OP_LOAD_MEMBASE:
 #endif
 		case OP_LOADI8_MEMBASE:
-#ifndef __native_client_codegen__
 		/*  Don't generate memindex opcodes (to simplify */
 		/*  read sandboxing) */
 			if (!amd64_use_imm32 (ins->inst_offset)) {
@@ -3384,7 +3183,6 @@ mono_arch_lowering_pass (MonoCompile *cfg, MonoBasicBlock *bb)
 				ins->opcode = OP_AMD64_LOADI8_MEMINDEX;
 				ins->inst_indexreg = temp->dreg;
 			}
-#endif
 			break;
 #ifndef __mono_ilp32__
 		case OP_STORE_MEMBASE_IMM:
@@ -3545,20 +3343,8 @@ mono_emit_stack_alloc (MonoCompile *cfg, guchar *code, MonoInst* tree)
 		if (cfg->param_area)
 			amd64_alu_reg_imm (code, X86_ADD, AMD64_RDI, cfg->param_area);
 		amd64_cld (code);
-#if defined(__default_codegen__)
 		amd64_prefix (code, X86_REP_PREFIX);
 		amd64_stosl (code);
-#elif defined(__native_client_codegen__)
-		/* NaCl stos pseudo-instruction */
-		amd64_codegen_pre(code);
-		/* First, clear the upper 32 bits of RDI (mov %edi, %edi)  */
-		amd64_mov_reg_reg (code, AMD64_RDI, AMD64_RDI, 4);
-		/* Add %r15 to %rdi using lea, condition flags unaffected. */
-		amd64_lea_memindex_size (code, AMD64_RDI, AMD64_R15, 0, AMD64_RDI, 0, 8);
-		amd64_prefix (code, X86_REP_PREFIX);
-		amd64_stosl (code);
-		amd64_codegen_post(code);
-#endif /* __native_client_codegen__ */
 		
 		if (tree->dreg != AMD64_RDI && sreg != AMD64_RDI)
 			amd64_pop_reg (code, AMD64_RDI);
@@ -3780,6 +3566,73 @@ mono_amd64_emit_tls_get (guint8* code, int dreg, int tls_offset)
 	return code;
 }
 
+#ifdef TARGET_WIN32
+
+#define MAX_TEB_TLS_SLOTS 64
+#define TEB_TLS_SLOTS_OFFSET 0x1480
+#define TEB_TLS_EXPANSION_SLOTS_OFFSET 0x1780
+
+static guint8*
+emit_tls_get_reg_windows (guint8* code, int dreg, int offset_reg)
+{
+	int tmp_reg = -1;
+	guint8 * more_than_64_slots = NULL;
+	guint8 * empty_slot = NULL;
+	guint8 * tls_get_reg_done = NULL;
+	
+	//Use temporary register for offset calculation?
+	if (dreg == offset_reg) {
+		tmp_reg = dreg == AMD64_RAX ? AMD64_RCX : AMD64_RAX;
+		amd64_push_reg (code, tmp_reg);
+		amd64_mov_reg_reg (code, tmp_reg, offset_reg, sizeof (gpointer));
+		offset_reg = tmp_reg;
+	}
+
+	//TEB TLS slot array only contains MAX_TEB_TLS_SLOTS items, if more is used the expansion slots must be addressed.
+	amd64_alu_reg_imm (code, X86_CMP, offset_reg, MAX_TEB_TLS_SLOTS);
+	more_than_64_slots = code;
+	amd64_branch8 (code, X86_CC_GE, 0, TRUE);
+
+	//TLS slot array, _TEB.TlsSlots, is at offset TEB_TLS_SLOTS_OFFSET and index is offset * 8 in Windows 64-bit _TEB structure.
+	amd64_shift_reg_imm (code, X86_SHL, offset_reg, 3);
+	amd64_alu_reg_imm (code, X86_ADD, offset_reg, TEB_TLS_SLOTS_OFFSET);
+
+	//TEB pointer is stored in GS segment register on Windows x64. TLS slot is located at calculated offset from that pointer.
+	x86_prefix (code, X86_GS_PREFIX);
+	amd64_mov_reg_membase (code, dreg, offset_reg, 0, sizeof (gpointer));
+		
+	tls_get_reg_done = code;
+	amd64_jump8 (code, 0);
+
+	amd64_patch (more_than_64_slots, code);
+
+	//TLS expansion slots, _TEB.TlsExpansionSlots, is at offset TEB_TLS_EXPANSION_SLOTS_OFFSET in Windows 64-bit _TEB structure.
+	x86_prefix (code, X86_GS_PREFIX);
+	amd64_mov_reg_mem (code, dreg, TEB_TLS_EXPANSION_SLOTS_OFFSET, sizeof (gpointer));
+	
+	//Check for NULL in _TEB.TlsExpansionSlots.
+	amd64_test_reg_reg (code, dreg, dreg);
+	empty_slot = code;
+	amd64_branch8 (code, X86_CC_EQ, 0, TRUE);
+	
+	//TLS expansion slots are at index offset into the expansion array.
+	//Calculate for the MAX_TEB_TLS_SLOTS offsets, since the interessting offset is offset_reg - MAX_TEB_TLS_SLOTS.
+	amd64_alu_reg_imm (code, X86_SUB, offset_reg, MAX_TEB_TLS_SLOTS);
+	amd64_shift_reg_imm (code, X86_SHL, offset_reg, 3);
+	
+	amd64_mov_reg_memindex (code, dreg, dreg, 0, offset_reg, 0, sizeof (gpointer));
+	
+	amd64_patch (empty_slot, code);
+	amd64_patch (tls_get_reg_done, code);
+
+	if (tmp_reg != -1)
+		amd64_pop_reg (code, tmp_reg);
+
+	return code;
+}
+
+#endif
+
 static guint8*
 emit_tls_get_reg (guint8* code, int dreg, int offset_reg)
 {
@@ -3804,6 +3657,8 @@ emit_tls_get_reg (guint8* code, int dreg, int offset_reg)
 	amd64_mov_reg_memindex (code, dreg, dreg, 0, offset_reg, 0, 8);
 	if (tmpreg != -1)
 		amd64_mov_reg_membase (code, tmpreg, AMD64_RSP, -8, 8);
+#elif defined(TARGET_WIN32)
+	code = emit_tls_get_reg_windows (code, dreg, offset_reg);
 #else
 	g_assert_not_reached ();
 #endif
@@ -3888,6 +3743,30 @@ emit_setup_lmf (MonoCompile *cfg, guint8 *code, gint32 lmf_offset, int cfa_offse
 	return code;
 }
 
+#ifdef TARGET_WIN32
+
+#define TEB_LAST_ERROR_OFFSET 0x068
+
+static guint8*
+emit_get_last_error (guint8* code, int dreg)
+{
+	/* Threads last error value is located in TEB_LAST_ERROR_OFFSET. */
+	x86_prefix (code, X86_GS_PREFIX);
+	amd64_mov_reg_membase (code, dreg, TEB_LAST_ERROR_OFFSET, 0, sizeof (guint32));
+
+	return code;
+}
+
+#else
+
+static guint8*
+emit_get_last_error (guint8* code, int dreg)
+{
+	g_assert_not_reached ();
+}
+
+#endif
+
 /* benchmark and set based on cpu */
 #define LOOP_ALIGNMENT 8
 #define bb_is_loop_start(bb) ((bb)->loop_body_start && (bb)->nesting)
@@ -3924,21 +3803,6 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 		}
 	}
 
-#if defined(__native_client_codegen__)
-	/* For Native Client, all indirect call/jump targets must be */
-	/* 32-byte aligned.  Exception handler blocks are jumped to  */
-	/* indirectly as well.                                       */
-	gboolean bb_needs_alignment = (bb->flags & BB_INDIRECT_JUMP_TARGET) ||
-				      (bb->flags & BB_EXCEPTION_HANDLER);
-
-	if ( bb_needs_alignment && ((cfg->code_len & kNaClAlignmentMask) != 0)) {
-		int pad = kNaClAlignment - (cfg->code_len & kNaClAlignmentMask);
-		if (pad != kNaClAlignment) code = mono_arch_nacl_pad(code, pad);
-		cfg->code_len += pad;
-		bb->native_offset = cfg->code_len;
-	}
-#endif  /*__native_client_codegen__*/
-
 	if (cfg->verbose_level > 2)
 		g_print ("Basic block %d starting at offset 0x%x\n", bb->block_num, bb->native_offset);
 
@@ -3964,7 +3828,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 
 		max_len = ((guint8 *)ins_get_spec (ins->opcode))[MONO_INST_LEN];
 
-#define EXTRA_CODE_SPACE (NACL_SIZE (16, 16 + kNaClAlignment))
+#define EXTRA_CODE_SPACE (16)
 
 		if (G_UNLIKELY (offset > (cfg->code_size - max_len - EXTRA_CODE_SPACE))) {
 			cfg->code_size *= 2;
@@ -4013,14 +3877,12 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			amd64_mov_membase_reg (code, ins->inst_destbasereg, ins->inst_offset, ins->sreg1, 4);
 			break;
 		case OP_STORE_MEMBASE_IMM:
-#ifndef __native_client_codegen__
 			/* In NaCl, this could be a PCONST type, which could */
 			/* mean a pointer type was copied directly into the  */
 			/* lower 32-bits of inst_imm, so for InvalidPtr==-1  */
 			/* the value would be 0x00000000FFFFFFFF which is    */
 			/* not proper for an imm32 unless you cast it.       */
 			g_assert (amd64_is_imm32 (ins->inst_imm));
-#endif
 			amd64_mov_membase_imm (code, ins->inst_destbasereg, ins->inst_offset, (gint32)ins->inst_imm, sizeof(gpointer));
 			break;
 		case OP_STOREI8_MEMBASE_IMM:
@@ -4493,10 +4355,6 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 		}
 		case OP_LDIV:
 		case OP_LREM:
-#if defined( __native_client_codegen__ )
-			amd64_alu_reg_imm (code, X86_CMP, ins->sreg2, 0);
-			EMIT_COND_SYSTEM_EXCEPTION (X86_CC_EQ, TRUE, "DivideByZeroException");
-#endif
 			/* Regalloc magic makes the div/rem cases the same */
 			if (ins->sreg2 == AMD64_RDX) {
 				amd64_mov_membase_reg (code, AMD64_RSP, -8, AMD64_RDX, 8);
@@ -4509,10 +4367,6 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			break;
 		case OP_LDIV_UN:
 		case OP_LREM_UN:
-#if defined( __native_client_codegen__ )
-			amd64_alu_reg_imm (code, X86_CMP, ins->sreg2, 0);
-			EMIT_COND_SYSTEM_EXCEPTION (X86_CC_EQ, TRUE, "DivideByZeroException");
-#endif
 			if (ins->sreg2 == AMD64_RDX) {
 				amd64_mov_membase_reg (code, AMD64_RSP, -8, AMD64_RDX, 8);
 				amd64_alu_reg_reg (code, X86_XOR, AMD64_RDX, AMD64_RDX);
@@ -4524,10 +4378,6 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			break;
 		case OP_IDIV:
 		case OP_IREM:
-#if defined( __native_client_codegen__ )
-			amd64_alu_reg_imm (code, X86_CMP, ins->sreg2, 0);
-			EMIT_COND_SYSTEM_EXCEPTION (X86_CC_EQ, TRUE, "DivideByZeroException");
-#endif
 			if (ins->sreg2 == AMD64_RDX) {
 				amd64_mov_membase_reg (code, AMD64_RSP, -8, AMD64_RDX, 8);
 				amd64_cdq_size (code, 4);
@@ -4539,10 +4389,6 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			break;
 		case OP_IDIV_UN:
 		case OP_IREM_UN:
-#if defined( __native_client_codegen__ )
-			amd64_alu_reg_imm_size (code, X86_CMP, ins->sreg2, 0, 4);
-			EMIT_COND_SYSTEM_EXCEPTION (X86_CC_EQ, TRUE, "DivideByZeroException");
-#endif
 			if (ins->sreg2 == AMD64_RDX) {
 				amd64_mov_membase_reg (code, AMD64_RSP, -8, AMD64_RDX, 8);
 				amd64_alu_reg_reg (code, X86_XOR, AMD64_RDX, AMD64_RDX);
@@ -4990,6 +4836,12 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 				amd64_sse_movsd_reg_membase (code, i, AMD64_R11, MONO_STRUCT_OFFSET (DynCallArgs, fregs) + (i * sizeof (double)));
 			amd64_patch (label, code);
 
+			/* Set stack args */
+			for (i = 0; i < DYN_CALL_STACK_ARGS; ++i) {
+				amd64_mov_reg_membase (code, AMD64_RAX, AMD64_R11, MONO_STRUCT_OFFSET (DynCallArgs, regs) + ((PARAM_REGS + i) * sizeof(mgreg_t)), sizeof(mgreg_t));
+				amd64_mov_membase_reg (code, AMD64_RSP, i * sizeof (mgreg_t), AMD64_RAX, sizeof (mgreg_t));
+			}
+
 			/* Set argument registers */
 			for (i = 0; i < PARAM_REGS; ++i)
 				amd64_mov_reg_membase (code, param_regs [i], AMD64_R11, i * sizeof(mgreg_t), sizeof(mgreg_t));
@@ -5004,6 +4856,7 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			amd64_mov_reg_membase (code, AMD64_R11, var->inst_basereg, var->inst_offset, 8);
 			amd64_mov_membase_reg (code, AMD64_R11, MONO_STRUCT_OFFSET (DynCallArgs, res), AMD64_RAX, 8);
 			amd64_sse_movsd_membase_reg (code, AMD64_R11, MONO_STRUCT_OFFSET (DynCallArgs, fregs), AMD64_XMM0);
+			amd64_sse_movsd_membase_reg (code, AMD64_R11, MONO_STRUCT_OFFSET (DynCallArgs, fregs) + sizeof (double), AMD64_XMM1);
 			break;
 		}
 		case OP_AMD64_SAVE_SP_TO_LMF: {
@@ -6730,22 +6583,13 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			break;
 		}
 		case OP_GC_SAFE_POINT: {
-			const char *polling_func = NULL;
-			int compare_val = 0;
 			guint8 *br [1];
 
-#if defined(__native_client_codegen__) && defined(__native_client_gc__)
-			polling_func = "mono_nacl_gc";
-			compare_val = 0xFFFFFFFF;
-#else
 			g_assert (mono_threads_is_coop_enabled ());
-			polling_func = "mono_threads_state_poll";
-			compare_val = 1;
-#endif
 
-			amd64_test_membase_imm_size (code, ins->sreg1, 0, compare_val, 4);
+			amd64_test_membase_imm_size (code, ins->sreg1, 0, 1, 4);
 			br[0] = code; x86_branch8 (code, X86_CC_EQ, 0, FALSE);
-			code = emit_call (cfg, code, MONO_PATCH_INFO_INTERNAL_METHOD, polling_func, FALSE);
+			code = emit_call (cfg, code, MONO_PATCH_INFO_INTERNAL_METHOD, "mono_threads_state_poll", FALSE);
 			amd64_patch (br[0], code);
 			break;
 		}
@@ -6759,17 +6603,18 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 			ins->backend.pc_offset = code - cfg->native_code;
 			bb->spill_slot_defs = g_slist_prepend_mempool (cfg->mempool, bb->spill_slot_defs, ins);
 			break;
+		case OP_GET_LAST_ERROR:
+			emit_get_last_error(code, ins->dreg);
+			break;
 		default:
 			g_warning ("unknown opcode %s in %s()\n", mono_inst_name (ins->opcode), __FUNCTION__);
 			g_assert_not_reached ();
 		}
 
 		if ((code - cfg->native_code - offset) > max_len) {
-#if !defined(__native_client_codegen__)
 			g_warning ("wrong maximal instruction length of instruction %s (expected %d, got %ld)",
 				   mono_inst_name (ins->opcode), max_len, code - cfg->native_code - offset);
 			g_assert_not_reached ();
-#endif
 		}
 	}
 
@@ -6863,27 +6708,10 @@ mono_arch_emit_prolog (MonoCompile *cfg)
 	MonoInst *lmf_var = cfg->lmf_var;
 	gboolean args_clobbered = FALSE;
 	gboolean trace = FALSE;
-#ifdef __native_client_codegen__
-	guint alignment_check;
-#endif
 
 	cfg->code_size = MAX (cfg->header->code_size * 4, 1024);
 
-#if defined(__default_codegen__)
 	code = cfg->native_code = (unsigned char *)g_malloc (cfg->code_size);
-#elif defined(__native_client_codegen__)
-	/* native_code_alloc is not 32-byte aligned, native_code is. */
-	cfg->native_code_alloc = g_malloc (cfg->code_size + kNaClAlignment);
-
-	/* Align native_code to next nearest kNaclAlignment byte. */
-	cfg->native_code = (uintptr_t)cfg->native_code_alloc + kNaClAlignment;
-	cfg->native_code = (uintptr_t)cfg->native_code & ~kNaClAlignmentMask;
-
-	code = cfg->native_code;
-
-	alignment_check = (guint)cfg->native_code & kNaClAlignmentMask;
-	g_assert (alignment_check == 0);
-#endif
 
 	if (mono_jit_trace_calls != NULL && mono_trace_eval (method))
 		trace = TRUE;
@@ -6976,7 +6804,7 @@ mono_arch_emit_prolog (MonoCompile *cfg)
 #if defined(TARGET_WIN32) || defined(MONO_ARCH_SIGSEGV_ON_ALTSTACK)
 		guint32 remaining_size = alloc_size;
 		/*FIXME handle unbounded code expansion, we should use a loop in case of more than X interactions*/
-		guint32 required_code_size = ((remaining_size / 0x1000) + 1) * 10; /*10 is the max size of amd64_alu_reg_imm + amd64_test_membase_reg*/
+		guint32 required_code_size = ((remaining_size / 0x1000) + 1) * 11; /*11 is the max size of amd64_alu_reg_imm + amd64_test_membase_reg*/
 		guint32 offset = code - cfg->native_code;
 		if (G_UNLIKELY (required_code_size >= (cfg->code_size - offset))) {
 			while (required_code_size >= (cfg->code_size - offset))
@@ -7050,20 +6878,8 @@ mono_arch_emit_prolog (MonoCompile *cfg)
 		amd64_mov_reg_reg (code, AMD64_RDI, AMD64_RSP, 8);
 
 		amd64_cld (code);
-#if defined(__default_codegen__)
 		amd64_prefix (code, X86_REP_PREFIX);
 		amd64_stosl (code);
-#elif defined(__native_client_codegen__)
-		/* NaCl stos pseudo-instruction */
-		amd64_codegen_pre (code);
-		/* First, clear the upper 32 bits of RDI (mov %edi, %edi)  */
-		amd64_mov_reg_reg (code, AMD64_RDI, AMD64_RDI, 4);
-		/* Add %r15 to %rdi using lea, condition flags unaffected. */
-		amd64_lea_memindex_size (code, AMD64_RDI, AMD64_R15, 0, AMD64_RDI, 0, 8);
-		amd64_prefix (code, X86_REP_PREFIX);
-		amd64_stosl (code);
-		amd64_codegen_post (code);
-#endif /* __native_client_codegen__ */
 
 		amd64_mov_reg_membase (code, AMD64_RDI, AMD64_RSP, -8, 8);
 		amd64_mov_reg_membase (code, AMD64_RCX, AMD64_RSP, -16, 8);
@@ -7125,22 +6941,8 @@ mono_arch_emit_prolog (MonoCompile *cfg)
 			/* max alignment for loops */
 			if ((cfg->opt & MONO_OPT_LOOP) && bb_is_loop_start (bb))
 				max_length += LOOP_ALIGNMENT;
-#ifdef __native_client_codegen__
-			/* max alignment for native client */
-			max_length += kNaClAlignment;
-#endif
 
 			MONO_BB_FOR_EACH_INS (bb, ins) {
-#ifdef __native_client_codegen__
-				{
-					int space_in_block = kNaClAlignment -
-						((max_length + cfg->code_len) & kNaClAlignmentMask);
-					int max_len = ((guint8 *)ins_get_spec (ins->opcode))[MONO_INST_LEN];
-					if (space_in_block < max_len && max_len < kNaClAlignment) {
-						max_length += space_in_block;
-					}
-				}
-#endif  /*__native_client_codegen__*/
 				max_length += ((guint8 *)ins_get_spec (ins->opcode))[MONO_INST_LEN];
 			}
 
@@ -7231,6 +7033,8 @@ mono_arch_emit_prolog (MonoCompile *cfg)
 			case ArgValuetypeAddrInIReg:
 				if (ainfo->pair_storage [0] == ArgInIReg)
 					amd64_mov_membase_reg (code, ins->inst_left->inst_basereg, ins->inst_left->inst_offset, ainfo->pair_regs [0],  sizeof (gpointer));
+				break;
+			case ArgValuetypeAddrOnStack:
 				break;
 			case ArgGSharedVtInReg:
 				amd64_mov_membase_reg (code, ins->inst_basereg, ins->inst_offset, ainfo->reg, 8);
@@ -7442,7 +7246,12 @@ mono_arch_emit_epilog (MonoCompile *cfg)
 	for (i = 0; i < AMD64_NREG; ++i) {
 		if (AMD64_IS_CALLEE_SAVED_REG (i) && (cfg->arch.saved_iregs & (1 << i))) {
 			/* Restore only used_int_regs, not arch.saved_iregs */
-			if (cfg->used_int_regs & (1 << i)) {
+#if defined(MONO_SUPPORT_TASKLETS)
+			int restore_reg=1;
+#else
+			int restore_reg=(cfg->used_int_regs & (1 << i));
+#endif
+			if (restore_reg) {
 				amd64_mov_reg_membase (code, i, cfg->frame_reg, save_area_offset, 8);
 				mono_emit_unwind_op_same_value (cfg, code, i);
 				async_exc_point (code);
@@ -7517,13 +7326,6 @@ mono_arch_emit_exceptions (MonoCompile *cfg)
 		if (patch_info->type == MONO_PATCH_INFO_GC_CARD_TABLE_ADDR)
 			code_size += 8 + 7; /*sizeof (void*) + alignment */
 	}
-
-#ifdef __native_client_codegen__
-	/* Give us extra room on Native Client.  This could be   */
-	/* more carefully calculated, but bundle alignment makes */
-	/* it much trickier, so *2 like other places is good.    */
-	code_size *= 2;
-#endif
 
 	while (cfg->code_len + code_size > (cfg->code_size - 16)) {
 		cfg->code_size *= 2;
@@ -7602,32 +7404,7 @@ mono_arch_emit_exceptions (MonoCompile *cfg)
 			guint32 target_pos;
 
 			/* The SSE opcodes require a 16 byte alignment */
-#if defined(__default_codegen__)
 			code = (guint8*)ALIGN_TO (code, 16);
-#elif defined(__native_client_codegen__)
-			{
-				/* Pad this out with HLT instructions  */
-				/* or we can get garbage bytes emitted */
-				/* which will fail validation          */
-				guint8 *aligned_code;
-				/* extra align to make room for  */
-				/* mov/push below 		       */
-				int extra_align = patch_info->type == MONO_PATCH_INFO_R8 ? 2 : 1;
-				aligned_code = (guint8*)ALIGN_TO (code + extra_align, 16);
-				/* The technique of hiding data in an  */
-				/* instruction has a problem here: we  */
-				/* need the data aligned to a 16-byte  */
-				/* boundary but the instruction cannot */
-				/* cross the bundle boundary. so only  */
-				/* odd multiples of 16 can be used     */
-				if ((intptr_t)aligned_code % kNaClAlignment == 0) {
-					aligned_code += 16;
-				}
-				while (code < aligned_code) {
-					*(code++) = 0xf4; /* hlt */
-				}
-			}	
-#endif
 
 			pos = cfg->native_code + patch_info->ip.i;
 			if (IS_REX (pos [1])) {
@@ -7640,22 +7417,9 @@ mono_arch_emit_exceptions (MonoCompile *cfg)
 			}
 
 			if (patch_info->type == MONO_PATCH_INFO_R8) {
-#ifdef __native_client_codegen__
-				/* Hide 64-bit data in a         */
-				/* "mov imm64, r11" instruction. */
-				/* write it before the start of  */
-				/* the data*/
-				*(code-2) = 0x49; /* prefix      */
-				*(code-1) = 0xbb; /* mov X, %r11 */
-#endif
 				*(double*)code = *(double*)patch_info->data.target;
 				code += sizeof (double);
 			} else {
-#ifdef __native_client_codegen__
-				/* Hide 32-bit data in a        */
-				/* "push imm32" instruction.    */
-				*(code-1) = 0x68; /* push */
-#endif
 				*(float*)code = *(float*)patch_info->data.target;
 				code += sizeof (float);
 			}
@@ -7964,46 +7728,6 @@ mono_breakpoint_clean_code (guint8 *method_start, guint8 *code, int offset, guin
 	return TRUE;
 }
 
-#if defined(__native_client_codegen__)
-/* For membase calls, we want the base register. for Native Client,  */
-/* all indirect calls have the following sequence with the given sizes: */
-/* mov %eXX,%eXX				[2-3]	*/
-/* mov disp(%r15,%rXX,scale),%r11d		[4-8]	*/
-/* and $0xffffffffffffffe0,%r11d		[4]	*/
-/* add %r15,%r11				[3]	*/
-/* callq *%r11					[3]	*/
-
-
-/* Determine if code points to a NaCl call-through-register sequence, */
-/* (i.e., the last 3 instructions listed above) */
-int
-is_nacl_call_reg_sequence(guint8* code)
-{
-	const char *sequence = "\x41\x83\xe3\xe0" /* and */
-			       "\x4d\x03\xdf"     /* add */
-			       "\x41\xff\xd3";   /* call */
-	return memcmp(code, sequence, 10) == 0;
-}
-
-/* Determine if code points to the first opcode of the mov membase component */
-/* of an indirect call sequence (i.e. the first 2 instructions listed above) */
-/* (there could be a REX prefix before the opcode but it is ignored) */
-static int
-is_nacl_indirect_call_membase_sequence(guint8* code)
-{
-	       /* Check for mov opcode, reg-reg addressing mode (mod = 3), */
-	return code[0] == 0x8b && amd64_modrm_mod(code[1]) == 3 &&
-	       /* and that src reg = dest reg */
-	       amd64_modrm_reg(code[1]) == amd64_modrm_rm(code[1]) &&
-	       /* Check that next inst is mov, uses SIB byte (rm = 4), */
-	       IS_REX(code[2]) &&
-	       code[3] == 0x8b && amd64_modrm_rm(code[4]) == 4 &&
-	       /* and has dst of r11 and base of r15 */
-	       (amd64_modrm_reg(code[4]) + amd64_rex_r(code[2])) == AMD64_R11 &&
-	       (amd64_sib_base(code[5]) + amd64_rex_b(code[2])) == AMD64_R15;
-}
-#endif /* __native_client_codegen__ */
-
 int
 mono_arch_get_this_arg_reg (guint8 *code)
 {
@@ -8060,7 +7784,6 @@ get_delegate_invoke_impl (MonoTrampInfo **info, gboolean has_target, guint32 par
 		g_assert ((code - start) < 64);
 	}
 
-	nacl_global_codeman_validate (&start, 64, &code);
 	mono_arch_flush_icache (start, code - start);
 
 	if (has_target) {
@@ -8117,10 +7840,7 @@ get_delegate_virtual_invoke_impl (MonoTrampInfo **info, gboolean load_imt_reg, i
 	amd64_jump_membase (code, AMD64_RAX, offset);
 	mono_profiler_code_buffer_new (start, code - start, MONO_PROFILER_CODE_BUFFER_DELEGATE_INVOKE, NULL);
 
-	if (load_imt_reg)
-		tramp_name = g_strdup_printf ("delegate_virtual_invoke_imt_%d", - offset / sizeof (gpointer));
-	else
-		tramp_name = g_strdup_printf ("delegate_virtual_invoke_%d", offset / sizeof (gpointer));
+	tramp_name = mono_get_delegate_virtual_invoke_impl_name (load_imt_reg, offset);
 	*info = mono_tramp_info_create (tramp_name, start, code - start, NULL, unwind_ops);
 	g_free (tramp_name);
 
@@ -8148,11 +7868,15 @@ mono_arch_get_delegate_invoke_impls (void)
 		res = g_slist_prepend (res, info);
 	}
 
-	for (i = 0; i <= MAX_VIRTUAL_DELEGATE_OFFSET; ++i) {
+	for (i = 1; i <= MONO_IMT_SIZE; ++i) {
 		get_delegate_virtual_invoke_impl (&info, TRUE, - i * SIZEOF_VOID_P);
 		res = g_slist_prepend (res, info);
+	}
 
+	for (i = 0; i <= MAX_VIRTUAL_DELEGATE_OFFSET; ++i) {
 		get_delegate_virtual_invoke_impl (&info, FALSE, i * SIZEOF_VOID_P);
+		res = g_slist_prepend (res, info);
+		get_delegate_virtual_invoke_impl (&info, TRUE, i * SIZEOF_VOID_P);
 		res = g_slist_prepend (res, info);
 	}
 
@@ -8244,7 +7968,6 @@ mono_arch_free_jit_tls_data (MonoJitTlsData *tls)
 {
 }
 
-#if defined(__default_codegen__)
 #define CMP_SIZE (6 + 1)
 #define CMP_REG_REG_SIZE (4 + 1)
 #define BR_SMALL_SIZE 2
@@ -8252,20 +7975,6 @@ mono_arch_free_jit_tls_data (MonoJitTlsData *tls)
 #define MOV_REG_IMM_SIZE 10
 #define MOV_REG_IMM_32BIT_SIZE 6
 #define JUMP_REG_SIZE (2 + 1)
-#elif defined(__native_client_codegen__)
-/* NaCl N-byte instructions can be padded up to N-1 bytes */
-#define CMP_SIZE ((6 + 1) * 2 - 1)
-#define CMP_REG_REG_SIZE ((4 + 1) * 2 - 1)
-#define BR_SMALL_SIZE (2 * 2 - 1)
-#define BR_LARGE_SIZE (6 * 2 - 1)
-#define MOV_REG_IMM_SIZE (10 * 2 - 1)
-#define MOV_REG_IMM_32BIT_SIZE (6 * 2 - 1)
-/* Jump reg for NaCl adds a mask (+4) and add (+3) */
-#define JUMP_REG_SIZE ((2 + 1 + 4 + 3) * 2 - 1)
-/* Jump membase's size is large and unpredictable    */
-/* in native client, just pad it out a whole bundle. */
-#define JUMP_MEMBASE_SIZE (kNaClAlignment)
-#endif
 
 static int
 imt_branch_distance (MonoIMTCheckItem **imt_entries, int start, int target)
@@ -8306,9 +8015,6 @@ mono_arch_build_imt_thunk (MonoVTable *vtable, MonoDomain *domain, MonoIMTCheckI
 						item->chunk_size += MOV_REG_IMM_32BIT_SIZE;
 					else
 						item->chunk_size += MOV_REG_IMM_SIZE;
-#ifdef __native_client_codegen__
-					item->chunk_size += JUMP_MEMBASE_SIZE;
-#endif
 				}
 				item->chunk_size += BR_SMALL_SIZE + JUMP_REG_SIZE;
 			} else {
@@ -8324,9 +8030,6 @@ mono_arch_build_imt_thunk (MonoVTable *vtable, MonoDomain *domain, MonoIMTCheckI
 					/* with assert below:
 					 * item->chunk_size += CMP_SIZE + BR_SMALL_SIZE + 1;
 					 */
-#ifdef __native_client_codegen__
-					item->chunk_size += JUMP_MEMBASE_SIZE;
-#endif
 				}
 			}
 		} else {
@@ -8339,16 +8042,10 @@ mono_arch_build_imt_thunk (MonoVTable *vtable, MonoDomain *domain, MonoIMTCheckI
 		}
 		size += item->chunk_size;
 	}
-#if defined(__native_client__) && defined(__native_client_codegen__)
-	/* In Native Client, we don't re-use thunks, allocate from the */
-	/* normal code manager paths. */
-	code = mono_domain_code_reserve (domain, size);
-#else
 	if (fail_tramp)
 		code = (guint8 *)mono_method_alloc_generic_virtual_thunk (domain, size);
 	else
 		code = (guint8 *)mono_domain_code_reserve (domain, size);
-#endif
 	start = code;
 
 	unwind_ops = mono_arch_get_cie_program ();
@@ -8440,7 +8137,6 @@ mono_arch_build_imt_thunk (MonoVTable *vtable, MonoDomain *domain, MonoIMTCheckI
 		mono_stats.imt_thunks_size += code - start;
 	g_assert (code - start <= size);
 
-	nacl_domain_code_validate(domain, &start, size, &code);
 	mono_profiler_code_buffer_new (start, code - start, MONO_PROFILER_CODE_BUFFER_IMT_TRAMPOLINE, NULL);
 
 	mono_tramp_info_register (mono_tramp_info_create (NULL, start, code - start, NULL, unwind_ops), domain);

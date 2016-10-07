@@ -19,7 +19,11 @@ TEST_RESOURCES = \
 	Test/System/test-uri-props-manual.txt \
 	Test/System/test-uri-relative-props.txt
 
+ifndef MOBILE_PROFILE
 TEST_LIB_REFS = System.Drawing Mono.Security System.Data System.Xml System.Core System.Configuration
+else
+TEST_LIB_REFS = Mono.Security System.Data System.Xml System.Core
+endif
 
 TEST_MCS_FLAGS = -nowarn:618,672,219,67,169,612 \
 	$(foreach f, $(TEST_RESOURCES), -resource:$(f),$(notdir $(f)))
@@ -42,7 +46,12 @@ REFERENCE_SOURCES_FLAGS += -d:MONO_FEATURE_THREAD_SUSPEND_RESUME
 TEST_MCS_FLAGS += -d:MONO_FEATURE_THREAD_SUSPEND_RESUME
 endif
 
-TXT_RESOURCE_STRINGS = ../../../external/referencesource/System/System.txt
+ifndef NO_MULTIPLE_APPDOMAINS
+REFERENCE_SOURCES_FLAGS += -d:MONO_FEATURE_MULTIPLE_APPDOMAINS
+TEST_MCS_FLAGS += -d:MONO_FEATURE_MULTIPLE_APPDOMAINS
+endif
+
+TXT_RESOURCE_STRINGS = ../referencesource/System/System.txt
 
 #
 # MOBILE_PROFILE needs SECURITY_DEP

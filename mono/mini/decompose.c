@@ -1264,6 +1264,9 @@ mono_decompose_vtype_opts (MonoCompile *cfg)
 				case OP_STOREV_MEMBASE: {
 					src_var = get_vreg_to_inst (cfg, ins->sreg1);
 
+					if (COMPILE_LLVM (cfg) && !mini_is_gsharedvt_klass (ins->klass) && !cfg->gen_write_barriers)
+						break;
+
 					if (!src_var) {
 						g_assert (ins->klass);
 						src_var = mono_compile_create_var_for_vreg (cfg, &ins->klass->byval_arg, OP_LOCAL, ins->sreg1);
@@ -1887,6 +1890,13 @@ mono_local_emulate_ops (MonoCompile *cfg)
 			MonoJitICallInfo *info;
 
 			/*
+			 * These opcodes don't have logical equivalence to the emulating native
+			 * function. They are decomposed in specific fashion in mono_decompose_soft_float.
+			 */
+			if (MONO_HAS_CUSTOM_EMULATION (ins))
+				continue;
+
+			/*
 			 * Emulation can't handle _IMM ops. If this is an imm opcode we need
 			 * to check whether its non-imm counterpart is emulated and, if so,
 			 * decompose it back to its non-imm counterpart.
@@ -1922,9 +1932,9 @@ mono_local_emulate_ops (MonoCompile *cfg)
 
 				/* We emit the call on a separate dummy basic block */
 				cfg->cbb = mono_mempool_alloc0 ((cfg)->mempool, sizeof (MonoBasicBlock));
-			        first_bb = cfg->cbb;
+				first_bb = cfg->cbb;
 
-				call = mono_emit_jit_icall_by_info (cfg, info, args);
+				call = mono_emit_jit_icall_by_info (cfg, bb->real_offset, info, args);
 				call->dreg = ins->dreg;
 
 				/* Replace ins with the emitted code and do the necessary bb linking */

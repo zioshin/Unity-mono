@@ -38,7 +38,7 @@ test_sourcefile = $(ASSEMBLY:$(ASSEMBLY_EXT)=_test.dll.sources)
 endif
 
 test_lib = $(PROFILE)_$(ASSEMBLY:$(ASSEMBLY_EXT)=_test.dll)
-test_sourcefile_excludes = $(test_lib).excludes
+test_sourcefile_excludes = $(test_lib).exclude.sources
 
 test_pdb = $(test_lib:.dll=.pdb)
 test_response = $(depsdir)/$(test_lib).response
@@ -123,11 +123,19 @@ TEST_HARNESS_POSTPROC_ONDOTNET = (echo ''; cat TestResult-ondotnet-$(PROFILE).lo
 endif
 
 ifdef FIXTURE
+ifdef NUNIT_LITE
+FIXTURE_ARG = -test=MonoTests.$(FIXTURE)
+else
 FIXTURE_ARG = -fixture=MonoTests.$(FIXTURE)
+endif
 endif
 
 ifdef TESTNAME
+ifdef NUNIT_LITE
+TESTNAME_ARG = -test=MonoTests.$(TESTNAME)
+else
 TESTNAME_ARG = -run=MonoTests.$(TESTNAME)
+endif
 endif
 
 ifdef ALWAYS_AOT

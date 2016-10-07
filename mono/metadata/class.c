@@ -1369,6 +1369,53 @@ mono_type_has_exceptions (MonoType *type)
 	}
 }
 
+void
+mono_error_set_for_class_failure (MonoError *oerror, MonoClass *klass)
+{
+	gpointer exception_data = mono_class_get_exception_data (klass);
+
+	switch (mono_class_get_failure(klass)) {
+	case MONO_EXCEPTION_TYPE_LOAD: {
+		mono_error_set_type_load_class (oerror, klass, "Error Loading class");
+		return;
+	}
+	case MONO_EXCEPTION_MISSING_METHOD: {
+		char *class_name = (char *)exception_data;
+		char *member_name = class_name + strlen (class_name) + 1;
+
+		mono_error_set_method_load (oerror, klass, member_name, "Error Loading Method");
+		return;
+	}
+	case MONO_EXCEPTION_MISSING_FIELD: {
+		char *class_name = (char *)exception_data;
+		char *member_name = class_name + strlen (class_name) + 1;
+
+		mono_error_set_field_load (oerror, klass, member_name, "Error Loading Field");
+		return;
+	}
+	case MONO_EXCEPTION_FILE_NOT_FOUND: {
+		char *msg_format = (char *)exception_data;
+		char *assembly_name = msg_format + strlen (msg_format) + 1;
+		char *msg = g_strdup_printf (msg_format, assembly_name);
+
+		mono_error_set_assembly_load (oerror, assembly_name, msg);
+		return;
+	}
+	case MONO_EXCEPTION_BAD_IMAGE: {
+		mono_error_set_bad_image (oerror, NULL, (const char *)exception_data);
+		return;
+	}
+	case MONO_EXCEPTION_INVALID_PROGRAM: {
+		mono_error_set_invalid_program (oerror, (const char *)exception_data);
+		return;
+	}
+	default: {
+		g_assert_not_reached ();
+	}
+	}
+}
+
+
 /*
  * mono_class_alloc:
  *
@@ -7848,10 +7895,8 @@ mono_class_from_name_checked_aux (MonoImage *image, const char* name_space, cons
 		klass = search_modules (image, name_space, name, error);
 		if (klass || !is_ok (error))
 			return klass;
-	}
-
-	if (!token)
 		return NULL;
+	}
 
 	if (mono_metadata_token_table (token) == MONO_TABLE_EXPORTEDTYPE) {
 		MonoTableInfo  *t = &image->tables [MONO_TABLE_EXPORTEDTYPE];
@@ -8022,7 +8067,9 @@ gboolean
 mono_class_is_subclass_of (MonoClass *klass, MonoClass *klassc, 
 			   gboolean check_interfaces)
 {
-/*FIXME test for interfaces with variant generic arguments*/
+	/* FIXME test for interfaces with variant generic arguments */
+	mono_class_init (klass);
+	mono_class_init (klassc);
 	
 	if (check_interfaces && MONO_CLASS_IS_INTERFACE (klassc) && !MONO_CLASS_IS_INTERFACE (klass)) {
 		if (MONO_CLASS_IMPLEMENTS_INTERFACE (klass, klassc->interface_id))
@@ -10160,6 +10207,9 @@ can_access_type (MonoClass *access_klass, MonoClass *member_klass)
 {
 	int access_level;
 
+	if (access_klass == member_klass)
+		return TRUE;
+
 	if (access_klass->image->assembly && access_klass->image->assembly->corlib_internal)
 		return TRUE;
 
@@ -10308,26 +10358,9 @@ mono_method_can_access_field (MonoMethod *method, MonoClassField *field)
 gboolean
 mono_method_can_access_method (MonoMethod *method, MonoMethod *called)
 {
-	int can = can_access_member (method->klass, called->klass, NULL, called->flags & METHOD_ATTRIBUTE_MEMBER_ACCESS_MASK);
-	if (!can) {
-		MonoClass *nested = method->klass->nested_in;
-		while (nested) {
-			can = can_access_member (nested, called->klass, NULL, called->flags & METHOD_ATTRIBUTE_MEMBER_ACCESS_MASK);
-			if (can)
-				return TRUE;
-			nested = nested->nested_in;
-		}
-	}
-	/* 
-	 * FIXME:
-	 * with generics calls to explicit interface implementations can be expressed
-	 * directly: the method is private, but we must allow it. This may be opening
-	 * a hole or the generics code should handle this differently.
-	 * Maybe just ensure the interface type is public.
-	 */
-	if ((called->flags & METHOD_ATTRIBUTE_VIRTUAL) && (called->flags & METHOD_ATTRIBUTE_FINAL))
-		return TRUE;
-	return can;
+	method = mono_method_get_method_definition (method);
+	called = mono_method_get_method_definition (called);
+	return mono_method_can_access_method_full (method, called, NULL);
 }
 
 /*
@@ -10344,6 +10377,10 @@ mono_method_can_access_method (MonoMethod *method, MonoMethod *called)
 gboolean
 mono_method_can_access_method_full (MonoMethod *method, MonoMethod *called, MonoClass *context_klass)
 {
+	/* Wrappers are except from access checks */
+	if (method->wrapper_type != MONO_WRAPPER_NONE || called->wrapper_type != MONO_WRAPPER_NONE)
+		return TRUE;
+
 	MonoClass *access_class = method->klass;
 	MonoClass *member_class = called->klass;
 	int can = can_access_member (access_class, member_class, context_klass, called->flags & METHOD_ATTRIBUTE_MEMBER_ACCESS_MASK);

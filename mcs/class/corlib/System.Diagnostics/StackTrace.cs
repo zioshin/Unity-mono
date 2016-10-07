@@ -37,6 +37,7 @@ using System.Security;
 using System.Security.Permissions;
 using System.Text;
 using System.Threading;
+using System.IO;
 
 namespace System.Diagnostics {
 
@@ -60,26 +61,33 @@ namespace System.Diagnostics {
 		readonly StackTrace[] captured_traces;
 		private bool debug_info;
 
+		private static Dictionary<string, Func<StackTrace, string>> metadataHandlers;
+
+		[MethodImplAttribute (MethodImplOptions.NoInlining)]
 		public StackTrace ()
 		{
 			init_frames (METHODS_TO_SKIP, false);
 		}
 
+		[MethodImplAttribute (MethodImplOptions.NoInlining)]
 		public StackTrace (bool fNeedFileInfo)
 		{
 			init_frames (METHODS_TO_SKIP, fNeedFileInfo);
 		}
 
+		[MethodImplAttribute (MethodImplOptions.NoInlining)]
 		public StackTrace (int skipFrames)
 		{
 			init_frames (skipFrames, false);
 		}
 
+		[MethodImplAttribute (MethodImplOptions.NoInlining)]
 		public StackTrace (int skipFrames, bool fNeedFileInfo)
 		{
 			init_frames (skipFrames, fNeedFileInfo);
 		}
 
+		[MethodImplAttribute (MethodImplOptions.NoInlining)]
 		void init_frames (int skipFrames, bool fNeedFileInfo)
 		{
 			if (skipFrames < 0)
@@ -174,6 +182,20 @@ namespace System.Diagnostics {
 			return frames;
 		}
 
+		static bool isAotidSet;
+		static string aotid;
+		static string GetAotId ()
+		{
+			if (!isAotidSet) {
+				aotid = Assembly.GetAotId ();
+				if (aotid != null)
+					aotid = new Guid (aotid).ToString ("N");
+				isAotidSet = true;
+			}
+
+			return aotid;
+		}
+
 		bool AddFrames (StringBuilder sb)
 		{
 			bool printOffset;
@@ -211,15 +233,25 @@ namespace System.Diagnostics {
 						sb.AppendFormat (" [0x{0:x5}]", frame.GetILOffset ());
 					}
 
-					sb.AppendFormat (debugInfo, frame.GetSecureFileName (),
-					                 frame.GetFileLineNumber ());
+					var filename = frame.GetSecureFileName ();
+					if (filename[0] == '<') {
+						var mvid = frame.GetMethod ().Module.ModuleVersionId.ToString ("N");
+						var aotid = GetAotId ();
+						if (frame.GetILOffset () != -1 || aotid == null) {
+							filename = string.Format ("<{0}>", mvid);
+						} else {
+							filename = string.Format ("<{0}#{1}>", mvid, aotid);
+						}
+					}
+
+					sb.AppendFormat (debugInfo, filename, frame.GetFileLineNumber ());
 				}
 			}
 
 			return i != 0;
 		}
 
-		public static void GetFullNameForStackTrace (StringBuilder sb, MethodBase mi)
+		internal void GetFullNameForStackTrace (StringBuilder sb, MethodBase mi)
 		{
 			var declaringType = mi.DeclaringType;
 			if (declaringType.IsGenericType && !declaringType.IsGenericTypeDefinition)
@@ -290,6 +322,7 @@ namespace System.Diagnostics {
 			}
 
 			AddFrames (sb);
+
 			return sb.ToString ();
 		}
 

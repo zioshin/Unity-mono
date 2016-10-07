@@ -26,8 +26,6 @@ void unity_mono_close_output(void);
 
 extern MonoString* mono_unity_get_embeddinghostname(void);
 
-void mono_unity_write_to_unity_log(MonoString* str);
-
 #ifdef WIN32
 FILE* unity_fopen( const char *name, const char *mode );
 #endif

@@ -31,35 +31,8 @@ void unity_mono_exit( int code )
 	exit( code );
 }
 
-#ifdef WIN32
-
-extern LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep);
-LONG mono_unity_seh_handler(EXCEPTION_POINTERS* ep)
-{
-#if defined(TARGET_X86) || defined(TARGET_AMD64)
-	return seh_vectored_exception_handler(ep);
-#else
-	g_assert_not_reached();
-#endif
-}
-
-int (*gUnhandledExceptionHandler)(EXCEPTION_POINTERS*) = NULL;
-
-void mono_unity_set_unhandled_exception_handler(void* handler)
-{
-	gUnhandledExceptionHandler = handler;
-}
-
-#endif //Win32
 
 GString* gEmbeddingHostName = 0;
-
-
-void mono_unity_write_to_unity_log(MonoString* str)
-{
-	fprintf(stdout, mono_string_to_utf8(str));
-	fflush(stdout);
-}
 
 
 MONO_API void mono_unity_set_embeddinghostname(const char* name)

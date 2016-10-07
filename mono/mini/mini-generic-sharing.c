@@ -607,6 +607,7 @@ inflate_info (MonoRuntimeGenericContextInfoTemplate *oti, MonoGenericContext *co
 		MonoMethod *inflated_method;
 		MonoType *inflated_type = mono_class_inflate_generic_type_checked (&method->klass->byval_arg, context, &error);
 		mono_error_assert_ok (&error); /* FIXME don't swallow the error */
+		WrapperInfo *winfo = NULL;
 
 		MonoClass *inflated_class = mono_class_from_mono_type (inflated_type);
 		MonoJumpInfoGSharedVtCall *res;
@@ -620,7 +621,13 @@ inflate_info (MonoRuntimeGenericContextInfoTemplate *oti, MonoGenericContext *co
 
 		mono_class_init (inflated_class);
 
-		g_assert (!method->wrapper_type);
+		if (method->wrapper_type) {
+			winfo = mono_marshal_get_wrapper_info (method);
+
+			g_assert (winfo);
+			g_assert (winfo->subtype == WRAPPER_SUBTYPE_SYNCHRONIZED_INNER);
+			method = winfo->d.synchronized_inner.method;
+		}
 
 		if (inflated_class->byval_arg.type == MONO_TYPE_ARRAY ||
 				inflated_class->byval_arg.type == MONO_TYPE_SZARRAY) {
@@ -633,6 +640,12 @@ inflate_info (MonoRuntimeGenericContextInfoTemplate *oti, MonoGenericContext *co
 		}
 		mono_class_init (inflated_method->klass);
 		g_assert (inflated_method->klass == inflated_class);
+
+		if (winfo) {
+			g_assert (winfo->subtype == WRAPPER_SUBTYPE_SYNCHRONIZED_INNER);
+			inflated_method = mono_marshal_get_synchronized_inner_wrapper (inflated_method);
+		}
+
 		res->method = inflated_method;
 
 		return res;
@@ -862,7 +875,7 @@ class_type_info (MonoDomain *domain, MonoClass *klass, MonoRgctxInfoType info_ty
 	case MONO_RGCTX_INFO_STATIC_DATA: {
 		MonoVTable *vtable = mono_class_vtable (domain, klass);
 		if (!vtable) {
-			mono_error_set_exception_instance (error, mono_class_get_exception_for_failure (klass));
+			mono_error_set_for_class_failure (error, klass);
 			return NULL;
 		}
 		return mono_vtable_get_static_field_data (vtable);
@@ -874,7 +887,7 @@ class_type_info (MonoDomain *domain, MonoClass *klass, MonoRgctxInfoType info_ty
 	case MONO_RGCTX_INFO_VTABLE: {
 		MonoVTable *vtable = mono_class_vtable (domain, klass);
 		if (!vtable) {
-			mono_error_set_exception_instance (error, mono_class_get_exception_for_failure (klass));
+			mono_error_set_for_class_failure (error, klass);
 			return NULL;
 		}
 		return vtable;
@@ -936,9 +949,10 @@ class_type_info (MonoDomain *domain, MonoClass *klass, MonoRgctxInfoType info_ty
 				memcpy_method [size] = m;
 			}
 			if (!domain_info->memcpy_addr [size]) {
-				gpointer addr = mono_compile_method (memcpy_method [size]);
+				gpointer addr = mono_compile_method_checked (memcpy_method [size], error);
 				mono_memory_barrier ();
 				domain_info->memcpy_addr [size] = (gpointer *)addr;
+				mono_error_assert_ok (error);
 			}
 			return domain_info->memcpy_addr [size];
 		} else {
@@ -956,9 +970,10 @@ class_type_info (MonoDomain *domain, MonoClass *klass, MonoRgctxInfoType info_ty
 				bzero_method [size] = m;
 			}
 			if (!domain_info->bzero_addr [size]) {
-				gpointer addr = mono_compile_method (bzero_method [size]);
+				gpointer addr = mono_compile_method_checked (bzero_method [size], error);
 				mono_memory_barrier ();
 				domain_info->bzero_addr [size] = (gpointer *)addr;
+				mono_error_assert_ok (error);
 			}
 			return domain_info->bzero_addr [size];
 		}
@@ -1085,7 +1100,11 @@ get_wrapper_shared_type (MonoType *t)
 	case MONO_TYPE_SZARRAY:
 	case MONO_TYPE_ARRAY:
 	case MONO_TYPE_PTR:
-		return &mono_defaults.int_class->byval_arg;
+		// FIXME: refs and intptr cannot be shared because
+		// they are treated differently when a method has a vret arg,
+		// see get_call_info ().
+		return &mono_defaults.object_class->byval_arg;
+		//return &mono_defaults.int_class->byval_arg;
 	case MONO_TYPE_GENERICINST: {
 		MonoError error;
 		MonoClass *klass;
@@ -1096,7 +1115,7 @@ get_wrapper_shared_type (MonoType *t)
 		int i;
 
 		if (!MONO_TYPE_ISSTRUCT (t))
-			return &mono_defaults.int_class->byval_arg;
+			return get_wrapper_shared_type (&mono_defaults.object_class->byval_arg);
 
 		klass = mono_class_from_mono_type (t);
 		orig_ctx = &klass->generic_class->context;
@@ -1355,6 +1374,9 @@ mini_get_gsharedvt_out_sig_wrapper (MonoMethodSignature *sig)
 		// FIXME:
 		if (stind_op == CEE_STOBJ)
 			mono_mb_emit_op (mb, CEE_STOBJ, mono_class_from_mono_type (sig->ret));
+		else if (stind_op == CEE_STIND_REF)
+			/* Avoid write barriers, the vret arg points to the stack */
+			mono_mb_emit_byte (mb, CEE_STIND_I);
 		else
 			mono_mb_emit_byte (mb, stind_op);
 	}
@@ -1411,6 +1433,7 @@ mini_get_gsharedvt_wrapper (gboolean gsharedvt_in, gpointer addr, MonoMethodSign
 {
 	static gboolean inited = FALSE;
 	static int num_trampolines;
+	MonoError error;
 	gpointer res, info;
 	MonoDomain *domain = mono_domain_get ();
 	MonoJitDomainInfo *domain_info;
@@ -1429,7 +1452,8 @@ mini_get_gsharedvt_wrapper (gboolean gsharedvt_in, gpointer addr, MonoMethodSign
 			wrapper = mini_get_gsharedvt_in_sig_wrapper (normal_sig);
 		else
 			wrapper = mini_get_gsharedvt_out_sig_wrapper (normal_sig);
-		res = mono_compile_method (wrapper);
+		res = mono_compile_method_checked (wrapper, &error);
+		mono_error_assert_ok (&error);
 		return res;
 	}
 
@@ -1462,8 +1486,9 @@ mini_get_gsharedvt_wrapper (gboolean gsharedvt_in, gpointer addr, MonoMethodSign
 
 		if (!tramp_addr) {
 			wrapper = mono_marshal_get_gsharedvt_in_wrapper ();
-			addr = mono_compile_method (wrapper);
+			addr = mono_compile_method_checked (wrapper, &error);
 			mono_memory_barrier ();
+			mono_error_assert_ok (&error);
 			tramp_addr = addr;
 		}
 		addr = tramp_addr;
@@ -1473,8 +1498,9 @@ mini_get_gsharedvt_wrapper (gboolean gsharedvt_in, gpointer addr, MonoMethodSign
 
 		if (!tramp_addr) {
 			wrapper = mono_marshal_get_gsharedvt_out_wrapper ();
-			addr = mono_compile_method (wrapper);
+			addr = mono_compile_method_checked (wrapper, &error);
 			mono_memory_barrier ();
+			mono_error_assert_ok (&error);
 			tramp_addr = addr;
 		}
 		addr = tramp_addr;
@@ -1571,13 +1597,15 @@ instantiate_info (MonoDomain *domain, MonoRuntimeGenericContextInfoTemplate *oti
 		gpointer arg = NULL;
 
 		if (mono_llvm_only) {
-			addr = mono_compile_method (m);
+			addr = mono_compile_method_checked (m, error);
+			return_val_if_nok (error, NULL);
 			addr = mini_add_method_wrappers_llvmonly (m, addr, FALSE, FALSE, &arg);
 
 			/* Returns an ftndesc */
 			return mini_create_llvmonly_ftndesc (domain, addr, arg);
 		} else {
-			addr = mono_compile_method ((MonoMethod *)data);
+			addr = mono_compile_method_checked ((MonoMethod *)data, error);
+			return_val_if_nok (error, NULL);
 			return mini_add_method_trampoline ((MonoMethod *)data, addr, mono_method_needs_static_rgctx_invoke ((MonoMethod *)data, FALSE), FALSE);
 		}
 	}
@@ -1588,7 +1616,8 @@ instantiate_info (MonoDomain *domain, MonoRuntimeGenericContextInfoTemplate *oti
 
 		g_assert (mono_llvm_only);
 
-		addr = mono_compile_method (m);
+		addr = mono_compile_method_checked (m, error);
+		return_val_if_nok (error, NULL);
 
 		MonoJitInfo *ji;
 		gboolean callee_gsharedvt;
@@ -1629,9 +1658,9 @@ instantiate_info (MonoDomain *domain, MonoRuntimeGenericContextInfoTemplate *oti
 		method = info->klass->vtable [ioffset + slot];
 
 		method = mono_class_inflate_generic_method_checked (method, context, error);
-		if (!mono_error_ok (error))
-			return NULL;
-		addr = mono_compile_method (method);
+		return_val_if_nok (error, NULL);
+		addr = mono_compile_method_checked (method, error);
+		return_val_if_nok (error, NULL);
 		return mini_add_method_trampoline (method, addr, mono_method_needs_static_rgctx_invoke (method, FALSE), FALSE);
 	}
 	case MONO_RGCTX_INFO_VIRT_METHOD_BOX_TYPE: {
@@ -1664,7 +1693,7 @@ instantiate_info (MonoDomain *domain, MonoRuntimeGenericContextInfoTemplate *oti
 	}
 #ifndef DISABLE_REMOTING
 	case MONO_RGCTX_INFO_REMOTING_INVOKE_WITH_CHECK:
-		return mono_compile_method (mono_marshal_get_remoting_invoke_with_check ((MonoMethod *)data));
+		return mono_compile_method_checked (mono_marshal_get_remoting_invoke_with_check ((MonoMethod *)data), error);
 #endif
 	case MONO_RGCTX_INFO_METHOD_DELEGATE_CODE:
 		return mono_domain_alloc0 (domain, sizeof (gpointer));
@@ -1688,7 +1717,7 @@ instantiate_info (MonoDomain *domain, MonoRuntimeGenericContextInfoTemplate *oti
 
 		vtable = mono_class_vtable (domain, method->method.method.klass);
 		if (!vtable) {
-			mono_error_set_exception_instance (error, mono_class_get_exception_for_failure (method->method.method.klass));
+			mono_error_set_for_class_failure (error, method->method.method.klass);
 			return NULL;
 		}
 
@@ -1742,9 +1771,13 @@ instantiate_info (MonoDomain *domain, MonoRuntimeGenericContextInfoTemplate *oti
 
 		g_assert (method->is_inflated);
 
-		if (!virtual_)
-			addr = mono_compile_method (method);
-		else
+		if (mono_llvm_only && (method->iflags & METHOD_IMPL_ATTRIBUTE_SYNCHRONIZED))
+			method = mono_marshal_get_synchronized_wrapper (method);
+
+		if (!virtual_) {
+			addr = mono_compile_method_checked (method, error);
+			return_val_if_nok (error, NULL);
+		} else
 			addr = NULL;
 
 		if (virtual_) {
