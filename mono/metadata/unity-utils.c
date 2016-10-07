@@ -317,6 +317,11 @@ MonoGenericContext* mono_unity_class_get_generic_context(MonoClass* klass)
 	return &klass->generic_container->context;
 }
 
+void mono_unity_install_finalize_runtime_invoke(MonoDomain* domain, RuntimeInvokeFunction callback)
+{
+	domain->finalize_runtime_invoke = callback;
+}
+
 //must match the hash in il2cpp code generation
 static guint32 hash_string_djb2(guchar *str)
 {

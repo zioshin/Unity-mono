@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <stdio.h>
 #include <mono/metadata/object.h>
+#include <mono/metadata/marshal.h>
 
 typedef void(*vprintf_func)(const char* msg, va_list args);
 typedef struct {
@@ -65,4 +66,5 @@ MonoVTable* mono_unity_class_get_vtable(MonoClass* klass);
 gboolean mono_unity_class_has_parent_unsafe(MonoClass *klass, MonoClass *parent);
 guint64 mono_unity_get_method_hash(MonoMethod *method);
 MonoGenericContext* mono_unity_class_get_generic_context(MonoClass* klass);
+void mono_unity_install_finalize_runtime_invoke(MonoDomain* domain, RuntimeInvokeFunction callback);
 #endif
