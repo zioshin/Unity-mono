@@ -923,15 +923,7 @@ mono_win32_compat_MoveMemory
 mono_win32_compat_ZeroMemory
 
 ;Exports that should have been here, but I dont understand why they're not.
-mono_security_enable_core_clr
-mono_security_set_mode
-mono_security_set_core_clr_platform_callback
-mono_domain_create_appdomain
-mono_domain_unload
-mono_verifier_set_mode
-mono_object_get_size
 mono_type_get_name_full
-mono_set_break_policy
 
 ; unity added
 mono_thread_suspend_all_other_threads
