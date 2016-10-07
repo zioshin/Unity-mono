@@ -307,6 +307,16 @@ gboolean mono_unity_class_has_parent_unsafe(MonoClass *klass, MonoClass *parent)
 	return mono_class_has_parent_fast(klass, parent);
 }
 
+// This is a copy ov mini_class_get_context.
+MonoGenericContext* mono_unity_class_get_generic_context(MonoClass* klass)
+{
+	if (klass->generic_class)
+		return &klass->generic_class->context;
+
+	g_assert(klass->generic_container);
+	return &klass->generic_container->context;
+}
+
 //must match the hash in il2cpp code generation
 static guint32 hash_string_djb2(guchar *str)
 {

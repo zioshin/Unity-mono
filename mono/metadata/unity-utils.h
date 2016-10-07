@@ -64,5 +64,5 @@ MonoClass* mono_unity_class_inflate_generic_class(MonoClass *gklass, MonoGeneric
 MonoVTable* mono_unity_class_get_vtable(MonoClass* klass);
 gboolean mono_unity_class_has_parent_unsafe(MonoClass *klass, MonoClass *parent);
 guint64 mono_unity_get_method_hash(MonoMethod *method);
-
+MonoGenericContext* mono_unity_class_get_generic_context(MonoClass* klass);
 #endif
