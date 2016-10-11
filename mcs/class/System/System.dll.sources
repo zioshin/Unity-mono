@@ -161,7 +161,7 @@ System.Diagnostics/TraceImpl.cs
 System.Diagnostics/TraceSourceInfo.cs
 System.Diagnostics/Win32EventLog.cs
 System/Platform.cs
-System/MonoExeLocator.cs
+System/MonoToolsLocator.cs
 System.IO.Compression/CompressionLevel.cs
 System.IO.Compression/CompressionMode.cs
 System.IO.Compression/DeflateStream.cs
@@ -403,7 +403,6 @@ System.Net.Sockets/SocketOperation.cs
 System.Net.Sockets/TcpClient.cs
 System.Net.Sockets/TcpListener.cs
 ../referencesource/System/net/System/Net/Sockets/TransmitFileFlags.cs
-System.Net.Sockets/UdpClient.cs
 ../referencesource/System/net/System/Net/Sockets/UdpReceiveResult.cs
 System.Net/WebAsyncResult.cs
 System.Net/WebConnection.cs
@@ -1074,6 +1073,7 @@ ReferenceSources/Win32Exception.cs
 
 ../referencesource/System/net/System/Net/Sockets/IPProtectionLevel.cs
 ../referencesource/System/net/System/Net/Sockets/NetworkStream.cs
+../referencesource/System/net/System/Net/Sockets/UDPClient.cs
 
 ../referencesource/System/net/System/Net/NetworkInformation/DuplicateAddressDetectionState.cs
 ../referencesource/System/net/System/Net/NetworkInformation/GatewayIPAddressInformation.cs
