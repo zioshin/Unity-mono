@@ -917,6 +917,22 @@ mono_thread_get_stack_bounds (guint8 **staddr, size_t *stsize)
 	*staddr = (guint8*)((gssize)*staddr & ~(mono_pagesize () - 1));
 }	
 
+MonoThread * 
+mono_thread_fast_attach(MonoDomain *domain)
+{
+	MonoThread *thread = mono_thread_attach(domain);
+	//Tell GC to scan us
+	mono_gc_set_ignore_thread(FALSE);
+	return thread;
+}
+
+void 
+mono_thread_fast_detach(MonoThread *thread)
+{
+	//Tell GC to not scan us
+	mono_gc_set_ignore_thread(TRUE);
+}
+
 MonoThread *
 mono_thread_attach (MonoDomain *domain)
 {

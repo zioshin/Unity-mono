@@ -51,6 +51,7 @@ struct GC_thread_Rep {
 			/* !in_use ==> stack_base == 0	*/
   GC_bool suspended;
   GC_bool should_scan;
+  GC_bool should_ignore; /*Leave thread attached, but don't pause or scan*/
 
 # ifdef CYGWIN32
     void *status; /* hold exit value until join in case it's a pointer */
@@ -261,6 +262,28 @@ int GC_thread_unregister_foreign ()
   }
 }
 
+int GC_thread_set_ignore(int flag)
+{
+  int i;
+  DWORD thread_id = GetCurrentThreadId();
+  LONG my_max = GC_get_max_thread_index();
+
+  for (i = 0;
+       i <= my_max &&
+       (!thread_table[i].in_use || thread_table[i].id != thread_id);
+       /* Must still be in_use, since nobody else can store our thread_id. */
+       i++) {}
+  if (i > my_max) {
+    WARN("Deregistering nonexistent thread %ld\n", (GC_word)thread_id);
+	  return FALSE;
+  } else {
+	  LOCK();
+	  thread_table[i].should_ignore = flag;
+	  UNLOCK();
+	  return TRUE;
+  }
+}
+
 #ifdef CYGWIN32
 
 /* Return a GC_thread corresponding to a given pthread_t.	*/
@@ -317,7 +340,7 @@ void GC_stop_world()
 # endif /* !CYGWIN32 */
   for (i = 0; i <= GC_get_max_thread_index(); i++)
     if (thread_table[i].stack_base != 0
-	&& thread_table[i].id != thread_id && thread_table[i].should_scan) {
+		&& thread_table[i].id != thread_id && thread_table[i].should_scan && !thread_table[i].should_ignore) {
 #     ifdef MSWINCE
         /* SuspendThread will fail if thread is running kernel code */
 	while (SuspendThread(thread_table[i].handle) == (DWORD)-1)

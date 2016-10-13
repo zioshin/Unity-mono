@@ -56,6 +56,8 @@ mono_backtrace_from_context
 mono_unity_thread_clear_domain_fields
 mono_unity_get_all_classes_with_name_case
 unity_mono_reflection_method_get_method
+mono_thread_fast_attach
+mono_thread_fast_detach
 
 ;Exports that should have been here, but I dont understand why they're not.
 mono_security_enable_core_clr

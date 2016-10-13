@@ -214,6 +214,7 @@ mono_gc_is_gc_thread (void)
 
 extern int GC_thread_register_foreign (void *base_addr);
 extern int GC_thread_unregister_foreign ();
+extern int GC_thread_set_ignore(int flag);
 
 gboolean
 mono_gc_register_thread (void *baseptr)
@@ -251,6 +252,11 @@ gboolean
 mono_gc_unregister_thread (MonoThread *thread)
 {
 	return GC_thread_unregister_foreign ();
+}
+
+gboolean mono_gc_set_ignore_thread (gboolean shouldIgnore)
+{
+	return GC_thread_set_ignore(shouldIgnore);
 }
 
 gboolean
