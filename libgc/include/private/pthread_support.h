@@ -26,6 +26,7 @@ typedef struct GC_Thread_Rep {
 				  /* guaranteed to be dead, but we may  */
 				  /* not yet have registered the join.) */
     pthread_t id;
+    GC_bool should_ignore;
 #ifdef PLATFORM_ANDROID
     pid_t kernel_id;
 #endif

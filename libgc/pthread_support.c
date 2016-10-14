@@ -1413,6 +1413,27 @@ int GC_thread_unregister_foreign ()
     return 0;
 }
 
+int GC_thread_set_ignore(int flag)
+{
+    GC_thread me;
+
+    LOCK();
+    /* Wait for any GC that may be marking from our stack to    */
+    /* complete before we remove this thread.                   */
+    GC_wait_for_gc_completion(FALSE);
+
+    me = GC_lookup_thread(pthread_self());
+    if (me)
+    {
+      me->should_ignore = flag;
+      UNLOCK();
+      return 1;
+    }
+
+    UNLOCK();
+    return 0;
+}
+
 void * GC_start_routine(void * arg)
 {
 #if defined(PLATFORM_ANDROID)
