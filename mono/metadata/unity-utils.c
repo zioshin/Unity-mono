@@ -443,7 +443,8 @@ static GList* get_type_hashes_method(MonoMethod *method)
 	GList *hashes = monoeg_g_list_alloc();
 
 	hashes->data = method->token;
-
+	g_list_append(hashes, hash_string_djb2(method->klass->image->module_name));
+	
 	if (method->klass->is_inflated)
 		get_type_hashes_generic_class(method->klass->generic_class, hashes);
 	
