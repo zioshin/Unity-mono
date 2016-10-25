@@ -337,12 +337,11 @@ static guint32 get_array_structure_hash(MonoArrayType *atype)
 }
 
 void get_type_hashes(MonoType *type, GList *hashes);
-void get_type_hashes_generic_class(MonoGenericClass *generic_class, GList *hashes);
+void get_type_hashes_generic_inst(MonoGenericClass *generic_class, GList *hashes);
 
 
-static void get_type_hashes_generic_class(MonoGenericClass *generic_class, GList *hashes)
+static void get_type_hashes_generic_inst(MonoGenericInst *inst, GList *hashes)
 {
-	MonoGenericInst *inst = generic_class->context.class_inst;
 	for (int i = 0; i < inst->type_argc; ++i)
 	{
 		MonoType *type = inst->type_argv[i];
@@ -423,7 +422,7 @@ static void get_type_hashes(MonoType *type, GList *hashes)
 	}
 	else
 	{
-		get_type_hashes_generic_class(type->data.generic_class, hashes);
+		get_type_hashes_generic_inst(type->data.generic_class->context.class_inst, hashes);
 	}
 
 }
@@ -436,7 +435,14 @@ static GList* get_type_hashes_method(MonoMethod *method)
 	g_list_append(hashes, hash_string_djb2(method->klass->image->module_name));
 	
 	if (method->klass->is_inflated)
-		get_type_hashes_generic_class(method->klass->generic_class, hashes);
+		get_type_hashes_generic_inst(method->klass->generic_class->context.class_inst, hashes);
+
+	if (method->is_inflated)
+	{
+		MonoGenericContext* methodGenericContext = mono_method_get_context(method);
+		if (methodGenericContext->method_inst != NULL)
+			get_type_hashes_generic_inst(methodGenericContext->method_inst, hashes);
+	}
 	
 	return hashes;
 }
