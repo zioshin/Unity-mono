@@ -50,6 +50,7 @@ MonoStats mono_stats;
 
 gboolean mono_print_vtable = FALSE;
 gboolean mono_align_small_structs = FALSE;
+static gboolean mono_allow_gc_aware_layout = TRUE;
 
 /* Statistics */
 guint32 inflated_classes, inflated_classes_size, inflated_methods_size;
@@ -1889,7 +1890,7 @@ mono_class_layout_fields (MonoClass *klass, int instance_size)
 	 * what the default is for other runtimes.
 	 */
 	 /* corlib is missing [StructLayout] directives in many places */
-	if (layout == TYPE_ATTRIBUTE_AUTO_LAYOUT) {
+	if (mono_allow_gc_aware_layout && (layout == TYPE_ATTRIBUTE_AUTO_LAYOUT)) { 
 		if (!klass->valuetype)
 			gc_aware_layout = TRUE;
 	}
@@ -10812,6 +10813,13 @@ mono_class_full_name (MonoClass *klass)
 {
 	return mono_type_full_name (&klass->byval_arg);
 }
+
+void
+mono_class_set_allow_gc_aware_layout(mono_bool allow)
+{
+	mono_allow_gc_aware_layout = allow;
+}
+
 
 /* Declare all shared lazy type lookup functions */
 GENERATE_TRY_GET_CLASS_WITH_CACHE (safehandle, System.Runtime.InteropServices, SafeHandle)
