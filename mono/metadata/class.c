@@ -4275,7 +4275,7 @@ print_unimplemented_interface_method_info (MonoClass *klass, MonoClass *ic, Mono
 	}
 }
 
-static MonoMethod*
+MonoMethod*
 mono_method_get_method_definition (MonoMethod *method)
 {
 	while (method->is_inflated)

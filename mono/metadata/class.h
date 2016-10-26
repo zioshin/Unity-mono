@@ -268,6 +268,9 @@ mono_method_can_access_field (MonoMethod *method, MonoClassField *field);
 MONO_API mono_bool
 mono_method_can_access_method (MonoMethod *method, MonoMethod *called);
 
+MONO_API MonoMethod*
+mono_method_get_method_definition(MonoMethod *method);
+
 MONO_END_DECLS
 
 #endif /* _MONO_CLI_CLASS_H_ */
