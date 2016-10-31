@@ -366,6 +366,7 @@ static void get_type_hashes(MonoType *type, GList *hashes)
 			break;
 		}
 		case MONO_TYPE_CLASS:
+		case MONO_TYPE_VALUETYPE:
 			klass = type->data.klass;
 			break;
 		case MONO_TYPE_BOOLEAN:
