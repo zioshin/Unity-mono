@@ -57,7 +57,8 @@ void* mono_unity_get_field_address(MonoObject *obj, MonoVTable *vt, MonoClassFie
 MonoObject* mono_unity_compare_exchange(MonoObject **location, MonoObject *value, MonoObject *comparand);
 void mono_unity_init_obj(void* obj, MonoClass* klass);
 MonoObject* mono_unity_isinst_sealed(MonoObject* obj, MonoClass* targetType);
-MonoClass* mono_unity_get_generic_definition(MonoClass* klass);
+MonoClass* mono_unity_class_get_generic_definition(MonoClass* klass);
+MonoMethod* mono_unity_method_get_generic_definition(MonoMethod* method);
 MonoClass* mono_unity_get_class_for_generic_parameter(MonoGenericContainer* generic_container, gint index);
 MonoClass* mono_unity_class_inflate_generic_class(MonoClass *gklass, MonoGenericContext *context);
 MonoVTable* mono_unity_class_get_vtable(MonoClass* klass);

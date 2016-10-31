@@ -250,7 +250,7 @@ MonoObject* mono_unity_isinst_sealed(MonoObject* obj, MonoClass* targetType)
 	return obj->vtable->klass == targetType ? obj : NULL;
 }
 
-MonoClass* mono_unity_get_generic_definition(MonoClass* klass)
+MonoClass* mono_unity_class_get_generic_definition(MonoClass* klass)
 {
 	if (klass->generic_class && klass->generic_class->container_class)
 		return klass->generic_class->container_class;
@@ -258,10 +258,18 @@ MonoClass* mono_unity_get_generic_definition(MonoClass* klass)
 	return NULL;
 }
 
+MonoMethod* mono_unity_method_get_generic_definition(MonoMethod* method)
+{
+	if (method->is_inflated)
+		return ((MonoMethodInflated*)method)->declaring;
+
+	return NULL;
+}
+
 MonoClass* mono_unity_get_class_for_generic_parameter(MonoGenericContainer* generic_container, gint index)
 {
-	g_assert(index < generic_container->type_argc);
-	return generic_container->type_params[index].info.pklass;
+	MonoGenericParam *param = mono_generic_container_get_param(generic_container, index);
+	return mono_class_from_generic_parameter_internal(param);
 }
 
 MonoClass* mono_unity_class_inflate_generic_class(MonoClass *gklass, MonoGenericContext *context)
