@@ -199,9 +199,9 @@ MonoAssembly* mono_unity_mscorlib()
 	return mono_defaults.corlib->assembly;
 }
 
-const char* mono_unity_image_name_for(MonoMethod* method)
+const char* mono_unity_image_name_for(MonoClass* klass)
 {
-	return method->klass->image->assembly_name;
+	return klass->image->assembly_name;
 }
 
 void* mono_unity_get_field_address(MonoObject *obj, MonoVTable *vt, MonoClassField *field)
