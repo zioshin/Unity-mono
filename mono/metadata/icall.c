@@ -1336,7 +1336,10 @@ type_from_parsed_name (MonoTypeNameParse *info, MonoBoolean ignoreCase, MonoErro
 	}
 
 	if (info->assembly.name)
-		assembly = mono_assembly_load (&info->assembly, assembly ? assembly->basedir : NULL, NULL);
+	{
+		assembly = mono_assembly_load(&info->assembly, assembly ? assembly->basedir : NULL, NULL);
+		rootimage = assembly->image;
+	}
 
 	if (assembly) {
 		/* When loading from the current assembly, AppDomain.TypeResolve will not be called yet */
@@ -1361,6 +1364,14 @@ type_from_parsed_name (MonoTypeNameParse *info, MonoBoolean ignoreCase, MonoErro
 		type_resolve = FALSE; /* This will invoke TypeResolve if not done in the first 'if' */
 		type = mono_reflection_get_type_checked (rootimage, assembly->image, info, ignoreCase, &type_resolve, error);
 		return_val_if_nok (error, NULL);
+	}
+
+	if (!type) {
+		type = mono_reflection_get_type_checked (rootimage, NULL, info, ignoreCase, &type_resolve, error);
+		return_val_if_nok(error, NULL);
+
+		if (type != NULL && mono_class_is_open_constructed_type(type))
+			type = NULL;
 	}
 
 	if (!type) 
