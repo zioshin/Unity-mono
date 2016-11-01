@@ -1333,8 +1333,6 @@ type_from_parsed_name (MonoTypeNameParse *info, MonoBoolean ignoreCase, MonoErro
 		assembly = dest->klass->image->assembly;
 		type_resolve = TRUE;
 		rootimage = assembly->image;
-	} else {
-		g_warning (G_STRLOC);
 	}
 
 	if (info->assembly.name)
