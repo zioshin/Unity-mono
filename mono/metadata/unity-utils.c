@@ -483,3 +483,32 @@ guint64 mono_unity_get_method_hash(MonoMethod *method)
 
 	return hash;
 }
+
+MonoString* mono_unity_append_assembly_name_if_necessary(MonoString* typeName, const char* assemblyName)
+{
+	if (typeName != NULL)
+	{
+		MonoTypeNameParse info;
+
+		// The mono_reflection_parse_type function will mangle the name, so don't use this copy later.
+		char* nameForParsing = mono_string_to_utf8(typeName);
+		if (mono_reflection_parse_type(nameForParsing, &info))
+		{
+			if (!info.assembly.name)
+			{
+				GString* assemblyQualifiedName = g_string_new(0);
+				char* name = mono_string_to_utf8(typeName);
+				g_string_append_printf(assemblyQualifiedName, "%s, %s", name, assemblyName);
+
+				typeName = mono_string_new(mono_domain_get(), assemblyQualifiedName->str);
+
+				g_string_free(assemblyQualifiedName, FALSE);
+				mono_free(name);
+			}
+		}
+
+		mono_free(nameForParsing);
+	}
+
+	return typeName;
+}
