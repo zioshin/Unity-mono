@@ -512,3 +512,8 @@ MonoString* mono_unity_append_assembly_name_if_necessary(MonoString* typeName, c
 
 	return typeName;
 }
+
+void mono_unity_memory_barrier()
+{
+	mono_memory_barrier();
+}

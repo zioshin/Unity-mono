@@ -66,4 +66,5 @@ gboolean mono_unity_class_has_parent_unsafe(MonoClass *klass, MonoClass *parent)
 guint64 mono_unity_get_method_hash(MonoMethod *method);
 void mono_unity_install_finalize_runtime_invoke(MonoDomain* domain, RuntimeInvokeFunction callback);
 MonoString* mono_unity_append_assembly_name_if_necessary(MonoString* typeName, const char* assemblyName);
+void mono_unity_memory_barrier();
 #endif
