@@ -40,6 +40,10 @@ Ankh.NoLoad
 *.gpState
 .vscode/
 
+# Unity build process files
+builds/
+ZippedClasslibs.tar.gz
+
 # Tooling
 _ReSharper*/
 *.resharper
