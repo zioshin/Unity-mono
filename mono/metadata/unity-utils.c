@@ -517,3 +517,18 @@ void mono_unity_memory_barrier()
 {
 	mono_memory_barrier();
 }
+
+void mono_unity_object_unbox_nullable (MonoObject* obj, MonoClass* nullableArgumentClass, void* storage)
+{
+	uint32_t valueSize = nullableArgumentClass->instance_size - sizeof(MonoObject);
+
+	if (obj == NULL)
+	{
+		*((mono_byte*)(storage) + valueSize) = 0;
+	}
+	else
+	{
+		memcpy(storage, mono_object_unbox(obj), valueSize);
+		*((mono_byte*)(storage) + valueSize) = 1;
+	}
+}
