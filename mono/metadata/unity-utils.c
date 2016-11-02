@@ -539,3 +539,9 @@ MonoReflectionMethod* mono_unity_method_get_object(MonoMethod *method)
 	MonoError unused;
 	return mono_method_get_object_checked(mono_domain_get(), method, NULL, &unused);
 }
+
+MonoAssembly* mono_unity_assembly_from_class(MonoClass *klass)
+{
+	return klass->image->assembly;
+}
+
