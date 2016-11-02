@@ -12,6 +12,7 @@
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/metadata-internals.h>
+#include <mono/metadata/reflection-internals.h>
 #include <mono/metadata/threads.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/metadata/threadpool-ms.h>
@@ -531,4 +532,10 @@ void mono_unity_object_unbox_nullable (MonoObject* obj, MonoClass* nullableArgum
 		memcpy(storage, mono_object_unbox(obj), valueSize);
 		*((mono_byte*)(storage) + valueSize) = 1;
 	}
+}
+
+MonoReflectionMethod* mono_unity_method_get_object(MonoMethod *method)
+{
+	MonoError unused;
+	return mono_method_get_object_checked(mono_domain_get(), method, NULL, &unused);
 }

@@ -68,5 +68,6 @@ void mono_unity_install_finalize_runtime_invoke(MonoDomain* domain, RuntimeInvok
 MonoString* mono_unity_append_assembly_name_if_necessary(MonoString* typeName, const char* assemblyName);
 void mono_unity_memory_barrier();
 void mono_unity_object_unbox_nullable(MonoObject* obj, MonoClass* nullableArgumentClass, void* storage);
+MonoReflectionMethod* mono_unity_method_get_object(MonoMethod *method);
 
 #endif
