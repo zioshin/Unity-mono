@@ -4256,6 +4256,7 @@ add_wrappers (MonoAotCompile *acfg)
 		}
 	}
  
+ 	MonoError error;
 	/* native-to-managed wrappers */
 	for (i = 0; i < acfg->image->tables [MONO_TABLE_METHOD].rows; ++i) {
 		MonoMethod *method;
@@ -4263,14 +4264,16 @@ add_wrappers (MonoAotCompile *acfg)
 		MonoCustomAttrInfo *cattr;
 		int j;
 
-		method = mono_get_method (acfg->image, token, NULL);
+		method = mono_get_method_checked (acfg->image, token, NULL, NULL, &error);
+		mono_error_assert_ok (&error);
 
 		/* 
 		 * Only generate native-to-managed wrappers for methods which have an
 		 * attribute named MonoPInvokeCallbackAttribute. We search for the attribute by
 		 * name to avoid defining a new assembly to contain it.
 		 */
-		cattr = mono_custom_attrs_from_method (method);
+		cattr = mono_custom_attrs_from_method_checked (method, &error);
+		mono_error_assert_ok (&error);
 
 		if (cattr) {
 			for (j = 0; j < cattr->num_attrs; ++j)
@@ -4302,7 +4305,8 @@ add_wrappers (MonoAotCompile *acfg)
 				slen = mono_metadata_decode_value (p, &p);
 				n = g_memdup (p, slen + 1);
 				n [slen] = 0;
-				t = mono_reflection_type_from_name (n, acfg->image);
+				t = mono_reflection_type_from_name_checked (n, acfg->image, &error);
+				mono_error_assert_ok (&error);
 				g_assert (t);
 				g_free (n);
 
