@@ -545,3 +545,51 @@ MonoAssembly* mono_unity_assembly_from_class(MonoClass *klass)
 	return klass->image->assembly;
 }
 
+MonoMethod* mono_unity_aot_get_array_helper_from_wrapper(MonoMethod *method)
+{
+	MonoMethod *m;
+	const char *prefix;
+	MonoGenericContext ctx;
+	MonoType *args[16];
+	char *mname, *iname, *s, *s2, *helper_name = NULL;
+
+	prefix = "System.Collections.Generic";
+	s = g_strdup_printf("%s", method->name + strlen(prefix) + 1);
+	s2 = strstr(s, "`1.");
+	g_assert(s2);
+	s2[0] = '\0';
+	iname = s;
+	mname = s2 + 3;
+
+	//printf ("X: %s %s\n", iname, mname);
+
+	if (!strcmp(iname, "IList"))
+		helper_name = g_strdup_printf("InternalArray__%s", mname);
+	else
+		helper_name = g_strdup_printf("InternalArray__%s_%s", iname, mname);
+	m = mono_class_get_method_from_name(mono_defaults.array_class, helper_name, mono_method_signature(method)->param_count);
+	g_assert(m);
+	g_free(helper_name);
+	g_free(s);
+
+	if (m->is_generic) {
+		MonoError error;
+		memset(&ctx, 0, sizeof(ctx));
+		args[0] = &method->klass->element_class->byval_arg;
+		ctx.method_inst = mono_metadata_get_generic_inst(1, args);
+		m = mono_class_inflate_generic_method_checked(m, &ctx, &error);
+		g_assert(mono_error_ok(&error)); /* FIXME don't swallow the error */
+	}
+
+	return m;
+}
+
+gboolean mono_unity_class_is_array(MonoClass *klass)
+{
+	return klass->rank > 0;
+}
+
+int mono_unity_get_array_element_size(MonoArray *arr)
+{
+	return arr->obj.vtable->klass->sizes.element_size;
+}

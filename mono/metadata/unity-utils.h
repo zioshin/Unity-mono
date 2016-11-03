@@ -70,5 +70,8 @@ void mono_unity_memory_barrier();
 void mono_unity_object_unbox_nullable(MonoObject* obj, MonoClass* nullableArgumentClass, void* storage);
 MonoReflectionMethod* mono_unity_method_get_object(MonoMethod *method);
 MonoAssembly* mono_unity_assembly_from_class(MonoClass *klass);
+MonoMethod* mono_unity_aot_get_array_helper_from_wrapper(MonoMethod *method);
+gboolean mono_unity_class_is_array(MonoClass *klass);
+int mono_unity_get_array_element_size(MonoArray *arr);
 
 #endif
