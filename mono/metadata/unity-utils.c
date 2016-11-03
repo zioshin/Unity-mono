@@ -294,6 +294,16 @@ void mono_unity_install_finalize_runtime_invoke(MonoDomain* domain, RuntimeInvok
 	domain->finalize_runtime_invoke = callback;
 }
 
+void mono_unity_install_capture_context_runtime_invoke(MonoDomain* domain, RuntimeInvokeFunction callback)
+{
+	domain->capture_context_runtime_invoke = callback;
+}
+
+void mono_unity_install_capture_context_method(MonoDomain* domain, gpointer callback)
+{
+	domain->capture_context_method = callback;
+}
+
 //must match the hash in il2cpp code generation
 static guint32 hash_string_djb2(guchar *str)
 {
