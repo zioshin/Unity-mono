@@ -603,3 +603,18 @@ int mono_unity_get_array_element_size(MonoArray *arr)
 {
 	return arr->obj.vtable->klass->sizes.element_size;
 }
+
+MonoClass* mono_unity_class_from_array(MonoArray *arr)
+{
+	return arr->obj.vtable->klass;
+}
+
+MonoClass* mono_unity_element_class_from_class(MonoClass *klass)
+{
+	return klass->element_class;
+}
+
+MonoClass* mono_unity_class_from_object(MonoObject *obj)
+{
+	return obj->vtable->klass;
+}

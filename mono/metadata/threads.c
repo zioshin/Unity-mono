@@ -5175,3 +5175,24 @@ mono_threads_detach_coop (gpointer cookie, gpointer *dummy)
 		}
 	}
 }
+
+MonoException* mono_unity_thread_check_exception()
+{
+	MonoInternalThread *thread = mono_thread_internal_current();
+	MonoThread *sys_thread = mono_thread_current();
+
+	lock_thread(thread);
+
+	if (sys_thread->pending_exception) {
+		MonoException *exc;
+
+		exc = sys_thread->pending_exception;
+		sys_thread->pending_exception = NULL;
+
+		unlock_thread(thread);
+		return exc;
+	}
+
+	unlock_thread(thread);
+	return NULL;
+}

@@ -75,5 +75,9 @@ MonoAssembly* mono_unity_assembly_from_class(MonoClass *klass);
 MonoMethod* mono_unity_aot_get_array_helper_from_wrapper(MonoMethod *method);
 gboolean mono_unity_class_is_array(MonoClass *klass);
 int mono_unity_get_array_element_size(MonoArray *arr);
+MonoException* mono_unity_thread_check_exception();
+MonoClass* mono_unity_class_from_array(MonoArray *arr);
+MonoClass* mono_unity_element_class_from_class(MonoClass *klass);
+MonoClass* mono_unity_class_from_object(MonoObject *obj);
 
 #endif
