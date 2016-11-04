@@ -5675,10 +5675,12 @@ ves_icall_System_Reflection_AssemblyName_ParseAssemblyName (const char *name, Mo
 
 	gb_is_version_defined = gb_is_token_defined = FALSE;
 	
-	return mono_assembly_name_parse_full (name, aname, TRUE, &gb_is_version_defined, &gb_is_token_defined);
+	gboolean retVal = mono_assembly_name_parse_full (name, aname, TRUE, &gb_is_version_defined, &gb_is_token_defined);
 
 	*is_version_defined = gb_is_version_defined;
 	*is_token_defined = gb_is_token_defined;
+
+	return retVal;
 }
 
 ICALL_EXPORT MonoReflectionType*
