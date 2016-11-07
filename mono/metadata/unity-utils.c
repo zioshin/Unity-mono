@@ -645,3 +645,8 @@ MonoClass* mono_unity_generic_class_get_container_class(MonoGenericClass *klass)
 {
 	return klass->container_class;
 }
+
+gboolean mono_unity_check_box_cast(MonoObject *obj, MonoClass *klass)
+{
+	return (obj->vtable->klass->element_class == klass->element_class);
+}
