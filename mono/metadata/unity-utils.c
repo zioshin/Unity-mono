@@ -442,6 +442,7 @@ static void get_type_hashes(MonoType *type, GList *hashes)
 	}
 	else
 	{
+		g_list_append(hashes, type->data.generic_class->container_class->type_token);
 		get_type_hashes_generic_inst(type->data.generic_class->context.class_inst, hashes);
 	}
 
@@ -455,7 +456,10 @@ static GList* get_type_hashes_method(MonoMethod *method)
 	g_list_append(hashes, hash_string_djb2(method->klass->image->module_name));
 	
 	if (method->klass->is_inflated)
+	{
+		g_list_append(hashes, method->klass->type_token);
 		get_type_hashes_generic_inst(method->klass->generic_class->context.class_inst, hashes);
+	}
 
 	if (method->is_inflated)
 	{
@@ -617,4 +621,27 @@ MonoClass* mono_unity_element_class_from_class(MonoClass *klass)
 MonoClass* mono_unity_class_from_object(MonoObject *obj)
 {
 	return obj->vtable->klass;
+}
+
+gboolean mono_unity_type_is_generic_instance(MonoType *type)
+{
+	return type->type == MONO_TYPE_GENERICINST;
+}
+
+MonoGenericClass* mono_unity_type_get_generic_class(MonoType *type)
+{
+	if (type->type != MONO_TYPE_GENERICINST)
+		return NULL;
+
+	return type->data.generic_class;
+}
+
+MonoGenericContext mono_unity_generic_class_get_context(MonoGenericClass *klass)
+{
+	return klass->context;
+}
+
+MonoClass* mono_unity_generic_class_get_container_class(MonoGenericClass *klass)
+{
+	return klass->container_class;
 }

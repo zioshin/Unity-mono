@@ -79,5 +79,9 @@ MonoException* mono_unity_thread_check_exception();
 MonoClass* mono_unity_class_from_array(MonoArray *arr);
 MonoClass* mono_unity_element_class_from_class(MonoClass *klass);
 MonoClass* mono_unity_class_from_object(MonoObject *obj);
+gboolean mono_unity_type_is_generic_instance(MonoType *type);
+MonoGenericClass* mono_unity_type_get_generic_class(MonoType *type);
+MonoGenericContext mono_unity_generic_class_get_context(MonoGenericClass *klass);
+MonoClass* mono_unity_generic_class_get_container_class(MonoGenericClass *klass);
 
 #endif
