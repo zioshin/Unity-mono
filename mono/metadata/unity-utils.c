@@ -650,3 +650,8 @@ gboolean mono_unity_check_box_cast(MonoObject *obj, MonoClass *klass)
 {
 	return (obj->vtable->klass->element_class == klass->element_class);
 }
+
+mono_array_size_t mono_unity_get_array_max_length(MonoArray *arr)
+{
+	return arr->max_length;
+}
