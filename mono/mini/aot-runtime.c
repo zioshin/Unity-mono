@@ -47,6 +47,7 @@
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/metadata-internals.h>
+#include <mono/metadata/reflection-internals.h>
 #include <mono/metadata/marshal.h>
 #include <mono/metadata/gc-internals.h>
 #include <mono/metadata/threads-types.h>
@@ -4101,7 +4102,6 @@ find_aot_method (MonoMethod *method, MonoAotModule **out_amodule)
 	return index;
 }
 
-<<<<<<< HEAD
 guint32
 mono_aot_find_method_index (MonoMethod *method)
 {
@@ -4319,7 +4319,8 @@ mono_method_marked_as_wrapperless(MonoMethod* method)
 {
 	int j;
 	gboolean res = FALSE;
-	MonoCustomAttrInfo *cattr = mono_custom_attrs_from_method (method);
+	MonoError error;
+	MonoCustomAttrInfo *cattr = mono_custom_attrs_from_method_checked (method, &error);
 	if (cattr)
     	for (j = 0; j < cattr->num_attrs; ++j)
 		{

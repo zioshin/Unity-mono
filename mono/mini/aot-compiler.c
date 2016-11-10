@@ -7484,9 +7484,6 @@ add_gsharedvt_wrappers (MonoAotCompile *acfg, MonoMethodSignature *sig, gboolean
 	}
 }
 
-static void
-add_generic_class (MonoAotCompile *acfg, MonoClass *klass);
-
 gboolean
 mono_method_marked_as_wrapperless(MonoMethod* method);
 
