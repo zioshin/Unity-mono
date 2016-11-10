@@ -19,7 +19,7 @@
 #include <string.h>
 #include <glib.h>
 
-#ifndef PLATFORM_WIN32 && defined (HAVE_DL_LOADER)
+#ifndef HOST_WIN32 && defined (HAVE_DL_LOADER)
 #include <dlfcn.h>
 #endif
 
@@ -263,7 +263,7 @@ mono_dl_symbol (MonoDl *module, const char *name, void **symbol)
 		sym = mono_dl_lookup_symbol (module, name);
 #endif
 	}
-#ifndef PLATFORM_WIN32
+#ifndef HOST_WIN32
 	// lookup in static table                                                                                                                                                                  
 	if (!sym && module->handle == RTLD_DEFAULT)                                                                                                                                               
 	{                                                                                                                                                                                         
