@@ -238,6 +238,11 @@ MonoObject* mono_unity_compare_exchange(MonoObject **location, MonoObject *value
 	return ves_icall_System_Threading_Interlocked_CompareExchange_T(location, value, comparand);
 }
 
+MonoObject* mono_unity_exchange(MonoObject **location, MonoObject *value)
+{
+	return ves_icall_System_Threading_Interlocked_Exchange_T(location, value);
+}
+
 void mono_unity_init_obj(void* obj, MonoClass* klass)
 {
 	if (klass->valuetype)

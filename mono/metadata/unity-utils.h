@@ -55,6 +55,7 @@ MonoAssembly* mono_unity_mscorlib();
 const char* mono_unity_image_name_for(MonoClass* klass);
 void* mono_unity_get_field_address(MonoObject *obj, MonoVTable *vt, MonoClassField *field);
 MonoObject* mono_unity_compare_exchange(MonoObject **location, MonoObject *value, MonoObject *comparand);
+MonoObject* mono_unity_exchange(MonoObject **location, MonoObject *value);
 void mono_unity_init_obj(void* obj, MonoClass* klass);
 MonoObject* mono_unity_isinst_sealed(MonoObject* obj, MonoClass* targetType);
 MonoClass* mono_unity_class_get_generic_definition(MonoClass* klass);
