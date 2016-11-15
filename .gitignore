@@ -43,6 +43,7 @@ Ankh.NoLoad
 # Unity build process files
 builds/
 ZippedClasslibs.tar.gz
+tmp/
 
 # Tooling
 _ReSharper*/
