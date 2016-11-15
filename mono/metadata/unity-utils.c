@@ -660,3 +660,13 @@ mono_array_size_t mono_unity_get_array_max_length(MonoArray *arr)
 {
 	return arr->max_length;
 }
+
+gboolean mono_unity_class_is_delegate(MonoClass *klass)
+{
+	return klass->delegate;
+}
+
+MonoObject* mono_unity_delegate_get_target(MonoDelegate *delegate)
+{
+	return delegate->target;
+}

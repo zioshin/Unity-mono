@@ -86,5 +86,7 @@ MonoGenericContext mono_unity_generic_class_get_context(MonoGenericClass *klass)
 MonoClass* mono_unity_generic_class_get_container_class(MonoGenericClass *klass);
 gboolean mono_unity_check_box_cast(MonoObject *obj, MonoClass *klass);
 mono_array_size_t mono_unity_get_array_max_length(MonoArray *arr);
+gboolean mono_unity_class_is_delegate(MonoClass *klass);
+MonoObject* mono_unity_delegate_get_target(MonoDelegate *delegate);
 
 #endif
