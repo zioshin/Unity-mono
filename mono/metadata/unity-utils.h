@@ -88,5 +88,10 @@ gboolean mono_unity_check_box_cast(MonoObject *obj, MonoClass *klass);
 mono_array_size_t mono_unity_get_array_max_length(MonoArray *arr);
 gboolean mono_unity_class_is_delegate(MonoClass *klass);
 MonoObject* mono_unity_delegate_get_target(MonoDelegate *delegate);
+MonoObject* mono_unity_convert_return_type_if_needed(MonoMethod *method, void *value);
+MonoClass* mono_unity_class_for_method_param(MonoMethodSignature *sig, int index);
+int mono_unity_num_method_parameters(MonoMethodSignature *sig);
+int mono_unity_class_instance_size(MonoClass *klass);
+gboolean mono_unity_method_param_is_byref(MonoMethodSignature *sig, int index);
 
 #endif

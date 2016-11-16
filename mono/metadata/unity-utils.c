@@ -670,3 +670,34 @@ MonoObject* mono_unity_delegate_get_target(MonoDelegate *delegate)
 {
 	return delegate->target;
 }
+
+MonoObject* mono_unity_convert_return_type_if_needed(MonoMethod *method, void *value)
+{
+	if (method->signature && method->signature->ret->type == MONO_TYPE_PTR)
+		return mono_value_box(mono_domain_get(), mono_defaults.int_class, &value);
+
+	return (MonoObject*)value;
+}
+
+MonoClass* mono_unity_class_for_method_param(MonoMethodSignature *sig, int index)
+{
+	MonoType *type = sig->params[index];
+	return mono_class_from_mono_type(type);
+}
+
+int mono_unity_num_method_parameters(MonoMethodSignature *sig)
+{
+	return sig->param_count;
+}
+
+int mono_unity_class_instance_size(MonoClass *klass)
+{
+	return klass->instance_size;
+}
+
+gboolean mono_unity_method_param_is_byref(MonoMethodSignature *sig, int index)
+{
+	return sig->params[index]->byref;
+}
+
+
