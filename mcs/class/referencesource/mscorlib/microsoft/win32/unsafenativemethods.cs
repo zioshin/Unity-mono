@@ -75,8 +75,8 @@ namespace Microsoft.Win32 {
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         internal static extern bool FreeLibrary(IntPtr hModule);
 
-
-        [SecurityCritical]
+#if !MONO
+		[SecurityCritical]
         [SuppressUnmanagedCodeSecurityAttribute()]
         internal static unsafe class ManifestEtw
         {
@@ -281,8 +281,11 @@ namespace Microsoft.Win32 {
                 ref int ReturnLength);
 
         }
+
+#endif // !MONO
+
 #if FEATURE_COMINTEROP
-        [SecurityCritical]
+		[SecurityCritical]
         [DllImport("combase.dll", PreserveSig = true)]
         internal static extern int RoGetActivationFactory(
             [MarshalAs(UnmanagedType.HString)] string activatableClassId,

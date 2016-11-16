@@ -2732,7 +2732,7 @@ namespace Microsoft.Win32 {
 #endif // FEATURE_PAL
 
         // Fusion APIs
-#if FEATURE_FUSION
+#if FEATURE_FUSION && !MONO
         [DllImport(MSCORWKS, CharSet=CharSet.Unicode)]
         [ResourceExposure(ResourceScope.None)]
         internal static extern int CreateAssemblyNameObject(out IAssemblyName ppEnum, String szAssemblyName, uint dwFlags, IntPtr pvReserved);

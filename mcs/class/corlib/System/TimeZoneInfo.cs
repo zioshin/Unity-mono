@@ -5651,6 +5651,49 @@ namespace System
             // when adding more versions, ensure all the logic using TZVersion is still correct
         }
 
+		internal DaylightTime GetDaylightChanges(int year)
+		{
+			DateTime start = DateTime.MinValue, end = DateTime.MinValue;
+			TimeSpan delta = new TimeSpan();			
+			AdjustmentRule first = null, last = null;
+
+			foreach (var rule in GetAdjustmentRules())
+			{
+				if (rule.DateStart.Year != year && rule.DateEnd.Year != year)
+					continue;
+				if (rule.DateStart.Year == year)
+					first = rule;
+				if (rule.DateEnd.Year == year)
+					last = rule;
+			}
+
+			if (first == null || last == null)
+				return new DaylightTime(new DateTime(), new DateTime(), new TimeSpan());
+
+			start = TransitionPoint(first.DaylightTransitionStart, year);
+			end = TransitionPoint(last.DaylightTransitionEnd, year);
+			delta = first.DaylightDelta;
+
+			if (start == DateTime.MinValue || end == DateTime.MinValue)
+				return new DaylightTime(new DateTime(), new DateTime(), new TimeSpan());
+
+			return new DaylightTime(start, end, delta);
+		}
+
+		private static DateTime TransitionPoint(TransitionTime transition, int year)
+		{
+			if (transition.IsFixedDateRule)
+				return new DateTime(year, transition.Month, transition.Day) + transition.TimeOfDay.TimeOfDay;
+
+			DayOfWeek first = (new DateTime(year, transition.Month, 1)).DayOfWeek;
+			int day = 1 + (transition.Week - 1) * 7 + (transition.DayOfWeek - first + 7) % 7;
+			if (day > DateTime.DaysInMonth(year, transition.Month))
+				day -= 7;
+			if (day < 1)
+				day += 7;
+			return new DateTime(year, transition.Month, day) + transition.TimeOfDay.TimeOfDay;
+		}
+
 		private static bool IsWindows
 		{
 			get {

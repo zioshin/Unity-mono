@@ -93,6 +93,12 @@
     <Compile Include="..\Mono.Security\Mono.Security\BitConverterLE.cs" />
     <Compile Include="..\Mono.Security\Mono.Security\PKCS7.cs" />
     <Compile Include="..\Mono.Security\Mono.Security\StrongName.cs" />
+    <Compile Include="..\referencesource\mscorlib\microsoft\win32\safehandles\safefilemappinghandle.cs">
+      <Link>safefilemappinghandle.cs</Link>
+    </Compile>
+    <Compile Include="..\referencesource\mscorlib\microsoft\win32\safehandles\safefindhandle.cs">
+      <Link>safefindhandle.cs</Link>
+    </Compile>
     <Compile Include="..\referencesource\mscorlib\microsoft\win32\safehandles\safelibraryhandle.cs">
       <Link>safelibraryhandle.cs</Link>
     </Compile>
@@ -825,7 +831,6 @@
     <Compile Include="Mono.Xml\SmallXmlParser.cs" />
     <Compile Include="Mono\DataConverter.cs" />
     <Compile Include="Mono\Runtime.cs" />
-    <Compile Include="ReferenceSources\win32native.cs" />
     <Compile Include="ReferenceSources\__ConsoleStream.cs" />
     <Compile Include="ReferenceSources\AppContextSwitches.cs" />
     <Compile Include="ReferenceSources\AppDomain.cs" />
