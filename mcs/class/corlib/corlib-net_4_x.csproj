@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -12,7 +12,6 @@
     <IntermediateOutputPath>obj-net_4_x</IntermediateOutputPath>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <NoStdLib>True</NoStdLib>
-    
     <NoConfig>True</NoConfig>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -22,7 +21,6 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
-  
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
@@ -95,6 +93,15 @@
     <Compile Include="..\Mono.Security\Mono.Security\BitConverterLE.cs" />
     <Compile Include="..\Mono.Security\Mono.Security\PKCS7.cs" />
     <Compile Include="..\Mono.Security\Mono.Security\StrongName.cs" />
+    <Compile Include="..\referencesource\mscorlib\microsoft\win32\safehandles\safelibraryhandle.cs">
+      <Link>safelibraryhandle.cs</Link>
+    </Compile>
+    <Compile Include="..\referencesource\mscorlib\microsoft\win32\unsafenativemethods.cs">
+      <Link>unsafenativemethods.cs</Link>
+    </Compile>
+    <Compile Include="..\referencesource\mscorlib\microsoft\win32\win32native.cs">
+      <Link>win32native.cs</Link>
+    </Compile>
     <Compile Include="..\referencesource\mscorlib\\system\runtime\reliability\criticalfinalizerobject.cs" />
     <Compile Include="..\referencesource\mscorlib\\system\runtime\reliability\prepreparemethodattribute.cs" />
     <Compile Include="..\referencesource\mscorlib\\system\runtime\reliability\reliabilitycontractattribute.cs" />
@@ -760,7 +767,6 @@
     <Compile Include="..\referencesource\mscorlib\system\throwhelper.cs" />
     <Compile Include="..\referencesource\mscorlib\system\timeoutexception.cs" />
     <Compile Include="..\referencesource\mscorlib\system\timespan.cs" />
-    <Compile Include="..\referencesource\mscorlib\system\timezoneinfo.cs" />
     <Compile Include="..\referencesource\mscorlib\system\timezonenotfoundexception.cs" />
     <Compile Include="..\referencesource\mscorlib\system\tuple.cs" />
     <Compile Include="..\referencesource\mscorlib\system\type.cs" />
@@ -785,6 +791,8 @@
     <Compile Include="coreclr\FormattableString.cs" />
     <Compile Include="coreclr\FormattableStringFactory.cs" />
     <Compile Include="coreclr\WaitHandleExtensions.cs" />
+    <Compile Include="Interop\mincore\Interop.Errors.cs" />
+    <Compile Include="Interop\mincore\Interop.TimeZone.cs" />
     <Compile Include="Microsoft.Win32\IRegistryApi.cs" />
     <Compile Include="Microsoft.Win32\Registry.cs" />
     <Compile Include="Microsoft.Win32\RegistryHive.cs" />
@@ -817,6 +825,7 @@
     <Compile Include="Mono.Xml\SmallXmlParser.cs" />
     <Compile Include="Mono\DataConverter.cs" />
     <Compile Include="Mono\Runtime.cs" />
+    <Compile Include="ReferenceSources\win32native.cs" />
     <Compile Include="ReferenceSources\__ConsoleStream.cs" />
     <Compile Include="ReferenceSources\AppContextSwitches.cs" />
     <Compile Include="ReferenceSources\AppDomain.cs" />
@@ -847,7 +856,6 @@
     <Compile Include="ReferenceSources\Type.cs" />
     <Compile Include="ReferenceSources\TypeBuilderInstantiation.cs" />
     <Compile Include="ReferenceSources\TypeNameParser.cs" />
-    <Compile Include="ReferenceSources\win32native.cs" />
     <Compile Include="System.Configuration.Assemblies\AssemblyHash.cs" />
     <Compile Include="System.Configuration.Assemblies\AssemblyHashAlgorithm.cs" />
     <Compile Include="System.Configuration.Assemblies\AssemblyVersionCompatibility.cs" />
@@ -1548,6 +1556,7 @@
     <Compile Include="System.Threading\TimerCallback.cs" />
     <Compile Include="System.Threading\Volatile.cs" />
     <Compile Include="System.Threading\WaitHandle.cs" />
+    <Compile Include="System\TimeZoneInfo.cs" />
     <Compile Include="System\__ComObject.cs" />
     <Compile Include="System\ActivationContext.cs" />
     <Compile Include="System\AndroidPlatform.cs" />
@@ -1609,9 +1618,7 @@
     <Compile Include="System\TermInfoStrings.cs" />
     <Compile Include="System\TimeZone.cs" />
     <Compile Include="System\TimeZoneInfo.Android.cs" />
-    <Compile Include="System\TimeZoneInfo.cs" />
     <Compile Include="System\TimeZoneInfo.MonoTouch.cs" />
-    <Compile Include="System\TimeZoneInfo.Serialization.cs" />
     <Compile Include="System\TypeCode.cs" />
     <Compile Include="System\TypeIdentifier.cs" />
     <Compile Include="System\TypeSpec.cs" />
@@ -1621,7 +1628,8 @@
     <Compile Include="System\Void.cs" />
     <Compile Include="System\WeakReference.cs" />
     <Compile Include="System\WeakReference_T.cs" />
-    <Compile Include="System\WindowsConsoleDriver.cs" />  </ItemGroup>
+    <Compile Include="System\WindowsConsoleDriver.cs" />
+  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -1631,23 +1639,18 @@
   -->
   <PropertyGroup>
     <PreBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
-
     </PreBuildEvent>
     <PreBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
-
     </PreBuildEvent>
     <PostBuildEvent Condition=" '$(OS)' != 'Windows_NT' ">
-
     </PostBuildEvent>
     <PostBuildEvent Condition=" '$(OS)' == 'Windows_NT' ">
-
     </PostBuildEvent>
   </PropertyGroup>
   <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <EmbeddedResource Include="resources/charinfo.nlp">
       <LogicalName>charinfo.nlp</LogicalName>
@@ -1675,4 +1678,3 @@
     </EmbeddedResource>
   </ItemGroup>
 </Project>
-
