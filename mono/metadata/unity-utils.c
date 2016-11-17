@@ -700,4 +700,12 @@ gboolean mono_unity_method_param_is_byref(MonoMethodSignature *sig, int index)
 	return sig->params[index]->byref;
 }
 
+MonoClass* mono_unity_int_class_get()
+{
+	return mono_defaults.int_class;
+}
 
+MonoClass* mono_unity_stack_frame_class_get()
+{
+	return mono_defaults.stack_frame_class;
+}
