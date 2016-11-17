@@ -709,3 +709,9 @@ MonoClass* mono_unity_stack_frame_class_get()
 {
 	return mono_defaults.stack_frame_class;
 }
+
+MonoClass* mono_unity_class_get_castclass(MonoClass *klass)
+{
+	return klass->cast_class;
+}
+

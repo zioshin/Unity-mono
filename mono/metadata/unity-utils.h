@@ -95,5 +95,6 @@ int mono_unity_class_instance_size(MonoClass *klass);
 gboolean mono_unity_method_param_is_byref(MonoMethodSignature *sig, int index);
 MonoClass* mono_unity_int_class_get();
 MonoClass* mono_unity_stack_frame_class_get();
+MonoClass* mono_unity_class_get_castclass(MonoClass *klass);
 
 #endif
