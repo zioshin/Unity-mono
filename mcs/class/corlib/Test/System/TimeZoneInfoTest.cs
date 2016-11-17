@@ -43,6 +43,37 @@ namespace MonoTests.System
 		static FieldInfo cachedDataField;
 		static object localFieldObj;
 
+		public static bool IsWindows()
+		{
+			switch (Environment.OSVersion.Platform)
+			{
+				case PlatformID.Win32Windows:
+				case PlatformID.Win32NT:
+					return true;
+			}
+			return false;
+		}
+
+		public static bool IsUnix()
+		{
+			return System.Environment.OSVersion.Platform == PlatformID.Unix;
+		}
+
+		public static string GetBrusselsTimeId()
+		{
+			return IsWindows() ? "Romance Standard Time" : "Europe/Brussels";
+		}
+
+		public static string GetWestAfricaTimeId()
+		{
+			return IsWindows() ? "W. Central Africa Standard Time" : "Africa/Kinshasa";
+		}
+
+		public static string GetAthensTimeId()
+		{
+			return IsWindows() ? "GTB Standard Time" : "Europe/Athens";
+		}
+
 		public static void SetLocal (TimeZoneInfo val)
 		{
 			if (localField == null) {
@@ -83,6 +114,9 @@ namespace MonoTests.System
 			[Test] // Covers #24958
 			public void LocalId ()
 			{
+				if (Environment.OSVersion.Platform != PlatformID.Unix)
+					Assert.Ignore("Not running on Unix.");
+
 				byte[] buf = new byte [512];
 
 				var path = "/etc/localtime";
@@ -354,7 +388,7 @@ namespace MonoTests.System
 			[Test] //Covers #25050
 			public void TestAthensDST ()
 			{
-				TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Athens");
+				TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById (GetAthensTimeId());
 				var date = new DateTime (2014, 3, 30 , 2, 0, 0);
 				Assert.IsFalse (tzi.IsDaylightSavingTime (date));
 				Assert.AreEqual (new TimeSpan (2,0,0), tzi.GetUtcOffset (date));
@@ -363,7 +397,7 @@ namespace MonoTests.System
 			[Test] //Covers #41349
 			public void TestIsDST_DateTimeOffset ()
 			{
-				TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Athens");
+				TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById (GetAthensTimeId());
 				var date = new DateTime (2014, 3, 30 , 2, 0, 0);
 				var offset = tzi.GetUtcOffset (date);
 				var dateOffset = new DateTimeOffset (date, offset);
@@ -499,7 +533,32 @@ namespace MonoTests.System
 			public void ConvertToUtc_MatchDateTimeBehavior ()
 			{
 				for (DateTime date = new DateTime (2007, 01, 01, 0, 0, 0); date < new DateTime (2007, 12, 31, 23, 59, 59); date += new TimeSpan (0,1,0)) {
-					Assert.AreEqual (TimeZoneInfo.ConvertTimeToUtc (date), date.ToUniversalTime ());
+					DateTime timeZoneResult = default(DateTime),
+					         dateTimeResult = default(DateTime);
+					Exception timeZoneException = null,
+							  dateTimeException = null;
+
+					try
+					{
+						timeZoneResult = TimeZoneInfo.ConvertTimeToUtc(date);
+					}
+					catch (Exception e)
+					{
+						timeZoneException = e;
+					}
+
+					try
+					{
+						dateTimeResult = date.ToUniversalTime();
+					}
+					catch (Exception e)
+					{
+						dateTimeException = e;
+					}
+
+					Assert.AreEqual(timeZoneException == null, dateTimeException == null);
+					if (timeZoneException != null && dateTimeException != null)
+						Assert.AreEqual(timeZoneResult, dateTimeResult);
 				}
 			}
 		#endif
@@ -557,10 +616,11 @@ namespace MonoTests.System
 			[Test]
 			public void ConvertToTimeZone ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
 
-				TimeZoneInfo.ConvertTime (DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById("Pacific/Auckland"));
+				var newZealandTimeId = IsWindows() ? "New Zealand Standard Time" : "Pacific/Auckland";
+				TimeZoneInfo.ConvertTime (DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById(newZealandTimeId));
 			}
 
 			[Test]
@@ -787,14 +847,14 @@ namespace MonoTests.System
 			[Test]
 			public void ContainsBrussels ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
 				global::System.Collections.ObjectModel.ReadOnlyCollection<TimeZoneInfo> systemTZ = TimeZoneInfo.GetSystemTimeZones ();
 				foreach (TimeZoneInfo tz in systemTZ) {
-					if (tz.Id == "Europe/Brussels")
+					if (tz.Id == GetBrusselsTimeId())
 						return;
 				}
-				Assert.Fail ("Europe/Brussels not found in SystemTZ");
+				Assert.Fail ($"{GetBrusselsTimeId()} not found in SystemTZ");
 			}
 
 			[Test]
@@ -805,17 +865,6 @@ namespace MonoTests.System
 				var timeZones = (global::System.Collections.ObjectModel.ReadOnlyCollection<TimeZoneInfo>) method.Invoke (null, null);
 				Assert.IsTrue (timeZones.Count > 0, "GetSystemTimeZones should not return an empty collection.");
 			}
-
-#if !MOBILE
-			[Test]
-			public void WindowsRegistryTimezoneWithParentheses ()
-			{
-				var method = (MethodInfo) typeof (TimeZoneInfo).GetMember ("TrimSpecial", MemberTypes.Method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)[0];
-
-				var name = method.Invoke (null, new object [] { " <--->  Central Standard Time (Mexico)   ||<<>>" });
-				Assert.AreEqual (name, "Central Standard Time (Mexico)", "#1");
-			}
-#endif
 		}
 		
 		[TestFixture]
@@ -840,54 +889,55 @@ namespace MonoTests.System
 			[Test]
 			public void FindBrusselsTZ ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Brussels");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore ("Works only on Windows and Unix.");
+				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				Assert.IsNotNull (brussels);
 			}
 		
 			[Test]
 			public void OffsetIsCorrectInKinshasa ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				TimeZoneInfo kin = TimeZoneInfo.FindSystemTimeZoneById ("Africa/Kinshasa");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
+				TimeZoneInfo kin = TimeZoneInfo.FindSystemTimeZoneById (GetWestAfricaTimeId());
 				Assert.AreEqual (new TimeSpan (1,0,0), kin.BaseUtcOffset, "BaseUtcOffset in Kinshasa is not +1h");
 			}
 		
 			[Test]
 			public void OffsetIsCorrectInBrussels ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Brussels");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
+				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				Assert.AreEqual (new TimeSpan (1,0,0), brussels.BaseUtcOffset, "BaseUtcOffset for Brussels is not +1h");
 			}
 		
 			[Test]
 			public void NoDSTInKinshasa ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				TimeZoneInfo kin = TimeZoneInfo.FindSystemTimeZoneById ("Africa/Kinshasa");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
+				TimeZoneInfo kin = TimeZoneInfo.FindSystemTimeZoneById (GetWestAfricaTimeId());
 				Assert.IsFalse (kin.SupportsDaylightSavingTime);
 			}
 		
 			[Test]
 			public void BrusselsSupportsDST ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Brussels");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
+				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				Assert.IsTrue (brussels.SupportsDaylightSavingTime);
 			}
 		
 			[Test]
 			public void MelbourneSupportsDST ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				TimeZoneInfo melbourne = TimeZoneInfo.FindSystemTimeZoneById ("Australia/Melbourne");
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
+				var melbourneTimeZoneId = IsWindows() ? "E. Australia Standard Time" : "Australia/Melbourne";
+				TimeZoneInfo melbourne = TimeZoneInfo.FindSystemTimeZoneById (melbourneTimeZoneId);
 				Assert.IsTrue (melbourne.SupportsDaylightSavingTime);
 			}
 		
@@ -922,9 +972,9 @@ namespace MonoTests.System
 				TimeZoneInfo.TransitionTime start = TimeZoneInfo.TransitionTime.CreateFloatingDateRule (new DateTime (1,1,1,2,0,0), 3, 5, DayOfWeek.Sunday);
 				TimeZoneInfo.TransitionTime end = TimeZoneInfo.TransitionTime.CreateFloatingDateRule (new DateTime (1,1,1,3,0,0), 10, 5, DayOfWeek.Sunday);
 				TimeZoneInfo.AdjustmentRule rule = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule (DateTime.MinValue.Date, DateTime.MaxValue.Date, new TimeSpan (1,0,0), start, end);
-				TimeZoneInfo brussels = TimeZoneInfo.CreateCustomTimeZone ("Europe/Brussels", new TimeSpan (1, 0, 0), "Europe/Brussels", "", "", new TimeZoneInfo.AdjustmentRule [] {rule});
+				TimeZoneInfo brussels = TimeZoneInfo.CreateCustomTimeZone (GetBrusselsTimeId(), new TimeSpan (1, 0, 0), GetBrusselsTimeId(), "", "", new TimeZoneInfo.AdjustmentRule [] {rule});
 		
-				TimeZoneInfo brussels_sys = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Brussels");
+				TimeZoneInfo brussels_sys = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 		
 				for (DateTime date = new DateTime (2006, 01, 01, 0, 0, 0, DateTimeKind.Local); date < new DateTime (2007, 12, 31, 23, 59, 59); date += new TimeSpan (0,30,0)) {
 					Assert.AreEqual (brussels.GetUtcOffset (date), brussels_sys.GetUtcOffset (date));
@@ -936,19 +986,36 @@ namespace MonoTests.System
 			[Test]
 			public void SubminuteDSTOffsets ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ();
+				if (!IsWindows() && !IsUnix())
+					Assert.Ignore("Works only on Windows and Unix.");
 
-				var subMinuteDSTs = new string [] {
-					"Europe/Dublin", // Europe/Dublin has a DST offset of 34 minutes and 39 seconds in 1916.
-					"Europe/Amsterdam",
-					"America/St_Johns",
-					"Canada/Newfoundland",
-					"Europe/Moscow",
-					"Europe/Riga",
-				};
+				if (IsWindows())
+				{
+					subMinuteDSTs = new string[]
+					{
+						"GMT Standard Time"
+						"W. Europe Standard Time",
+						"Newfoundland Standard Time",
+						"Newfoundland Standard Time",
+						"Russian Standard Time",
+						"FLE Standard Time",
+					};
+				}
+				else
+				{
+					subMinuteDSTs = new string[]
+					{
+						"Europe/Dublin", // Europe/Dublin has a DST offset of 34 minutes and 39 seconds in 1916.
+						"Europe/Amsterdam",
+						"America/St_Johns",
+						"Canada/Newfoundland",
+						"Europe/Moscow",
+						"Europe/Riga",
+					};
+				}
+
 				foreach (var tz in subMinuteDSTs) {
-					TimeZoneInfo.FindSystemTimeZoneById (tz);
+					Assert.IsNotNull(TimeZoneInfo.FindSystemTimeZoneById (tz));
 				}
 			}
 
@@ -967,9 +1034,9 @@ namespace MonoTests.System
 			[ExpectedException (typeof(ArgumentException))]
 			public void DateIsNotAmbiguous ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
+				if (!IsWindows() && !IsUnix())
 					throw new ArgumentException ();
-				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Brussels");
+				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				DateTime date = new DateTime (2007, 05, 11, 11, 40, 00);
 				brussels.GetAmbiguousTimeOffsets (date);
 			}
@@ -977,9 +1044,9 @@ namespace MonoTests.System
 			[Test]
 			public void AmbiguousOffsets ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById ("Europe/Brussels");
+				if (!IsWindows() && !IsUnix())
+					throw new ArgumentException();
+				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				DateTime date = new DateTime (2007, 10, 28, 2, 30, 00);
 				Assert.IsTrue (brussels.IsAmbiguousTime (date));
 				Assert.AreEqual (2, brussels.GetAmbiguousTimeOffsets (date).Length);
@@ -1232,8 +1299,9 @@ namespace MonoTests.System
 			{
 				foreach (var tz in TimeZoneInfo.GetSystemTimeZones ()) {
 					try {
-						for (var year = 1950; year <= 2051; year++)
-							getChanges.Invoke (tz, new object [] {year} );
+						foreach (var rule in tz.GetAdjustmentRules()) {
+							Assert.IsNotNull(rule);
+						}
 					} catch (Exception e) {
 						Assert.Fail ("TimeZone " + tz.Id + " exception: " + e.ToString ()); 
 					}
@@ -1244,13 +1312,15 @@ namespace MonoTests.System
 		[TestFixture]
 		public class ParseTZBuffer
 		{
-			MethodInfo parseTZBuffer;
+			MethodInfo findTimeZoneId;
+			MethodInfo getTimeZoneFromTzData;
 
 			[SetUp]
 			public void Setup()
 			{
 				var flags = BindingFlags.Static | BindingFlags.NonPublic;
-				parseTZBuffer = typeof (TimeZoneInfo).GetMethod ("ParseTZBuffer", flags);
+				findTimeZoneId = typeof(TimeZoneInfo).GetMethod("FindTimeZoneId", flags);
+				getTimeZoneFromTzData = typeof(TimeZoneInfo).GetMethod("GetTimeZoneFromTzData", flags);
 			}
 
 			[Test]
@@ -1258,11 +1328,18 @@ namespace MonoTests.System
 			{
 				// Europe/Moscow from failing device
 				var base64Data = "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";
+				var data = Convert.FromBase64String(base64Data);
 
-				var data = Convert.FromBase64String (base64Data);
+				string id = (string)findTimeZoneId.Invoke(null, new object[] { data });
+				Assert.AreEqual(id, "Local");
 
-				var tz = parseTZBuffer.Invoke (null, new object[] { "Test", data, data.Length});
-				Assert.IsTrue (tz != null);
+				var tz = (TimeZoneInfo)getTimeZoneFromTzData.Invoke(null, new object[] { data, id });
+				Assert.AreEqual(tz.BaseUtcOffset.ToString(CultureInfo.InvariantCulture), "03:00:00");
+				Assert.AreEqual(tz.DaylightName, "MSD");
+				Assert.AreEqual(tz.DisplayName, "MSK");
+				Assert.AreEqual(tz.Id, "Local");
+				Assert.AreEqual(tz.StandardName, "MSK");
+				Assert.AreEqual(tz.SupportsDaylightSavingTime, false);
 			}
 		}
 	}
