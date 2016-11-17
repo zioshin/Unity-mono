@@ -546,6 +546,10 @@ void mono_unity_object_unbox_nullable (MonoObject* obj, MonoClass* nullableArgum
 	{
 		*((mono_byte*)(storage) + valueSize) = 0;
 	}
+	else if (obj->vtable->klass != nullableArgumentClass)
+	{
+		mono_raise_exception(mono_get_exception_invalid_cast());
+	}
 	else
 	{
 		memcpy(storage, mono_object_unbox(obj), valueSize);
