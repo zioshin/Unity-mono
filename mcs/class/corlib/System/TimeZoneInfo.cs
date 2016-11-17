@@ -56,7 +56,7 @@ namespace System
 
     [Serializable]
     [System.Security.Permissions.HostProtection(MayLeakOnAbort = true)]
-#if !FEATURE_CORECLR
+#if !FEATURE_CORECLR && !MONO
     [TypeForwardedFrom("System.Core, Version=3.5.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089")]
 #endif
     sealed public class TimeZoneInfo : IEquatable<TimeZoneInfo>, ISerializable, IDeserializationCallback
@@ -341,7 +341,7 @@ namespace System
         //
         public TimeSpan[] GetAmbiguousTimeOffsets(DateTimeOffset dateTimeOffset) {
             if (!SupportsDaylightSavingTime) {
-                throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeOffsetIsNotAmbiguous"), "dateTimeOffset");
+                throw new ArgumentException("The supplied DateTimeOffset is not in an ambiguous time range.", "dateTimeOffset");
             }
             Contract.EndContractBlock();
 
@@ -355,7 +355,7 @@ namespace System
             }
 
             if (!isAmbiguous) {
-                throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeOffsetIsNotAmbiguous"), "dateTimeOffset");
+                throw new ArgumentException("The supplied DateTimeOffset is not in an ambiguous time range.", "dateTimeOffset");
             }
 
             // the passed in dateTime is ambiguous in this TimeZoneInfo instance
@@ -378,7 +378,7 @@ namespace System
 
         public TimeSpan[] GetAmbiguousTimeOffsets(DateTime dateTime) {
             if (!SupportsDaylightSavingTime) {
-                throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeIsNotAmbiguous"), "dateTime");
+                throw new ArgumentException("The supplied DateTime is not in an ambiguous time range.", "dateTime");
             }
             Contract.EndContractBlock();
 
@@ -403,7 +403,7 @@ namespace System
             }
 
             if (!isAmbiguous) {
-                throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeIsNotAmbiguous"), "dateTime");
+                throw new ArgumentException("The supplied DateTime is not in an ambiguous time range.", "dateTime");
             }
 
             // the passed in dateTime is ambiguous in this TimeZoneInfo instance
@@ -794,7 +794,7 @@ namespace System
 
             DateTimeKind sourceKind = cachedData.GetCorrespondingKind(sourceTimeZone);
             if ( ((flags & TimeZoneInfoOptions.NoThrowOnInvalidTime) == 0) && (dateTime.Kind != DateTimeKind.Unspecified) && (dateTime.Kind != sourceKind) ) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_ConvertMismatch"), "sourceTimeZone");
+                throw new ArgumentException("The conversion could not be completed because the supplied DateTime did not have the Kind property set correctly.  For example, when the Kind property is DateTimeKind.Local, the source time zone must be TimeZoneInfo.Local.", "sourceTimeZone");
             }
 
             //
@@ -817,7 +817,7 @@ namespace System
                     // 'dateTime' might be in an invalid time range since it is in an AdjustmentRule
                     // period that supports DST 
                     if (((flags & TimeZoneInfoOptions.NoThrowOnInvalidTime) == 0) && GetIsInvalidTime(dateTime, sourceRule, sourceDaylightTime)) {
-                        throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeIsInvalid"), "dateTime");
+                        throw new ArgumentException("The supplied DateTime represents an invalid time.  For example, when the clock is adjusted forward, any time in the period that is skipped is invalid.", "dateTime");
                     }
                     sourceIsDaylightSavings = GetIsDaylightSavings(dateTime, sourceRule, sourceDaylightTime, flags);
 
@@ -918,7 +918,7 @@ namespace System
                 throw new ArgumentNullException("source");
             }
             if (source.Length == 0) {
-                throw new ArgumentException(Environment.GetResourceString("Argument_InvalidSerializedString", source), "source");
+                throw new ArgumentException($"The specified serialized string '{source}' is not supported.", "source");
             }
             Contract.EndContractBlock();
 
@@ -1323,14 +1323,14 @@ namespace System
                 ValidateTimeZoneInfo(m_id, m_baseUtcOffset, m_adjustmentRules, out adjustmentRulesSupportDst);
 
                 if (adjustmentRulesSupportDst != m_supportsDaylightSavingTime) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_CorruptField", "SupportsDaylightSavingTime"));
+                    throw new SerializationException("The value of the field 'SupportsDaylightSavingTime' is invalid. The serialized data is corrupt.");
                 }
             }
             catch (ArgumentException e) {
-                throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
             }
             catch (InvalidTimeZoneException e) {
-                throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
             }
         }
 
@@ -2157,7 +2157,7 @@ namespace System
             }
             catch (IOException ex)
             {
-                e = new InvalidTimeZoneException(Environment.GetResourceString("InvalidTimeZone_InvalidFileData", id, timeZoneFilePath), ex);
+                e = new InvalidTimeZoneException($"The time zone ID '{id}' was found on the local computer, but the file at '{timeZoneFilePath}' was corrupt.", ex);
                 return TimeZoneInfoResult.InvalidTimeZoneException;
             }
 
@@ -2165,7 +2165,7 @@ namespace System
 
             if (value == null)
             {
-                e = new InvalidTimeZoneException(Environment.GetResourceString("InvalidTimeZone_InvalidFileData", id, timeZoneFilePath));
+                e = new InvalidTimeZoneException($"The time zone ID '{id}' was found on the local computer, but the file at '{timeZoneFilePath}' was corrupt.");
                 return TimeZoneInfoResult.InvalidTimeZoneException;
             }
 
@@ -2505,7 +2505,7 @@ namespace System
                 throw new ArgumentNullException("id");
             }
             else if (!IsValidSystemTimeZoneId(id)) {
-                throw new TimeZoneNotFoundException(Environment.GetResourceString("TimeZoneNotFound_MissingData", id));
+                throw new TimeZoneNotFoundException($"The time zone ID '{id}' was not found on the local computer.");
             }
 
             TimeZoneInfo value;
@@ -2537,7 +2537,7 @@ namespace System
 				}
             }
             else {
-                throw new TimeZoneNotFoundException(Environment.GetResourceString("TimeZoneNotFound_MissingData", id), e);
+                throw new TimeZoneNotFoundException($"The time zone ID '{id}' was not found on the local computer.", e);
             }
         }
 
@@ -3771,8 +3771,8 @@ namespace System
                 return transitionTypes[0];
             }
 
-            throw new InvalidTimeZoneException(Environment.GetResourceString("InvalidTimeZone_NoTTInfoStructures"));
-        }
+            throw new InvalidTimeZoneException("There are no ttinfo structures in the tzfile.  At least one ttinfo structure is required in order to construct a TimeZoneInfo object.");
+		}
 
         /// <summary>
         /// Creates an AdjustmentRule given the POSIX TZ environment variable string.
@@ -3905,7 +3905,7 @@ namespace System
                 DayOfWeek day;
                 if (!TZif_ParseMDateRule(date, out month, out week, out day))
                 {
-                    throw new InvalidTimeZoneException(Environment.GetResourceString("InvalidTimeZone_UnparseablePosixMDateString", date));
+                    throw new InvalidTimeZoneException($"'{date}' is not a valid POSIX-TZ-environment-variable MDate rule.  A valid rule has the format 'Mm.w.d'.");
                 }
 
                 DateTime timeOfDay;
@@ -3948,7 +3948,7 @@ namespace System
                 // One of them *could* be supported if we relaxed the TransitionTime validation rules, and allowed
                 // "IsFixedDateRule = true, Month = 0, Day = n" to mean the nth day of the year, picking one of the rules above
 
-                throw new InvalidTimeZoneException(Environment.GetResourceString("InvalidTimeZone_JulianDayNotSupported"));
+                throw new InvalidTimeZoneException("Julian dates in POSIX strings are unsupported.");
             }
         }
 
@@ -4286,16 +4286,16 @@ namespace System
             }
 
             if (id.Length == 0) {
-                throw new ArgumentException(Environment.GetResourceString("Argument_InvalidId", id), "id");
+                throw new ArgumentException($"The specified ID parameter '{id}' is not supported.", "id");
             }
 
             if (UtcOffsetOutOfRange(baseUtcOffset)) {
 
-                throw new ArgumentOutOfRangeException("baseUtcOffset", Environment.GetResourceString("ArgumentOutOfRange_UtcOffset"));
+                throw new ArgumentOutOfRangeException("baseUtcOffset", "The TimeSpan parameter must be within plus or minus 14.0 hours.");
             }
 
             if (baseUtcOffset.Ticks % TimeSpan.TicksPerMinute != 0) {
-                throw new ArgumentException(Environment.GetResourceString("Argument_TimeSpanHasSeconds"), "baseUtcOffset");
+                throw new ArgumentException("The TimeSpan parameter cannot be specified more precisely than whole minutes.", "baseUtcOffset");
             }
             Contract.EndContractBlock();
 
@@ -4316,7 +4316,7 @@ namespace System
                     current = adjustmentRules[i];
 
                     if (current == null) {
-                        throw new InvalidTimeZoneException(Environment.GetResourceString("Argument_AdjustmentRulesNoNulls"));
+                        throw new InvalidTimeZoneException("The AdjustmentRule array cannot contain null elements.");
                     }
 
                     // FUTURE: check to see if this rule supports Daylight Saving Time
@@ -4324,13 +4324,13 @@ namespace System
                     // FUTURE: test baseUtcOffset + current.StandardDelta
 
                     if (UtcOffsetOutOfRange(baseUtcOffset + current.DaylightDelta)) {
-                        throw new InvalidTimeZoneException(Environment.GetResourceString("ArgumentOutOfRange_UtcOffsetAndDaylightDelta"));
+						throw new InvalidTimeZoneException("The sum of the BaseUtcOffset and DaylightDelta properties must within plus or minus 14.0 hours.");
                     }
 
                     if (prev != null && current.DateStart <= prev.DateEnd) {
                         // verify the rules are in chronological order and the DateStart/DateEnd do not overlap
-                        throw new InvalidTimeZoneException(Environment.GetResourceString("Argument_AdjustmentRulesOutOfOrder"));
-                    }
+                        throw new InvalidTimeZoneException("The elements of the AdjustmentRule array must be in chronological order and must not overlap.");
+					}
                 }
             }
         }
@@ -4350,7 +4350,7 @@ namespace System
 ============================================================*/
         [Serializable]
         [System.Security.Permissions.HostProtection(MayLeakOnAbort = true)]
-#if !FEATURE_CORECLR
+#if !FEATURE_CORECLR && !MONO
         [TypeForwardedFrom("System.Core, Version=3.5.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089")]
 #endif
         sealed public class AdjustmentRule : IEquatable<AdjustmentRule>, ISerializable, IDeserializationCallback
@@ -4544,22 +4544,22 @@ namespace System
                              bool noDaylightTransitions) {
 
 
-                if (dateStart.Kind != DateTimeKind.Unspecified && dateStart.Kind != DateTimeKind.Utc) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeKindMustBeUnspecifiedOrUtc"), "dateStart");
+                if (dateStart.Kind != DateTimeKind.Unspecified) {
+                    throw new ArgumentException("The supplied DateTime must have the Kind property set to DateTimeKind.Unspecified.", "dateStart");
                 }
 
-                if (dateEnd.Kind != DateTimeKind.Unspecified && dateEnd.Kind != DateTimeKind.Utc) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeKindMustBeUnspecifiedOrUtc"), "dateEnd");
+                if (dateEnd.Kind != DateTimeKind.Unspecified) {
+                    throw new ArgumentException("The supplied DateTime must have the Kind property set to DateTimeKind.Unspecified.", "dateEnd");
                 }
 
                 if (daylightTransitionStart.Equals(daylightTransitionEnd) && !noDaylightTransitions) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_TransitionTimesAreIdentical"),
-                                                "daylightTransitionEnd");
+                    throw new ArgumentException("The DaylightTransitionStart property must not equal the DaylightTransitionEnd property.",
+												"daylightTransitionEnd");
                 }
 
 
                 if (dateStart > dateEnd) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_OutOfOrderDateTimes"), "dateStart");
+                    throw new ArgumentException("The DateStart property must come before the DateEnd property.", "dateStart");
                 }
 
                 // This cannot use UtcOffsetOutOfRange to account for the scenario where Samoa moved across the International Date Line,
@@ -4568,21 +4568,21 @@ namespace System
                 // to be -23 (what it takes to go from UTC+13 to UTC-10)
                 if (daylightDelta.TotalHours < -23.0 || daylightDelta.TotalHours > 14.0) {
                     throw new ArgumentOutOfRangeException("daylightDelta", daylightDelta,
-                        Environment.GetResourceString("ArgumentOutOfRange_UtcOffset"));
+                        "The TimeSpan parameter must be within plus or minus 14.0 hours.");
                 }
 
                 if (daylightDelta.Ticks % TimeSpan.TicksPerMinute != 0) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_TimeSpanHasSeconds"),
+                    throw new ArgumentException("The TimeSpan parameter cannot be specified more precisely than whole minutes.",
                         "daylightDelta");
                 }
 
                 if (dateStart != DateTime.MinValue && dateStart.Kind == DateTimeKind.Unspecified && dateStart.TimeOfDay != TimeSpan.Zero) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeHasTimeOfDay"),
+                    throw new ArgumentException("The supplied DateTime includes a TimeOfDay setting.   This is not supported.",
                         "dateStart");
                 }
 
                 if (dateEnd != DateTime.MaxValue && dateEnd.Kind == DateTimeKind.Unspecified && dateEnd.TimeOfDay != TimeSpan.Zero) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeHasTimeOfDay"),
+                    throw new ArgumentException("The supplied DateTime includes a TimeOfDay setting.   This is not supported.",
                         "dateEnd");
                 }
                 Contract.EndContractBlock();
@@ -4601,7 +4601,7 @@ namespace System
                                            m_daylightTransitionStart, m_daylightTransitionEnd, m_noDaylightTransitions);
                 }
                 catch (ArgumentException e) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
                 }
             }
 
@@ -4660,7 +4660,7 @@ namespace System
 ============================================================*/
         [Serializable]
         [System.Security.Permissions.HostProtection(MayLeakOnAbort = true)]
-#if !FEATURE_CORECLR
+#if !FEATURE_CORECLR && !MONO
         [TypeForwardedFrom("System.Core, Version=3.5.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089")]
 #endif
         public struct TransitionTime : IEquatable<TransitionTime>, ISerializable, IDeserializationCallback
@@ -4826,33 +4826,33 @@ namespace System
                     DayOfWeek dayOfWeek) { 
 
                 if (timeOfDay.Kind != DateTimeKind.Unspecified) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeKindMustBeUnspecified"), "timeOfDay");
+                    throw new ArgumentException("The supplied DateTime must have the Kind property set to DateTimeKind.Unspecified.", "timeOfDay");
                 }
 
                 // Month range 1-12
                 if (month < 1 || month > 12) {
-                    throw new ArgumentOutOfRangeException("month", Environment.GetResourceString("ArgumentOutOfRange_MonthParam"));
+                    throw new ArgumentOutOfRangeException("month", "The Month parameter must be in the range 1 through 12.");
                 }
 
                 // Day range 1-31
                 if (day < 1 || day > 31) {
-                    throw new ArgumentOutOfRangeException("day", Environment.GetResourceString("ArgumentOutOfRange_DayParam"));
+                    throw new ArgumentOutOfRangeException("day", "The Day parameter must be in the range 1 through 31.");
                 }
 
                 // Week range 1-5
                 if (week < 1 || week > 5) {
-                    throw new ArgumentOutOfRangeException("week", Environment.GetResourceString("ArgumentOutOfRange_Week"));
+                    throw new ArgumentOutOfRangeException("week", "The Week parameter must be in the range 1 through 5.");
                 }
 
                 // DayOfWeek range 0-6
                 if ((int)dayOfWeek < 0 || (int)dayOfWeek > 6) {
-                    throw new ArgumentOutOfRangeException("dayOfWeek", Environment.GetResourceString("ArgumentOutOfRange_DayOfWeek"));
+                    throw new ArgumentOutOfRangeException("dayOfWeek", "The DayOfWeek enumeration must be in the range 0 through 6.");
                 }
                 Contract.EndContractBlock();
 
                 if (timeOfDay.Year != 1 || timeOfDay.Month != 1 
                 || timeOfDay.Day != 1 || (timeOfDay.Ticks % TimeSpan.TicksPerMillisecond != 0)) {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_DateTimeHasTicks"), "timeOfDay");
+                    throw new ArgumentException("The supplied DateTime must have the Year, Month, and Day properties set to 1.  The time cannot be specified more precisely than whole milliseconds.", "timeOfDay");
                 }
             }
 
@@ -4864,7 +4864,7 @@ namespace System
                     ValidateTransitionTime(m_timeOfDay, (Int32)m_month, (Int32)m_week, (Int32)m_day, m_dayOfWeek);
                 }
                 catch (ArgumentException e) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
                 }
             }
 
@@ -5024,10 +5024,10 @@ namespace System
                     return TimeZoneInfo.CreateCustomTimeZone(id, baseUtcOffset, displayName, standardName, daylightName, rules);
                 }
                 catch (ArgumentException ex) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), ex);
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", ex);
                 }
                 catch (InvalidTimeZoneException ex) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), ex);
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", ex);
                 }
             }
 
@@ -5107,7 +5107,7 @@ namespace System
             //
             static private void VerifyIsEscapableCharacter(char c) {
                if (c != esc && c != sep && c != lhs && c != rhs) {
-                   throw new SerializationException(Environment.GetResourceString("Serialization_InvalidEscapeSequence", c));
+                   throw new SerializationException($"The serialized data contained an invalid escape sequence '\\{c}'.");
                }
             }
 
@@ -5123,7 +5123,7 @@ namespace System
             //
             private void SkipVersionNextDataFields(Int32 depth /* starting depth in the nested brackets ('[', ']')*/) {
                 if (m_currentTokenStartIndex < 0 || m_currentTokenStartIndex >= m_serializedText.Length) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
                 State tokenState = State.NotEscaped;
 
@@ -5158,7 +5158,7 @@ namespace System
 
                             case '\0':
                                 // invalid character
-                                throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                                throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
 
                             default:
                                 break;
@@ -5166,7 +5166,7 @@ namespace System
                     }
                 }
 
-                throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
             }
 
 
@@ -5193,11 +5193,11 @@ namespace System
                         return null;
                     }
                     else {
-                        throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                        throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                     }
                 }
                 if (m_currentTokenStartIndex < 0 || m_currentTokenStartIndex >= m_serializedText.Length) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
                 State tokenState = State.NotEscaped;
                 StringBuilder token = StringBuilderCache.Acquire(initialCapacityForString);
@@ -5217,7 +5217,7 @@ namespace System
 
                             case lhs:
                                 // '[' is an unexpected character
-                                throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                                throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
 
                             case rhs:
                                 if (canEndWithoutSeparator) {
@@ -5230,7 +5230,7 @@ namespace System
                                 }
                                 else {
                                     // ']' is an unexpected character
-                                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                                 }
 
                             case sep:
@@ -5245,7 +5245,7 @@ namespace System
                             
                             case '\0':
                                 // invalid character
-                                throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                                throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
 
                             default:
                                 token.Append(m_serializedText[i]);
@@ -5258,11 +5258,11 @@ namespace System
                 //
                 if (tokenState == State.Escaped) {
                    // we are at the end of the serialized text but we are in an escaped state
-                   throw new SerializationException(Environment.GetResourceString("Serialization_InvalidEscapeSequence", String.Empty));
+                   throw new SerializationException("The serialized data contained an invalid escape sequence '\\'.");
                 }
                 
                 if (!canEndWithoutSeparator) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
                 m_currentTokenStartIndex = m_serializedText.Length;
                 m_state = State.EndOfLine;
@@ -5279,7 +5279,7 @@ namespace System
                 String token = GetNextStringValue(canEndWithoutSeparator);
                 DateTime time;
                 if (!DateTime.TryParseExact(token, format, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.None, out time)) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
                 return time;
             }
@@ -5296,7 +5296,7 @@ namespace System
                     return new TimeSpan(0 /* hours */, token /* minutes */, 0 /* seconds */);
                 }
                 catch (ArgumentOutOfRangeException e) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
                 }
             }
 
@@ -5310,7 +5310,7 @@ namespace System
                 String token = GetNextStringValue(canEndWithoutSeparator);
                 Int32 value;
                 if (!Int32.TryParse(token, NumberStyles.AllowLeadingSign /* "[sign]digits" */, CultureInfo.InvariantCulture, out value)) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
                 return value;
             }
@@ -5337,10 +5337,10 @@ namespace System
                 if (!canEndWithoutSeparator) {
                     // the AdjustmentRule array must end with a separator
                     if (m_state == State.EndOfLine) {
-                        throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                        throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                     }
                     if (m_currentTokenStartIndex < 0 || m_currentTokenStartIndex >= m_serializedText.Length) {
-                        throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                        throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                     }
                 }
 
@@ -5359,12 +5359,12 @@ namespace System
                         return null;
                     }
                     else {
-                        throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                        throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                     }
                 }
 
                 if (m_currentTokenStartIndex < 0 || m_currentTokenStartIndex >= m_serializedText.Length) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
                 // check to see if the very first token we see is the separator
@@ -5374,7 +5374,7 @@ namespace System
 
                 // verify the current token is a left-hand-side marker ("[")
                 if (m_serializedText[m_currentTokenStartIndex] != lhs) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
                 m_currentTokenStartIndex++;
 
@@ -5389,7 +5389,7 @@ namespace System
                 // verify that the string is now at the right-hand-side marker ("]") ...
 
                 if (m_state == State.EndOfLine || m_currentTokenStartIndex >= m_serializedText.Length) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
                 // Check if we have baseUtcOffsetDelta in the serialized string and then deserialize it
@@ -5404,7 +5404,7 @@ namespace System
                 }
 
                 if (m_state == State.EndOfLine || m_currentTokenStartIndex >= m_serializedText.Length) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
                 if (m_serializedText[m_currentTokenStartIndex] != rhs) {
@@ -5426,7 +5426,7 @@ namespace System
                     rule = AdjustmentRule.CreateAdjustmentRule(dateStart, dateEnd, daylightDelta, daylightStart, daylightEnd, baseUtcOffsetDelta, noDaylightTransitions > 0);
                 }
                 catch (ArgumentException e) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
                 }
 
                 // finally set the state to either EndOfLine or StartOfToken for the next caller
@@ -5455,24 +5455,24 @@ namespace System
                     //
                     // we are at the end of the line or we are starting at a "]" character
                     //
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
                 if (m_currentTokenStartIndex < 0 || m_currentTokenStartIndex >= m_serializedText.Length) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
                 // verify the current token is a left-hand-side marker ("[")
 
                 if (m_serializedText[m_currentTokenStartIndex] != lhs) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
                 m_currentTokenStartIndex++;
 
                 Int32 isFixedDate   = GetNextInt32Value(false);
 
                 if (isFixedDate != 0 && isFixedDate != 1) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
                 TransitionTime transition;
@@ -5489,7 +5489,7 @@ namespace System
                         transition = TransitionTime.CreateFixedDateRule(timeOfDay, month, day);
                     }
                     catch (ArgumentException e) {
-                        throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                        throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
                     }
                 }
                 else {
@@ -5500,7 +5500,7 @@ namespace System
                         transition = TransitionTime.CreateFloatingDateRule(timeOfDay, month, week, (DayOfWeek)dayOfWeek);
                     }
                     catch (ArgumentException e) {
-                        throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"), e);
+                        throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
                     }
 
                 }
@@ -5508,7 +5508,7 @@ namespace System
                 // verify that the string is now at the right-hand-side marker ("]") ...
 
                 if (m_state == State.EndOfLine || m_currentTokenStartIndex >= m_serializedText.Length) {
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
                 if (m_serializedText[m_currentTokenStartIndex] != rhs) {
@@ -5534,7 +5534,7 @@ namespace System
 
                 if (!sepFound && !canEndWithoutSeparator) {
                     // we MUST end on a separator
-                    throw new SerializationException(Environment.GetResourceString("Serialization_InvalidData"));
+                    throw new SerializationException("An error occurred while deserializing the object.  The serialized data is corrupt.");
                 }
 
 
@@ -5576,7 +5576,7 @@ namespace System
             {
                 if (data == null || data.Length < index + c_len)
                 {
-                    throw new ArgumentException(Environment.GetResourceString("Argument_TimeZoneInfoInvalidTZif"), "data");
+                    throw new ArgumentException("The TZif data structure is corrupt.", "data");
                 }
                 Contract.EndContractBlock();
                 UtcOffset = new TimeSpan(0, 0, TZif_ToInt32(data, index + 00));
@@ -5609,7 +5609,7 @@ namespace System
                 if (Magic != 0x545A6966)
                 {
                     // 0x545A6966 = {0x54, 0x5A, 0x69, 0x66} = "TZif"
-                    throw new ArgumentException(Environment.GetResourceString("Argument_TimeZoneInfoBadTZif"), "data");
+                    throw new ArgumentException("The tzfile does not begin with the magic characters 'TZif'.  Please verify that the file is not corrupt.", "data");
                 }
 
                 byte version = data[index + 04];
