@@ -45,18 +45,12 @@ namespace MonoTests.System
 
 		public static bool IsWindows()
 		{
-			switch (Environment.OSVersion.Platform)
-			{
-				case PlatformID.Win32Windows:
-				case PlatformID.Win32NT:
-					return true;
-			}
-			return false;
+			Environment.OSVersion.Platform == PlatformID.Win32Windows;
 		}
 
 		public static bool IsUnix()
 		{
-			return System.Environment.OSVersion.Platform == PlatformID.Unix;
+			return Environment.OSVersion.Platform == PlatformID.Unix;
 		}
 
 		public static string GetBrusselsTimeId()
@@ -616,9 +610,6 @@ namespace MonoTests.System
 			[Test]
 			public void ConvertToTimeZone ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
-
 				var newZealandTimeId = IsWindows() ? "New Zealand Standard Time" : "Pacific/Auckland";
 				TimeZoneInfo.ConvertTime (DateTime.Now, TimeZoneInfo.FindSystemTimeZoneById(newZealandTimeId));
 			}
@@ -847,8 +838,6 @@ namespace MonoTests.System
 			[Test]
 			public void ContainsBrussels ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
 				global::System.Collections.ObjectModel.ReadOnlyCollection<TimeZoneInfo> systemTZ = TimeZoneInfo.GetSystemTimeZones ();
 				foreach (TimeZoneInfo tz in systemTZ) {
 					if (tz.Id == GetBrusselsTimeId())
@@ -889,8 +878,6 @@ namespace MonoTests.System
 			[Test]
 			public void FindBrusselsTZ ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore ("Works only on Windows and Unix.");
 				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				Assert.IsNotNull (brussels);
 			}
@@ -898,8 +885,6 @@ namespace MonoTests.System
 			[Test]
 			public void OffsetIsCorrectInKinshasa ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
 				TimeZoneInfo kin = TimeZoneInfo.FindSystemTimeZoneById (GetWestAfricaTimeId());
 				Assert.AreEqual (new TimeSpan (1,0,0), kin.BaseUtcOffset, "BaseUtcOffset in Kinshasa is not +1h");
 			}
@@ -907,8 +892,6 @@ namespace MonoTests.System
 			[Test]
 			public void OffsetIsCorrectInBrussels ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
 				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				Assert.AreEqual (new TimeSpan (1,0,0), brussels.BaseUtcOffset, "BaseUtcOffset for Brussels is not +1h");
 			}
@@ -916,8 +899,6 @@ namespace MonoTests.System
 			[Test]
 			public void NoDSTInKinshasa ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
 				TimeZoneInfo kin = TimeZoneInfo.FindSystemTimeZoneById (GetWestAfricaTimeId());
 				Assert.IsFalse (kin.SupportsDaylightSavingTime);
 			}
@@ -925,8 +906,6 @@ namespace MonoTests.System
 			[Test]
 			public void BrusselsSupportsDST ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
 				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				Assert.IsTrue (brussels.SupportsDaylightSavingTime);
 			}
@@ -934,8 +913,6 @@ namespace MonoTests.System
 			[Test]
 			public void MelbourneSupportsDST ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
 				var melbourneTimeZoneId = IsWindows() ? "E. Australia Standard Time" : "Australia/Melbourne";
 				TimeZoneInfo melbourne = TimeZoneInfo.FindSystemTimeZoneById (melbourneTimeZoneId);
 				Assert.IsTrue (melbourne.SupportsDaylightSavingTime);
@@ -986,9 +963,6 @@ namespace MonoTests.System
 			[Test]
 			public void SubminuteDSTOffsets ()
 			{
-				if (!IsWindows() && !IsUnix())
-					Assert.Ignore("Works only on Windows and Unix.");
-
 				if (IsWindows())
 				{
 					subMinuteDSTs = new string[]
@@ -1034,8 +1008,6 @@ namespace MonoTests.System
 			[ExpectedException (typeof(ArgumentException))]
 			public void DateIsNotAmbiguous ()
 			{
-				if (!IsWindows() && !IsUnix())
-					throw new ArgumentException ();
 				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				DateTime date = new DateTime (2007, 05, 11, 11, 40, 00);
 				brussels.GetAmbiguousTimeOffsets (date);
@@ -1044,8 +1016,6 @@ namespace MonoTests.System
 			[Test]
 			public void AmbiguousOffsets ()
 			{
-				if (!IsWindows() && !IsUnix())
-					throw new ArgumentException();
 				TimeZoneInfo brussels = TimeZoneInfo.FindSystemTimeZoneById (GetBrusselsTimeId());
 				DateTime date = new DateTime (2007, 10, 28, 2, 30, 00);
 				Assert.IsTrue (brussels.IsAmbiguousTime (date));
