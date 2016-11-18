@@ -719,3 +719,8 @@ MonoClass* mono_unity_class_get_castclass(MonoClass *klass)
 	return klass->cast_class;
 }
 
+gchar* mono_unity_get_runtime_build_info(const char *date, const char *time)
+{
+	return g_strdup_printf("Unity IL2CPP(%s %s)", date, time);
+}
+
