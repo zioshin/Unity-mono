@@ -724,3 +724,16 @@ gchar* mono_unity_get_runtime_build_info(const char *date, const char *time)
 	return g_strdup_printf("Unity IL2CPP(%s %s)", date, time);
 }
 
+gboolean mono_unity_type_is_enum_type(MonoType *type)
+{
+	if (type->type == MONO_TYPE_VALUETYPE && type->data.klass->enumtype)
+		return TRUE;
+	if (type->type == MONO_TYPE_GENERICINST && type->data.generic_class->container_class->enumtype)
+		return TRUE;
+	return FALSE;
+}
+
+MonoClass* mono_unity_int32_class_get()
+{
+	return mono_defaults.int32_class;
+}
