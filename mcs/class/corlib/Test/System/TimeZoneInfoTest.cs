@@ -166,15 +166,6 @@ namespace MonoTests.System
 				TimeZoneInfo.CreateCustomTimeZone ("mytimezone", - new TimeSpan (14, 1, 0), null, null);
 			}
 		
-		#if STRICT
-			[Test]
-			[ExpectedException (typeof (ArgumentException))]
-			public void IdLongerThan32 ()
-			{
-				TimeZoneInfo.CreateCustomTimeZone ("12345678901234567890123456789012345", new TimeSpan (0), null, null);	
-			}	
-		#endif
-		
 			[Test]
 			[ExpectedException (typeof (InvalidTimeZoneException))]
 			public void AdjustmentRulesOverlap ()
@@ -636,7 +627,7 @@ namespace MonoTests.System
 
 				sdt = new DateTime (2014, 1, 9, 23, 0, 0);
 				ddt = TimeZoneInfo.ConvertTime (sdt, TimeZoneInfo.Local);
-				var expectedKind = (TimeZoneInfo.Local == TimeZoneInfo.Utc)? DateTimeKind.Utc : sdt.Kind;
+				var expectedKind = (TimeZoneInfo.Local == TimeZoneInfo.Utc)? DateTimeKind.Utc : DateTimeKind.Local;
 				Assert.AreEqual (expectedKind,  ddt.Kind, "#3.1");
 				Assert.AreEqual (DateTimeKind.Unspecified, sdt.Kind, "#3.2");
 			}
@@ -786,23 +777,19 @@ namespace MonoTests.System
 			[Test]
 			public void AmbiguousDates ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				Assert.IsFalse (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 1, 0, 0)));
+				Assert.IsTrue (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 1, 0, 0)));
 				Assert.IsTrue (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 1, 0, 1)));
-				Assert.IsTrue (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 2, 0, 0)));
+				Assert.IsFalse (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 2, 0, 0)));
 				Assert.IsFalse (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 2, 0, 1)));
 			}
 		
 			[Test]
 			public void AmbiguousUTCDates ()
 			{
-				if (Environment.OSVersion.Platform != PlatformID.Unix)
-					Assert.Ignore ("Not running on Unix.");
-				Assert.IsFalse (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 0, 0, 0, DateTimeKind.Utc)));
+				Assert.IsTrue (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 0, 0, 0, DateTimeKind.Utc)));
 				Assert.IsTrue (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 0, 0, 1, DateTimeKind.Utc)));
 				Assert.IsTrue (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 0, 59, 59, DateTimeKind.Utc)));
-				Assert.IsFalse (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 1, 0, 0, DateTimeKind.Utc)));
+				Assert.IsTrue (london.IsAmbiguousTime (new DateTime (2007, 10, 28, 1, 0, 0, DateTimeKind.Utc)));
 			}
 		
 		#if SLOW_TESTS
@@ -1232,7 +1219,7 @@ namespace MonoTests.System
 					TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule (DateTime.MinValue, DateTime.MaxValue.Date, TimeSpan.FromHours (-1), startTransition, endTransition) });
 
 				var offset = ctz.GetUtcOffset (DateTime.MinValue);
-				Assert.AreEqual (TimeSpan.FromHours (-5), offset); // TODO: Wrong it should be -6
+				Assert.AreEqual (TimeSpan.FromHours (-6), offset);
 			}
     }
 
