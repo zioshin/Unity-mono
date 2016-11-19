@@ -4544,11 +4544,11 @@ namespace System
                              bool noDaylightTransitions) {
 
 
-                if (dateStart.Kind != DateTimeKind.Unspecified) {
+                if (dateStart.Kind != DateTimeKind.Unspecified && dateStart.Kind != DateTimeKind.Utc) {
                     throw new ArgumentException("The supplied DateTime must have the Kind property set to DateTimeKind.Unspecified.", "dateStart");
                 }
 
-                if (dateEnd.Kind != DateTimeKind.Unspecified) {
+                if (dateEnd.Kind != DateTimeKind.Unspecified && dateEnd.Kind != DateTimeKind.Utc) {
                     throw new ArgumentException("The supplied DateTime must have the Kind property set to DateTimeKind.Unspecified.", "dateEnd");
                 }
 

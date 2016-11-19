@@ -1309,7 +1309,7 @@ namespace MonoTests.System
 				Assert.AreEqual(tz.DisplayName, "MSK");
 				Assert.AreEqual(tz.Id, "Local");
 				Assert.AreEqual(tz.StandardName, "MSK");
-				Assert.AreEqual(tz.SupportsDaylightSavingTime, false);
+				Assert.AreEqual(tz.SupportsDaylightSavingTime, true);
 			}
 		}
 	}
