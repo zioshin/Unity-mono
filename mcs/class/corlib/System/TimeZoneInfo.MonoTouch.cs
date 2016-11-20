@@ -51,6 +51,20 @@ namespace System {
 			}
 		}
 
+		static TimeZoneInfoResult TryGetTimeZoneIOS(string id, out TimeZoneInfo value, out Exception e)
+		{
+			try {
+				value = FindSystemTimeZoneByIdCore(id);
+			} catch (Exception ex) {
+				value = null;
+				e = ex;
+				return TimeZoneInfoResult.TimeZoneNotFoundException;
+			}
+
+			e = null;
+			return value != null ? TimeZoneInfoResult.Success : TimeZoneInfoResult.TimeZoneNotFoundException;
+		}
+
 		static TimeZoneInfo FindSystemTimeZoneByIdCore (string id)
 		{
 			using (Stream stream = GetMonoTouchData (id)) {
@@ -58,21 +72,10 @@ namespace System {
 			}
 		}
 
-		static void GetSystemTimeZonesCore (List<TimeZoneInfo> systemTimeZones)
-		{
-			foreach (string name in GetMonoTouchNames ()) {
-				using (Stream stream = GetMonoTouchData (name, false)) {
-					if (stream == null)
-						continue;
-					systemTimeZones.Add (BuildFromStream (name, stream));
-				}
-			}
-		}
-		
 		[DllImport ("__Internal")]
 		extern static IntPtr xamarin_timezone_get_names (ref int count);
 
-		static ReadOnlyCollection<string> GetMonoTouchNames ()
+		static ReadOnlyCollection<string> GetTimeZoneIds ()
 		{
 			int count = 0;
 			IntPtr array = xamarin_timezone_get_names (ref count);

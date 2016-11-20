@@ -126,6 +126,7 @@ namespace System
             private volatile TimeZoneInfo m_localTimeZone;
             private volatile TimeZoneInfo m_utcTimeZone;
 
+#if !MONOTOUCH && !XAMMAC
             private TimeZoneInfo CreateLocal()
             {
                 lock (this)
@@ -151,6 +152,7 @@ namespace System
                     return timeZone;
                 }
             }
+#endif // !MONOTOUCH && !XAMMAC
 
             public TimeZoneInfo Local {
                 get {
@@ -1002,8 +1004,7 @@ namespace System
 					}
 				}
 			} else {
-				string timeZoneDirectory = GetTimeZoneDirectory();
-				foreach (string timeZoneId in GetTimeZoneIds(timeZoneDirectory))
+				foreach (string timeZoneId in GetTimeZoneIds())
 				{
 					TimeZoneInfo value;
 					Exception ex;
@@ -2172,14 +2173,16 @@ namespace System
             return TimeZoneInfoResult.Success;
         }
 
+#if !MONOTOUCH && !XAMMAC
         /// <summary>
         /// Returns a collection of TimeZone Id values from the zone.tab file in the timeZoneDirectory.
         /// </summary>
         /// <remarks>
         /// Lines that start with # are comments and are skipped.
         /// </remarks>
-        private static IEnumerable<string> GetTimeZoneIds(string timeZoneDirectory)
+        private static IEnumerable<string> GetTimeZoneIds()
         {
+			var timeZoneDirectory = GetTimeZoneDirectory();
             string[] zoneTabFileLines = null;
             try
             {
@@ -2228,6 +2231,7 @@ namespace System
 
             return timeZoneIds;
         }
+#endif
 
         /// <summary>
         /// Gets the tzfile raw data for the current 'local' time zone using the following rules.
@@ -3430,7 +3434,12 @@ namespace System
         private static TimeZoneInfoResult TryGetTimeZoneFromLocalMachine(string id, bool dstDisabled, out TimeZoneInfo value, out Exception e, CachedData cachedData)
         {
 			TimeZoneInfo match;
+
+#if !MONOTOUCH && !XAMMAC
 			var result = IsWindows ? TryGetTimeZoneByRegistryKey(id, out match, out e) : TryGetTimeZoneByFile(id, out match, out e);
+#else
+			var result = TryGetTimeZoneIOS(id, out match, out e);
+#endif
 
             if (result == TimeZoneInfoResult.Success)
             {
