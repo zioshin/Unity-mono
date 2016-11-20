@@ -152,7 +152,7 @@ namespace System
                     return timeZone;
                 }
             }
-#endif // !MONOTOUCH && !XAMMAC
+#endif // !MONOTOUCH && !XAMMAC && !MONODROID
 
             public TimeZoneInfo Local {
                 get {
@@ -2187,7 +2187,7 @@ namespace System
             e = null;
             return value != null ? TimeZoneInfoResult.Success : TimeZoneInfoResult.TimeZoneNotFoundException;
         }
-#endif
+#endif // MONOTOUCH || XAMMAC || MONODROID
 
 #if !MONOTOUCH && !XAMMAC && !MONODROID
 		/// <summary>
@@ -2247,7 +2247,7 @@ namespace System
 
             return timeZoneIds;
         }
-#endif
+#endif // !MONOTOUCH && !XAMMAC && !MONODROID
 
         /// <summary>
         /// Gets the tzfile raw data for the current 'local' time zone using the following rules.
@@ -5731,6 +5731,9 @@ namespace System
 				return ((platform != 4) && (platform != 6) && (platform != 128));
 			}
 		}
+
+		[MethodImpl(MethodImplOptions.InternalCall)]
+		private static extern bool UseRegistryForTimeZoneInformation();
 
 	} // TimezoneInfo
 } // namespace System

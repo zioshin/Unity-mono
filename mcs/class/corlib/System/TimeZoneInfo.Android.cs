@@ -479,7 +479,7 @@ namespace System {
 				byte[] buffer = db.GetTimeZoneData (name);
 				if (buffer == null)
 					return null;
-				return TimeZoneInfo.ParseTZBuffer (id, buffer, buffer.Length);
+				return GetTimeZoneFromTzData (buffer, id);
 			}
 
 			internal static TimeZoneInfo GetTimeZone (string id, string name)
