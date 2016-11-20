@@ -59,7 +59,7 @@ namespace System
 #if !FEATURE_CORECLR && !MONO
     [TypeForwardedFrom("System.Core, Version=3.5.0.0, Culture=Neutral, PublicKeyToken=b77a5c561934e089")]
 #endif
-    sealed public class TimeZoneInfo : IEquatable<TimeZoneInfo>, ISerializable, IDeserializationCallback
+    sealed public partial class TimeZoneInfo : IEquatable<TimeZoneInfo>, ISerializable, IDeserializationCallback
     {
         // ---- SECTION:  members supporting exposed properties -------------*
         private String m_id;
@@ -2174,13 +2174,13 @@ namespace System
         }
 
 #if !MONOTOUCH && !XAMMAC
-        /// <summary>
-        /// Returns a collection of TimeZone Id values from the zone.tab file in the timeZoneDirectory.
-        /// </summary>
-        /// <remarks>
-        /// Lines that start with # are comments and are skipped.
-        /// </remarks>
-        private static IEnumerable<string> GetTimeZoneIds()
+		/// <summary>
+		/// Returns a collection of TimeZone Id values from the zone.tab file in the timeZoneDirectory.
+		/// </summary>
+		/// <remarks>
+		/// Lines that start with # are comments and are skipped.
+		/// </remarks>
+		private static IEnumerable<string> GetTimeZoneIds()
         {
 			var timeZoneDirectory = GetTimeZoneDirectory();
             string[] zoneTabFileLines = null;

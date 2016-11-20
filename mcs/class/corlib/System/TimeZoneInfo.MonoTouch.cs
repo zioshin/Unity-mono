@@ -72,6 +72,25 @@ namespace System {
 			}
 		}
 
+		static TimeZoneInfo BuildFromStream(string id, Stream stream)
+		{
+			byte[] rawData = new byte[stream.Length];
+			stream.Read(rawData, 0, rawData.Length);
+
+			try
+			{
+				return GetTimeZoneFromTzData(rawData, id);
+			}
+			catch (InvalidTimeZoneException)
+			{
+				throw;
+			}
+			catch (Exception e)
+			{
+				throw new InvalidTimeZoneException("Time zone information file contains invalid data", e);
+			}
+		}
+
 		[DllImport ("__Internal")]
 		extern static IntPtr xamarin_timezone_get_names (ref int count);
 
