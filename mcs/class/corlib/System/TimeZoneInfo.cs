@@ -4318,8 +4318,6 @@ namespace System
                         throw new InvalidTimeZoneException("The AdjustmentRule array cannot contain null elements.");
                     }
 
-                    // FUTURE: check to see if this rule supports Daylight Saving Time
-                    // adjustmentRulesSupportDst = adjustmentRulesSupportDst || current.SupportsDaylightSavingTime;
                     // FUTURE: test baseUtcOffset + current.StandardDelta
 
                     if (UtcOffsetOutOfRange(baseUtcOffset + current.DaylightDelta)) {
@@ -5660,6 +5658,8 @@ namespace System
 
 			foreach (var rule in GetAdjustmentRules())
 			{
+				if (!rule.HasDaylightSaving)
+					continue;
 				if (rule.DateStart.Year != year && rule.DateEnd.Year != year)
 					continue;
 				if (rule.DateStart.Year == year)
@@ -5671,8 +5671,8 @@ namespace System
 			if (first == null || last == null)
 				return new DaylightTime(new DateTime(), new DateTime(), new TimeSpan());
 
-			start = TransitionPoint(first.DaylightTransitionStart, year);
-			end = TransitionPoint(last.DaylightTransitionEnd, year);
+			start = TransitionPoint(first.DateStart, first.DaylightTransitionStart, year);
+			end = TransitionPoint(last.DateEnd, last.DaylightTransitionEnd, year);
 			delta = first.DaylightDelta;
 
 			if (start == DateTime.MinValue || end == DateTime.MinValue)
@@ -5681,8 +5681,12 @@ namespace System
 			return new DaylightTime(start, end, delta);
 		}
 
-		private static DateTime TransitionPoint(TransitionTime transition, int year)
+		private static DateTime TransitionPoint(DateTime date, TransitionTime transition, int year)
 		{
+			// On platforms other than Windows, date contains exact transition point in time
+			if (!IsWindows)
+				return date;
+
 			if (transition.IsFixedDateRule)
 				return new DateTime(year, transition.Month, transition.Day) + transition.TimeOfDay.TimeOfDay;
 

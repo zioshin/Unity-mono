@@ -1248,7 +1248,7 @@ namespace MonoTests.System
 
 				Assert.AreEqual (new TimeSpan (1, 0, 0), changes.Delta);
 				Assert.AreEqual (new DateTime (2014, 10, 5, 2, 0, 0), changes.Start);
-				Assert.AreEqual (new DateTime (2014, 4, 6, 3, 0, 0), changes.End);
+				Assert.AreEqual (new DateTime (2014, 4, 6, 3, 59, 59), changes.End);
 			}
 
 			[Test]
