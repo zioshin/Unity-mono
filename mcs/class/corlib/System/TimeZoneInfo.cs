@@ -126,7 +126,7 @@ namespace System
             private volatile TimeZoneInfo m_localTimeZone;
             private volatile TimeZoneInfo m_utcTimeZone;
 
-#if !MONOTOUCH && !XAMMAC
+#if !MONOTOUCH && !XAMMAC && !MONODROID
             private TimeZoneInfo CreateLocal()
             {
                 lock (this)
@@ -2173,7 +2173,23 @@ namespace System
             return TimeZoneInfoResult.Success;
         }
 
-#if !MONOTOUCH && !XAMMAC
+#if MONOTOUCH || XAMMAC || MONODROID
+        static TimeZoneInfoResult TryGetTimeZoneCore(string id, out TimeZoneInfo value, out Exception e)
+        {
+            try {
+                value = FindSystemTimeZoneByIdCore(id);
+            } catch (Exception ex) {
+                value = null;
+                e = ex;
+                return TimeZoneInfoResult.TimeZoneNotFoundException;
+            }
+
+            e = null;
+            return value != null ? TimeZoneInfoResult.Success : TimeZoneInfoResult.TimeZoneNotFoundException;
+        }
+#endif
+
+#if !MONOTOUCH && !XAMMAC && !MONODROID
 		/// <summary>
 		/// Returns a collection of TimeZone Id values from the zone.tab file in the timeZoneDirectory.
 		/// </summary>
@@ -3435,10 +3451,10 @@ namespace System
         {
 			TimeZoneInfo match;
 
-#if !MONOTOUCH && !XAMMAC
+#if !MONOTOUCH && !XAMMAC && !MONODROID
 			var result = IsWindows ? TryGetTimeZoneByRegistryKey(id, out match, out e) : TryGetTimeZoneByFile(id, out match, out e);
 #else
-			var result = TryGetTimeZoneIOS(id, out match, out e);
+			var result = TryGetTimeZoneCore(id, out match, out e);
 #endif
 
             if (result == TimeZoneInfoResult.Success)

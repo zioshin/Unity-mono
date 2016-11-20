@@ -51,20 +51,6 @@ namespace System {
 			}
 		}
 
-		static TimeZoneInfoResult TryGetTimeZoneIOS(string id, out TimeZoneInfo value, out Exception e)
-		{
-			try {
-				value = FindSystemTimeZoneByIdCore(id);
-			} catch (Exception ex) {
-				value = null;
-				e = ex;
-				return TimeZoneInfoResult.TimeZoneNotFoundException;
-			}
-
-			e = null;
-			return value != null ? TimeZoneInfoResult.Success : TimeZoneInfoResult.TimeZoneNotFoundException;
-		}
-
 		static TimeZoneInfo FindSystemTimeZoneByIdCore (string id)
 		{
 			using (Stream stream = GetMonoTouchData (id)) {
