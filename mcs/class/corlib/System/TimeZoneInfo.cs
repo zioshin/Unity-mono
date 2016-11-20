@@ -4308,7 +4308,6 @@ namespace System
             //
 
             if (adjustmentRules != null && adjustmentRules.Length != 0) {
-                adjustmentRulesSupportDst = true;
                 AdjustmentRule prev = null;
                 AdjustmentRule current = null;
                 for (int i = 0; i < adjustmentRules.Length; i++) {
@@ -4331,7 +4330,9 @@ namespace System
                         // verify the rules are in chronological order and the DateStart/DateEnd do not overlap
                         throw new InvalidTimeZoneException("The elements of the AdjustmentRule array must be in chronological order and must not overlap.");
 					}
-                }
+
+					adjustmentRulesSupportDst |= current.DaylightDelta != TimeSpan.Zero;
+				}
             }
         }
 
