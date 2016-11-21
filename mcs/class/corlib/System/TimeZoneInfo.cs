@@ -2,7 +2,7 @@
 // TimeZoneInfo.cs
 //
 // Author:
-//   Original taken from CoreCLR
+//   Original taken from CoreCLR and CoreRT
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -234,16 +234,16 @@ namespace System
             public bool m_allSystemTimeZonesRead;
 
             [System.Security.SecuritySafeCritical]
-            private static TimeZoneInfo GetCurrentOneYearLocal() {
+            private static unsafe TimeZoneInfo GetCurrentOneYearLocal() {
                 // load the data from the OS
                 TimeZoneInfo match;
 
-                Win32Native.TimeZoneInformation timeZoneInformation = new Win32Native.TimeZoneInformation();
-                long result = UnsafeNativeMethods.GetTimeZoneInformation(out timeZoneInformation);
+				Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation;
+                long result = UnsafeNativeMethods.GetDynamicTimeZoneInformation(out timeZoneInformation);
                 if (result == Win32Native.TIME_ZONE_ID_INVALID)
                     match = CreateCustomTimeZone(c_localId, TimeSpan.Zero, c_localId, c_localId);
                 else
-                    match = GetLocalTimeZoneFromWin32Data(timeZoneInformation, false);               
+                    match = GetLocalTimeZoneFromWin32Data(new string(timeZoneInformation.TimeZoneKeyName), ref timeZoneInformation, false);               
                 return match;
             }
 
@@ -978,31 +978,42 @@ namespace System
         }
 
         [SecuritySafeCritical]
-        private static void PopulateAllSystemTimeZones(CachedData cachedData)
+        private static unsafe void PopulateAllSystemTimeZones(CachedData cachedData)
         {
 			if (IsWindows) {
-				PermissionSet permSet = new PermissionSet(PermissionState.None);
-				permSet.AddPermission(new RegistryPermission(RegistryPermissionAccess.Read, c_timeZonesRegistryHivePermissionList));
-				permSet.Assert();
+				if (UseRegistryForTimeZoneInformation()) {
+                    PermissionSet permSet = new PermissionSet(PermissionState.None);
+                    permSet.AddPermission(new RegistryPermission(RegistryPermissionAccess.Read, c_timeZonesRegistryHivePermissionList));
+                    permSet.Assert();
 
-				using (RegistryKey reg = Registry.LocalMachine.OpenSubKey(
-					c_timeZonesRegistryHive,
+                    using (RegistryKey reg = Registry.LocalMachine.OpenSubKey(
+                        c_timeZonesRegistryHive,
 #if FEATURE_MACL
-					RegistryKeyPermissionCheck.Default,
-					System.Security.AccessControl.RegistryRights.ReadKey
+                        RegistryKeyPermissionCheck.Default,
+                        System.Security.AccessControl.RegistryRights.ReadKey
 #else
-					false
+                        false
 #endif
-				)) {
+                    )) {
 
-					if (reg != null) {
-						foreach (string keyName in reg.GetSubKeyNames()) {
-							TimeZoneInfo value;
-							Exception ex;
-							TryGetTimeZone(keyName, false, out value, out ex, cachedData);  // populate the cache
-						}
-					}
-				}
+                        if (reg != null) {
+                            foreach (string keyName in reg.GetSubKeyNames()) {
+                                TimeZoneInfo value;
+                                Exception ex;
+                                TryGetTimeZone(keyName, false, out value, out ex, cachedData);  // populate the cache
+                            }
+                        }
+                    }
+				} else {
+                    uint index = 0;
+                    Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION tdzi;
+                    while (EnumDynamicTimeZoneInformation(index, out tdzi) == Interop.mincore.Errors.ERROR_SUCCESS) {
+                        TimeZoneInfo value;
+                        Exception e;
+                        TimeZoneInfoResult result = TryGetTimeZone(new string(tdzi.TimeZoneKeyName), ref tdzi, false, out value, out e, s_cachedData);
+                        index++;
+                    }
+                }
 			} else {
 				foreach (string timeZoneId in GetTimeZoneIds())
 				{
@@ -1115,40 +1126,6 @@ namespace System
                 Contract.Ensures(Contract.Result<TimeZoneInfo>() != null);
                 return s_cachedData.Utc;
             }
-        }
-
-
-        // -------- SECTION: constructors -----------------*
-        // 
-        // TimeZoneInfo -
-        //
-        // private ctor
-        //
-        [System.Security.SecurityCritical]  // auto-generated
-        private TimeZoneInfo(Win32Native.TimeZoneInformation zone, Boolean dstDisabled) {
-            
-            if (String.IsNullOrEmpty(zone.StandardName)) {
-                m_id = c_localId;  // the ID must contain at least 1 character - initialize m_id to "Local"
-            }
-            else {
-                m_id = zone.StandardName;
-            }
-            m_baseUtcOffset = new TimeSpan(0, -(zone.Bias), 0);
-
-            if (!dstDisabled) {
-                // only create the adjustment rule if DST is enabled
-                Win32Native.RegistryTimeZoneInformation regZone = new Win32Native.RegistryTimeZoneInformation(zone);
-                AdjustmentRule rule = CreateAdjustmentRuleFromTimeZoneInformation(regZone, DateTime.MinValue.Date, DateTime.MaxValue.Date, zone.Bias);
-                if (rule != null) {
-                    m_adjustmentRules = new AdjustmentRule[1];
-                    m_adjustmentRules[0] = rule;
-                }
-            }
-
-            ValidateTimeZoneInfo(m_id, m_baseUtcOffset, m_adjustmentRules, out m_supportsDaylightSavingTime);
-            m_displayName = zone.StandardName;
-            m_standardDisplayName = zone.StandardName;
-            m_daylightDisplayName = zone.DaylightName;
         }
 
         private TimeZoneInfo(byte[] data, string id, Boolean dstDisabled)
@@ -1518,15 +1495,15 @@ namespace System
         // This check is only meant to be used for "Local".
         //
         [System.Security.SecurityCritical]  // auto-generated
-        static private Boolean CheckDaylightSavingTimeNotSupported(Win32Native.TimeZoneInformation timeZone) {
-            return (   timeZone.DaylightDate.Year         == timeZone.StandardDate.Year
-                    && timeZone.DaylightDate.Month        == timeZone.StandardDate.Month
-                    && timeZone.DaylightDate.DayOfWeek    == timeZone.StandardDate.DayOfWeek
-                    && timeZone.DaylightDate.Day          == timeZone.StandardDate.Day
-                    && timeZone.DaylightDate.Hour         == timeZone.StandardDate.Hour
-                    && timeZone.DaylightDate.Minute       == timeZone.StandardDate.Minute
-                    && timeZone.DaylightDate.Second       == timeZone.StandardDate.Second
-                    && timeZone.DaylightDate.Milliseconds == timeZone.StandardDate.Milliseconds);
+        static private Boolean CheckDaylightSavingTimeNotSupported(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone) {
+            return (   timeZone.DaylightDate.wYear         == timeZone.StandardDate.wYear
+                    && timeZone.DaylightDate.wMonth        == timeZone.StandardDate.wMonth
+                    && timeZone.DaylightDate.wDayOfWeek    == timeZone.StandardDate.wDayOfWeek
+                    && timeZone.DaylightDate.wDay          == timeZone.StandardDate.wDay
+                    && timeZone.DaylightDate.wHour         == timeZone.StandardDate.wHour
+                    && timeZone.DaylightDate.wMinute       == timeZone.StandardDate.wMinute
+                    && timeZone.DaylightDate.wSecond       == timeZone.StandardDate.wSecond
+                    && timeZone.DaylightDate.wMilliseconds == timeZone.StandardDate.wMilliseconds);
         }
 
 
@@ -1569,43 +1546,42 @@ namespace System
             return localConverted;           
         }
 
-		        //
+        //
         // CreateAdjustmentRuleFromTimeZoneInformation-
         //
-        // Converts a Win32Native.RegistryTimeZoneInformation (REG_TZI_FORMAT struct) to an AdjustmentRule
+        // Converts members of TIME_ZONE_INFORMATION to an AdjustmentRule
         //
-        [System.Security.SecurityCritical]  // auto-generated
-        static private AdjustmentRule CreateAdjustmentRuleFromTimeZoneInformation(Win32Native.RegistryTimeZoneInformation timeZoneInformation, DateTime startDate, DateTime endDate, int defaultBaseUtcOffset) {
-            AdjustmentRule rule;
-            bool supportsDst = (timeZoneInformation.StandardDate.Month != 0);
+        static AdjustmentRule CreateAdjustmentRuleFromTimeZoneInformation(ref Interop.mincore.SYSTEMTIME standardDate, ref Interop.mincore.SYSTEMTIME daylightDate, int bias, int daylightBias, DateTime startDate, DateTime endDate, int defaultBaseUtcOffset)
+        {
+            bool supportsDst = standardDate.wMonth != 0;
 
             if (!supportsDst) {
-                if (timeZoneInformation.Bias == defaultBaseUtcOffset)
+                if (bias == defaultBaseUtcOffset)
                 {
                     // this rule will not contain any information to be used to adjust dates. just ignore it
                     return null;
                 }
 
-                return rule = AdjustmentRule.CreateAdjustmentRule(
+                return AdjustmentRule.CreateAdjustmentRule(
                     startDate,
                     endDate,
                     TimeSpan.Zero, // no daylight saving transition
                     TransitionTime.CreateFixedDateRule(DateTime.MinValue, 1, 1),
                     TransitionTime.CreateFixedDateRule(DateTime.MinValue.AddMilliseconds(1), 1, 1),
-                    new TimeSpan(0, defaultBaseUtcOffset - timeZoneInformation.Bias, 0),  // Bias delta is all what we need from this rule
-                    noDaylightTransitions: false);
+                    new TimeSpan(0, defaultBaseUtcOffset - bias, 0),  // Bias delta is all what we need from this rule
+					noDaylightTransitions: false);
             }
 
             //
             // Create an AdjustmentRule with TransitionTime objects
             //
             TransitionTime daylightTransitionStart;
-            if (!TransitionTimeFromTimeZoneInformation(timeZoneInformation, out daylightTransitionStart, true /* start date */)) {
+            if (!TransitionTimeFromTimeZoneInformation(ref standardDate, ref daylightDate, out daylightTransitionStart, true /* start date */)) {
                 return null;
             }
 
             TransitionTime daylightTransitionEnd;
-            if (!TransitionTimeFromTimeZoneInformation(timeZoneInformation, out daylightTransitionEnd, false /* end date */)) {
+            if (!TransitionTimeFromTimeZoneInformation(ref standardDate, ref daylightDate, out daylightTransitionEnd, false /* end date */)) {
                 return null;
             }
 
@@ -1614,16 +1590,14 @@ namespace System
                 return null;
             }
 
-            rule = AdjustmentRule.CreateAdjustmentRule(
+            return AdjustmentRule.CreateAdjustmentRule(
                 startDate,
                 endDate,
-                new TimeSpan(0, -timeZoneInformation.DaylightBias, 0),
-                (TransitionTime)daylightTransitionStart,
-                (TransitionTime)daylightTransitionEnd,
-                new TimeSpan(0, defaultBaseUtcOffset - timeZoneInformation.Bias, 0),
+                new TimeSpan(0, -daylightBias, 0),
+                daylightTransitionStart,
+                daylightTransitionEnd,
+                new TimeSpan(0, defaultBaseUtcOffset - bias, 0),
                 noDaylightTransitions: false);
-
-            return rule;
         }
 
 		//
@@ -1633,9 +1607,8 @@ namespace System
 		// that matches the TimeZoneInformation struct
 		//
 		[System.Security.SecuritySafeCritical]  // auto-generated
-        static private String FindIdFromTimeZoneInformation(Win32Native.TimeZoneInformation timeZone, out Boolean dstDisabled) {
-            dstDisabled = false;
-
+        static private String FindIdFromTimeZoneInformationThroughRegistry(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone)
+		{
             try {
                 PermissionSet permSet = new PermissionSet(PermissionState.None);
                 permSet.AddPermission(new RegistryPermission(RegistryPermissionAccess.Read, c_timeZonesRegistryHivePermissionList));
@@ -1655,7 +1628,7 @@ namespace System
                         return null;
                     }
                     foreach (string keyName in key.GetSubKeyNames()) {
-                        if (TryCompareTimeZoneInformationToRegistry(timeZone, keyName, out dstDisabled)) {
+                        if (TryCompareTimeZoneInformationToRegistry(ref timeZone, keyName)) {
                             return keyName;
                         }
                     }
@@ -1667,13 +1640,63 @@ namespace System
             return null;
         }
 
+		static unsafe string FindIdFromTimeZoneInformationThroughWinAPI(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation)
+		{
+			uint index = 0;
+			bool notSupportedDaylightSaving = CheckDaylightSavingTimeNotSupported(ref timeZoneInformation);
+			Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION tdzi;
 
-        //
-        // GetDaylightTime -
-        //
-        // Helper function that returns a DaylightTime from a year and AdjustmentRule
-        //
-        private DaylightTime GetDaylightTime(Int32 year, AdjustmentRule rule) {
+			while (EnumDynamicTimeZoneInformation(index, out tdzi) == Interop.mincore.Errors.ERROR_SUCCESS)
+			{
+				if (tdzi.StandardName != null && *tdzi.StandardName != 0 &&
+					EqualStandardDates(ref timeZoneInformation, ref tdzi) &&
+					(notSupportedDaylightSaving || EqualDaylightDates(ref timeZoneInformation, ref tdzi)))
+				{
+					fixed (char* timeZoneInformationStandardName = timeZoneInformation.StandardName)
+					{
+						if (AreCStringsEqual(tdzi.StandardName, timeZoneInformationStandardName))
+							return new string(tdzi.TimeZoneKeyName); // found a match
+					}
+				}
+				index++;
+			}
+
+			return null;
+		}
+
+		static private bool EqualStandardDates(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone, ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION tdzi)
+		{
+			return timeZone.Bias == tdzi.Bias
+				   && timeZone.StandardBias == tdzi.StandardBias
+				   && timeZone.StandardDate.wYear == tdzi.StandardDate.wYear
+				   && timeZone.StandardDate.wMonth == tdzi.StandardDate.wMonth
+				   && timeZone.StandardDate.wDayOfWeek == tdzi.StandardDate.wDayOfWeek
+				   && timeZone.StandardDate.wDay == tdzi.StandardDate.wDay
+				   && timeZone.StandardDate.wHour == tdzi.StandardDate.wHour
+				   && timeZone.StandardDate.wMinute == tdzi.StandardDate.wMinute
+				   && timeZone.StandardDate.wSecond == tdzi.StandardDate.wSecond
+				   && timeZone.StandardDate.wMilliseconds == tdzi.StandardDate.wMilliseconds;
+		}
+
+		static private bool EqualDaylightDates(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone, ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION tdzi)
+		{
+			return timeZone.DaylightBias == tdzi.DaylightBias
+					&& timeZone.DaylightDate.wYear == tdzi.DaylightDate.wYear
+					&& timeZone.DaylightDate.wMonth == tdzi.DaylightDate.wMonth
+					&& timeZone.DaylightDate.wDayOfWeek == tdzi.DaylightDate.wDayOfWeek
+					&& timeZone.DaylightDate.wDay == tdzi.DaylightDate.wDay
+					&& timeZone.DaylightDate.wHour == tdzi.DaylightDate.wHour
+					&& timeZone.DaylightDate.wMinute == tdzi.DaylightDate.wMinute
+					&& timeZone.DaylightDate.wSecond == tdzi.DaylightDate.wSecond
+					&& timeZone.DaylightDate.wMilliseconds == tdzi.DaylightDate.wMilliseconds;
+		}
+
+		//
+		// GetDaylightTime -
+		//
+		// Helper function that returns a DaylightTime from a year and AdjustmentRule
+		//
+		private DaylightTime GetDaylightTime(Int32 year, AdjustmentRule rule) {
             TimeSpan delta = rule.DaylightDelta;
             DateTime startTime;
             DateTime endTime;
@@ -2074,57 +2097,64 @@ namespace System
         //
 
         [System.Security.SecuritySafeCritical]  // auto-generated
-        static private TimeZoneInfo GetLocalTimeZone(CachedData cachedData) {
+        static private unsafe TimeZoneInfo GetLocalTimeZone(CachedData cachedData) {
 
 			if (IsWindows) {
 				String id = null;
+				bool useRegistryForTimeZoneInformation = UseRegistryForTimeZoneInformation();
 
 				//
 				// Try using the "kernel32!GetDynamicTimeZoneInformation" API to get the "id"
 				//
-				Win32Native.DynamicTimeZoneInformation dynamicTimeZoneInformation =
-					new Win32Native.DynamicTimeZoneInformation();
+				Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION dynamicTimeZoneInformation;
 
 				// call kernel32!GetDynamicTimeZoneInformation...
-				long result = UnsafeNativeMethods.GetDynamicTimeZoneInformation(out dynamicTimeZoneInformation);
-				if (result == Win32Native.TIME_ZONE_ID_INVALID) {
+				if (UnsafeNativeMethods.GetDynamicTimeZoneInformation(out dynamicTimeZoneInformation) == Win32Native.TIME_ZONE_ID_INVALID) {
 					// return a dummy entry
 					return CreateCustomTimeZone(c_localId, TimeSpan.Zero, c_localId, c_localId);
 				}
 
-				Win32Native.TimeZoneInformation timeZoneInformation =
-					new Win32Native.TimeZoneInformation(dynamicTimeZoneInformation);
-
-				Boolean dstDisabled = dynamicTimeZoneInformation.DynamicDaylightTimeDisabled;
+				Boolean dstDisabled = dynamicTimeZoneInformation.DynamicDaylightTimeDisabled != 0;
 
 				// check to see if we can use the key name returned from the API call
-				if (!String.IsNullOrEmpty(dynamicTimeZoneInformation.TimeZoneKeyName)) {
-					TimeZoneInfo zone;
-					Exception ex;
+                if (dynamicTimeZoneInformation.TimeZoneKeyName != null && *dynamicTimeZoneInformation.TimeZoneKeyName != 0) {
+                    TimeZoneInfo zone;
+                    Exception ex;
 
-					if (TryGetTimeZone(dynamicTimeZoneInformation.TimeZoneKeyName, dstDisabled, out zone, out ex, cachedData) == TimeZoneInfoResult.Success) {
-						// successfully loaded the time zone from the registry
-						return zone;
-					}
-				}
+                    var timeZoneKeyName = new string(dynamicTimeZoneInformation.TimeZoneKeyName);
+					var result = useRegistryForTimeZoneInformation // If runtime says we should use the registry, don't use dynamicTimeZoneInformation
+						? TryGetTimeZone(timeZoneKeyName, dstDisabled, out zone, out ex, cachedData)
+						: TryGetTimeZone(timeZoneKeyName, ref dynamicTimeZoneInformation, dstDisabled, out zone, out ex, cachedData);
+					
+					if (result == TimeZoneInfoResult.Success) {
+                        // successfully loaded the time zone
+                        return zone;
+                    }
+                }
 
 				// the key name was not returned or it pointed to a bogus entry - search for the entry ourselves                
-				id = FindIdFromTimeZoneInformation(timeZoneInformation, out dstDisabled);
+				id = useRegistryForTimeZoneInformation
+					? FindIdFromTimeZoneInformationThroughRegistry(ref dynamicTimeZoneInformation) 
+					: FindIdFromTimeZoneInformationThroughWinAPI(ref dynamicTimeZoneInformation);
 
 				if (id != null) {
 					TimeZoneInfo zone;
 					Exception ex;
-					if (TryGetTimeZone(id, dstDisabled, out zone, out ex, cachedData) == TimeZoneInfoResult.Success) {
-						// successfully loaded the time zone from the registry
+
+					var result = useRegistryForTimeZoneInformation // If runtime says we should use the registry, don't use dynamicTimeZoneInformation
+						? TryGetTimeZone(id, dstDisabled, out zone, out ex, cachedData)
+						: TryGetTimeZone(id, ref dynamicTimeZoneInformation, dstDisabled, out zone, out ex, cachedData);
+
+					if (result == TimeZoneInfoResult.Success) {
+						// successfully loaded the time zone
 						return zone;
 					}
 				}
 
-				// We could not find the data in the registry.  Fall back to using
-				// the data from the Win32 API
-				return GetLocalTimeZoneFromWin32Data(timeZoneInformation, dstDisabled);
+				// We could not find the data. Fall back to using the data from the Win32 API
+				return GetLocalTimeZoneFromWin32Data(id, ref dynamicTimeZoneInformation, dstDisabled);
 			} else {
-				// Without Registry support, create the TimeZoneInfo from a TZ file
+				// On non-Windows platforms support, create the TimeZoneInfo from a TZ file
 				return GetLocalTimeZoneFromTzFile();
 			}
         }
@@ -2478,24 +2508,25 @@ namespace System
         //
         // Helper function used by 'GetLocalTimeZone()' - this function wraps a bunch of
         // try/catch logic for handling the TimeZoneInfo private constructor that takes
-        // a Win32Native.TimeZoneInformation structure.
+        // a TimeZoneInformation structure.
         //
         [System.Security.SecurityCritical]  // auto-generated
-        static private TimeZoneInfo GetLocalTimeZoneFromWin32Data(Win32Native.TimeZoneInformation timeZoneInformation, Boolean dstDisabled) {
-            // first try to create the TimeZoneInfo with the original 'dstDisabled' flag
-            try {
-                return new TimeZoneInfo(timeZoneInformation, dstDisabled);
-            }
-            catch (ArgumentException) {}
-            catch (InvalidTimeZoneException) {}
+        static private TimeZoneInfo GetLocalTimeZoneFromWin32Data(string id, ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation, Boolean dstDisabled) {
 
+			if (id == null)
+				id = c_localId;
+
+			TimeZoneInfo result;
+			Exception e;
+
+			// first try to create the TimeZoneInfo with the original 'dstDisabled' flag
+			if (TryGetFullTimeZoneInformation(id, ref timeZoneInformation, dstDisabled, out result, out e) == TimeZoneInfoResult.Success)
+				return result;
+			
             // if 'dstDisabled' was false then try passing in 'true' as a last ditch effort
             if (!dstDisabled) {
-                try {
-                    return new TimeZoneInfo(timeZoneInformation, true);
-                }
-                catch (ArgumentException) {}
-                catch (InvalidTimeZoneException) {}
+				if (TryGetFullTimeZoneInformation(id, ref timeZoneInformation, true, out result, out e) == TimeZoneInfoResult.Success)
+					return result;
             }
 
             // the data returned from Windows is completely bogus; return a dummy entry
@@ -2551,7 +2582,11 @@ namespace System
             }
             else if (result == TimeZoneInfoResult.SecurityException) {
 				if (IsWindows) {
-					throw new SecurityException($"The time zone ID '{id}' was found on the local computer, but the application does not have permission to read the registry information.");
+					if (UseRegistryForTimeZoneInformation()) {
+						throw new SecurityException($"The time zone ID '{id}' was found on the local computer, but the application does not have permission to read the registry information.");
+					} else {
+						throw new SecurityException($"The time zone ID '{id}' was found on the local computer, but the application does not have permission to read the timezone information.");
+					}
 				} else {
 					throw new SecurityException($"The time zone ID '{id}' was found on the local computer, but the application does not have permission to read the file.");
 				}
@@ -2672,13 +2707,13 @@ namespace System
         //
         // TransitionTimeFromTimeZoneInformation -
         //
-        // Converts a Win32Native.RegistryTimeZoneInformation (REG_TZI_FORMAT struct) to a TransitionTime
+        // Converts a TimeZoneInformation (REG_TZI_FORMAT struct) to a TransitionTime
         //
         // * when the argument 'readStart' is true the corresponding daylightTransitionTimeStart field is read
         // * when the argument 'readStart' is false the corresponding dayightTransitionTimeEnd field is read
         //
-        [System.Security.SecurityCritical]  // auto-generated
-        static private bool TransitionTimeFromTimeZoneInformation(Win32Native.RegistryTimeZoneInformation timeZoneInformation, out TransitionTime transitionTime, bool readStartDate) {
+        static private bool TransitionTimeFromTimeZoneInformation(ref Interop.mincore.SYSTEMTIME standardDate, ref Interop.mincore.SYSTEMTIME daylightDate, out TransitionTime transitionTime, bool readStartDate)
+        {
             //
             // SYSTEMTIME - 
             //
@@ -2688,7 +2723,7 @@ namespace System
             // TIME_ZONE_INFORMATION structure must also be specified. Otherwise, the system 
             // assumes the time zone data is invalid and no changes will be applied.
             //
-            bool supportsDst = (timeZoneInformation.StandardDate.Month != 0);
+            bool supportsDst = standardDate.wMonth != 0;
 
             if (!supportsDst) {
                 transitionTime = default(TransitionTime);
@@ -2719,63 +2754,60 @@ namespace System
             //   Day       = 5.
             //
             if (readStartDate) {
-                 //
-                 // read the "daylightTransitionStart"
-                 //
-                 if (timeZoneInformation.DaylightDate.Year == 0) {
+                //
+                // read the "daylightTransitionStart"
+                //
+                if (daylightDate.wYear == 0) {
                     transitionTime = TransitionTime.CreateFloatingDateRule(
-                                     new DateTime(1,    /* year  */           
+                                     new DateTime(1,    /* year  */
                                                   1,    /* month */
                                                   1,    /* day   */
-                                                  timeZoneInformation.DaylightDate.Hour,
-                                                  timeZoneInformation.DaylightDate.Minute,
-                                                  timeZoneInformation.DaylightDate.Second,
-                                                  timeZoneInformation.DaylightDate.Milliseconds),
-                                     timeZoneInformation.DaylightDate.Month,
-                                     timeZoneInformation.DaylightDate.Day,   /* Week 1-5 */
-                                     (DayOfWeek) timeZoneInformation.DaylightDate.DayOfWeek);
-                }
-                else {
+                                                  daylightDate.wHour,
+                                                  daylightDate.wMinute,
+                                                  daylightDate.wSecond,
+                                                  daylightDate.wMilliseconds),
+                                                  daylightDate.wMonth,
+                                                  daylightDate.wDay,   /* Week 1-5 */
+                                                  (DayOfWeek)daylightDate.wDayOfWeek);
+                } else {
                     transitionTime = TransitionTime.CreateFixedDateRule(
-                                     new DateTime(1,    /* year  */           
+                                     new DateTime(1,    /* year  */
                                                   1,    /* month */
                                                   1,    /* day   */
-                                                  timeZoneInformation.DaylightDate.Hour,
-                                                  timeZoneInformation.DaylightDate.Minute,
-                                                  timeZoneInformation.DaylightDate.Second,
-                                                  timeZoneInformation.DaylightDate.Milliseconds),
-                                     timeZoneInformation.DaylightDate.Month,
-                                     timeZoneInformation.DaylightDate.Day);
+                                                  daylightDate.wHour,
+                                                  daylightDate.wMinute,
+                                                  daylightDate.wSecond,
+                                                  daylightDate.wMilliseconds),
+                                                  daylightDate.wMonth,
+                                                  daylightDate.wDay);
                 }
-            }
-            else {
+            } else {
                 //
                 // read the "daylightTransitionEnd"
                 //
-                if (timeZoneInformation.StandardDate.Year == 0) {
+                if (standardDate.wYear == 0) {
                     transitionTime = TransitionTime.CreateFloatingDateRule(
-                                     new DateTime(1,    /* year  */           
+                                     new DateTime(1,    /* year  */
                                                   1,    /* month */
                                                   1,    /* day   */
-                                                  timeZoneInformation.StandardDate.Hour,
-                                                  timeZoneInformation.StandardDate.Minute,
-                                                  timeZoneInformation.StandardDate.Second,
-                                                  timeZoneInformation.StandardDate.Milliseconds),
-                                     timeZoneInformation.StandardDate.Month,
-                                     timeZoneInformation.StandardDate.Day,   /* Week 1-5 */
-                                     (DayOfWeek) timeZoneInformation.StandardDate.DayOfWeek);
-                }
-                else {
+                                                  standardDate.wHour,
+                                                  standardDate.wMinute,
+                                                  standardDate.wSecond,
+                                                  standardDate.wMilliseconds),
+                                                  standardDate.wMonth,
+                                                  standardDate.wDay,   /* Week 1-5 */
+                                                  (DayOfWeek)standardDate.wDayOfWeek);
+                } else {
                     transitionTime = TransitionTime.CreateFixedDateRule(
-                                     new DateTime(1,    /* year  */           
+                                     new DateTime(1,    /* year  */
                                                   1,    /* month */
                                                   1,    /* day   */
-                                                  timeZoneInformation.StandardDate.Hour,
-                                                  timeZoneInformation.StandardDate.Minute,
-                                                  timeZoneInformation.StandardDate.Second,
-                                                  timeZoneInformation.StandardDate.Milliseconds),
-                                     timeZoneInformation.StandardDate.Month,
-                                     timeZoneInformation.StandardDate.Day);
+                                                  standardDate.wHour,
+                                                  standardDate.wMinute,
+                                                  standardDate.wSecond,
+                                                  standardDate.wMilliseconds),
+                                                  standardDate.wMonth,
+                                                  standardDate.wDay);
                 }
             }
 
@@ -2882,7 +2914,7 @@ namespace System
         // This method expects that its caller has already Asserted RegistryPermission.Read
         //
         [System.Security.SecurityCritical]  // auto-generated
-        static private bool TryCreateAdjustmentRules(string id, Win32Native.RegistryTimeZoneInformation defaultTimeZoneInformation, out AdjustmentRule[] rules, out Exception e, int defaultBaseUtcOffset) {
+        static private bool TryCreateAdjustmentRules(string id, Win32Native.RegistryTimeZoneInformation timeZoneInformation, out AdjustmentRule[] rules, out Exception e, int defaultBaseUtcOffset) {
             e = null;
 
             try {
@@ -2897,8 +2929,8 @@ namespace System
 #endif
                                    )) {
                     if (dynamicKey == null) {
-                        AdjustmentRule rule = CreateAdjustmentRuleFromTimeZoneInformation(
-                                              defaultTimeZoneInformation, DateTime.MinValue.Date, DateTime.MaxValue.Date, defaultBaseUtcOffset);
+                        AdjustmentRule rule = CreateAdjustmentRuleFromTimeZoneInformation(ref timeZoneInformation.StandardDate, ref timeZoneInformation.DaylightDate,
+                            timeZoneInformation.Bias, timeZoneInformation.DaylightBias, DateTime.MinValue.Date, DateTime.MaxValue.Date, defaultBaseUtcOffset);
 
                         if (rule == null) {
                             rules = null;
@@ -2938,7 +2970,7 @@ namespace System
 
                     if (first == last) {
                         // there is just 1 dynamic rule for this time zone.
-                        AdjustmentRule rule =  CreateAdjustmentRuleFromTimeZoneInformation(dtzi, DateTime.MinValue.Date, DateTime.MaxValue.Date, defaultBaseUtcOffset);
+                        AdjustmentRule rule = CreateAdjustmentRuleFromTimeZoneInformation(ref dtzi.StandardDate, ref dtzi.DaylightDate, dtzi.Bias, dtzi.DaylightBias, DateTime.MinValue.Date, DateTime.MaxValue.Date, defaultBaseUtcOffset);
 
                         if (rule == null) {
                             rules = null;
@@ -2955,7 +2987,10 @@ namespace System
 
                      // there are more than 1 dynamic rules for this time zone.
                     AdjustmentRule firstRule = CreateAdjustmentRuleFromTimeZoneInformation(
-                                              dtzi,
+                                              ref dtzi.StandardDate,
+                                              ref dtzi.DaylightDate,
+                                              dtzi.Bias,
+                                              dtzi.DaylightBias,
                                               DateTime.MinValue.Date,        // MinValue
                                               new DateTime(first, 12, 31),   // December 31, <FirstYear>
                                               defaultBaseUtcOffset); 
@@ -2972,7 +3007,10 @@ namespace System
                         }
                         dtzi = new Win32Native.RegistryTimeZoneInformation(regValue);
                         AdjustmentRule middleRule = CreateAdjustmentRuleFromTimeZoneInformation(
-                                                  dtzi,
+                                                  ref dtzi.StandardDate,
+                                                  ref dtzi.DaylightDate,
+                                                  dtzi.Bias,
+                                                  dtzi.DaylightBias,
                                                   new DateTime(i, 1, 1),    // January  01, <Year>
                                                   new DateTime(i, 12, 31),  // December 31, <Year>
                                                   defaultBaseUtcOffset);
@@ -2988,7 +3026,10 @@ namespace System
                         return false;
                     }
                     AdjustmentRule lastRule = CreateAdjustmentRuleFromTimeZoneInformation(
-                                              dtzi,
+                                              ref dtzi.StandardDate,
+                                              ref dtzi.DaylightDate,
+                                              dtzi.Bias,
+                                              dtzi.DaylightBias,
                                               new DateTime(last, 1, 1),    // January  01, <LastYear>
                                               DateTime.MaxValue.Date,      // MaxValue
                                               defaultBaseUtcOffset);
@@ -3029,17 +3070,17 @@ namespace System
         // TimeZoneInformation struct to a time zone registry entry
         //
         [System.Security.SecurityCritical]  // auto-generated
-        static private Boolean TryCompareStandardDate(Win32Native.TimeZoneInformation timeZone, Win32Native.RegistryTimeZoneInformation registryTimeZoneInfo) {
+        static private Boolean TryCompareStandardDate(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone, Win32Native.RegistryTimeZoneInformation registryTimeZoneInfo) {
             return timeZone.Bias                         == registryTimeZoneInfo.Bias
                    && timeZone.StandardBias              == registryTimeZoneInfo.StandardBias
-                   && timeZone.StandardDate.Year         == registryTimeZoneInfo.StandardDate.Year
-                   && timeZone.StandardDate.Month        == registryTimeZoneInfo.StandardDate.Month
-                   && timeZone.StandardDate.DayOfWeek    == registryTimeZoneInfo.StandardDate.DayOfWeek
-                   && timeZone.StandardDate.Day          == registryTimeZoneInfo.StandardDate.Day
-                   && timeZone.StandardDate.Hour         == registryTimeZoneInfo.StandardDate.Hour
-                   && timeZone.StandardDate.Minute       == registryTimeZoneInfo.StandardDate.Minute
-                   && timeZone.StandardDate.Second       == registryTimeZoneInfo.StandardDate.Second
-                   && timeZone.StandardDate.Milliseconds == registryTimeZoneInfo.StandardDate.Milliseconds;
+                   && timeZone.StandardDate.wYear         == registryTimeZoneInfo.StandardDate.wYear
+                   && timeZone.StandardDate.wMonth        == registryTimeZoneInfo.StandardDate.wMonth
+                   && timeZone.StandardDate.wDayOfWeek    == registryTimeZoneInfo.StandardDate.wDayOfWeek
+                   && timeZone.StandardDate.wDay          == registryTimeZoneInfo.StandardDate.wDay
+                   && timeZone.StandardDate.wHour         == registryTimeZoneInfo.StandardDate.wHour
+                   && timeZone.StandardDate.wMinute       == registryTimeZoneInfo.StandardDate.wMinute
+                   && timeZone.StandardDate.wSecond       == registryTimeZoneInfo.StandardDate.wSecond
+                   && timeZone.StandardDate.wMilliseconds == registryTimeZoneInfo.StandardDate.wMilliseconds;
         }
 
         //
@@ -3048,9 +3089,8 @@ namespace System
         // Helper function that compares a TimeZoneInformation struct to a time zone registry entry
         //
         [System.Security.SecuritySafeCritical]  // auto-generated
-        static private Boolean TryCompareTimeZoneInformationToRegistry(Win32Native.TimeZoneInformation timeZone, string id, out Boolean dstDisabled) {
+        static private unsafe Boolean TryCompareTimeZoneInformationToRegistry(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone, string id) {
 
-            dstDisabled = false;
             try {
                 PermissionSet permSet = new PermissionSet(PermissionState.None);
                 permSet.AddPermission(new RegistryPermission(RegistryPermissionAccess.Read, c_timeZonesRegistryHivePermissionList));
@@ -3080,26 +3120,26 @@ namespace System
                     // first compare the bias and standard date information between the data from the Win32 API
                     // and the data from the registry...
                     //
-                    Boolean result = TryCompareStandardDate(timeZone, registryTimeZoneInfo);
+                    Boolean result = TryCompareStandardDate(ref timeZone, registryTimeZoneInfo);
 
                     if (!result) {
                         return false;
                     }
 
-                    result = dstDisabled || CheckDaylightSavingTimeNotSupported(timeZone)
+                    result = CheckDaylightSavingTimeNotSupported(ref timeZone)
                              //
                              // since Daylight Saving Time is not "disabled", do a straight comparision between
                              // the Win32 API data and the registry data ...
                              //
                              ||(   timeZone.DaylightBias              == registryTimeZoneInfo.DaylightBias
-                                && timeZone.DaylightDate.Year         == registryTimeZoneInfo.DaylightDate.Year
-                                && timeZone.DaylightDate.Month        == registryTimeZoneInfo.DaylightDate.Month
-                                && timeZone.DaylightDate.DayOfWeek    == registryTimeZoneInfo.DaylightDate.DayOfWeek
-                                && timeZone.DaylightDate.Day          == registryTimeZoneInfo.DaylightDate.Day
-                                && timeZone.DaylightDate.Hour         == registryTimeZoneInfo.DaylightDate.Hour
-                                && timeZone.DaylightDate.Minute       == registryTimeZoneInfo.DaylightDate.Minute
-                                && timeZone.DaylightDate.Second       == registryTimeZoneInfo.DaylightDate.Second
-                                && timeZone.DaylightDate.Milliseconds == registryTimeZoneInfo.DaylightDate.Milliseconds);
+                                && timeZone.DaylightDate.wYear         == registryTimeZoneInfo.DaylightDate.wYear
+                                && timeZone.DaylightDate.wMonth        == registryTimeZoneInfo.DaylightDate.wMonth
+                                && timeZone.DaylightDate.wDayOfWeek    == registryTimeZoneInfo.DaylightDate.wDayOfWeek
+                                && timeZone.DaylightDate.wDay          == registryTimeZoneInfo.DaylightDate.wDay
+                                && timeZone.DaylightDate.wHour         == registryTimeZoneInfo.DaylightDate.wHour
+                                && timeZone.DaylightDate.wMinute       == registryTimeZoneInfo.DaylightDate.wMinute
+                                && timeZone.DaylightDate.wSecond       == registryTimeZoneInfo.DaylightDate.wSecond
+                                && timeZone.DaylightDate.wMilliseconds == registryTimeZoneInfo.DaylightDate.wMilliseconds);
 
                     // Finally compare the "StandardName" string value...
                     //
@@ -3108,7 +3148,12 @@ namespace System
                     //
                     if (result) {
                         String registryStandardName = key.GetValue(c_standardValue, String.Empty, RegistryValueOptions.None) as String;
-                        result = String.Compare(registryStandardName, timeZone.StandardName, StringComparison.Ordinal) == 0;
+
+						fixed (char* standardName = timeZone.StandardName) {
+							fixed (char* registryName = registryStandardName) {
+								result = AreCStringsEqual(standardName, registryName);
+							}
+						}
                     }
                     return result;  
                 }  
@@ -3394,8 +3439,29 @@ namespace System
             finally {
                 PermissionSet.RevertAssert();
             }
-        }
+		}
 
+		private static unsafe TimeZoneInfoResult TryGetTimeZoneByWinAPI(string id, out TimeZoneInfo match, out Exception e)
+		{
+			uint index = 0;
+			Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION tdzi;
+			while (EnumDynamicTimeZoneInformation(index, out tdzi) == Interop.mincore.Errors.ERROR_SUCCESS) {
+				bool nameMatches;
+				fixed (char* idCString = id) {
+					nameMatches = AreCStringsEqual(idCString, tdzi.TimeZoneKeyName);
+				}
+
+				if (nameMatches) {
+					return TryGetFullTimeZoneInformation(id, ref tdzi, false, out match, out e);
+				}
+
+				index++;
+			}
+
+			e = null;
+			match = null;
+			return TimeZoneInfoResult.TimeZoneNotFoundException;
+		}
 
 		//
 		// TryGetTimeZone -
@@ -3406,13 +3472,70 @@ namespace System
 		//
 		// assumes cachedData lock is taken
 		//
-		static private TimeZoneInfoResult TryGetTimeZone(string id, Boolean dstDisabled, out TimeZoneInfo value, out Exception e, CachedData cachedData) {
-            TimeZoneInfoResult result = TimeZoneInfoResult.Success;
-            e = null;
-            TimeZoneInfo match = null;
-
+		static private TimeZoneInfoResult TryGetTimeZone(string id, Boolean dstDisabled, out TimeZoneInfo value, out Exception e, CachedData cachedData)
+        {
             // check the cache
+            if (TryGetCachedTimeZone(id, dstDisabled, out value, cachedData)) {
+                e = null;
+                return TimeZoneInfoResult.Success;
+            }
+
+            // fall back to reading from the local machine 
+            // when the cache is not fully populated               
+            if (!cachedData.m_allSystemTimeZonesRead) {
+                return TryGetTimeZoneFromLocalMachine(id, dstDisabled, out value, out e, cachedData);
+            }
+
+            // On UNIX, there may be some tzfiles that aren't in the zones.tab file, and thus aren't returned from GetSystemTimeZones().
+            // If a caller asks for one of these zones before calling GetSystemTimeZones(), the time zone is returned successfully. But if
+            // GetSystemTimeZones() is called first, FindSystemTimeZoneById will throw TimeZoneNotFoundException, which is inconsistent.
+            // To fix this, even if m_allSystemTimeZonesRead is true, try reading the tzfile from disk, but don't add the time zone to the
+            // list returned from GetSystemTimeZones(). These time zones will only be available if asked for directly.
+            if (!IsWindows) {
+				return TryGetTimeZoneFromLocalMachine(id, dstDisabled, out value, out e, cachedData);
+            }
+			
+            value = null;
+            e = null;
+            return TimeZoneInfoResult.TimeZoneNotFoundException;
+        }
+		
+        //
+        // TryGetTimeZone -
+        //
+        // Helper function for retrieving a TimeZoneInfo object by TimeZoneInformation.
+        //
+        // This function may return null.
+        //
+        // assumes cachedData lock is taken
+        //
+		// Used in cases we already have TIME_DYNAMIC_ZONE_INFORMATION gathered
+        static private TimeZoneInfoResult TryGetTimeZone(string id, ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation, Boolean dstDisabled, out TimeZoneInfo value, out Exception e, CachedData cachedData)
+        {
+            // check the cache
+            if (TryGetCachedTimeZone(id, dstDisabled, out value, cachedData)) {
+                e = null;
+                return TimeZoneInfoResult.Success;
+            }
+
+            // fall back to reading from the local machine 
+            // when the cache is not fully populated 
+            TimeZoneInfo match;
+            var result = TryGetFullTimeZoneInformation(id, ref timeZoneInformation, dstDisabled, out match, out e);
+
+            if (result == TimeZoneInfoResult.Success) {
+                value = CacheTimeZoneResult(id, dstDisabled, cachedData, match);
+            } else {
+                value = null;
+            }
+
+            return result;
+        }
+
+        private static bool TryGetCachedTimeZone(string id, Boolean dstDisabled, out TimeZoneInfo value, CachedData cachedData)
+        {
             if (cachedData.m_systemTimeZones != null) {
+                TimeZoneInfo match;
                 if (cachedData.m_systemTimeZones.TryGetValue(id, out match)) {
                     if (dstDisabled && match.m_supportsDaylightSavingTime) {
                         // we found a cache hit but we want a time zone without DST and this one has DST data
@@ -3422,197 +3545,342 @@ namespace System
                         value = new TimeZoneInfo(match.m_id, match.m_baseUtcOffset, match.m_displayName, match.m_standardDisplayName,
                                               match.m_daylightDisplayName, match.m_adjustmentRules, false);
                     }
-                    return result;
+                    return true;
                 }
             }
 
-            // fall back to reading from the local machine 
-            // when the cache is not fully populated               
-            if (!cachedData.m_allSystemTimeZonesRead) {
-                result = TryGetTimeZoneFromLocalMachine(id, dstDisabled, out value, out e, cachedData);
-            }
-            // On UNIX, there may be some tzfiles that aren't in the zones.tab file, and thus aren't returned from GetSystemTimeZones().
-            // If a caller asks for one of these zones before calling GetSystemTimeZones(), the time zone is returned successfully. But if
-            // GetSystemTimeZones() is called first, FindSystemTimeZoneById will throw TimeZoneNotFoundException, which is inconsistent.
-            // To fix this, even if m_allSystemTimeZonesRead is true, try reading the tzfile from disk, but don't add the time zone to the
-            // list returned from GetSystemTimeZones(). These time zones will only be available if asked for directly.
-            else if (!IsWindows) {
-                result = TryGetTimeZoneFromLocalMachine(id, dstDisabled, out value, out e, cachedData);
-            }
-            else {
-                result = TimeZoneInfoResult.TimeZoneNotFoundException;
-                value = null;
-            }
-
-            return result;
+            value = null;
+            return false;
         }
 
         private static TimeZoneInfoResult TryGetTimeZoneFromLocalMachine(string id, bool dstDisabled, out TimeZoneInfo value, out Exception e, CachedData cachedData)
         {
-			TimeZoneInfo match;
+            TimeZoneInfo match;
+			TimeZoneInfoResult result;
 
 #if !MONOTOUCH && !XAMMAC && !MONODROID
-			var result = IsWindows ? TryGetTimeZoneByRegistryKey(id, out match, out e) : TryGetTimeZoneByFile(id, out match, out e);
+			if (IsWindows) { 
+				if (UseRegistryForTimeZoneInformation()) {
+					result = TryGetTimeZoneByRegistryKey(id, out match, out e);
+				} else {
+					result = TryGetTimeZoneByWinAPI(id, out match, out e);
+				}
+			} else {
+				result = TryGetTimeZoneByFile(id, out match, out e);
+			}
 #else
-			var result = TryGetTimeZoneCore(id, out match, out e);
+            result = TryGetTimeZoneCore(id, out match, out e);
 #endif
 
-            if (result == TimeZoneInfoResult.Success)
-            {
-                if (cachedData.m_systemTimeZones == null)
-                    cachedData.m_systemTimeZones = new Dictionary<string, TimeZoneInfo>();
-
-                cachedData.m_systemTimeZones.Add(id, match);
-
-                if (dstDisabled && match.m_supportsDaylightSavingTime)
-                {
-                    // we found a cache hit but we want a time zone without DST and this one has DST data
-                    value = CreateCustomTimeZone(match.m_id, match.m_baseUtcOffset, match.m_displayName, match.m_standardDisplayName);
-                }
-                else
-                {
-                    value = new TimeZoneInfo(match.m_id, match.m_baseUtcOffset, match.m_displayName, match.m_standardDisplayName,
-                                          match.m_daylightDisplayName, match.m_adjustmentRules, false);
-                }
-            }
-            else
-            {
+            if (result == TimeZoneInfoResult.Success) {
+                value = CacheTimeZoneResult(id, dstDisabled, cachedData, match);
+            } else {
                 value = null;
             }
 
             return result;
         }
 
-        // TZFILE(5)                   BSD File Formats Manual                  TZFILE(5)
-        // 
-        // NAME
-        //      tzfile -- timezone information
-        // 
-        // SYNOPSIS
-        //      #include "/usr/src/lib/libc/stdtime/tzfile.h"
-        // 
-        // DESCRIPTION
-        //      The time zone information files used by tzset(3) begin with the magic
-        //      characters ``TZif'' to identify them as time zone information files, fol-
-        //      lowed by sixteen bytes reserved for future use, followed by four four-
-        //      byte values written in a ``standard'' byte order (the high-order byte of
-        //      the value is written first).  These values are, in order:
-        // 
-        //      tzh_ttisgmtcnt  The number of UTC/local indicators stored in the file.
-        //      tzh_ttisstdcnt  The number of standard/wall indicators stored in the
-        //                      file.
-        //      tzh_leapcnt     The number of leap seconds for which data is stored in
-        //                      the file.
-        //      tzh_timecnt     The number of ``transition times'' for which data is
-        //                      stored in the file.
-        //      tzh_typecnt     The number of ``local time types'' for which data is
-        //                      stored in the file (must not be zero).
-        //      tzh_charcnt     The number of characters of ``time zone abbreviation
-        //                      strings'' stored in the file.
-        // 
-        //      The above header is followed by tzh_timecnt four-byte values of type
-        //      long, sorted in ascending order.  These values are written in ``stan-
-        //      dard'' byte order.  Each is used as a transition time (as returned by
-        //      time(3)) at which the rules for computing local time change.  Next come
-        //      tzh_timecnt one-byte values of type unsigned char; each one tells which
-        //      of the different types of ``local time'' types described in the file is
-        //      associated with the same-indexed transition time.  These values serve as
-        //      indices into an array of ttinfo structures that appears next in the file;
-        //      these structures are defined as follows:
-        // 
-        //            struct ttinfo {
-        //                    long    tt_gmtoff;
-        //                    int     tt_isdst;
-        //                    unsigned int    tt_abbrind;
-        //            };
-        // 
-        //      Each structure is written as a four-byte value for tt_gmtoff of type
-        //      long, in a standard byte order, followed by a one-byte value for tt_isdst
-        //      and a one-byte value for tt_abbrind.  In each structure, tt_gmtoff gives
-        //      the number of seconds to be added to UTC, tt_isdst tells whether tm_isdst
-        //      should be set by localtime(3) and tt_abbrind serves as an index into the
-        //      array of time zone abbreviation characters that follow the ttinfo struc-
-        //      ture(s) in the file.
-        // 
-        //      Then there are tzh_leapcnt pairs of four-byte values, written in standard
-        //      byte order; the first value of each pair gives the time (as returned by
-        //      time(3)) at which a leap second occurs; the second gives the total number
-        //      of leap seconds to be applied after the given time.  The pairs of values
-        //      are sorted in ascending order by time.b
-        // 
-        //      Then there are tzh_ttisstdcnt standard/wall indicators, each stored as a
-        //      one-byte value; they tell whether the transition times associated with
-        //      local time types were specified as standard time or wall clock time, and
-        //      are used when a time zone file is used in handling POSIX-style time zone
-        //      environment variables.
-        // 
-        //      Finally there are tzh_ttisgmtcnt UTC/local indicators, each stored as a
-        //      one-byte value; they tell whether the transition times associated with
-        //      local time types were specified as UTC or local time, and are used when a
-        //      time zone file is used in handling POSIX-style time zone environment
-        //      variables.
-        // 
-        //      localtime uses the first standard-time ttinfo structure in the file (or
-        //      simply the first ttinfo structure in the absence of a standard-time
-        //      structure) if either tzh_timecnt is zero or the time argument is less
-        //      than the first transition time recorded in the file.
-        // 
-        // SEE ALSO
-        //      ctime(3), time2posix(3), zic(8)
-        // 
-        // BSD                           September 13, 1994                           BSD
-        // 
-        // 
-        // 
-        // TIME(3)                  BSD Library Functions Manual                  TIME(3)
-        // 
-        // NAME
-        //      time -- get time of day
-        // 
-        // LIBRARY
-        //      Standard C Library (libc, -lc)
-        // 
-        // SYNOPSIS
-        //      #include <time.h>
-        // 
-        //      time_t
-        //      time(time_t *tloc);
-        // 
-        // DESCRIPTION
-        //      The time() function returns the value of time in seconds since 0 hours, 0
-        //      minutes, 0 seconds, January 1, 1970, Coordinated Universal Time, without
-        //      including leap seconds.  If an error occurs, time() returns the value
-        //      (time_t)-1.
-        // 
-        //      The return value is also stored in *tloc, provided that tloc is non-null.
-        // 
-        // ERRORS
-        //      The time() function may fail for any of the reasons described in
-        //      gettimeofday(2).
-        // 
-        // SEE ALSO
-        //      gettimeofday(2), ctime(3)
-        // 
-        // STANDARDS
-        //      The time function conforms to IEEE Std 1003.1-2001 (``POSIX.1'').
-        // 
-        // BUGS
-        //      Neither ISO/IEC 9899:1999 (``ISO C99'') nor IEEE Std 1003.1-2001
-        //      (``POSIX.1'') requires time() to set errno on failure; thus, it is impos-
-        //      sible for an application to distinguish the valid time value -1 (repre-
-        //      senting the last UTC second of 1969) from the error return value.
-        // 
-        //      Systems conforming to earlier versions of the C and POSIX standards
-        //      (including older versions of FreeBSD) did not set *tloc in the error
-        //      case.
-        // 
-        // HISTORY
-        //      A time() function appeared in Version 6 AT&T UNIX.
-        // 
-        // BSD                              July 18, 2003                             BSD
-        // 
-        // 
-        static private void TZif_GenerateAdjustmentRules(out AdjustmentRule[] rules, TimeSpan baseUtcOffset, DateTime[] dts, Byte[] typeOfLocalTime,
+		private static TimeZoneInfo CacheTimeZoneResult(string id, bool dstDisabled, CachedData cachedData, TimeZoneInfo match)
+        {
+            if (cachedData.m_systemTimeZones == null)
+                cachedData.m_systemTimeZones = new Dictionary<string, TimeZoneInfo>();
+
+            cachedData.m_systemTimeZones.Add(id, match);
+
+            if (dstDisabled && match.m_supportsDaylightSavingTime) {
+                // we found a cache hit but we want a time zone without DST and this one has DST data
+                return CreateCustomTimeZone(match.m_id, match.m_baseUtcOffset, match.m_displayName, match.m_standardDisplayName);
+            }
+
+            return new TimeZoneInfo(match.m_id, match.m_baseUtcOffset, match.m_displayName, match.m_standardDisplayName,
+                                    match.m_daylightDisplayName, match.m_adjustmentRules, false);
+        }
+
+		static uint GetDynamicTimeZoneInformationEffectiveYears(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation, out uint firstYear, out uint lastYear)
+		{
+			try
+			{
+				// This API is available since Windows 8
+				return Interop.mincore.GetDynamicTimeZoneInformationEffectiveYears(ref timeZoneInformation, out firstYear, out lastYear);
+			}
+			catch (DllNotFoundException)
+			{
+			}
+			catch (EntryPointNotFoundException)
+			{
+			}
+
+			firstYear = 0;
+			lastYear = 0;
+			return 0;
+		}
+
+		static TimeZoneInfoResult CreateAdjustmentRulesFromTimeZoneInformation(ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation, out AdjustmentRule[] zoneRules)
+		{
+			uint firstYear, lastYear;
+			AdjustmentRule rule;
+
+			if (GetDynamicTimeZoneInformationEffectiveYears(ref timeZoneInformation, out firstYear, out lastYear) != 0 || firstYear == lastYear) {
+				// there is just 1 dynamic rule for this time zone.
+				rule = CreateAdjustmentRuleFromTimeZoneInformation(ref timeZoneInformation.StandardDate,
+																   ref timeZoneInformation.DaylightDate,
+																   timeZoneInformation.Bias,
+																   timeZoneInformation.DaylightBias,
+																   DateTime.MinValue.Date,
+																   DateTime.MaxValue.Date,
+																   timeZoneInformation.Bias);
+
+				zoneRules = rule != null ? new AdjustmentRule[1] { rule } : new AdjustmentRule[0];
+				return TimeZoneInfoResult.Success;
+			}
+
+			var tzi = new Interop.mincore.TIME_ZONE_INFORMATION();
+			List<AdjustmentRule> rules = new List<AdjustmentRule>();
+
+			//
+			// First rule
+			//
+
+			if (!Interop.mincore.GetTimeZoneInformationForYear((ushort)firstYear, ref timeZoneInformation, out tzi)) {
+				zoneRules = null;
+				return TimeZoneInfoResult.InvalidTimeZoneException;
+			}
+
+			rule = CreateAdjustmentRuleFromTimeZoneInformation(ref tzi.StandardDate,
+																ref tzi.DaylightDate,
+																tzi.Bias,
+																tzi.DaylightBias,
+																DateTime.MinValue.Date,
+																new DateTime((int)firstYear, 12, 31),
+																timeZoneInformation.Bias);
+			if (rule != null) {
+				rules.Add(rule);
+			}
+
+			for (uint i = firstYear + 1; i < lastYear; i++)
+			{
+				if (!Interop.mincore.GetTimeZoneInformationForYear((ushort)i, ref timeZoneInformation, out tzi)) {
+					zoneRules = null;
+					return TimeZoneInfoResult.InvalidTimeZoneException;
+				}
+
+				rule = CreateAdjustmentRuleFromTimeZoneInformation(ref tzi.StandardDate,
+																	ref tzi.DaylightDate,
+																	tzi.Bias,
+																	tzi.DaylightBias,
+																	new DateTime((int)i, 1, 1),
+																	new DateTime((int)i, 12, 31),
+																	timeZoneInformation.Bias);
+
+				if (rule != null) {
+					rules.Add(rule);
+				}
+			}
+
+			//
+			// Last rule
+			//
+
+			if (!Interop.mincore.GetTimeZoneInformationForYear((ushort)lastYear, ref timeZoneInformation, out tzi)) {
+				zoneRules = null;
+				return TimeZoneInfoResult.InvalidTimeZoneException;
+			}
+
+			rule = CreateAdjustmentRuleFromTimeZoneInformation(ref tzi.StandardDate,
+																ref tzi.DaylightDate,
+																tzi.Bias,
+																tzi.DaylightBias,
+																new DateTime((int)lastYear, 1, 1),
+																DateTime.MaxValue.Date,
+																timeZoneInformation.Bias);
+			if (rule != null)
+			{
+				rules.Add(rule);
+			}
+
+			zoneRules = rules.ToArray();
+			return TimeZoneInfoResult.Success;
+		}
+
+        static unsafe TimeZoneInfoResult TryGetFullTimeZoneInformation(string id, ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation, Boolean dstDisabled, out TimeZoneInfo value, out Exception e)
+        {
+			//
+			// First get the adjustment rules
+			//
+			AdjustmentRule[] zoneRules = null;
+
+			if (!dstDisabled) {
+                // only create the adjustment rules if DST is enabled
+				var result = CreateAdjustmentRulesFromTimeZoneInformation(ref timeZoneInformation, out zoneRules);
+				if (result != TimeZoneInfoResult.Success) {
+					value = null;
+					e = null;
+					return result;
+				}
+			}
+
+			//
+			// Create TimeZoneInfo object
+			// 
+			try {
+				fixed (Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION* fixedTimeZoneInformation = &timeZoneInformation) {
+                    // Note that all names we have are localized names as Windows always return the localized names
+                    value = new TimeZoneInfo(
+                        id,
+                        new TimeSpan(0, -(timeZoneInformation.Bias), 0),
+                        new string(fixedTimeZoneInformation->StandardName),   // we use the standard name as display name because there is no way to retrieve the real display name without going through the registry
+                        new string(fixedTimeZoneInformation->StandardName),
+                        new string(fixedTimeZoneInformation->DaylightName),
+                        zoneRules,
+                        false);
+				}
+
+				e = null;
+                return TimeZoneInfoResult.Success;
+            } catch (ArgumentException ex) {
+                // TimeZoneInfo constructor can throw ArgumentException and InvalidTimeZoneException
+                value = null;
+                e = ex;
+                return TimeZoneInfoResult.InvalidTimeZoneException;
+            } catch (InvalidTimeZoneException ex) {
+                // TimeZoneInfo constructor can throw ArgumentException and InvalidTimeZoneException
+                value = null;
+                e = ex;
+                return TimeZoneInfoResult.InvalidTimeZoneException;
+            }
+        }
+
+		// TZFILE(5)                   BSD File Formats Manual                  TZFILE(5)
+		// 
+		// NAME
+		//      tzfile -- timezone information
+		// 
+		// SYNOPSIS
+		//      #include "/usr/src/lib/libc/stdtime/tzfile.h"
+		// 
+		// DESCRIPTION
+		//      The time zone information files used by tzset(3) begin with the magic
+		//      characters ``TZif'' to identify them as time zone information files, fol-
+		//      lowed by sixteen bytes reserved for future use, followed by four four-
+		//      byte values written in a ``standard'' byte order (the high-order byte of
+		//      the value is written first).  These values are, in order:
+		// 
+		//      tzh_ttisgmtcnt  The number of UTC/local indicators stored in the file.
+		//      tzh_ttisstdcnt  The number of standard/wall indicators stored in the
+		//                      file.
+		//      tzh_leapcnt     The number of leap seconds for which data is stored in
+		//                      the file.
+		//      tzh_timecnt     The number of ``transition times'' for which data is
+		//                      stored in the file.
+		//      tzh_typecnt     The number of ``local time types'' for which data is
+		//                      stored in the file (must not be zero).
+		//      tzh_charcnt     The number of characters of ``time zone abbreviation
+		//                      strings'' stored in the file.
+		// 
+		//      The above header is followed by tzh_timecnt four-byte values of type
+		//      long, sorted in ascending order.  These values are written in ``stan-
+		//      dard'' byte order.  Each is used as a transition time (as returned by
+		//      time(3)) at which the rules for computing local time change.  Next come
+		//      tzh_timecnt one-byte values of type unsigned char; each one tells which
+		//      of the different types of ``local time'' types described in the file is
+		//      associated with the same-indexed transition time.  These values serve as
+		//      indices into an array of ttinfo structures that appears next in the file;
+		//      these structures are defined as follows:
+		// 
+		//            struct ttinfo {
+		//                    long    tt_gmtoff;
+		//                    int     tt_isdst;
+		//                    unsigned int    tt_abbrind;
+		//            };
+		// 
+		//      Each structure is written as a four-byte value for tt_gmtoff of type
+		//      long, in a standard byte order, followed by a one-byte value for tt_isdst
+		//      and a one-byte value for tt_abbrind.  In each structure, tt_gmtoff gives
+		//      the number of seconds to be added to UTC, tt_isdst tells whether tm_isdst
+		//      should be set by localtime(3) and tt_abbrind serves as an index into the
+		//      array of time zone abbreviation characters that follow the ttinfo struc-
+		//      ture(s) in the file.
+		// 
+		//      Then there are tzh_leapcnt pairs of four-byte values, written in standard
+		//      byte order; the first value of each pair gives the time (as returned by
+		//      time(3)) at which a leap second occurs; the second gives the total number
+		//      of leap seconds to be applied after the given time.  The pairs of values
+		//      are sorted in ascending order by time.b
+		// 
+		//      Then there are tzh_ttisstdcnt standard/wall indicators, each stored as a
+		//      one-byte value; they tell whether the transition times associated with
+		//      local time types were specified as standard time or wall clock time, and
+		//      are used when a time zone file is used in handling POSIX-style time zone
+		//      environment variables.
+		// 
+		//      Finally there are tzh_ttisgmtcnt UTC/local indicators, each stored as a
+		//      one-byte value; they tell whether the transition times associated with
+		//      local time types were specified as UTC or local time, and are used when a
+		//      time zone file is used in handling POSIX-style time zone environment
+		//      variables.
+		// 
+		//      localtime uses the first standard-time ttinfo structure in the file (or
+		//      simply the first ttinfo structure in the absence of a standard-time
+		//      structure) if either tzh_timecnt is zero or the time argument is less
+		//      than the first transition time recorded in the file.
+		// 
+		// SEE ALSO
+		//      ctime(3), time2posix(3), zic(8)
+		// 
+		// BSD                           September 13, 1994                           BSD
+		// 
+		// 
+		// 
+		// TIME(3)                  BSD Library Functions Manual                  TIME(3)
+		// 
+		// NAME
+		//      time -- get time of day
+		// 
+		// LIBRARY
+		//      Standard C Library (libc, -lc)
+		// 
+		// SYNOPSIS
+		//      #include <time.h>
+		// 
+		//      time_t
+		//      time(time_t *tloc);
+		// 
+		// DESCRIPTION
+		//      The time() function returns the value of time in seconds since 0 hours, 0
+		//      minutes, 0 seconds, January 1, 1970, Coordinated Universal Time, without
+		//      including leap seconds.  If an error occurs, time() returns the value
+		//      (time_t)-1.
+		// 
+		//      The return value is also stored in *tloc, provided that tloc is non-null.
+		// 
+		// ERRORS
+		//      The time() function may fail for any of the reasons described in
+		//      gettimeofday(2).
+		// 
+		// SEE ALSO
+		//      gettimeofday(2), ctime(3)
+		// 
+		// STANDARDS
+		//      The time function conforms to IEEE Std 1003.1-2001 (``POSIX.1'').
+		// 
+		// BUGS
+		//      Neither ISO/IEC 9899:1999 (``ISO C99'') nor IEEE Std 1003.1-2001
+		//      (``POSIX.1'') requires time() to set errno on failure; thus, it is impos-
+		//      sible for an application to distinguish the valid time value -1 (repre-
+		//      senting the last UTC second of 1969) from the error return value.
+		// 
+		//      Systems conforming to earlier versions of the C and POSIX standards
+		//      (including older versions of FreeBSD) did not set *tloc in the error
+		//      case.
+		// 
+		// HISTORY
+		//      A time() function appeared in Version 6 AT&T UNIX.
+		// 
+		// BSD                              July 18, 2003                             BSD
+		// 
+		// 
+		static private void TZif_GenerateAdjustmentRules(out AdjustmentRule[] rules, TimeSpan baseUtcOffset, DateTime[] dts, Byte[] typeOfLocalTime,
             TZifType[] transitionType, Boolean[] StandardTime, Boolean[] GmtTime, string futureTransitionsPosixFormat)
         {
             rules = null;
@@ -5724,6 +5992,37 @@ namespace System
 			return new DateTime(year, transition.Month, day) + transition.TimeOfDay.TimeOfDay;
 		}
 
+		private static uint EnumDynamicTimeZoneInformation(uint index, out Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZoneInformation)
+		{
+			try
+			{
+				// Available on Win8+
+				return Interop.mincore.EnumDynamicTimeZoneInformation(index, out timeZoneInformation);
+			}
+			catch (DllNotFoundException)
+			{
+			}
+			catch (EntryPointNotFoundException)
+			{
+			}
+
+			timeZoneInformation = default(Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION);
+			return Interop.mincore.Errors.ERROR_NO_MORE_ITEMS;
+		}
+
+		private static unsafe bool AreCStringsEqual(char* str1, char* str2)
+		{
+			if (str1 == null)
+				return str2 == null;
+
+			while (*str1 != 0 && *str1 == *str2) {
+				str1++;
+				str2++;
+			}
+
+			return *str1 == *str2;
+		}
+
 		private static bool IsWindows
 		{
 			get {
@@ -5734,6 +6033,23 @@ namespace System
 
 		[MethodImpl(MethodImplOptions.InternalCall)]
 		private static extern bool UseRegistryForTimeZoneInformation();
+		
+        internal class TimeZoneInformation
+        {
+            public string StandardName;
+            public string DaylightName;
+            public string TimeZoneKeyName;
 
+            // we need to keep this one for subsequent interops.
+            public Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION Dtzi;
+
+            public unsafe TimeZoneInformation(Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION dtzi)
+            {
+                StandardName = new String(dtzi.StandardName);
+                DaylightName = new String(dtzi.DaylightName);
+                TimeZoneKeyName = new String(dtzi.TimeZoneKeyName);
+                Dtzi = dtzi;
+            }
+        }
 	} // TimezoneInfo
 } // namespace System
