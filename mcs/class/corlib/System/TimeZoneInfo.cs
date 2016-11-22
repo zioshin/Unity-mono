@@ -48,8 +48,8 @@ namespace System {
 	//
 	[Flags]
 	internal enum TimeZoneInfoOptions {
-		None = 1,
-		NoThrowOnInvalidTime = 2
+		None                      = 1,
+		NoThrowOnInvalidTime      = 2
 	};
 
 
@@ -70,10 +70,10 @@ namespace System {
 
 		// ---- SECTION:  members for internal support ---------*
 		private enum TimeZoneInfoResult {
-			Success = 0,
+			Success                   = 0,
 			TimeZoneNotFoundException = 1,
-			InvalidTimeZoneException = 2,
-			SecurityException = 3
+			InvalidTimeZoneException  = 2,
+			SecurityException         = 3
 		};
 
 
@@ -106,11 +106,11 @@ namespace System {
 
 		// Number of 100ns ticks per time unit
 		private const long c_ticksPerMillisecond = 10000;
-		private const long c_ticksPerSecond = c_ticksPerMillisecond * 1000;
-		private const long c_ticksPerMinute = c_ticksPerSecond * 60;
-		private const long c_ticksPerHour = c_ticksPerMinute * 60;
-		private const long c_ticksPerDay = c_ticksPerHour * 24;
-		private const long c_ticksPerDayRange = c_ticksPerDay - c_ticksPerMillisecond;
+		private const long c_ticksPerSecond      = c_ticksPerMillisecond * 1000;
+		private const long c_ticksPerMinute      = c_ticksPerSecond * 60;
+		private const long c_ticksPerHour        = c_ticksPerMinute * 60;
+		private const long c_ticksPerDay         = c_ticksPerHour * 24;
+		private const long c_ticksPerDayRange    = c_ticksPerDay - c_ticksPerMillisecond;
 
 		//
 		// All cached data are encapsulated in a helper class to allow consistent view even when the data are refreshed using ClearCachedData()
@@ -1054,7 +1054,7 @@ namespace System {
 			AdjustmentRule[] otherRules = other.m_adjustmentRules;
 
 			sameRules = (currentRules == null && otherRules == null)
-					  || (currentRules != null && otherRules != null);
+					 || (currentRules != null && otherRules != null);
 
 			if (!sameRules) {
 				// AdjustmentRule array mismatch
@@ -1347,12 +1347,12 @@ namespace System {
 				throw new ArgumentNullException ("info");
 			}
 
-			m_id = (String)info.GetValue ("Id", typeof (String));
-			m_displayName = (String)info.GetValue ("DisplayName", typeof (String));
+			m_id                  = (String)info.GetValue ("Id", typeof (String));
+			m_displayName         = (String)info.GetValue ("DisplayName", typeof (String));
 			m_standardDisplayName = (String)info.GetValue ("StandardName", typeof (String));
 			m_daylightDisplayName = (String)info.GetValue ("DaylightName", typeof (String));
-			m_baseUtcOffset = (TimeSpan)info.GetValue ("BaseUtcOffset", typeof (TimeSpan));
-			m_adjustmentRules = (AdjustmentRule[])info.GetValue ("AdjustmentRules", typeof (AdjustmentRule[]));
+			m_baseUtcOffset       = (TimeSpan)info.GetValue ("BaseUtcOffset", typeof (TimeSpan));
+			m_adjustmentRules     = (AdjustmentRule[])info.GetValue ("AdjustmentRules", typeof (AdjustmentRule[]));
 			m_supportsDaylightSavingTime = (Boolean)info.GetValue ("SupportsDaylightSavingTime", typeof (Boolean));
 		}
 
@@ -1488,13 +1488,13 @@ namespace System {
 		[System.Security.SecurityCritical]  // auto-generated
 		static private Boolean CheckDaylightSavingTimeNotSupported (ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone)
 		{
-			return (timeZone.DaylightDate.wYear == timeZone.StandardDate.wYear
-					&& timeZone.DaylightDate.wMonth == timeZone.StandardDate.wMonth
-					&& timeZone.DaylightDate.wDayOfWeek == timeZone.StandardDate.wDayOfWeek
-					&& timeZone.DaylightDate.wDay == timeZone.StandardDate.wDay
-					&& timeZone.DaylightDate.wHour == timeZone.StandardDate.wHour
-					&& timeZone.DaylightDate.wMinute == timeZone.StandardDate.wMinute
-					&& timeZone.DaylightDate.wSecond == timeZone.StandardDate.wSecond
+			return (   timeZone.DaylightDate.wYear         == timeZone.StandardDate.wYear
+					&& timeZone.DaylightDate.wMonth        == timeZone.StandardDate.wMonth
+					&& timeZone.DaylightDate.wDayOfWeek    == timeZone.StandardDate.wDayOfWeek
+					&& timeZone.DaylightDate.wDay          == timeZone.StandardDate.wDay
+					&& timeZone.DaylightDate.wHour         == timeZone.StandardDate.wHour
+					&& timeZone.DaylightDate.wMinute       == timeZone.StandardDate.wMinute
+					&& timeZone.DaylightDate.wSecond       == timeZone.StandardDate.wSecond
 					&& timeZone.DaylightDate.wMilliseconds == timeZone.StandardDate.wMilliseconds);
 		}
 
@@ -2978,15 +2978,15 @@ namespace System {
 		[System.Security.SecurityCritical]  // auto-generated
 		static private Boolean TryCompareStandardDate (ref Interop.mincore.TIME_DYNAMIC_ZONE_INFORMATION timeZone, Win32Native.RegistryTimeZoneInformation registryTimeZoneInfo)
 		{
-			return timeZone.Bias == registryTimeZoneInfo.Bias
-				   && timeZone.StandardBias == registryTimeZoneInfo.StandardBias
-				   && timeZone.StandardDate.wYear == registryTimeZoneInfo.StandardDate.wYear
-				   && timeZone.StandardDate.wMonth == registryTimeZoneInfo.StandardDate.wMonth
-				   && timeZone.StandardDate.wDayOfWeek == registryTimeZoneInfo.StandardDate.wDayOfWeek
-				   && timeZone.StandardDate.wDay == registryTimeZoneInfo.StandardDate.wDay
-				   && timeZone.StandardDate.wHour == registryTimeZoneInfo.StandardDate.wHour
-				   && timeZone.StandardDate.wMinute == registryTimeZoneInfo.StandardDate.wMinute
-				   && timeZone.StandardDate.wSecond == registryTimeZoneInfo.StandardDate.wSecond
+			return timeZone.Bias                          == registryTimeZoneInfo.Bias
+				   && timeZone.StandardBias               == registryTimeZoneInfo.StandardBias
+				   && timeZone.StandardDate.wYear         == registryTimeZoneInfo.StandardDate.wYear
+				   && timeZone.StandardDate.wMonth        == registryTimeZoneInfo.StandardDate.wMonth
+				   && timeZone.StandardDate.wDayOfWeek    == registryTimeZoneInfo.StandardDate.wDayOfWeek
+				   && timeZone.StandardDate.wDay          == registryTimeZoneInfo.StandardDate.wDay
+				   && timeZone.StandardDate.wHour         == registryTimeZoneInfo.StandardDate.wHour
+				   && timeZone.StandardDate.wMinute       == registryTimeZoneInfo.StandardDate.wMinute
+				   && timeZone.StandardDate.wSecond       == registryTimeZoneInfo.StandardDate.wSecond
 				   && timeZone.StandardDate.wMilliseconds == registryTimeZoneInfo.StandardDate.wMilliseconds;
 		}
 
@@ -3039,14 +3039,14 @@ namespace System {
 							 // since Daylight Saving Time is not "disabled", do a straight comparision between
 							 // the Win32 API data and the registry data ...
 							 //
-							 || (timeZone.DaylightBias == registryTimeZoneInfo.DaylightBias
-								&& timeZone.DaylightDate.wYear == registryTimeZoneInfo.DaylightDate.wYear
-								&& timeZone.DaylightDate.wMonth == registryTimeZoneInfo.DaylightDate.wMonth
-								&& timeZone.DaylightDate.wDayOfWeek == registryTimeZoneInfo.DaylightDate.wDayOfWeek
-								&& timeZone.DaylightDate.wDay == registryTimeZoneInfo.DaylightDate.wDay
-								&& timeZone.DaylightDate.wHour == registryTimeZoneInfo.DaylightDate.wHour
-								&& timeZone.DaylightDate.wMinute == registryTimeZoneInfo.DaylightDate.wMinute
-								&& timeZone.DaylightDate.wSecond == registryTimeZoneInfo.DaylightDate.wSecond
+							 || (  timeZone.DaylightBias               == registryTimeZoneInfo.DaylightBias
+								&& timeZone.DaylightDate.wYear         == registryTimeZoneInfo.DaylightDate.wYear
+								&& timeZone.DaylightDate.wMonth        == registryTimeZoneInfo.DaylightDate.wMonth
+								&& timeZone.DaylightDate.wDayOfWeek    == registryTimeZoneInfo.DaylightDate.wDayOfWeek
+								&& timeZone.DaylightDate.wDay          == registryTimeZoneInfo.DaylightDate.wDay
+								&& timeZone.DaylightDate.wHour         == registryTimeZoneInfo.DaylightDate.wHour
+								&& timeZone.DaylightDate.wMinute       == registryTimeZoneInfo.DaylightDate.wMinute
+								&& timeZone.DaylightDate.wSecond       == registryTimeZoneInfo.DaylightDate.wSecond
 								&& timeZone.DaylightDate.wMilliseconds == registryTimeZoneInfo.DaylightDate.wMilliseconds);
 
 					// Finally compare the "StandardName" string value...
@@ -3193,18 +3193,18 @@ namespace System {
 #endif
 		static private Boolean TryGetLocalizedNamesByRegistryKey (RegistryKey key, out String displayName, out String standardName, out String daylightName)
 		{
-			displayName = String.Empty;
+			displayName  = String.Empty;
 			standardName = String.Empty;
 			daylightName = String.Empty;
 
 			// read the MUI_ registry keys
-			String displayNameMuiResource = key.GetValue (c_muiDisplayValue, String.Empty, RegistryValueOptions.None) as String;
+			String displayNameMuiResource  = key.GetValue (c_muiDisplayValue, String.Empty, RegistryValueOptions.None) as String;
 			String standardNameMuiResource = key.GetValue (c_muiStandardValue, String.Empty, RegistryValueOptions.None) as String;
 			String daylightNameMuiResource = key.GetValue (c_muiDaylightValue, String.Empty, RegistryValueOptions.None) as String;
 
 			// try to load the strings from the native resource DLL(s)
 			if (!String.IsNullOrEmpty (displayNameMuiResource)) {
-				displayName = TryGetLocalizedNameByMuiNativeResource (displayNameMuiResource);
+				displayName  = TryGetLocalizedNameByMuiNativeResource (displayNameMuiResource);
 			}
 
 			if (!String.IsNullOrEmpty (standardNameMuiResource)) {
@@ -3217,7 +3217,7 @@ namespace System {
 
 			// fallback to using the standard registry keys
 			if (String.IsNullOrEmpty (displayName)) {
-				displayName = key.GetValue (c_displayValue, String.Empty, RegistryValueOptions.None) as String;
+				displayName  = key.GetValue (c_displayValue, String.Empty, RegistryValueOptions.None) as String;
 			}
 			if (String.IsNullOrEmpty (standardName)) {
 				standardName = key.GetValue (c_standardValue, String.Empty, RegistryValueOptions.None) as String;
@@ -3506,7 +3506,6 @@ namespace System {
 		{
 			try {
 				// This API is available since Windows 8
-				return Interop.mincore.GetDynamicTimeZoneInformationEffectiveYears (ref timeZoneInformation, out firstYear, out lastYear);
 			} catch (DllNotFoundException) {
 			} catch (EntryPointNotFoundException) {
 			}
@@ -4745,13 +4744,13 @@ namespace System {
 				}
 				Contract.EndContractBlock ();
 
-				info.AddValue ("DateStart", m_dateStart);
-				info.AddValue ("DateEnd", m_dateEnd);
-				info.AddValue ("DaylightDelta", m_daylightDelta);
-				info.AddValue ("DaylightTransitionStart", m_daylightTransitionStart);
-				info.AddValue ("DaylightTransitionEnd", m_daylightTransitionEnd);
-				info.AddValue ("BaseUtcOffsetDelta", m_baseUtcOffsetDelta);
-				info.AddValue ("NoDaylightTransitions", m_noDaylightTransitions);
+				info.AddValue ("DateStart",                  m_dateStart);
+				info.AddValue ("DateEnd",                    m_dateEnd);
+				info.AddValue ("DaylightDelta",              m_daylightDelta);
+				info.AddValue ("DaylightTransitionStart",    m_daylightTransitionStart);
+				info.AddValue ("DaylightTransitionEnd",      m_daylightTransitionEnd);
+				info.AddValue ("BaseUtcOffsetDelta",         m_baseUtcOffsetDelta);
+				info.AddValue ("NoDaylightTransitions",      m_noDaylightTransitions);
 			}
 
 			AdjustmentRule (SerializationInfo info, StreamingContext context)
@@ -4760,11 +4759,11 @@ namespace System {
 					throw new ArgumentNullException ("info");
 				}
 
-				m_dateStart = (DateTime)info.GetValue ("DateStart", typeof (DateTime));
-				m_dateEnd = (DateTime)info.GetValue ("DateEnd", typeof (DateTime));
-				m_daylightDelta = (TimeSpan)info.GetValue ("DaylightDelta", typeof (TimeSpan));
+				m_dateStart           = (DateTime)info.GetValue ("DateStart", typeof (DateTime));
+				m_dateEnd             = (DateTime)info.GetValue ("DateEnd", typeof (DateTime));
+				m_daylightDelta       = (TimeSpan)info.GetValue ("DaylightDelta", typeof (TimeSpan));
 				m_daylightTransitionStart = (TransitionTime)info.GetValue ("DaylightTransitionStart", typeof (TransitionTime));
-				m_daylightTransitionEnd = (TransitionTime)info.GetValue ("DaylightTransitionEnd", typeof (TransitionTime));
+				m_daylightTransitionEnd   = (TransitionTime)info.GetValue ("DaylightTransitionEnd", typeof (TransitionTime));
 
 				object o = info.GetValueNoThrow ("BaseUtcOffsetDelta", typeof (TimeSpan));
 				if (o != null) {
@@ -5018,11 +5017,11 @@ namespace System {
 				}
 				Contract.EndContractBlock ();
 
-				info.AddValue ("TimeOfDay", m_timeOfDay);
-				info.AddValue ("Month", m_month);
-				info.AddValue ("Week", m_week);
-				info.AddValue ("Day", m_day);
-				info.AddValue ("DayOfWeek", m_dayOfWeek);
+				info.AddValue ("TimeOfDay",       m_timeOfDay);
+				info.AddValue ("Month",           m_month);
+				info.AddValue ("Week",            m_week);
+				info.AddValue ("Day",             m_day);
+				info.AddValue ("DayOfWeek",       m_dayOfWeek);
 				info.AddValue ("IsFixedDateRule", m_isFixedDateRule);
 			}
 
@@ -5032,11 +5031,11 @@ namespace System {
 					throw new ArgumentNullException ("info");
 				}
 
-				m_timeOfDay = (DateTime)info.GetValue ("TimeOfDay", typeof (DateTime));
-				m_month = (byte)info.GetValue ("Month", typeof (byte));
-				m_week = (byte)info.GetValue ("Week", typeof (byte));
-				m_day = (byte)info.GetValue ("Day", typeof (byte));
-				m_dayOfWeek = (DayOfWeek)info.GetValue ("DayOfWeek", typeof (DayOfWeek));
+				m_timeOfDay       = (DateTime)info.GetValue ("TimeOfDay", typeof (DateTime));
+				m_month           = (byte)info.GetValue ("Month", typeof (byte));
+				m_week            = (byte)info.GetValue ("Week", typeof (byte));
+				m_day             = (byte)info.GetValue ("Day", typeof (byte));
+				m_dayOfWeek       = (DayOfWeek)info.GetValue ("DayOfWeek", typeof (DayOfWeek));
 				m_isFixedDateRule = (Boolean)info.GetValue ("IsFixedDateRule", typeof (Boolean));
 			}
 		}
@@ -5057,10 +5056,10 @@ namespace System {
 
 			// ---- SECTION: private members  -------------*
 			private enum State {
-				Escaped = 0,
-				NotEscaped = 1,
+				Escaped      = 0,
+				NotEscaped   = 1,
 				StartOfToken = 2,
-				EndOfLine = 3
+				EndOfLine    = 3
 			}
 
 			private String m_serializedText;
@@ -5523,13 +5522,13 @@ namespace System {
 				}
 				m_currentTokenStartIndex++;
 
-				DateTime dateStart = GetNextDateTimeValue (false, dateTimeFormat);
-				DateTime dateEnd = GetNextDateTimeValue (false, dateTimeFormat);
-				TimeSpan daylightDelta = GetNextTimeSpanValue (false);
+				DateTime dateStart           = GetNextDateTimeValue (false, dateTimeFormat);
+				DateTime dateEnd             = GetNextDateTimeValue (false, dateTimeFormat);
+				TimeSpan daylightDelta       = GetNextTimeSpanValue (false);
 				TransitionTime daylightStart = GetNextTransitionTimeValue (false);
-				TransitionTime daylightEnd = GetNextTransitionTimeValue (false);
-				TimeSpan baseUtcOffsetDelta = TimeSpan.Zero;
-				Int32 noDaylightTransitions = 0;
+				TransitionTime daylightEnd   = GetNextTransitionTimeValue (false);
+				TimeSpan baseUtcOffsetDelta  = TimeSpan.Zero;
+				Int32 noDaylightTransitions  = 0;
 
 				// verify that the string is now at the right-hand-side marker ("]") ...
 
@@ -5634,7 +5633,7 @@ namespace System {
 						throw new SerializationException ("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
 					}
 				} else {
-					Int32 week = GetNextInt32Value (false);
+					Int32 week      = GetNextInt32Value (false);
 					Int32 dayOfWeek = GetNextInt32Value (false);
 
 					try {
