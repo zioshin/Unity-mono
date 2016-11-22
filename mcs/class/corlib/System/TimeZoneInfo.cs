@@ -3506,6 +3506,7 @@ namespace System {
 		{
 			try {
 				// This API is available since Windows 8
+				return Interop.mincore.GetDynamicTimeZoneInformationEffectiveYears (ref timeZoneInformation, out firstYear, out lastYear);
 			} catch (DllNotFoundException) {
 			} catch (EntryPointNotFoundException) {
 			}
