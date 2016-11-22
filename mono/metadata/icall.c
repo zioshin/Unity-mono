@@ -8048,6 +8048,13 @@ ves_icall_Microsoft_Win32_NativeMethods_SetPriorityClass (gpointer handle, gint3
 	return SetPriorityClass (handle, priorityClass);
 }
 
+ICALL_EXPORT MonoBoolean
+ves_icall_System_TimeZoneInfo_UseRegistryForTimeZoneInformation()
+{
+	/* Should be false on Windows Store and Xbox One once Mono supports those */
+	return TRUE;
+}
+
 #ifndef DISABLE_ICALL_TABLES
 
 #define ICALL_TYPE(id,name,first)
