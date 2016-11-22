@@ -975,8 +975,14 @@ namespace System {
 						list = new List<TimeZoneInfo> ();
 					}
 
-					// sort and copy the TimeZoneInfo's into a ReadOnlyCollection for the user
-					list.Sort (new TimeZoneInfoComparer ());
+					if (list.Count != 0) {
+						// sort and copy the TimeZoneInfo's into a ReadOnlyCollection for the user
+						list.Sort (new TimeZoneInfoComparer ());
+					} else {
+						// If we haven't enumerated any time zones, the platform might not support enumerating them
+						// In that case, let the system time zones be consisted of only the local time zone.
+						list.Add (Local);
+					}
 
 					cachedData.m_readOnlySystemTimeZones = new ReadOnlyCollection<TimeZoneInfo> (list);
 				}
