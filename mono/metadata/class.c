@@ -1613,13 +1613,17 @@ mono_class_setup_fields (MonoClass *klass)
 				return;
 		}
 		instance_size += klass->parent->instance_size;
-		klass->min_align = klass->parent->min_align;
+		if (klass->valuetype)
+			klass->min_align = 1;
+		else
+			klass->min_align = klass->parent->min_align;
+
 		/* we use |= since it may have been set already */
 		klass->has_references |= klass->parent->has_references;
 		blittable = klass->parent->blittable;
 	} else {
 		instance_size = sizeof (MonoObject);
-		klass->min_align = 1;
+		klass->min_align = sizeof(void*);
 	}
 
 	/* We can't really enable 16 bytes alignment until the GC supports it.
