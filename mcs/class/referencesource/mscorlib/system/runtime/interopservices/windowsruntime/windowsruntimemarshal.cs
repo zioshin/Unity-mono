@@ -1277,6 +1277,7 @@ namespace System.Runtime.InteropServices.WindowsRuntime
         {
             if (type == null)
                 throw new ArgumentNullException("type");
+
 #if FEATURE_COMINTEROP || MONO_COM
             if (type.IsWindowsRuntimeObject && type.IsImport)
             {
