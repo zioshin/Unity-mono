@@ -39,13 +39,8 @@ NO_INSTALL = yes
 MOBILE_STATIC = yes
 MOBILE_PROFILE = yes
 NO_VTS_TEST = yes
-
-# Unity : disable signing
 NO_SIGN_ASSEMBLY = yes
 
 # Note need for trailing comma. If you add, keep it
 PROFILE_TEST_HARNESS_EXCLUDES = MobileNotWorking,PKITS,
-
-# Unity : don't generate aot assemblies as part of the profile build
-#ALWAYS_AOT = yes
 
