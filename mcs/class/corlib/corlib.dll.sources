@@ -2,6 +2,8 @@ Assembly/AssemblyInfo.cs
 ../../build/common/Consts.cs
 ../../build/common/Locale.cs
 ../../build/common/AssemblyRef.cs
+Interop/mincore/Interop.Errors.cs
+Interop/mincore/Interop.TimeZone.cs
 Microsoft.Win32/IRegistryApi.cs
 Microsoft.Win32/RegistryKey.cs
 Microsoft.Win32/RegistryKeyPermissionCheck.cs
@@ -143,7 +145,6 @@ System/TimeZone.cs
 System/TimeZoneInfo.cs
 System/TimeZoneInfo.Android.cs
 System/TimeZoneInfo.MonoTouch.cs
-System/TimeZoneInfo.Serialization.cs
 ../../build/common/MonoTODOAttribute.cs
 System/TypeIdentifier.cs
 System/TypeSpec.cs
@@ -417,18 +418,10 @@ System.Runtime.InteropServices/CustomQueryInterfaceMode.cs
 System.Runtime.InteropServices/ComAwareEventInfo.cs
 System.Runtime.InteropServices/ComEventsHelper.cs
 
-System.Runtime.InteropServices.WindowsRuntime/DefaultInterfaceAttribute.cs
 System.Runtime.InteropServices.WindowsRuntime/DesignerNamespaceResolveEventArgs.cs
-System.Runtime.InteropServices.WindowsRuntime/EventRegistrationToken.cs
-System.Runtime.InteropServices.WindowsRuntime/EventRegistrationTokenTable.cs
-System.Runtime.InteropServices.WindowsRuntime/IActivationFactory.cs
-System.Runtime.InteropServices.WindowsRuntime/InterfaceImplementedInVersionAttribute.cs
 System.Runtime.InteropServices.WindowsRuntime/NamespaceResolveEventArgs.cs
-System.Runtime.InteropServices.WindowsRuntime/ReadOnlyArrayAttribute.cs
-System.Runtime.InteropServices.WindowsRuntime/ReturnValueNameAttribute.cs
-System.Runtime.InteropServices.WindowsRuntime/WindowsRuntimeMarshal.cs
+System.Runtime.InteropServices.WindowsRuntime/UnsafeNativeMethods.cs
 System.Runtime.InteropServices.WindowsRuntime/WindowsRuntimeMetadata.cs
-System.Runtime.InteropServices.WindowsRuntime/WriteOnlyArrayAttribute.cs
 System.Runtime.Remoting/ActivatedClientTypeEntry.cs
 System.Runtime.Remoting/ActivatedServiceTypeEntry.cs
 System.Runtime.Remoting/CustomErrorsModes.cs
@@ -896,7 +889,6 @@ ReferenceSources/CompareInfo.cs
 ReferenceSources/TypeBuilderInstantiation.cs
 ReferenceSources/Buffer.cs
 ReferenceSources/TextInfo.cs
-ReferenceSources/win32native.cs
 ReferenceSources/SharedStatics.cs
 ReferenceSources/SecurityContext.cs
 ReferenceSources/PathInternal.cs
@@ -1032,7 +1024,6 @@ ReferenceSources/PathInternal.cs
 ../referencesource/mscorlib/system/threadattributes.cs
 ../referencesource/mscorlib/system/threadstaticattribute.cs
 ../referencesource/mscorlib/system/throwhelper.cs
-../referencesource/mscorlib/system/timezoneinfo.cs
 ../referencesource/mscorlib/system/timezonenotfoundexception.cs
 ../referencesource/mscorlib/system/tuple.cs
 ../referencesource/mscorlib/system/type.cs
@@ -1333,6 +1324,13 @@ ReferenceSources/PathInternal.cs
 
 ../referencesource/mscorlib/system/runtime/interopservices/expando/iexpando.cs
 
+../referencesource/mscorlib/system/runtime/interopservices/windowsruntime/attributes.cs
+../referencesource/mscorlib/system/runtime/interopservices/windowsruntime/eventregistrationtoken.cs
+../referencesource/mscorlib/system/runtime/interopservices/windowsruntime/eventregistrationtokentable.cs
+../referencesource/mscorlib/system/runtime/interopservices/windowsruntime/iactivationfactory.cs
+../referencesource/mscorlib/system/runtime/interopservices/windowsruntime/irestrictederrorinfo.cs
+../referencesource/mscorlib/system/runtime/interopservices/windowsruntime/windowsruntimemarshal.cs
+
 ../referencesource/mscorlib//system/runtime/reliability/criticalfinalizerobject.cs
 ../referencesource/mscorlib//system/runtime/reliability/prepreparemethodattribute.cs
 ../referencesource/mscorlib//system/runtime/reliability/reliabilitycontractattribute.cs
@@ -1625,9 +1623,15 @@ ReferenceSources/PathInternal.cs
 ../referencesource/mscorlib/system/threading/Tasks/TaskToApm.cs
 
 ../referencesource/mscorlib/microsoft/win32/safehandles/safefilehandle.cs
+../referencesource/mscorlib/microsoft/win32/safehandles/safefilemappinghandle.cs
+../referencesource/mscorlib/microsoft/win32/safehandles/safefindhandle.cs
+../referencesource/mscorlib/microsoft/win32/safehandles/safelibraryhandle.cs
 ../referencesource/mscorlib/microsoft/win32/safehandles/saferegistryhandle.cs
 ../referencesource/mscorlib/microsoft/win32/safehandles/safewaithandle.cs
 ../referencesource/mscorlib/microsoft/win32/safehandles/win32safehandles.cs
+
+../referencesource/mscorlib/microsoft/win32/unsafenativemethods.cs
+../referencesource/mscorlib/microsoft/win32/win32native.cs
 
 ReferenceSources/String.cs
 ReferenceSources/Type.cs
