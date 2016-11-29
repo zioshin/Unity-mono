@@ -99,5 +99,8 @@ MonoClass* mono_unity_class_get_castclass(MonoClass *klass);
 gchar* mono_unity_get_runtime_build_info(const char *date, const char *time);
 gboolean mono_unity_type_is_enum_type(MonoType *type);
 MonoClass* mono_unity_int32_class_get();
+MonoBoolean mono_unity_is_class(MonoClass* klass);
+guint32 mono_unity_native_size(MonoClass* klass);
+MonoBoolean mono_unity_class_is_string(MonoClass* klass);
 
 #endif

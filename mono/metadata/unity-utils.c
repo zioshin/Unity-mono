@@ -11,6 +11,7 @@
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/object-internals.h>
+#include <mono/metadata/marshal.h>
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/reflection-internals.h>
 #include <mono/metadata/threads.h>
@@ -736,4 +737,24 @@ gboolean mono_unity_type_is_enum_type(MonoType *type)
 MonoClass* mono_unity_int32_class_get()
 {
 	return mono_defaults.int32_class;
+}
+
+MonoBoolean mono_unity_is_class(MonoClass* klass)
+{
+	if (mono_class_get_type(klass)->type == MONO_TYPE_CLASS)
+		return TRUE;
+	return FALSE;
+}
+
+guint32 mono_unity_native_size(MonoClass* klass)
+{
+	MonoMarshalType* info = mono_marshal_load_type_info(klass);
+	return info->native_size;
+}
+
+MonoBoolean mono_unity_class_is_string(MonoClass* klass)
+{
+	if (mono_class_get_type(klass)->type == MONO_TYPE_STRING)
+		return TRUE;
+	return FALSE;
 }
