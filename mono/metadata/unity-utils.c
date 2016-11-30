@@ -739,6 +739,11 @@ MonoClass* mono_unity_int32_class_get()
 	return mono_defaults.int32_class;
 }
 
+MonoClass* mono_unity_char_class_get()
+{
+	return mono_defaults.char_class;
+}
+
 MonoBoolean mono_unity_is_class(MonoClass* klass)
 {
 	if (mono_class_get_type(klass)->type == MONO_TYPE_CLASS)
