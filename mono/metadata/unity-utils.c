@@ -400,6 +400,12 @@ static void get_type_hashes(MonoType *type, GList *hashes)
 		case MONO_TYPE_CHAR:
 			klass = mono_defaults.char_class;
 			break;
+		case MONO_TYPE_I:
+			klass = mono_defaults.int_class;
+			break;
+		case MONO_TYPE_U:
+			klass = mono_defaults.uint_class;
+			break;
 		case MONO_TYPE_I1:
 			klass = mono_defaults.sbyte_class;
 			break;
