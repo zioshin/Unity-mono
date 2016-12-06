@@ -105,4 +105,10 @@ guint32 mono_unity_native_size(MonoClass* klass);
 MonoBoolean mono_unity_class_is_string(MonoClass* klass);
 MonoException* mono_unity_get_exception_marshal_directive(const char* msg);
 
+//only safe to call when the type has a defined klass data element
+MonoClass* mono_unity_element_class_from_type(MonoType *type);
+
+gboolean mono_unity_type_is_boolean(MonoType *type);
+MonoClass* mono_unity_byte_class_get();
+
 #endif

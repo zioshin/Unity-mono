@@ -775,3 +775,17 @@ MonoException* mono_unity_get_exception_marshal_directive(const char* msg)
 	return mono_exception_from_name_msg(mono_get_corlib(), "System.Runtime.InteropServices", "MarshalDirectiveException", msg);
 }
 
+MonoClass* mono_unity_element_class_from_type(MonoType *type)
+{
+	return type->data.klass->element_class;
+}
+
+gboolean mono_unity_type_is_boolean(MonoType *type)
+{
+	return type->type == MONO_TYPE_BOOLEAN;
+}
+
+MonoClass* mono_unity_byte_class_get()
+{
+	return mono_defaults.byte_class;
+}
