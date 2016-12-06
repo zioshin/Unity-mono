@@ -103,5 +103,6 @@ MonoClass* mono_unity_char_class_get();
 MonoBoolean mono_unity_is_class(MonoClass* klass);
 guint32 mono_unity_native_size(MonoClass* klass);
 MonoBoolean mono_unity_class_is_string(MonoClass* klass);
+MonoException* mono_unity_get_exception_marshal_directive(const char* msg);
 
 #endif

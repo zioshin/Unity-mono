@@ -769,3 +769,9 @@ MonoBoolean mono_unity_class_is_string(MonoClass* klass)
 		return TRUE;
 	return FALSE;
 }
+
+MonoException* mono_unity_get_exception_marshal_directive(const char* msg)
+{
+	return mono_exception_from_name_msg(mono_get_corlib(), "System.Runtime.InteropServices", "MarshalDirectiveException", msg);
+}
+
