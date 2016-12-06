@@ -52,6 +52,7 @@ MONO_API UnityFindPluginCallback
 mono_get_find_plugin_callback();
 
 MonoAssembly* mono_unity_mscorlib();
+MonoImage* mono_unity_mscorlib_image();
 const char* mono_unity_image_name_for(MonoClass* klass);
 void* mono_unity_get_field_address(MonoObject *obj, MonoVTable *vt, MonoClassField *field);
 MonoObject* mono_unity_compare_exchange(MonoObject **location, MonoObject *value, MonoObject *comparand);

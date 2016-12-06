@@ -201,6 +201,11 @@ MonoAssembly* mono_unity_mscorlib()
 	return mono_defaults.corlib->assembly;
 }
 
+MonoImage* mono_unity_mscorlib_image()
+{
+	return mono_defaults.corlib->assembly->image;
+}
+
 const char* mono_unity_image_name_for(MonoClass* klass)
 {
 	return klass->image->assembly_name;
