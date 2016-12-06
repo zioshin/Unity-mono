@@ -750,6 +750,11 @@ MonoClass* mono_unity_char_class_get()
 	return mono_defaults.char_class;
 }
 
+MonoClass* mono_unity_delegate_class_get()
+{
+	return mono_defaults.delegate_class;
+}
+
 MonoBoolean mono_unity_is_class(MonoClass* klass)
 {
 	if (mono_class_get_type(klass)->type == MONO_TYPE_CLASS)
@@ -789,3 +794,9 @@ MonoClass* mono_unity_byte_class_get()
 {
 	return mono_defaults.byte_class;
 }
+
+MonoMethod* mono_unity_method_alloc0(MonoClass* klass)
+{
+	return mono_image_alloc0(klass->image, sizeof (MonoMethod));
+}
+

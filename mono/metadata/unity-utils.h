@@ -100,10 +100,12 @@ gchar* mono_unity_get_runtime_build_info(const char *date, const char *time);
 gboolean mono_unity_type_is_enum_type(MonoType *type);
 MonoClass* mono_unity_int32_class_get();
 MonoClass* mono_unity_char_class_get();
+MonoClass* mono_unity_delegate_class_get();
 MonoBoolean mono_unity_is_class(MonoClass* klass);
 guint32 mono_unity_native_size(MonoClass* klass);
 MonoBoolean mono_unity_class_is_string(MonoClass* klass);
 MonoException* mono_unity_get_exception_marshal_directive(const char* msg);
+MonoMethod* mono_unity_method_alloc0(MonoClass* declaring_type);
 
 //only safe to call when the type has a defined klass data element
 MonoClass* mono_unity_element_class_from_type(MonoType *type);
