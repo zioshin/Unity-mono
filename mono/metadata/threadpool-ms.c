@@ -703,7 +703,6 @@ worker_thread (gpointer data)
 
 			removed = domain_remove(tpdomain);
 			g_assert (removed);
-
 			cleanup_semaphore = (ThreadPoolDomainCleanupSemaphore*) tpdomain->domain->cleanup_semaphore;
 			g_assert (cleanup_semaphore);
 

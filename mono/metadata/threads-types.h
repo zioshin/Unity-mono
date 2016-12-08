@@ -202,7 +202,7 @@ gboolean mono_thread_test_state (MonoInternalThread *thread, MonoThreadState tes
 void mono_thread_init_apartment_state (void);
 void mono_thread_cleanup_apartment_state (void);
 
-void mono_threads_set_shutting_down (void);
+MONO_API void mono_threads_set_shutting_down (void);
 
 gunichar2* mono_thread_get_name (MonoInternalThread *this_obj, guint32 *name_len);
 
@@ -213,11 +213,11 @@ void mono_thread_set_name_internal (MonoInternalThread *this_obj, MonoString *na
 void mono_runtime_set_has_tls_get (gboolean val);
 gboolean mono_runtime_has_tls_get (void);
 
-void mono_thread_suspend_all_other_threads (void);
+MONO_API void mono_thread_suspend_all_other_threads (void);
 gboolean mono_threads_abort_appdomain_threads (MonoDomain *domain, int timeout);
 
-void mono_thread_push_appdomain_ref (MonoDomain *domain);
-void mono_thread_pop_appdomain_ref (void);
+MONO_API void mono_thread_push_appdomain_ref (MonoDomain *domain);
+MONO_API void mono_thread_pop_appdomain_ref (void);
 gboolean mono_thread_has_appdomain_ref (MonoThread *thread, MonoDomain *domain);
 
 void mono_threads_clear_cached_culture (MonoDomain *domain);

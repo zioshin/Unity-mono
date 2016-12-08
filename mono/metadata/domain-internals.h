@@ -315,6 +315,7 @@ struct _MonoDomain {
 	MonoObject         *ephemeron_tombstone;
 	/* new MonoType [0] */
 	MonoArray          *empty_types;
+	MonoString         *empty_string;
 	/* 
 	 * The fields between FIRST_GC_TRACKED and LAST_GC_TRACKED are roots, but
 	 * not object references.
@@ -410,6 +411,10 @@ struct _MonoDomain {
 	MonoClass *sockaddr_class;
 	MonoClassField *sockaddr_data_field;
 	MonoClassField *sockaddr_data_length_field;
+
+	/* unity specific, cache the class for each static field */
+	/* a GC-tracked array to keep references to the static fields of types */
+	MonoClass **static_data_class_array;
 
 	/* Cache function pointers for architectures  */
 	/* that require wrappers */
@@ -655,7 +660,7 @@ mono_runtime_set_no_exec (gboolean val);
 gboolean
 mono_runtime_get_no_exec (void);
 
-gboolean
+MONO_API gboolean
 mono_assembly_name_parse (const char *name, MonoAssemblyName *aname);
 
 MonoImage *mono_assembly_open_from_bundle (const char *filename,
