@@ -32,7 +32,7 @@
 [submodule "external/buildscripts"]
 	path = external/buildscripts
 	url = git@github.com:Unity-Technologies/monobuildtools.git
-	branch = unity-master-staging
+	branch = unity-mono-4.8.0-branch
 [submodule "external/nuget-buildtasks"]
 	path = external/nuget-buildtasks
 	url = git://github.com/mono/NuGet.BuildTasks
