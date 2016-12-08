@@ -228,7 +228,6 @@ common_sources = \
 	seq-points-data.c	\
 	handle.c	\
 	handle.h	\
-	w32handle-namespace.c   \
 	unity-utils.c   \
 	unity-utils.h   \
 	unity-liveness.c
