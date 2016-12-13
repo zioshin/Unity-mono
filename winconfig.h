@@ -27,6 +27,7 @@
 #endif /* _WIN32_WINNT < 0x0600 */
 
 #define IL2CPP_ON_MONO 1
+#define DISABLE_JIT 1
 
 /*
  * Features that are not required in the Windows port
