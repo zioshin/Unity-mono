@@ -224,6 +224,9 @@ static gint32 managed_thread_id_counter = 0;
 /* Class lazy loading functions */
 static GENERATE_GET_CLASS_WITH_CACHE (appdomain_unloaded_exception, System, AppDomainUnloadedException)
 
+static gint32
+mono_wait_uninterrupted (MonoInternalThread *thread, guint32 numhandles, gpointer *handles, gboolean waitall, gint32 ms, MonoError *error);
+
 static void
 mono_threads_lock (void)
 {

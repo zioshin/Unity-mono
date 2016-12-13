@@ -340,7 +340,7 @@ static guint32 get_array_structure_hash(MonoArrayType *atype)
 	{
 		if (atype->numlobounds > 0 && atype->lobounds[i] != 0)
 		{
-			itoa(atype->lobounds[i], numbuffer, 10);
+			snprintf(numbuffer, 10, "%d", atype->lobounds[i]);
 			char *ptrnum = numbuffer;
 			while (*ptrnum)
 				*ptr++ = *ptrnum++;
@@ -350,7 +350,7 @@ static guint32 get_array_structure_hash(MonoArrayType *atype)
 
 		if (atype->numsizes > 0 && atype->sizes[i] != 0)
 		{
-			itoa(atype->sizes[i], numbuffer, 10);
+			snprintf(numbuffer, 10, "%d", atype->sizes[i]);
 			char *ptrnum = numbuffer;
 			while (*ptrnum)
 				*ptr++ = *ptrnum++;
@@ -366,8 +366,8 @@ static guint32 get_array_structure_hash(MonoArrayType *atype)
 	return hash_string_djb2(buffer);
 }
 
-void get_type_hashes(MonoType *type, GList *hashes);
-void get_type_hashes_generic_inst(MonoGenericClass *generic_class, GList *hashes);
+static void get_type_hashes(MonoType *type, GList *hashes);
+static void get_type_hashes_generic_inst(MonoGenericInst *inst, GList *hashes);
 
 
 static void get_type_hashes_generic_inst(MonoGenericInst *inst, GList *hashes)
@@ -523,13 +523,14 @@ MonoString* mono_unity_append_assembly_name_if_necessary(MonoString* typeName, c
 		MonoTypeNameParse info;
 
 		// The mono_reflection_parse_type function will mangle the name, so don't use this copy later.
-		char* nameForParsing = mono_string_to_utf8(typeName);
+		MonoError unused;
+		char* nameForParsing = mono_string_to_utf8_checked(typeName, &unused);
 		if (mono_reflection_parse_type(nameForParsing, &info))
 		{
 			if (!info.assembly.name)
 			{
 				GString* assemblyQualifiedName = g_string_new(0);
-				char* name = mono_string_to_utf8(typeName);
+				char* name = mono_string_to_utf8_checked(typeName, &unused);
 				g_string_append_printf(assemblyQualifiedName, "%s, %s", name, assemblyName);
 
 				typeName = mono_string_new(mono_domain_get(), assemblyQualifiedName->str);
@@ -690,7 +691,10 @@ MonoObject* mono_unity_delegate_get_target(MonoDelegate *delegate)
 MonoObject* mono_unity_convert_return_type_if_needed(MonoMethod *method, void *value)
 {
 	if (method->signature && method->signature->ret->type == MONO_TYPE_PTR)
-		return mono_value_box(mono_domain_get(), mono_defaults.int_class, &value);
+	{
+		MonoError unused;
+		return mono_value_box_checked(mono_domain_get(), mono_defaults.int_class, &value, &unused);
+	}
 
 	return (MonoObject*)value;
 }
