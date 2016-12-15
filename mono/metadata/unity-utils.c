@@ -460,6 +460,7 @@ static void get_type_hashes(MonoType *type, GList *hashes)
 	else
 	{
 		g_list_append(hashes, type->data.generic_class->container_class->type_token);
+		g_list_append(hashes, hash_string_djb2(type->data.generic_class->container_class->image->module_name));
 		get_type_hashes_generic_inst(type->data.generic_class->context.class_inst, hashes);
 	}
 
