@@ -492,7 +492,8 @@ static GList* get_type_hashes_method(MonoMethod *method)
 //hash combination function must match the one used in IL2CPP codegen
 static guint64 combine_hashes(guint64 hash1, guint64 hash2)
 {
-	return hash1 * 486187739 + hash2;
+	const guint64 seed = 486187739;
+	return hash1 * seed + hash2;
 }
 
 static void combine_all_hashes(gpointer data, gpointer user_data)
@@ -501,7 +502,7 @@ static void combine_all_hashes(gpointer data, gpointer user_data)
 	if (*hash == 0)
 		*hash = (guint64)data;
 	else
-		*hash = combine_hashes(*hash, (guint64)data);
+		*hash = combine_hashes(*hash, (guint64)(uintptr_t)data);
 }
 
 guint64 mono_unity_get_method_hash(MonoMethod *method)
