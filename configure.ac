@@ -197,9 +197,6 @@ case "$host" in
 		with_tls=pthread
 		with_sigaltstack=no
 		with_static_mono=no
-
-		# Android doesn't support boehm, as it's missing <link.h>
-		support_boehm=no
 		with_gc=sgen
 
 		# isinf(3) requires -lm; see isinf check below

@@ -2537,4 +2537,10 @@
 #   define __STDC__ 0
 #endif
 
+#if defined(PLATFORM_ANDROID)
+# ifdef DYNAMIC_LOADING	// we don't need to scan the static segments of dynamic libraries
+	#undef DYNAMIC_LOADING
+# endif
+#endif
+
 # endif /* GCCONFIG_H */
