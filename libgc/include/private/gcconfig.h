@@ -2538,6 +2538,7 @@
 #endif
 
 #if defined(PLATFORM_ANDROID)
+# define DONT_REGISTER_DATA_SEGMENTS 1
 # ifdef DYNAMIC_LOADING	// we don't need to scan the static segments of dynamic libraries
 	#undef DYNAMIC_LOADING
 # endif
