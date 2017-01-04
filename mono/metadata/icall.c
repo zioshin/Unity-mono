@@ -1332,8 +1332,13 @@ type_from_parsed_name (MonoTypeNameParse *info, MonoBoolean ignoreCase, MonoErro
 	if (dest) {
 		assembly = dest->klass->image->assembly;
 		type_resolve = TRUE;
-		rootimage = assembly->image;
-	}
+		rootimage = assembly->image; 
+	} 
+#ifndef IL2CPP_ON_MONO
+	else {		
+-		g_warning (G_STRLOC);		
+ 	}
+#endif
 
 	if (info->assembly.name)
 		assembly = mono_assembly_load (&info->assembly, assembly ? assembly->basedir : NULL, NULL);

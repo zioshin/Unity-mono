@@ -1614,17 +1614,26 @@ mono_class_setup_fields (MonoClass *klass)
 			}
 		}
 		instance_size += klass->parent->instance_size;
+
+#ifdef IL2CPP_ON_MONO
 		if (klass->valuetype)
 			klass->min_align = 1;
 		else
 			klass->min_align = klass->parent->min_align;
+#else
+		klass->min_align = klass->parent->min_align;
+#endif
 
 		/* we use |= since it may have been set already */
 		klass->has_references |= klass->parent->has_references;
 		blittable = klass->parent->blittable;
 	} else {
 		instance_size = sizeof (MonoObject);
+#ifdef IL2CPP_ON_MONO
 		klass->min_align = sizeof(void*);
+#else
+		klass->min_align = 1;
+#endif
 	}
 
 	/* We can't really enable 16 bytes alignment until the GC supports it.
