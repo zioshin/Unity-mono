@@ -1336,7 +1336,7 @@ type_from_parsed_name (MonoTypeNameParse *info, MonoBoolean ignoreCase, MonoErro
 	} 
 #ifndef IL2CPP_ON_MONO
 	else {		
--		g_warning (G_STRLOC);		
+		g_warning (G_STRLOC);		
  	}
 #endif
 
