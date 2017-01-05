@@ -233,7 +233,9 @@
 #endif
 
 #include <float.h>
+#ifndef __cplusplus
 #define trunc(x)	(((x) < 0) ? ceil((x)) : floor((x)))
+#endif
 #if _MSC_VER < 1800 /* VS 2013 */
 #define isnan(x)	_isnan(x)
 #define isinf(x)	(_isnan(x) ? 0 : (_fpclass(x) == _FPCLASS_NINF) ? -1 : (_fpclass(x) == _FPCLASS_PINF) ? 1 : 0)
