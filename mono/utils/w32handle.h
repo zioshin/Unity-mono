@@ -65,7 +65,7 @@ typedef struct
 	void (*details)(gpointer data);
 
 	/* Called to get the name of the handle type */
-	const gchar* (*typename) (void);
+	const gchar* (*get_typename) (void);
 
 	/* Called to get the size of the handle type */
 	gsize (*typesize) (void);

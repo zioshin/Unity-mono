@@ -790,8 +790,8 @@ void mono_w32handle_ops_details (MonoW32HandleType type, gpointer data)
 const gchar* mono_w32handle_ops_typename (MonoW32HandleType type)
 {
 	g_assert (handle_ops [type]);
-	g_assert (handle_ops [type]->typename);
-	return handle_ops [type]->typename ();
+	g_assert (handle_ops [type]->get_typename);
+	return handle_ops [type]->get_typename ();
 }
 
 gsize mono_w32handle_ops_typesize (MonoW32HandleType type)
