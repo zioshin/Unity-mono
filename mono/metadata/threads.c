@@ -373,7 +373,10 @@ static void ensure_synch_cs_set (MonoInternalThread *thread)
 	}
 }
 
-inline void
+#ifndef IL2CPP_ON_MONO
+inline static
+#endif
+void
 lock_thread (MonoInternalThread *thread)
 {
 	if (!thread->synch_cs)
@@ -384,7 +387,10 @@ lock_thread (MonoInternalThread *thread)
 	mono_coop_mutex_lock (thread->synch_cs);
 }
 
-inline void
+#ifndef IL2CPP_ON_MONO
+inline static
+#endif 
+void
 unlock_thread (MonoInternalThread *thread)
 {
 	mono_coop_mutex_unlock (thread->synch_cs);
