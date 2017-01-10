@@ -1211,6 +1211,16 @@ ptr_t GC_get_stack_base()
  * Called with allocator lock held.
  */
 
+
+
+# if defined(DONT_REGISTER_DATA_SEGMENTS)
+
+void GC_register_data_segments()
+{
+}
+
+# else /* !DONT_REGISTER_DATA_SEGMENTS */
+
 # ifdef OS2
 
 void GC_register_data_segments()
@@ -1655,6 +1665,7 @@ void GC_register_data_segments()
 # endif  /* ! AMIGA */
 # endif  /* ! MSWIN32 && ! MSWINCE*/
 # endif  /* ! OS2 */
+# endif  /* ! DONT_REGISTER_DATA_SEGMENTS */
 
 /*
  * Auxiliary routines for obtaining memory from OS.

@@ -2489,6 +2489,12 @@ mono_gc_deregister_root (char* addr)
 	sgen_deregister_root (addr);
 }
 
+void
+mono_gc_deregister_root_size (char* addr, size_t size)
+{
+	sgen_deregister_root (addr);
+}
+
 /*
  * PThreads
  */

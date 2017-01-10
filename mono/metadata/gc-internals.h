@@ -24,7 +24,7 @@
 /* Register a memory area as a conservatively scanned GC root */
 #define MONO_GC_REGISTER_ROOT_PINNING(x,src,msg) mono_gc_register_root ((char*)&(x), sizeof(x), MONO_GC_DESCRIPTOR_NULL, (src), (msg))
 
-#define MONO_GC_UNREGISTER_ROOT(x) mono_gc_deregister_root ((char*)&(x))
+#define MONO_GC_UNREGISTER_ROOT(x) mono_gc_deregister_root_size ((char*)&(x), sizeof(x))
 
 /*
  * Register a memory location as a root pointing to memory allocated using
@@ -155,6 +155,7 @@ void  mono_gc_register_for_finalization (MonoObject *obj, void *user_data);
 void  mono_gc_add_memory_pressure (gint64 value);
 MONO_API int   mono_gc_register_root (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char *msg);
 void  mono_gc_deregister_root (char* addr);
+void  mono_gc_deregister_root_size (char* addr, size_t size);
 void  mono_gc_finalize_domain (MonoDomain *domain);
 void  mono_gc_run_finalize (void *obj, void *data);
 void  mono_gc_clear_domain (MonoDomain * domain);
