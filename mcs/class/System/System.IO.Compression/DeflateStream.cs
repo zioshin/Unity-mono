@@ -35,7 +35,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Remoting.Messaging;
 
-#if MONOTOUCH || MOBILE_STATIC
+#if MONOTOUCH || MOBILE_STATIC || UNITY_AOT
 using MonoTouch;
 #endif
 
@@ -383,7 +383,7 @@ namespace System.IO.Compression
 			CheckResult (res, "WriteInternal");
 		}
 
-#if MONOTOUCH || MOBILE_STATIC
+#if MONOTOUCH || MOBILE_STATIC || UNITY_AOT
 		[MonoPInvokeCallback (typeof (UnmanagedReadOrWrite))]
 #endif
 		static int UnmanagedRead (IntPtr buffer, int length, IntPtr data)
@@ -408,7 +408,7 @@ namespace System.IO.Compression
 			return n;
 		}
 
-#if MONOTOUCH || MOBILE_STATIC
+#if MONOTOUCH || MOBILE_STATIC || UNITY_AOT
 		[MonoPInvokeCallback (typeof (UnmanagedReadOrWrite))]
 #endif
 		static int UnmanagedWrite (IntPtr buffer, int length, IntPtr data)
