@@ -425,18 +425,7 @@ mono_domain_create (void)
 	}
 	mono_appdomains_unlock ();
 
-#ifdef HAVE_BOEHM_GC
-	/*
-	 * Boehm doesn't like roots inside GC allocated objects, and alloc_fixed returns
-	 * a GC_MALLOC-ed object, contrary to the api docs. This causes random crashes when
-	 * running the corlib test suite.
-	 * To solve this, we pass a NULL descriptor, and don't register roots.
-	 */
-	domain = (MonoDomain *)mono_gc_alloc_fixed (sizeof (MonoDomain), NULL, MONO_ROOT_SOURCE_DOMAIN, "domain object");
-#else
 	domain = (MonoDomain *)mono_gc_alloc_fixed (sizeof (MonoDomain), domain_gc_desc, MONO_ROOT_SOURCE_DOMAIN, "domain object");
-	mono_gc_register_root ((char*)&(domain->MONO_DOMAIN_FIRST_GC_TRACKED), G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_LAST_GC_TRACKED) - G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_FIRST_GC_TRACKED), MONO_GC_DESCRIPTOR_NULL, MONO_ROOT_SOURCE_DOMAIN, "misc domain fields");
-#endif
 	domain->shadow_serial = shadow_serial;
 	domain->domain = NULL;
 	domain->setup = NULL;
@@ -553,9 +542,6 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 	mono_loader_init ();
 	mono_reflection_init ();
 	mono_runtime_init_tls ();
-
-	/* FIXME: When should we release this memory? */
-	MONO_GC_REGISTER_ROOT_FIXED (appdomains_list, MONO_ROOT_SOURCE_DOMAIN, "domains list");
 
 	domain = mono_domain_create ();
 	mono_root_domain = domain;
@@ -1268,8 +1254,6 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 	mono_coop_mutex_destroy (&domain->lock);
 
 	domain->setup = NULL;
-
-	mono_gc_deregister_root_size ((char*)&(domain->MONO_DOMAIN_FIRST_GC_TRACKED), G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_LAST_GC_TRACKED) - G_STRUCT_OFFSET (MonoDomain, MONO_DOMAIN_FIRST_GC_TRACKED));
 
 	/* FIXME: anything else required ? */
 
