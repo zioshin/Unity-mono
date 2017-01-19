@@ -161,17 +161,17 @@ disable_gclass_recording (gclass_record_func func, void *user_data)
 * it is no longer valid.
 */
 void
-mono_clear_gclass_recording()
+mono_clear_gclass_recording ()
 {
-	mono_loader_lock();
+	mono_loader_lock ();
 
 	if (gclass_recorded_list) {
-		g_slist_free(gclass_recorded_list);
+		g_slist_free (gclass_recorded_list);
 		gclass_recorded_list = NULL;
 		record_gclass_instantiation = 0;
 	}
 
-	mono_loader_unlock();
+	mono_loader_unlock ();
 }
 
 /**

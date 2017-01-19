@@ -274,6 +274,9 @@ mono_method_get_method_definition(MonoMethod *method);
 void
 mono_class_set_allow_gc_aware_layout(mono_bool allow);
 
+void
+mono_clear_gclass_recording ();
+
 MONO_END_DECLS
 
 #endif /* _MONO_CLI_CLASS_H_ */

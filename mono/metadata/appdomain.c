@@ -2541,7 +2541,7 @@ mono_domain_try_unload (MonoDomain *domain, MonoObject **exc)
 		}
 	}
 
-	mono_clear_gclass_recording();
+	mono_clear_gclass_recording ();
 
 	mono_domain_set (domain, FALSE);
 	/* Notify OnDomainUnload listeners */
