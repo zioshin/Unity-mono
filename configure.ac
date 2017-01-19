@@ -944,7 +944,7 @@ fi
 AC_ARG_ENABLE(minimal, [  --enable-minimal=LIST      drop support for LIST subsystems.
      LIST is a comma-separated list from: aot, profiler, decimal, pinvoke, debug, appdomains, verifier, 
      reflection_emit, reflection_emit_save, large_code, logging, com, ssa, generics, attach, jit, simd, soft_debug, perfcounters, normalization, assembly_remapping, shared_perfcounters, remoting,
-	 security, sgen_remset, sgen_marksweep_par, sgen_marksweep_fixed, sgen_marksweep_fixed_par, sgen_copying.],
+	 security, lldb, sgen_remset, sgen_marksweep_par, sgen_marksweep_fixed, sgen_marksweep_fixed_par, sgen_copying.],
 [
 	for feature in `echo "$enable_minimal" | sed -e "s/,/ /g"`; do
 		eval "mono_feature_disable_$feature='yes'"
@@ -1092,6 +1092,11 @@ fi
 if test "x$mono_feature_disable_security" = "xyes"; then
 	AC_DEFINE(DISABLE_SECURITY, 1, [Disable CAS/CoreCLR security])
 	AC_MSG_NOTICE([Disabled CAS/CoreCLR security manager (used e.g. for Moonlight)])
+fi
+
+if test "x$mono_feature_disable_lldb" = "xyes"; then
+	AC_DEFINE(DISABLE_LLDB, 1, [Disable support code for the LLDB plugin.])
+	AC_MSG_NOTICE([Disabled LLDB plugin support code.])
 fi
 
 if test "x$mono_feature_disable_sgen_remset" = "xyes"; then
@@ -2986,6 +2991,7 @@ case "$host" in
 			AOT_SUPPORTED="yes"
 			BTLS_SUPPORTED=yes
 			BTLS_PLATFORM=i386
+			AC_CHECK_HEADER(stdalign.h,[],[BTLS_SUPPORTED=no])
 			;;
 		  darwin*)
 			AOT_SUPPORTED="yes"
@@ -3008,6 +3014,7 @@ case "$host" in
 			AOT_SUPPORTED="yes"
 			BTLS_SUPPORTED=yes
 			BTLS_PLATFORM=x86_64
+			AC_CHECK_HEADER(stdalign.h,[],[BTLS_SUPPORTED=no])
 			;;
 		  darwin*)
 			AOT_SUPPORTED="yes"
