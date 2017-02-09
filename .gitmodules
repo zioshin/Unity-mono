@@ -47,3 +47,6 @@
 	path = external/boringssl
 	url = git://github.com/mono/boringssl.git
 	branch = mono
+[submodule "external/bdwgc"]
+	path = external/bdwgc
+	url = git://github.com/Unity-Technologies/bdwgc.git
