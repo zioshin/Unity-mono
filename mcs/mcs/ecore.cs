@@ -3395,6 +3395,8 @@ namespace Mono.CSharp {
 				// introduce redundant storey but with `this' only but it's tricky to avoid
 				// at this stage as we don't know what expressions follow base
 				//
+				// TODO: It's needed only when the method with base call is moved to a storey
+				//
 				if (rc.CurrentAnonymousMethod != null) {
 					if (targs == null && method.IsGeneric) {
 						targs = method.TypeArguments;
