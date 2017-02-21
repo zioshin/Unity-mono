@@ -57,8 +57,10 @@ static void*
 boehm_thread_register (MonoThreadInfo* info, void *baseptr);
 static void
 boehm_thread_unregister (MonoThreadInfo *p);
+#if !HAVE_BDWGC_GC
 static void
 register_test_toggleref_callback (void);
+#endif
 
 #define BOEHM_GC_BIT_FINALIZER_AWARE 1
 static MonoGCFinalizerCallbacks fin_callbacks;
@@ -226,7 +228,9 @@ mono_gc_base_init (void)
 				}
 				continue;
 			} else if (g_str_has_prefix (opt, "toggleref-test")) {
+#if !HAVE_BDWGC_GC
 				register_test_toggleref_callback ();
+#endif
 				continue;
 			} else {
 				/* Could be a parameter for sgen */
@@ -250,8 +254,9 @@ mono_gc_base_init (void)
 	mono_os_mutex_init_recursive (&handle_section);
 
 	mono_thread_info_attach (&dummy);
-
+#if !HAVE_BDWGC_GC
 	GC_set_on_collection_event (on_gc_notification);
+#endif
 	GC_on_heap_resize = on_gc_heap_resize;
 
 	gc_initialized = TRUE;
@@ -1428,7 +1433,11 @@ mono_gc_pthread_create (pthread_t *new_thread, const pthread_attr_t *attr, void 
 #ifdef HOST_WIN32
 BOOL APIENTRY mono_gc_dllmain (HMODULE module_handle, DWORD reason, LPVOID reserved)
 {
+#if HAVE_BDWGC_GC
+	return FALSE;
+#else
 	return GC_DllMain (module_handle, reason, reserved);
+#endif
 }
 #endif
 
@@ -1451,7 +1460,9 @@ mono_gc_get_vtable_bits (MonoClass *klass)
 void
 mono_gc_register_altstack (gpointer stack, gint32 stack_size, gpointer altstack, gint32 altstack_size)
 {
+#if !HAVE_BDWGC_GC
 	GC_register_altstack (stack, stack_size, altstack, altstack_size);
+#endif
 }
 
 int
@@ -1486,7 +1497,7 @@ mono_gc_make_root_descr_user (MonoGCRootMarkFunc marker)
 }
 
 /* Toggleref support */
-
+#if !HAVE_BDWGC_GC
 void
 mono_gc_toggleref_add (MonoObject *object, mono_bool strong_ref)
 {
@@ -1523,6 +1534,7 @@ register_test_toggleref_callback (void)
 {
 	mono_gc_toggleref_register_callback (test_toggleref_callback);
 }
+#endif
 
 static gboolean
 is_finalization_aware (MonoObject *obj)
@@ -1545,8 +1557,9 @@ mono_gc_register_finalizer_callbacks (MonoGCFinalizerCallbacks *callbacks)
 		g_error ("Invalid finalizer callback version. Expected %d but got %d\n", MONO_GC_FINALIZER_EXTENSION_VERSION, callbacks->version);
 
 	fin_callbacks = *callbacks;
-
+#if !HAVE_BDWGC_GC
 	GC_set_await_finalize_proc ((void (*) (GC_PTR))fin_notifier);
+#endif
 }
 
 #define BITMAP_SIZE (sizeof (*((HandleData *)NULL)->bitmap) * CHAR_BIT)
