@@ -22,7 +22,7 @@
 	url = git://github.com/mono/ikdasm.git
 [submodule "external/reference-assemblies"]
 	path = external/binary-reference-assemblies
-	url = git://github.com/mono/reference-assemblies.git
+	url = git://github.com/Unity-Technologies/reference-assemblies
 [submodule "external/Lucene.Net.Light"]
 	path = external/Lucene.Net.Light
 	url = git://github.com/mono/Lucene.Net.Light.git
