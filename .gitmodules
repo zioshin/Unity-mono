@@ -44,3 +44,6 @@
 	path = external/boringssl
 	url = git://github.com/mono/boringssl.git
 	branch = mono
+[submodule "external\\binary-reference-assemblies"]
+	path = external\\binary-reference-assemblies
+	url = https://github.com/Unity-Technologies/reference-assemblies.git
