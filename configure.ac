@@ -1165,6 +1165,16 @@ AC_COMPILE_IFELSE([
 ])
 
 dnl
+dnl BDWGC GC configuration
+dnl
+AC_ARG_ENABLE(bdwgc, [  --disable-bdwgc            Disable the Bdwgc GC.], support_bdwgc=$enableval,support_bdwgc=${support_bdwgc:-yes})
+AM_CONDITIONAL(SUPPORT_BDWGC, test x$support_bdwgc = xyes)
+bdwgc_dir=external/bdwgc
+BDWGC_DEFINES='-DHAVE_BOEHM_GC -DHAVE_BDWGC_GC'
+AC_SUBST(bdwgc_dir)
+AC_SUBST(BDWGC_DEFINES)
+
+dnl
 dnl Boehm GC configuration
 dnl
 
@@ -3817,6 +3827,11 @@ case "x$libgc" in
 		ac_configure_args="$ac_configure_args --disable-embed-check --with-libgc-threads=$libgc_threads $libgc_configure_args \"CPPFLAGS_FOR_LIBGC=$TMP_CPPFLAGS\" \"CFLAGS_FOR_LIBGC=$CFLAGS_FOR_LIBGC\""
 		if test "x$support_boehm" = "xyes"; then
 			AC_CONFIG_SUBDIRS(libgc)
+		fi
+		if test "x$support_bdwgc" = "xyes"; then
+			AC_CONFIG_SUBDIRS([external/bdwgc/libatomic_ops])
+			ac_configure_args="$ac_configure_args --with-libatomic-ops=no --enable-single-obj-compilation --enable-gcj-support=yes --enable-threads=posix --enable-munmap=yes --enable-mmap=yes --enable-ignore-dynamic-loading=yes --enable-dont-register-main-static-data=yes"
+			AC_CONFIG_SUBDIRS([external/bdwgc])
 		fi
 		;;
 esac
