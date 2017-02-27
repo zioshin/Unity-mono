@@ -15,7 +15,11 @@ LIB_REFS = System
 LIB_MCS_FLAGS = $(SIGN_FLAGS) $(EXTRA_LIB_MCS_FLAGS)
 
 ifneq (2.1, $(FRAMEWORK_VERSION))
-ifndef XAMMAC_4_5
+ifndef XAMMAC_4_5 
+LIB_REFS += System.Drawing
+endif
+else
+ifdef MOBILE_STATIC
 LIB_REFS += System.Drawing
 endif
 endif

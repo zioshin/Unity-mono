@@ -63,6 +63,7 @@ mobile_static_dirs := \
 	PEAPI	\
 	Mono.CompilerServices.SymbolWriter	\
 	Mono.Simd			\
+	System.Drawing	\
 	$(pcl_facade_dirs)
 
 mobile_dynamic_dirs := \

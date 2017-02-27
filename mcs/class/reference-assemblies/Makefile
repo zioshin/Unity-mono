@@ -12,11 +12,13 @@ install-local:
 	$(MKINSTALLDIRS) $(PROFILE_DIR)/4.0-api
 	$(MKINSTALLDIRS) $(PROFILE_DIR)/4.5-api
 	$(MKINSTALLDIRS) $(PROFILE_DIR)/4.5-api/Facades
+	$(MKINSTALLDIRS) $(PROFILE_DIR)/netstandard-2.0
 	$(INSTALL_LIB) ../../../external/binary-reference-assemblies/v2.0/*.dll $(PROFILE_DIR)/2.0-api
 	$(INSTALL_LIB) ../../../external/binary-reference-assemblies/v3.5/*.dll $(PROFILE_DIR)/3.5-api
 	$(INSTALL_LIB) ../../../external/binary-reference-assemblies/v4.0/*.dll $(PROFILE_DIR)/4.0-api
 	$(INSTALL_LIB) ../../../external/binary-reference-assemblies/v4.5/*.dll $(PROFILE_DIR)/4.5-api
 	$(INSTALL_LIB) ../../../external/binary-reference-assemblies/v4.5/Facades/*.dll $(PROFILE_DIR)/4.5-api/Facades
+	$(INSTALL_LIB) ../../../external/binary-reference-assemblies/netstandard-2.0/*.dll $(PROFILE_DIR)/netstandard-2.0
 
 	# Unfortunately, a few programs (most notably NUnit and FSharp) have hardcoded checks for <prefix>/lib/mono/4.0/mscorlib.dll or Mono.Posix.dll,
 	# so we need to place something there or those tools break. We decided to symlink to the reference assembly for now.
