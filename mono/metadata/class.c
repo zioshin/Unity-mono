@@ -5722,6 +5722,12 @@ mono_class_setup_supertypes (MonoClass *klass)
 }
 
 static gboolean
+discard_gclass_due_to_failure(MonoClass *gclass, void *user_data)
+{
+	return mono_class_get_generic_class(gclass)->container_class == user_data;
+}
+
+static gboolean
 fix_gclass_incomplete_instantiation (MonoClass *gclass, void *user_data)
 {
 	MonoClass *gtd = (MonoClass*)user_data;
@@ -5969,6 +5975,8 @@ mono_class_create_from_typedef (MonoImage *image, guint32 type_token, MonoError 
 	return klass;
 
 parent_failure:
+	if (klass->is_generic && klass->generic_class == NULL) // Is this class a generic type definition?
+		disable_gclass_recording(discard_gclass_due_to_failure, klass);
 	mono_class_setup_mono_type (klass);
 	mono_loader_unlock ();
 	mono_profiler_class_loaded (klass, MONO_PROFILE_FAILED);
