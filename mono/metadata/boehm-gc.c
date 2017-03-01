@@ -859,7 +859,7 @@ mono_gc_get_restart_signal (void)
 	return GC_get_thr_restart_signal ();
 }
 
-#if defined(USE_COMPILER_TLS) && defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
+#if defined(USE_COMPILER_TLS) && !defined(HAVE_BDWGC_GC) && defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
 extern __thread MONO_TLS_FAST void* GC_thread_tls;
 #include "metadata-internals.h"
 
