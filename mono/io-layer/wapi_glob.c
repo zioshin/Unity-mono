@@ -50,6 +50,11 @@
 #include <string.h>
 #include <unistd.h>
 
+// For PATH_MAX
+#ifdef TIZEN
+#include <linux/limits.h>
+#endif
+
 #include "wapi_glob.h"
 
 #define	EOS		'\0'

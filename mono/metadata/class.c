@@ -153,28 +153,6 @@ disable_gclass_recording (gclass_record_func func, void *user_data)
 }
 
 /**
-* mono_clear_gclass_recording:
-*
-* Removes all entries from the glcass_recorded_list and resets the number
-* of instantiations. This is necessary when an app domain is unloaded,
-* so that data from that app domain is not used later (via this list) when
-* it is no longer valid.
-*/
-void
-mono_clear_gclass_recording ()
-{
-	mono_loader_lock ();
-
-	if (gclass_recorded_list) {
-		g_slist_free (gclass_recorded_list);
-		gclass_recorded_list = NULL;
-		record_gclass_instantiation = 0;
-	}
-
-	mono_loader_unlock ();
-}
-
-/**
  * mono_class_from_typeref:
  * @image: a MonoImage
  * @type_token: a TypeRef token
@@ -1929,6 +1907,11 @@ mono_class_layout_fields (MonoClass *klass, int instance_size)
 	if (mono_allow_gc_aware_layout && (layout == TYPE_ATTRIBUTE_AUTO_LAYOUT)) {
 		if (!klass->valuetype)
 			gc_aware_layout = TRUE;
+		/* Unity depends on List`1 layout in native code */
+		if (klass->image == mono_defaults.corlib &&
+			strcmp (klass->name_space, "System.Collections.Generic") == 0 &&
+			strcmp (klass->name, "List`1") == 0)
+			gc_aware_layout = FALSE;
 	}
 
 	/* Compute klass->has_references */
@@ -5739,6 +5722,12 @@ mono_class_setup_supertypes (MonoClass *klass)
 }
 
 static gboolean
+discard_gclass_due_to_failure(MonoClass *gclass, void *user_data)
+{
+	return mono_class_get_generic_class(gclass)->container_class == user_data;
+}
+
+static gboolean
 fix_gclass_incomplete_instantiation (MonoClass *gclass, void *user_data)
 {
 	MonoClass *gtd = (MonoClass*)user_data;
@@ -5986,6 +5975,8 @@ mono_class_create_from_typedef (MonoImage *image, guint32 type_token, MonoError 
 	return klass;
 
 parent_failure:
+	if (klass->is_generic && klass->generic_class == NULL) // Is this class a generic type definition?
+		disable_gclass_recording(discard_gclass_due_to_failure, klass);
 	mono_class_setup_mono_type (klass);
 	mono_loader_unlock ();
 	mono_profiler_class_loaded (klass, MONO_PROFILE_FAILED);
