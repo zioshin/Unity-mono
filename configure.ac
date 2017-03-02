@@ -1171,8 +1171,10 @@ AC_ARG_ENABLE(bdwgc, [  --disable-bdwgc            Disable the Bdwgc GC.], suppo
 AM_CONDITIONAL(SUPPORT_BDWGC, test x$support_bdwgc = xyes)
 bdwgc_dir=external/bdwgc
 BDWGC_DEFINES='-DHAVE_BOEHM_GC -DHAVE_BDWGC_GC'
+LIBGCBDWGC_CPPFLAGS='-I$(top_srcdir)/external/bdwgc/include -I$(top_srcdir)/external/bdwgc/libatomic_ops/src'
 AC_SUBST(bdwgc_dir)
 AC_SUBST(BDWGC_DEFINES)
+AC_SUBST(LIBGCBDWGC_CPPFLAGS)
 
 dnl
 dnl Boehm GC configuration
