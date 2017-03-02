@@ -3832,7 +3832,7 @@ case "x$libgc" in
 		fi
 		if test "x$support_bdwgc" = "xyes"; then
 			AC_CONFIG_SUBDIRS([external/bdwgc/libatomic_ops])
-			ac_configure_args="$ac_configure_args --with-libatomic-ops=no --enable-single-obj-compilation --enable-gcj-support=yes --enable-threads=posix --enable-munmap=yes --enable-mmap=yes --enable-ignore-dynamic-loading=yes --enable-dont-register-main-static-data=yes"
+			ac_configure_args="$ac_configure_args --enable-shared=no --with-libatomic-ops=no --enable-single-obj-compilation --enable-gcj-support=yes --enable-threads=posix --enable-munmap=yes --enable-mmap=yes --enable-ignore-dynamic-loading=yes --enable-dont-register-main-static-data=yes"
 			AC_CONFIG_SUBDIRS([external/bdwgc])
 		fi
 		;;
