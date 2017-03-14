@@ -94,7 +94,7 @@ mono_pagesize (void)
 	if (saved_pagesize)
 		return saved_pagesize;
 	GetSystemInfo (&info);
-	saved_pagesize = info.dwAllocationGranularity;
+	saved_pagesize = info.dwPageSize;
 	return saved_pagesize;
 }
 
