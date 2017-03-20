@@ -8242,7 +8242,7 @@ execute_system (const char * command)
 {
 	int status;
 
-#if _WIN32
+#if defined(HOST_WIN32)
 	// We need an extra set of quotes around the whole command to properly handle commands 
 	// with spaces since internally the command is called through "cmd /c.
 	command = g_strdup_printf ("\"%s\"", command);

@@ -174,6 +174,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mono-nunit-test", "mono-nun
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libgcbdwgc", "libgcbdwgc.vcxproj", "{CF169633-14AF-4DB8-BEF9-26A6C8FE4C90}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmonodac", "libmonodac.vcxproj", "{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -404,6 +406,12 @@ Global
 		{CF169633-14AF-4DB8-BEF9-26A6C8FE4C90}.Release|Win32.Build.0 = Release|Win32
 		{CF169633-14AF-4DB8-BEF9-26A6C8FE4C90}.Release|x64.ActiveCfg = Release|x64
 		{CF169633-14AF-4DB8-BEF9-26A6C8FE4C90}.Release|x64.Build.0 = Release|x64
+		{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53}.Debug|Win32.ActiveCfg = Debug|x64
+		{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53}.Debug|x64.ActiveCfg = Debug|x64
+		{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53}.Debug|x64.Build.0 = Debug|x64
+		{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53}.Release|Win32.ActiveCfg = Release|x64
+		{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53}.Release|x64.ActiveCfg = Release|x64
+		{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -441,6 +449,7 @@ Global
 		{7BECCFA0-28A0-4995-9856-558560F720E6} = {A0068765-334B-414C-8E21-8376CD2EC9F6}
 		{0046B994-40A8-4C64-AC9D-429DC9177B54} = {A0068765-334B-414C-8E21-8376CD2EC9F6}
 		{CF169633-14AF-4DB8-BEF9-26A6C8FE4C90} = {21DF4C80-0EC9-4BFE-8552-2D47FCEF419A}
+		{DC50997D-8A0D-4EB6-849B-9D7FBC39CE53} = {DE3617B4-17A8-4E5F-A00F-BA43D956881F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		AMDCaProjectFile = C:\Users\Owner\Development\monogit\mono\msvc\CodeAnalyst\mono.caw
