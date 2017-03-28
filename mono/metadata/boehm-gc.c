@@ -668,7 +668,7 @@ mono_gc_alloc_obj (MonoVTable *vtable, size_t size)
 	if (G_UNLIKELY (mono_profiler_events & MONO_PROFILE_ALLOCATIONS))
 		mono_profiler_allocation (obj);
 
-    mono_stats.new_object_count++;
+	gc_stats.new_object_count++;
 
 	return obj;
 }
@@ -704,7 +704,7 @@ mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length)
 	if (G_UNLIKELY (mono_profiler_events & MONO_PROFILE_ALLOCATIONS))
 		mono_profiler_allocation (&obj->obj);
 
-    mono_stats.new_object_count++;
+	gc_stats.new_object_count++;
 
 	return obj;
 }
@@ -743,7 +743,7 @@ mono_gc_alloc_array (MonoVTable *vtable, size_t size, uintptr_t max_length, uint
 	if (G_UNLIKELY (mono_profiler_events & MONO_PROFILE_ALLOCATIONS))
 		mono_profiler_allocation (&obj->obj);
 
-    mono_stats.new_object_count++;
+	gc_stats.new_object_count++;
 
 	return obj;
 }
@@ -763,7 +763,7 @@ mono_gc_alloc_string (MonoVTable *vtable, size_t size, gint32 len)
 	if (G_UNLIKELY (mono_profiler_events & MONO_PROFILE_ALLOCATIONS))
 		mono_profiler_allocation (&obj->object);
 
-    mono_stats.new_object_count++;
+	gc_stats.new_object_count++;
 
 	return obj;
 }
