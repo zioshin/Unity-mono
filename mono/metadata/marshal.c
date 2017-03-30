@@ -10535,7 +10535,7 @@ mono_marshal_get_array_accessor_wrapper (MonoMethod *method)
 }
 
 void*
-mono_marshal_alloc (gulong size, MonoError *error)
+mono_marshal_alloc (gsize size, MonoError *error)
 {
 	gpointer res;
 
@@ -10544,7 +10544,7 @@ mono_marshal_alloc (gulong size, MonoError *error)
 #ifdef HOST_WIN32
 	res = CoTaskMemAlloc (size);
 #else
-	res = g_try_malloc ((gulong)size);
+	res = g_try_malloc (size);
 	if (!res)
 		mono_error_set_out_of_memory (error, "Could not allocate %i bytes", size);
 #endif
