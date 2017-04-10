@@ -1022,19 +1022,19 @@ mono_unity_install_memory_callbacks (MonoAllocatorVTable* callbacks)
 	mono_set_allocator_vtable (callbacks);
 }
 
-static char* il2cpp_data_dir = NULL;
+static char* data_dir = NULL;
 MONO_API void
 mono_unity_set_data_dir(const char* dir)
 {
-    if (il2cpp_data_dir)
-        g_free(il2cpp_data_dir, TRUE);
+    if (data_dir)
+        g_free(data_dir, TRUE);
 
-    il2cpp_data_dir = g_new(char*, strlen(dir) + 1);
-    strcpy(il2cpp_data_dir, dir);
+    data_dir = g_new(char*, strlen(dir) + 1);
+    strcpy(data_dir, dir);
 }
 
 MONO_API char*
 mono_unity_get_data_dir()
 {
-    return il2cpp_data_dir;
+    return data_dir;
 }
