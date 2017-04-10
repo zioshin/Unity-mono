@@ -1027,7 +1027,7 @@ MONO_API void
 mono_unity_set_data_dir(const char* dir)
 {
     if (data_dir)
-        g_free(data_dir, TRUE);
+        g_free(data_dir);
 
     data_dir = g_new(char*, strlen(dir) + 1);
     strcpy(data_dir, dir);
