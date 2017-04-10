@@ -1024,7 +1024,7 @@ mono_unity_install_memory_callbacks (MonoAllocatorVTable* callbacks)
 
 static char* il2cpp_data_dir = NULL;
 MONO_API void
-mono_unity_set_il2cpp_data_dir(const char* dir)
+mono_unity_set_data_dir(const char* dir)
 {
     if (il2cpp_data_dir)
         g_free(il2cpp_data_dir, TRUE);
@@ -1034,7 +1034,7 @@ mono_unity_set_il2cpp_data_dir(const char* dir)
 }
 
 MONO_API char*
-mono_unity_get_il2cpp_data_dir()
+mono_unity_get_data_dir()
 {
     return il2cpp_data_dir;
 }
