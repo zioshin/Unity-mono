@@ -154,6 +154,7 @@
   <Import Project="eglib-common.targets" />
   <Import Project="eglib-win32.targets" />
   <Import Project="eglib-posix.targets" />
+  <Import Project="eglib-unity.targets" />
   <ItemGroup>
     <ProjectReference Include="build-init.vcxproj">
       <Project>{92ae7622-5f58-4234-9a26-9ec71876b3f4}</Project>

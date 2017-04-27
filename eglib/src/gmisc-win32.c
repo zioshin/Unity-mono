@@ -160,6 +160,8 @@ g_get_user_name (void)
 	return retName;
 }
 
+#ifndef PLATFORM_UNITY
+
 static const char *tmp_dir;
 
 const gchar *
@@ -181,3 +183,4 @@ g_get_tmp_dir (void)
 	return tmp_dir;
 }
 
+#endif
