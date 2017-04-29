@@ -1,6 +1,6 @@
-noinst_LTLIBRARIES = libmonoutils.la
+noinst_LTLIBRARIES = libmonoutils.la libmonoutils-il2cpp.la
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(LIBGC_CPPFLAGS) $(GLIB_CFLAGS) $(SHARED_CFLAGS) $(IL2CPP_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(LIBGC_CPPFLAGS) $(GLIB_CFLAGS) $(SHARED_CFLAGS)
 
 if ENABLE_DTRACE
 
@@ -238,6 +238,11 @@ arch_sources += mono-hwcap-cross.c
 endif
 
 libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources)
+
+libmonoutils_il2cpp_la_SOURCES = $(libmonoutils_la_SOURCES)
+libmonoutils_il2cpp_la_CFLAGS = -DIL2CPP_ON_MONO -DDISABLE_JIT -fexceptions
+
+
 libmonoutilsincludedir = $(includedir)/mono-$(API_VER)/mono/utils
 
 libmonoutilsinclude_HEADERS = 	\

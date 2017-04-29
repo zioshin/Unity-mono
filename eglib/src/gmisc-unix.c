@@ -130,6 +130,8 @@ g_get_user_name (void)
 	return user_name;
 }
 
+#ifndef PLATFORM_UNITY
+
 static const char *tmp_dir;
 
 static pthread_mutex_t tmp_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -155,3 +157,4 @@ g_get_tmp_dir (void)
 	return tmp_dir;
 }
 
+#endif

@@ -70,10 +70,10 @@ endif
 
 if SUPPORT_BDWGC
 if DISABLE_EXECUTABLES
-shared_bdwgc_libraries = libmonoruntimebdwgc.la
+shared_bdwgc_libraries = libmonoruntimebdwgc.la libmonoruntime-il2cpp-bdwgc.la
 else
 if SHARED_MONO
-shared_bdwgc_libraries = libmonoruntimebdwgc.la
+shared_bdwgc_libraries = libmonoruntimebdwgc.la libmonoruntime-il2cpp-bdwgc.la
 endif
 endif
 bdwgc_libraries = $(shared_bdwgc_libraries) libmonoruntimebdwgc-static.la
@@ -289,6 +289,9 @@ libmonoruntime_la_LIBADD = libmonoruntime-config.la $(btls_libs)
 libmonoruntimebdwgc_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(null_gc_sources) $(boehm_sources)
 libmonoruntimebdwgc_la_CFLAGS = $(BDWGC_DEFINES) $(LIBGCBDWGC_CPPFLAGS)
 libmonoruntimebdwgc_la_LIBADD = libmonoruntime-config.la $(btls_libs)
+
+libmonoruntime_il2cpp_bdwgc_la_SOURCES = $(libmonoruntimebdwgc_la_SOURCES)
+libmonoruntime_il2cpp_bdwgc_la_CFLAGS = $(libmonoruntimebdwgc_la_CFLAGS) -DIL2CPP_ON_MONO -DDISABLE_JIT -fexceptions
 
 libmonoruntimesgen_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(sgen_sources)
 libmonoruntimesgen_la_CFLAGS = $(SGEN_DEFINES) $(LIBGC_CPPFLAGS)

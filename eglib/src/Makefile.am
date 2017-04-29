@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libeglib.la
+noinst_LTLIBRARIES = libeglib.la libeglib-unity.la
 
 AM_CFLAGS = $(WERROR_CFLAGS)
 
@@ -10,6 +10,9 @@ win_files  = \
 unix_files = \
 	gdate-unix.c  gdir-unix.c  gfile-unix.c  gmisc-unix.c	\
 	gmodule-unix.c gtimer-unix.c
+
+unity_files = \
+	gmisc-unity.c
 
 if HOST_WIN32
 os_files = $(win_files)
@@ -48,7 +51,12 @@ libeglib_la_SOURCES = \
 	unicode-data.h	\
 	$(os_files)
 
+libeglib_unity_la_SOURCES = \
+	$(libeglib_la_SOURCES) \
+	$(unity_files)
+
 libeglib_la_CFLAGS = -g -Wall -D_FORTIFY_SOURCE=2
+libeglib_unity_la_CFLAGS = $(libeglib_la_CFLAGS) -DPLATFORM_UNITY -I../../../../mono-build-deps/build/il2cpp/libil2cpp/os/c-api
 
 AM_CPPFLAGS = -I$(srcdir)
 
