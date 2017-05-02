@@ -56,7 +56,7 @@ libeglib_unity_la_SOURCES = \
 	$(unity_files)
 
 libeglib_la_CFLAGS = -g -Wall -D_FORTIFY_SOURCE=2
-libeglib_unity_la_CFLAGS = $(libeglib_la_CFLAGS) -DPLATFORM_UNITY -I../../../../mono-build-deps/build/il2cpp/libil2cpp/os/c-api
+libeglib_unity_la_CFLAGS = $(libeglib_la_CFLAGS) -DPLATFORM_UNITY -I../../../../il2cpp/build/libil2cpp/os/c-api
 
 AM_CPPFLAGS = -I$(srcdir)
 
