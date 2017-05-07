@@ -240,7 +240,7 @@ endif
 libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources)
 
 libmonoutils_il2cpp_la_SOURCES = $(libmonoutils_la_SOURCES)
-libmonoutils_il2cpp_la_CFLAGS = -DIL2CPP_ON_MONO -DDISABLE_JIT -fexceptions
+libmonoutils_il2cpp_la_CFLAGS = -DIL2CPP_ON_MONO -DDISABLE_JIT -DDISABLE_REMOTING -fexceptions
 
 
 libmonoutilsincludedir = $(includedir)/mono-$(API_VER)/mono/utils
