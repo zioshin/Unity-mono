@@ -292,6 +292,7 @@ libmonoruntimebdwgc_la_LIBADD = libmonoruntime-config.la $(btls_libs)
 
 libmonoruntime_il2cpp_bdwgc_la_SOURCES = $(libmonoruntimebdwgc_la_SOURCES)
 libmonoruntime_il2cpp_bdwgc_la_CFLAGS = $(libmonoruntimebdwgc_la_CFLAGS) -DIL2CPP_ON_MONO -DDISABLE_JIT -DDISABLE_REMOTING -fexceptions
+libmonoruntime_il2cpp_bdwgc_la_LIBADD = libmonoruntime-config.la $(btls_libs)
 
 libmonoruntimesgen_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(sgen_sources)
 libmonoruntimesgen_la_CFLAGS = $(SGEN_DEFINES) $(LIBGC_CPPFLAGS)
