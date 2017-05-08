@@ -25,7 +25,6 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 #include <stdlib.h>
 #include <glib.h>
 
@@ -160,8 +159,6 @@ g_get_user_name (void)
 	return retName;
 }
 
-#ifndef PLATFORM_UNITY
-
 static const char *tmp_dir;
 
 const gchar *
@@ -182,5 +179,3 @@ g_get_tmp_dir (void)
 	}
 	return tmp_dir;
 }
-
-#endif

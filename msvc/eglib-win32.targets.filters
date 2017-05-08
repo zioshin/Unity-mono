@@ -16,9 +16,6 @@
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gmodule-win32.c">
       <Filter>Source Files\Win32</Filter>
     </ClCompile>
-    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gpath.c">
-      <Filter>Source Files\Win32</Filter>
-    </ClCompile>
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gtimer-win32.c">
       <Filter>Source Files\Win32</Filter>
     </ClCompile>

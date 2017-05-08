@@ -34,6 +34,9 @@
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gpattern.c">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gpath.c">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gptrarray.c">
       <Filter>Source Files\Common</Filter>
     </ClCompile>

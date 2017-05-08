@@ -90,5 +90,3 @@ g_timer_elapsed (GTimer *timer, gulong *microseconds)
 
 	return (gdouble) delta / (gdouble) freq;
 }
-
-

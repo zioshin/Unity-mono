@@ -4,5 +4,17 @@
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gmisc-unity.c">
       <Filter>Source Files\Unity</Filter>
     </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gfile-unity.c">
+      <Filter>Source Files\Unity</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gdate-unity.c">
+      <Filter>Source Files\Unity</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gpath-unity.c">
+      <Filter>Source Files\Unity</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gdir-unity.c">
+      <Filter>Source Files\Unity</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
