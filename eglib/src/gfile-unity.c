@@ -1,5 +1,6 @@
 #include <config.h>
 #include <glib.h>
+#include <errno.h>
 
 #include "File-c-api.h"
 #include "Directory-c-api.h"
@@ -18,19 +19,14 @@ g_file_get_contents(const gchar *filename, gchar **contents, gsize *length, GErr
     if (handle == NULL)
     {
         if (error != NULL)
-        {
             *error = g_error_new(G_LOG_DOMAIN, g_file_error_from_errno(palError), "Error opening file");
-            return FALSE;
-        }
+		return FALSE;
     }
 
     if (UnityPalGetFileStat(filename, &st, &palError) == 0)
     {
         if (error != NULL)
-        {
-            int err = errno;
             *error = g_error_new(G_LOG_DOMAIN, g_file_error_from_errno(palError), "Error getting file attributes");
-        }
         UnityPalClose(handle, &palError);
         return FALSE;
     }

@@ -50,7 +50,7 @@ g_path_is_absolute(const char *filename)
 const gchar *
 g_get_home_dir(void)
 {
-    return UnityPalGetMachineName();
+    return UnityPalGetHomeDirectory();
 }
 
 const char *
