@@ -1,12 +1,7 @@
 #include <glib.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <io.h>
 
 #include "Directory-c-api.h"
+#include "Error-c-api.h"
 
 struct _GDir {
     UnityPalFindHandle* handle;
@@ -19,7 +14,7 @@ g_dir_open (const gchar *path, guint flags, GError **error)
 {
     GDir *dir;
     gchar* path_search;
-    char* result_file_name;
+    char* result_file_name = NULL;
     gint unused_attributes;
     UnityPalErrorCode result;
 
@@ -29,15 +24,17 @@ g_dir_open (const gchar *path, guint flags, GError **error)
     dir = g_new0 (GDir, 1);
     path_search = g_malloc ((strlen(path) + 3)*sizeof(gchar));
     strcpy (path_search, path);
+#ifdef G_OS_WIN32
     strcat (path_search, "\\*");
+#else
+    strcat (path_search, "/*");
+#endif
 
     dir->handle = UnityPalDirectoryFindHandleNew(path_search);
     result = UnityPalDirectoryFindFirstFile(dir->handle, path_search, &result_file_name, &unused_attributes);
     if (!UnityPalSuccess(result)) {
-        if (error) {
-            gint err = errno;
-            *error = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (err), strerror (err));
-        }
+        if (error)
+            *error = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (result), strerror (result));
         g_free (dir);
         return NULL;
     }
@@ -45,12 +42,8 @@ g_dir_open (const gchar *path, guint flags, GError **error)
     while ((strcmp (result_file_name, ".") == 0) || (strcmp (result_file_name, "..") == 0)) {
         result = UnityPalDirectoryFindNextFile(dir->handle, &result_file_name, &unused_attributes);
         if (!UnityPalSuccess(result)) {
-            if (error) {
-                gint err = errno;
-                *error = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (err), strerror (err));
-            }
-            g_free (dir);
-            return NULL;
+            result_file_name = NULL;
+            break;
         }
     }
 
