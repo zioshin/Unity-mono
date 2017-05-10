@@ -109,7 +109,6 @@ strrchr_seperator (const gchar* filename)
 	return p;
 }
 
-
 gchar *
 g_path_get_dirname (const gchar *filename)
 {

@@ -166,7 +166,7 @@ g_get_current_dir (void)
 	int s = 32;
 	char *buffer = NULL, *r;
 	gboolean fail;
-
+	
 	do {
 		buffer = g_realloc (buffer, s);
 		r = getcwd (buffer, s);
