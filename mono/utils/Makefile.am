@@ -1,4 +1,4 @@
-noinst_LTLIBRARIES = libmonoutils.la libmonoutils-il2cpp.la
+noinst_LTLIBRARIES = libmonoutils.la libmonoutils-unity-il2cpp.la
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(LIBGC_CPPFLAGS) $(GLIB_CFLAGS) $(SHARED_CFLAGS)
 
@@ -10,6 +10,8 @@ mono-dtrace.h: $(top_srcdir)/data/mono.d
 	$(DTRACE) $(DTRACEFLAGS) -h -s $(top_srcdir)/data/mono.d -o $@ || > $@
 
 endif
+
+unity_files = 
 
 monoutils_sources = \
 	mono-md5.c		\
@@ -239,8 +241,8 @@ endif
 
 libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources)
 
-libmonoutils_il2cpp_la_SOURCES = $(libmonoutils_la_SOURCES)
-libmonoutils_il2cpp_la_CFLAGS = -DIL2CPP_ON_MONO -DDISABLE_JIT -DDISABLE_REMOTING -fexceptions
+libmonoutils_unity_il2cpp_la_SOURCES = $(libmonoutils_la_SOURCES) $(unity_files)
+libmonoutils_unity_il2cpp_la_CFLAGS = -DIL2CPP_ON_MONO -DDISABLE_JIT -DDISABLE_REMOTING -fexceptions -DPLATFORM_UNITY -I../../../../il2cpp/build/libil2cpp/os/c-api
 
 
 libmonoutilsincludedir = $(includedir)/mono-$(API_VER)/mono/utils
