@@ -1033,4 +1033,8 @@ extern void GC_thr_init(void);	/* Needed for Solaris/X86	*/
     }  /* end of extern "C" */
 #endif
 
+void GC_stop_world_external();
+void GC_start_world_external();
+
+
 #endif /* _GC_H */
