@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+ï»¿<?xml version="1.0" encoding="utf-8"?>
 <!--This file contains expected IL and metadata produced by compiler for each test-->
 <tests>
   <test name="dtest-001.cs">
@@ -41478,14 +41478,14 @@
     </type>
   </test>
   <test name="test-444.cs">
-    <type name="쯠쯡쯢">
+    <type name="ì¯ ì¯¡ì¯¢">
       <method name="Void Main()" attrs="150">
         <size>2</size>
       </method>
       <method name="Void .ctor()" attrs="6278">
         <size>7</size>
       </method>
-      <method name="Void P̀ः०‿()" attrs="145">
+      <method name="Void PÌà¤à¥¦â¿()" attrs="145">
         <size>2</size>
       </method>
     </type>
@@ -43915,7 +43915,7 @@
     </type>
   </test>
   <test name="test-550.cs">
-    <type name="Bla.Blub.Fo‿o">
+    <type name="Bla.Blub.Foâ¿o">
       <method name="Void .ctor()" attrs="6278">
         <size>7</size>
       </method>
