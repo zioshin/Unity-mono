@@ -11,7 +11,11 @@ mono-dtrace.h: $(top_srcdir)/data/mono.d
 
 endif
 
-unity_files = 
+unity_files = \
+	unity-time.c
+ 
+mono_only_files = \
+	mono-time.c
 
 monoutils_sources = \
 	mono-md5.c		\
@@ -54,7 +58,6 @@ monoutils_sources = \
 	mono-proclib.h		\
 	mono-publib.c		\
 	mono-string.h		\
-	mono-time.c  		\
 	mono-time.h  		\
 	strenc.h		\
 	strenc.c		\
@@ -239,9 +242,9 @@ arch_sources += mono-hwcap-cross.c
 
 endif
 
-libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources)
+libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources) $(mono_only_files)
 
-libmonoutils_unity_il2cpp_la_SOURCES = $(libmonoutils_la_SOURCES) $(unity_files)
+libmonoutils_unity_il2cpp_la_SOURCES = $(monoutils_sources) $(arch_sources) $(unity_files)
 libmonoutils_unity_il2cpp_la_CFLAGS = -DIL2CPP_ON_MONO -DDISABLE_JIT -DDISABLE_REMOTING -fexceptions -DPLATFORM_UNITY -I../../../../il2cpp/build/libil2cpp/os/c-api
 
 

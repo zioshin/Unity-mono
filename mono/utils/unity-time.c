@@ -15,6 +15,8 @@
 
 #include <utils/mono-time.h>
 
+#include "Time-c-api.h"
+
 gint64
 mono_msec_ticks (void)
 {
