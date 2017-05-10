@@ -64,6 +64,7 @@ libmonoruntime_la_SOURCES = \
 	$(platform_sources)	\
 	../../unity/unity_utils.c	\
 	../../unity/unity_liveness.c	\
+	../../unity/unity_memory_info.c \
 	../xamarin-android/logger.h	\
 	../xamarin-android/monodroid.h	\
 	../xamarin-android/unity_getifaddrs.c	\
