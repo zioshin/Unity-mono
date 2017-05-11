@@ -346,15 +346,9 @@ static void CaptureManagedHeap(MonoManagedHeap* heap)
 	GC_start_world_external();
 }
 
-typedef struct GCHandleTargetIterationContext
+static void GCHandleIterationCallback(MonoObject* managedObject, GList* managedObjects)
 {
-	GList* managedObjects;
-} GCHandleTargetIterationContext;
-
-static void GCHandleIterationCallback(MonoObject* managedObject, void* context)
-{
-    GCHandleTargetIterationContext* ctx = (GCHandleTargetIterationContext*)(context);
-	g_list_append(ctx->managedObjects, managedObject);
+	g_list_append(managedObjects, managedObject);
 }
 
 static inline void CaptureGCHandleTargets(MonoGCHandles* gcHandles)
@@ -362,12 +356,9 @@ static inline void CaptureGCHandleTargets(MonoGCHandles* gcHandles)
 	uint32_t i;
 	GList* trackedObjects, *trackedObject;
 
-    GCHandleTargetIterationContext gcHandleTargetIterationContext;
-	gcHandleTargetIterationContext.managedObjects = g_list_alloc();
+	trackedObjects = g_list_alloc();
 
-	mono_gc_strong_handle_foreach((GFunc)GCHandleIterationCallback, &gcHandleTargetIterationContext);
-
-	trackedObjects = gcHandleTargetIterationContext.managedObjects;
+	mono_gc_strong_handle_foreach((GFunc)GCHandleIterationCallback, trackedObjects);
 
 	gcHandles->trackedObjectCount = (uint32_t)g_list_length(trackedObjects);
     gcHandles->pointersToObjects = (uint64_t*)g_new0(uint64_t, gcHandles->trackedObjectCount);
@@ -380,7 +371,7 @@ static inline void CaptureGCHandleTargets(MonoGCHandles* gcHandles)
 		trackedObject = g_list_next(trackedObject);
 	}
 
-	g_list_free(gcHandleTargetIterationContext.managedObjects);
+	g_list_free(trackedObjects);
 }
 
 static void FillRuntimeInformation(MonoRuntimeInformation* runtimeInfo)
