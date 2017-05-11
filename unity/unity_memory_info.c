@@ -7,6 +7,7 @@
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/tokentype.h>
+#include <stdlib.h>
 
 #include <glib.h>
 
@@ -132,12 +133,23 @@ static void CollectMetadata(MonoMetadataSnapshot* metadata)
 	g_hash_table_destroy(context.allTypes);
 }
 
+static void FillRuntimeInformation(MonoRuntimeInformation* runtimeInfo)
+{
+    runtimeInfo->pointerSize = (uint32_t)(sizeof(void*));
+    runtimeInfo->objectHeaderSize = (uint32_t)(sizeof(MonoObject));
+    runtimeInfo->arrayHeaderSize = offsetof(MonoArray, vector);
+    runtimeInfo->arraySizeOffsetInHeader = offsetof(MonoArray, max_length);
+    runtimeInfo->arrayBoundsOffsetInHeader = offsetof(MonoArray, bounds);
+    runtimeInfo->allocationGranularity = (uint32_t)(2 * sizeof(void*));
+}
+
 MonoManagedMemorySnapshot* mono_unity_capture_memory_snapshot()
 {
 	MonoManagedMemorySnapshot* snapshot;
 	snapshot = g_new0(MonoManagedMemorySnapshot, 1);
 
 	CollectMetadata(&snapshot->metadata);
+	FillRuntimeInformation(&snapshot->runtimeInformation);
 
 	return snapshot;
 }
