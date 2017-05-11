@@ -7,21 +7,18 @@ struct _GDir {
     UnityPalFindHandle* handle;
     gchar* current;
     gchar* next;
+    const gchar* path_for_rewind;
 };
 
-GDir *
-g_dir_open (const gchar *path, guint flags, GError **error)
+static gboolean
+setup_dir_handle(GDir*dir, const gchar* path, GError **error)
 {
-    GDir *dir;
     gchar* path_search;
     char* result_file_name = NULL;
     gint unused_attributes;
     UnityPalErrorCode result;
 
-    g_return_val_if_fail (path != NULL, NULL);
-    g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-
-    dir = g_new0 (GDir, 1);
+    dir->path_for_rewind = g_strdup (path);
     path_search = g_malloc ((strlen(path) + 3)*sizeof(gchar));
     strcpy (path_search, path);
 #ifdef G_OS_WIN32
@@ -36,7 +33,7 @@ g_dir_open (const gchar *path, guint flags, GError **error)
         if (error)
             *error = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (result), strerror (result));
         g_free (dir);
-        return NULL;
+        return FALSE;
     }
 
     while ((strcmp (result_file_name, ".") == 0) || (strcmp (result_file_name, "..") == 0)) {
@@ -49,6 +46,30 @@ g_dir_open (const gchar *path, guint flags, GError **error)
 
     dir->current = NULL;
     dir->next = result_file_name;
+    return TRUE;
+}
+
+static void close_dir_handle(GDir* dir)
+{
+    UnityPalDirectoryCloseOSHandle(dir->handle);
+    UnityPalDirectoryFindHandleDelete(dir->handle);
+    dir->handle = 0; 
+}
+
+GDir *
+g_dir_open (const gchar *path, guint flags, GError **error)
+{
+    GDir *dir;
+
+    g_return_val_if_fail (path != NULL, NULL);
+    g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+    dir = g_new0 (GDir, 1);
+
+    gboolean success = setup_dir_handle(dir, path, error);
+    if (!success)
+        return NULL;
+    
     return dir;
 }
 
@@ -87,6 +108,10 @@ g_dir_read_name (GDir *dir)
 void
 g_dir_rewind (GDir *dir)
 {
+    g_return_if_fail (dir != NULL && dir->handle != NULL);
+
+    close_dir_handle(dir);
+    setup_dir_handle(dir, dir->path_for_rewind, NULL);
 }
 
 void
@@ -100,8 +125,9 @@ g_dir_close (GDir *dir)
     if (dir->next)
         g_free (dir->next);
     dir->next = NULL;
-    UnityPalDirectoryCloseOSHandle(dir->handle);
-    UnityPalDirectoryFindHandleDelete(dir->handle);
-    dir->handle = 0;
+    if (dir->path_for_rewind)
+        g_free(dir->path_for_rewind);
+    dir->path_for_rewind = NULL;
+    close_dir_handle(dir);
     g_free (dir);
 }
