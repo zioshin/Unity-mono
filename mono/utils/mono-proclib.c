@@ -65,6 +65,11 @@
 #define USE_SYSCTL 1
 #endif
 
+#ifdef PLATFORM_UNITY
+#include <CpuInfo-c-api.h>
+#include <Process-c-api.h>
+#endif
+
 /**
  * mono_process_list:
  * @size: a pointer to a location where the size of the returned array is stored
@@ -640,7 +645,9 @@ mono_process_get_data (gpointer pid, MonoProcessData data)
 int
 mono_process_current_pid ()
 {
-#if defined(HAVE_UNISTD_H)
+#if defined(PLATFORM_UNITY)
+    return UnityPalGetCurrentProcessId();
+#elif defined(HAVE_UNISTD_H)
 	return (int) getpid ();
 #elif defined(HOST_WIN32)
 	return (int) GetCurrentProcessId ();
@@ -657,6 +664,9 @@ mono_process_current_pid ()
 int
 mono_cpu_count (void)
 {
+#ifdef PLATFORM_UNITY
+    return UnityPalGetProcessorCount();
+#else
 #ifdef HOST_WIN32
 	SYSTEM_INFO info;
 	GetSystemInfo (&info);
@@ -782,6 +792,7 @@ mono_cpu_count (void)
 #endif /* HOST_WIN32 */
 	/* FIXME: warn */
 	return 1;
+#endif
 }
 
 static void
@@ -892,6 +903,9 @@ mono_atexit (void (*func)(void))
 gint32
 mono_cpu_usage (MonoCpuUsageState *prev)
 {
+#if PLATFORM_UNITY
+    return UnityPalCpuInfoUsage(prev);
+#else
 	gint32 cpu_usage = 0;
 	gint64 cpu_total_time;
 	gint64 cpu_busy_time;
@@ -943,4 +957,5 @@ mono_cpu_usage (MonoCpuUsageState *prev)
 		cpu_usage = (gint32)(cpu_busy_time * 100 / cpu_total_time);
 
 	return cpu_usage;
+#endif
 }
