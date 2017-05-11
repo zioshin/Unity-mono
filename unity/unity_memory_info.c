@@ -85,7 +85,7 @@ static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 			while ((field = mono_class_get_fields (klass, &iter))) 
 			{
 				MonoMetadataField* metaField = &type->fields[type->fieldCount];
-				metaField->typeIndex = FindClassIndex(context->allTypes, mono_class_get_element_class(klass));
+				metaField->typeIndex = FindClassIndex(context->allTypes, mono_class_from_mono_type(field->type));
 
 				// This will happen if fields type is not initialized
                 // It's OK to skip it, because it means the field is guaranteed to be null on any object
