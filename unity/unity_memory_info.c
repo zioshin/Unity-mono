@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <libgc/include/gc.h>
 #include <libgc/include/private/gc_priv.h>
+#include <mono/metadata/gc-internal.h>
 
 #include <glib.h>
 
@@ -345,6 +346,43 @@ static void CaptureManagedHeap(MonoManagedHeap* heap)
 	GC_start_world_external();
 }
 
+typedef struct GCHandleTargetIterationContext
+{
+	GList* managedObjects;
+} GCHandleTargetIterationContext;
+
+static void GCHandleIterationCallback(MonoObject* managedObject, void* context)
+{
+    GCHandleTargetIterationContext* ctx = (GCHandleTargetIterationContext*)(context);
+	g_list_append(ctx->managedObjects, managedObject);
+}
+
+static inline void CaptureGCHandleTargets(MonoGCHandles* gcHandles)
+{
+	uint32_t i;
+	GList* trackedObjects, *trackedObject;
+
+    GCHandleTargetIterationContext gcHandleTargetIterationContext;
+	gcHandleTargetIterationContext.managedObjects = g_list_alloc();
+
+	mono_gc_strong_handle_foreach((GFunc)GCHandleIterationCallback, &gcHandleTargetIterationContext);
+
+	trackedObjects = gcHandleTargetIterationContext.managedObjects;
+
+	gcHandles->trackedObjectCount = (uint32_t)g_list_length(trackedObjects);
+    gcHandles->pointersToObjects = (uint64_t*)g_new0(uint64_t, gcHandles->trackedObjectCount);
+
+	trackedObject = trackedObjects;
+
+    for (i = 0; i < gcHandles->trackedObjectCount; i++)
+	{
+		gcHandles->pointersToObjects[i] = (uint64_t)trackedObject->data;
+		trackedObject = g_list_next(trackedObject);
+	}
+
+	g_list_free(gcHandleTargetIterationContext.managedObjects);
+}
+
 static void FillRuntimeInformation(MonoRuntimeInformation* runtimeInfo)
 {
     runtimeInfo->pointerSize = (uint32_t)(sizeof(void*));
@@ -362,6 +400,7 @@ MonoManagedMemorySnapshot* mono_unity_capture_memory_snapshot()
 
 	CollectMetadata(&snapshot->metadata);
 	CaptureManagedHeap(&snapshot->heap);
+	CaptureGCHandleTargets(&snapshot->gcHandles);
 	FillRuntimeInformation(&snapshot->runtimeInformation);
 
 	return snapshot;
