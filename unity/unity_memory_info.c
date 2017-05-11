@@ -8,6 +8,8 @@
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/tokentype.h>
 #include <stdlib.h>
+#include <libgc/include/gc.h>
+#include <libgc/include/private/gc_priv.h>
 
 #include <glib.h>
 
@@ -133,6 +135,208 @@ static void CollectMetadata(MonoMetadataSnapshot* metadata)
 	g_hash_table_destroy(context.allTypes);
 }
 
+static struct hblk* GetNextFreeBlock(ptr_t ptr)
+{
+	struct hblk* result = NULL;
+	unsigned i;
+
+	for (i = 0; i < N_HBLK_FLS + 1; i++)
+	{
+		struct hblk* freeBlock = GC_hblkfreelist[i];
+		
+		for (freeBlock = GC_hblkfreelist[i]; freeBlock != NULL; freeBlock = HDR(freeBlock)->hb_next)
+		{
+			/* We're only interested in pointers after "ptr" argument */
+			if ((ptr_t)freeBlock < ptr)
+				continue;
+
+			/* If we haven't had a result before or our previous result is */
+			/* ahead of the current freeBlock, mark the current freeBlock as result */
+			if (result == NULL || result > freeBlock)
+				result = freeBlock;
+		}
+	}
+
+	return result;
+}
+
+typedef void (*GC_heap_section_proc)(void* user_data, GC_PTR start, GC_PTR end);
+
+void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback)
+{
+	unsigned i;
+	
+	GC_ASSERT(I_HOLD_LOCK());
+
+	if (callback == NULL)
+		return;
+
+	for (i = 0; i < GC_n_heap_sects; i++)
+	{
+		ptr_t sectionStart = GC_heap_sects[i].hs_start;
+		ptr_t sectionEnd = sectionStart + GC_heap_sects[i].hs_bytes;
+
+		while (sectionStart < sectionEnd)
+		{
+			struct hblk* nextFreeBlock = GetNextFreeBlock(sectionStart);
+			
+			if (nextFreeBlock == NULL || (ptr_t)nextFreeBlock > sectionEnd)
+			{
+				callback(user_data, sectionStart, sectionEnd);
+				break;
+			}
+			else
+			{
+				size_t sectionLength = (char*)nextFreeBlock - sectionStart;
+
+				if (sectionLength > 0)
+					callback(user_data, sectionStart, sectionStart + sectionLength);
+
+				sectionStart = (char*)nextFreeBlock + HDR(nextFreeBlock)->hb_sz;
+			}
+		}
+	}
+}
+
+static void HeapSectionCountIncrementer(void* context, GC_PTR start, GC_PTR end)
+{
+	GC_word* countPtr = (GC_word*)context;
+	(*countPtr)++;
+}
+
+GC_word GC_get_heap_section_count()
+{
+	GC_word count = 0;
+	GC_foreach_heap_section(&count, HeapSectionCountIncrementer);
+	return count;
+}
+
+typedef struct SectionIterationContext
+{
+    MonoManagedMemorySection* currentSection;
+} SectionIterationContext;
+
+static void AllocateMemoryForSection(void* context, void* sectionStart, void* sectionEnd)
+{
+	ptrdiff_t sectionSize;
+
+    SectionIterationContext* ctx = (SectionIterationContext*)context;
+    MonoManagedMemorySection* section = ctx->currentSection;
+
+    section->sectionStartAddress = (uint64_t)sectionStart;
+    sectionSize = (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart);
+
+    section->sectionSize = (uint32_t)(sectionSize);
+    section->sectionBytes = (uint8_t)(g_new(uint8_t, section->sectionSize));
+
+    ctx->currentSection++;
+}
+
+static void CopyHeapSection(void* context, void* sectionStart, void* sectionEnd)
+{
+    SectionIterationContext* ctx = (SectionIterationContext*)(context);
+    MonoManagedMemorySection* section = ctx->currentSection;
+
+    g_assert(section->sectionStartAddress == (uint64_t)(sectionStart));
+    g_assert(section->sectionSize == (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart));
+    memcpy(section->sectionBytes, sectionStart, section->sectionSize);
+
+    ctx->currentSection++;
+}
+
+static void* CaptureHeapInfo(void* voidManagedHeap)
+{
+    MonoManagedHeap* heap = (MonoManagedHeap*)voidManagedHeap;
+	SectionIterationContext iterationContext;
+
+    heap->sectionCount = GC_get_heap_section_count();
+    heap->sections = g_new0(MonoManagedMemorySection, heap->sectionCount);
+
+	iterationContext.currentSection = heap->sections;
+
+	GC_foreach_heap_section(&iterationContext, AllocateMemoryForSection);
+
+    return NULL;
+}
+
+static void FreeMonoManagedHeap(MonoManagedHeap* heap)
+{
+	uint32_t i;
+
+    for (i = 0; i < heap->sectionCount; i++)
+    {
+        g_free(heap->sections[i].sectionBytes);
+    }
+
+    g_free(heap->sections);
+}
+
+typedef struct VerifyHeapSectionStillValidIterationContext
+{
+    MonoManagedMemorySection* currentSection;
+    gboolean wasValid;
+} VerifyHeapSectionStillValidIterationContext;
+
+static void VerifyHeapSectionIsStillValid(void* context, void* sectionStart, void* sectionEnd)
+{
+    VerifyHeapSectionStillValidIterationContext* iterationContext = (VerifyHeapSectionStillValidIterationContext*)context;
+    if (iterationContext->currentSection->sectionSize != (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart))
+        iterationContext->wasValid = FALSE;
+    else if (iterationContext->currentSection->sectionStartAddress != (uint64_t)(sectionStart))
+        iterationContext->wasValid = FALSE;
+
+    iterationContext->currentSection++;
+}
+
+static gboolean MonoManagedHeapStillValid(MonoManagedHeap* heap)
+{
+	VerifyHeapSectionStillValidIterationContext iterationContext;
+
+    if (heap->sectionCount != GC_get_heap_section_count())
+		return FALSE;
+
+	iterationContext.currentSection = heap->sections;
+	iterationContext.wasValid = TRUE;
+
+	GC_foreach_heap_section(&iterationContext, VerifyHeapSectionIsStillValid);
+    
+	return iterationContext.wasValid;
+}
+
+// The difficulty in capturing the managed snapshot is that we need to do quite some work with the world stopped,
+// to make sure that our snapshot is "valid", and didn't change as we were copying it. However, stopping the world,
+// makes it so you cannot take any lock or allocations. We deal with it like this:
+//
+// 1) We take note of the amount of heap sections and their sizes, and we allocate memory to copy them into.
+// 2) We stop the world.
+// 3) We check if the amount of heapsections and their sizes didn't change in the mean time. If they did, try again.
+// 4) Now, with the world still stopped, we memcpy() the memory from the real heapsections, into the memory that we
+//    allocated for their copies.
+// 5) Start the world again.
+
+static void CaptureManagedHeap(MonoManagedHeap* heap)
+{
+	SectionIterationContext iterationContext;
+
+	while(TRUE)
+	{
+		GC_call_with_alloc_lock(CaptureHeapInfo, heap);
+		GC_stop_world_external();
+
+		if (MonoManagedHeapStillValid(heap))
+	        break;
+
+		GC_start_world_external();
+
+		FreeMonoManagedHeap(heap);
+	}
+	
+	iterationContext.currentSection = heap->sections;
+    GC_foreach_heap_section(&iterationContext, CopyHeapSection);
+
+	GC_start_world_external();
+}
+
 static void FillRuntimeInformation(MonoRuntimeInformation* runtimeInfo)
 {
     runtimeInfo->pointerSize = (uint32_t)(sizeof(void*));
@@ -149,6 +353,7 @@ MonoManagedMemorySnapshot* mono_unity_capture_memory_snapshot()
 	snapshot = g_new0(MonoManagedMemorySnapshot, 1);
 
 	CollectMetadata(&snapshot->metadata);
+	CaptureManagedHeap(&snapshot->heap);
 	FillRuntimeInformation(&snapshot->runtimeInformation);
 
 	return snapshot;
