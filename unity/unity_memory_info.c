@@ -46,6 +46,14 @@ static int FindClassIndex(GHashTable* hashTable, MonoClass* klass)
 	return (int)value;
 }
 
+static gchar* GetTypeName(MonoClass* klass)
+{
+	const char* name = mono_class_get_name(klass);
+	const char* name_space = mono_class_get_namespace(klass);
+
+	return g_strdup_printf("%s.%s", name_space, name);
+}
+
 static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 {
 	MonoClass* klass = (MonoClass*)key;
@@ -111,7 +119,7 @@ static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 	}
 
 	type->assemblyName = mono_class_get_image(klass)->assembly->aname.name;
-	type->name = (char*)klass->name; // FIXME
+	type->name = GetTypeName(klass);
 	type->typeInfoAddress = (uint64_t)klass;
 	type->size = (klass->valuetype) != 0 ? (mono_class_instance_size(klass) - sizeof(MonoObject)) : mono_class_instance_size(klass);
 }
@@ -361,5 +369,24 @@ MonoManagedMemorySnapshot* mono_unity_capture_memory_snapshot()
 
 void mono_unity_free_captured_memory_snapshot(MonoManagedMemorySnapshot* snapshot)
 {
-	g_free(snapshot);
+	uint32_t i;
+    MonoMetadataSnapshot* metadata = &snapshot->metadata;
+
+	FreeMonoManagedHeap(&snapshot->heap);
+
+    g_free(snapshot->gcHandles.pointersToObjects);
+
+    for (i = 0; i < metadata->typeCount; i++)
+    {
+        if ((metadata->types[i].flags & kArray) == 0)
+        {
+            g_free(metadata->types[i].fields);
+            g_free(metadata->types[i].statics);
+        }
+
+		g_free(metadata->types[i].name);
+    }
+
+    g_free(metadata->types);
+    g_free(snapshot);
 }
