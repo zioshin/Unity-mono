@@ -1179,6 +1179,18 @@ extern map_entry_type * GC_invalid_map;
 			/* Pointer to the nowhere valid hblk map */
 			/* Blocks pointing to this map are free. */
 
+# define UNIQUE_THRESHOLD 32
+	/* Sizes up to this many HBLKs each have their own free list    */
+# define HUGE_THRESHOLD 256
+	/* Sizes of at least this many heap blocks are mapped to a	*/
+	/* single free list.						*/
+# define FL_COMPRESSION 8
+	/* In between sizes map this many distinct sizes to a single	*/
+	/* bin.								*/
+
+# define N_HBLK_FLS (HUGE_THRESHOLD - UNIQUE_THRESHOLD)/FL_COMPRESSION \
+				 + UNIQUE_THRESHOLD
+
 extern struct hblk * GC_hblkfreelist[];
 				/* List of completely empty heap blocks	*/
 				/* Linked through hb_next field of 	*/
