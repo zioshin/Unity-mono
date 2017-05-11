@@ -1036,5 +1036,8 @@ extern void GC_thr_init(void);	/* Needed for Solaris/X86	*/
 void GC_stop_world_external();
 void GC_start_world_external();
 
+typedef void (*GC_heap_section_proc)(void* user_data, GC_PTR start, GC_PTR end);
+void GC_foreach_heap_section(void* user_data, GC_heap_section_proc callback);
+GC_word GC_get_heap_section_count();
 
 #endif /* _GC_H */
