@@ -236,7 +236,7 @@ static void AllocateMemoryForSection(void* context, void* sectionStart, void* se
     sectionSize = (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart);
 
     section->sectionSize = (uint32_t)(sectionSize);
-    section->sectionBytes = (uint8_t)(g_new(uint8_t, section->sectionSize));
+    section->sectionBytes = g_new(uint8_t, section->sectionSize);
 
     ctx->currentSection++;
 }
@@ -253,9 +253,9 @@ static void CopyHeapSection(void* context, void* sectionStart, void* sectionEnd)
     ctx->currentSection++;
 }
 
-static void* CaptureHeapInfo(void* voidManagedHeap)
+static void* CaptureHeapInfo(void* monoManagedHeap)
 {
-    MonoManagedHeap* heap = (MonoManagedHeap*)voidManagedHeap;
+    MonoManagedHeap* heap = (MonoManagedHeap*)monoManagedHeap;
 	SectionIterationContext iterationContext;
 
     heap->sectionCount = GC_get_heap_section_count();
