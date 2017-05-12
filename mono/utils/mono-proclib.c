@@ -68,6 +68,7 @@
 #ifdef PLATFORM_UNITY
 #include <CpuInfo-c-api.h>
 #include <Process-c-api.h>
+#include <Environment-c-api.h>
 #endif
 
 /**

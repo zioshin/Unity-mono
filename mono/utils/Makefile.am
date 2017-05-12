@@ -11,11 +11,11 @@ mono-dtrace.h: $(top_srcdir)/data/mono.d
 
 endif
 
-unity_files = 			\
-	unity-rand.c 	\
+unity_files = 		\
+	unity-rand.c 	
 
 mono_only_files =	\
-	mono-rand.c		\
+	mono-rand.c
 
 monoutils_sources = \
 	mono-md5.c		\
