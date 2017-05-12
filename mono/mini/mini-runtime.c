@@ -237,7 +237,7 @@ mono_pmip (void *ip)
 *
 * (gdb) print mono_pmip_pretty ($pc)
 *
-* Returns: the name of the method at address @ip.
+* Returns: the assembly name, method name, and file info at address @ip.
 */
 MONO_API char *
 mono_pmip_pretty(void *ip)
@@ -282,28 +282,21 @@ mono_pmip_pretty(void *ip)
     MonoDebugSourceLocation* location = mono_debug_lookup_source_location(method, (guint32)((guint8*)ip - (guint8*)ji->code_start), domain);
     MonoDebugMethodInfo* minfo = mono_debug_lookup_method(method);
 
-    char* lineNumber;
-    char* language;
-    char* filePath;
-    if (!location)
-    {
-        lineNumber = g_strdup("<UNKNOWN>");
-        language = g_strdup("<UNKNOWN>");
-        filePath = g_strdup("<UNKNOWN>");
-    }
-    else
+    char *lineNumber, *filePath;
+    if (location)
     {
         lineNumber = g_strdup_printf("%d", location->row);
         filePath = g_strdup(location->source_file);
     }
+    else
+    {
+        lineNumber = g_strdup("<UNKNOWN>");
+        filePath = g_strdup("<UNKNOWN>");
+    }
 
     char* assembly_name = klass->image->module_name;
 
-    
-
     formattedPMIP = g_strdup_printf("[%s] %s Line %s File %s", assembly_name, method_name, lineNumber, filePath);
-
-
 
     mono_debug_free_source_location(location);
     g_free(method_name);
