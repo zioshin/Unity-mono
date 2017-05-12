@@ -684,6 +684,7 @@ mono_perfcounter_foreach
 mono_perfcounters_init
 mono_personality
 mono_pmip
+mono_pmip_pretty
 mono_poll
 mono_print_method_from_ip
 mono_print_thread_dump
