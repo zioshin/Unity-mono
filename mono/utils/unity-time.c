@@ -1,19 +1,13 @@
-/*
- * Time utility functions.
- * Author: Paolo Molaro (<lupus@ximian.com>)
- * Copyright (C) 2008 Novell, Inc.
- * Licensed under the MIT license. See LICENSE file in the project root for full license information.
- */
-
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <glib.h>
+//#include <stdlib.h>
+//#include <stdio.h>
 
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
+#include <mono/utils/mono-compiler.h>
 
-#include <utils/mono-time.h>
+//#ifdef HAVE_SYS_TIME_H
+//#include <sys/time.h>
+//#endif
 
 #include "Time-c-api.h"
 
