@@ -6,7 +6,6 @@
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gfile-win32.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gmisc-win32.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gmodule-win32.c" />
-    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gpath.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gtimer-win32.c" />
    </ItemGroup>
    <ItemGroup>
