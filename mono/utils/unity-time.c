@@ -40,8 +40,7 @@ mono_100ns_datetime (void)
 gint64
 mono_msec_boottime (void)
 {
-	g_assert_not_reached();
-	return 0;
+	return (gint64) UnityPalGetTicksMillisecondsMonotonic();
 }
 
 gint64
