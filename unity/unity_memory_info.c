@@ -144,6 +144,19 @@ static void CollectMetadata(MonoMetadataSnapshot* metadata)
 	g_hash_table_destroy(context.allTypes);
 }
 
+static void MonoMemPoolNumChunksCallback(void* start, void* end, void* user_data)
+{
+	int* count = (int*)user_data;
+	(*count)++;
+}
+
+static int MonoMemPoolNumChunks(MonoMemPool* pool)
+{
+	int count = 0;
+	mono_mempool_foreach_chunk(pool, MonoMemPoolNumChunksCallback, &count);
+	return count;
+}
+
 typedef struct SectionIterationContext
 {
     MonoManagedMemorySection* currentSection;
@@ -165,6 +178,11 @@ static void AllocateMemoryForSection(void* context, void* sectionStart, void* se
     ctx->currentSection++;
 }
 
+static void AllocateMemoryForMemPoolChunk(void* chunkStart, void* chunkEnd, void* context)
+{
+	AllocateMemoryForSection(context, chunkStart, chunkEnd);
+}
+
 static void CopyHeapSection(void* context, void* sectionStart, void* sectionEnd)
 {
     SectionIterationContext* ctx = (SectionIterationContext*)(context);
@@ -177,17 +195,28 @@ static void CopyHeapSection(void* context, void* sectionStart, void* sectionEnd)
     ctx->currentSection++;
 }
 
+static void CopyMemPoolChunk(void* chunkStart, void* chunkEnd, void* context)
+{
+	CopyHeapSection(context, chunkStart, chunkEnd);
+}
+
 static void* CaptureHeapInfo(void* monoManagedHeap)
 {
     MonoManagedHeap* heap = (MonoManagedHeap*)monoManagedHeap;
+	MonoDomain* domain = mono_domain_get();
 	SectionIterationContext iterationContext;
 
     heap->sectionCount = GC_get_heap_section_count();
-    heap->sections = g_new0(MonoManagedMemorySection, heap->sectionCount);
+	heap->sectionCount += MonoMemPoolNumChunks(domain->mp);
+	heap->sections = g_new0(MonoManagedMemorySection, heap->sectionCount);
 
 	iterationContext.currentSection = heap->sections;
 
 	GC_foreach_heap_section(&iterationContext, AllocateMemoryForSection);
+
+	mono_domain_lock (domain);
+	mono_mempool_foreach_chunk(domain->mp, AllocateMemoryForMemPoolChunk, &iterationContext);
+	mono_domain_unlock(domain);
 
     return NULL;
 }
@@ -223,9 +252,10 @@ static void VerifyHeapSectionIsStillValid(void* context, void* sectionStart, voi
 
 static gboolean MonoManagedHeapStillValid(MonoManagedHeap* heap)
 {
+	MonoDomain* domain = mono_domain_get();
 	VerifyHeapSectionStillValidIterationContext iterationContext;
 
-    if (heap->sectionCount != GC_get_heap_section_count())
+    if (heap->sectionCount != GC_get_heap_section_count() + MonoMemPoolNumChunks(domain->mp))
 		return FALSE;
 
 	iterationContext.currentSection = heap->sections;
@@ -249,6 +279,7 @@ static gboolean MonoManagedHeapStillValid(MonoManagedHeap* heap)
 
 static void CaptureManagedHeap(MonoManagedHeap* heap)
 {
+	MonoDomain* domain = mono_domain_get();
 	SectionIterationContext iterationContext;
 
 	while(TRUE)
@@ -266,6 +297,10 @@ static void CaptureManagedHeap(MonoManagedHeap* heap)
 	
 	iterationContext.currentSection = heap->sections;
     GC_foreach_heap_section(&iterationContext, CopyHeapSection);
+
+	mono_domain_lock (domain);
+	mono_mempool_foreach_chunk(domain->mp, CopyMemPoolChunk, &iterationContext);
+	mono_domain_unlock (domain);
 
 	GC_start_world_external();
 }
