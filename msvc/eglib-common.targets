@@ -18,6 +18,7 @@
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gshell.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gslist.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gspawn.c" />
+    <ClCompile Include="$(MonoSourceLocation)\eglib\src\gpath.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gstr.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gstring.c" />
     <ClCompile Include="$(MonoSourceLocation)\eglib\src\gunicode.c" />

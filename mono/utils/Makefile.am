@@ -11,10 +11,12 @@ mono-dtrace.h: $(top_srcdir)/data/mono.d
 
 endif
 
-unity_files = \
-	unity-time.c
- 
-mono_only_files = \
+unity_files = 		\
+	unity-rand.c	\
+        unity-time.c 	
+
+mono_only_files =	\
+	mono-rand.c \
 	mono-time.c
 
 monoutils_sources = \
@@ -153,7 +155,6 @@ monoutils_sources = \
 	networking-missing.c	\
 	networking-windows.c	\
 	networking.h	\
-	mono-rand.c	\
 	mono-rand.h \
 	memfuncs.c \
 	memfuncs.h \
@@ -244,7 +245,7 @@ endif
 
 libmonoutils_la_SOURCES = $(monoutils_sources) $(arch_sources) $(mono_only_files)
 
-libmonoutils_unity_il2cpp_la_SOURCES = $(monoutils_sources) $(arch_sources) $(unity_files)
+libmonoutils_unity_il2cpp_la_SOURCES = $(monoutils_sources) $(arch_sources) $(unity_files) 
 libmonoutils_unity_il2cpp_la_CFLAGS = -DIL2CPP_ON_MONO -DDISABLE_JIT -DDISABLE_REMOTING -fexceptions -DPLATFORM_UNITY -I../../../../il2cpp/build/libil2cpp/os/c-api
 
 
