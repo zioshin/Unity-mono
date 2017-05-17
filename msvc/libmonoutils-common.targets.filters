@@ -112,9 +112,6 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-publib.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-rand.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-sha1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
