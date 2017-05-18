@@ -37,10 +37,11 @@ mono_msec_boottime (void)
 	return (gint64) UnityPalGetTicksMillisecondsMonotonic();
 }
 
-gint64
-mono_100ns_datetime_from_timeval (struct timeval tv)
+#ifndef HOST_WIN32
+gint64 mono_100ns_datetime_from_timeval (struct timeval tv)
 {
 	g_assert_not_reached();
 	return 0;
 }
+#endif
 
