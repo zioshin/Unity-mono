@@ -95,7 +95,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-threads-windows-abort-syscall.c" />
-    <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-time.c" />
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-tls.c" />
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-uri.c" />
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-value-hash.c" />

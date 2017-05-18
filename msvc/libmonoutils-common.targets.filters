@@ -148,9 +148,6 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-threads-windows-abort-syscall.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-time.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\mono-tls.c">
       <Filter>Source Files</Filter>
     </ClCompile>

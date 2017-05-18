@@ -12,10 +12,12 @@ mono-dtrace.h: $(top_srcdir)/data/mono.d
 endif
 
 unity_files = 		\
-	unity-rand.c 	
+	unity-rand.c	\
+        unity-time.c 	
 
 mono_only_files =	\
-	mono-rand.c
+	mono-rand.c \
+	mono-time.c
 
 monoutils_sources = \
 	mono-md5.c		\
@@ -58,7 +60,6 @@ monoutils_sources = \
 	mono-proclib.h		\
 	mono-publib.c		\
 	mono-string.h		\
-	mono-time.c  		\
 	mono-time.h  		\
 	strenc.h		\
 	strenc.c		\
