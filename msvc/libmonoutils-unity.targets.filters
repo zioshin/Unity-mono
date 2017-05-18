@@ -4,5 +4,8 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\unity-rand.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\mono\utils\unity-time.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
