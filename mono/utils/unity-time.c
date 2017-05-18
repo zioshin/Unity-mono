@@ -1,13 +1,11 @@
 #include <config.h>
 #include <glib.h>
-//#include <stdlib.h>
-//#include <stdio.h>
 
 #include <mono/utils/mono-compiler.h>
 
-//#ifdef HAVE_SYS_TIME_H
-//#include <sys/time.h>
-//#endif
+#ifdef HAVE_SYS_TIME_H
+	#include <sys/time.h>
+#endif
 
 #include "Time-c-api.h"
 
