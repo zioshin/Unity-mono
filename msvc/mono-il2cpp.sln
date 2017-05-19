@@ -4,7 +4,7 @@ VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "build-init", "build-init.vcxproj", "{92AE7622-5F58-4234-9A26-9EC71876B3F4}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmonoruntime-il2cpp", "libmonoruntime-il2cpp.vcxproj", "{BF89DD0D-F7BC-47F6-A054-D4361A809621}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmonoruntime-unity-il2cpp", "libmonoruntime-unity-il2cpp.vcxproj", "{BF89DD0D-F7BC-47F6-A054-D4361A809621}"
 	ProjectSection(ProjectDependencies) = postProject
 		{92AE7622-5F58-4234-9A26-9EC71876B3F4} = {92AE7622-5F58-4234-9A26-9EC71876B3F4}
 		{99A459E5-ED0A-4772-9A1D-9F57ED560F7B} = {99A459E5-ED0A-4772-9A1D-9F57ED560F7B}
