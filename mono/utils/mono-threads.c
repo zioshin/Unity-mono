@@ -870,7 +870,7 @@ is_thread_in_critical_region (MonoThreadInfo *info)
 
 	stack_start = MONO_CONTEXT_GET_SP (&state->ctx);
 	/* altstack signal handler, sgen can't handle them, so we treat them as critical */
-	if (stack_start < info->stack_start_limit || stack_start >= info->stack_end)
+	if (stack_start && stack_start < info->stack_start_limit || stack_start >= info->stack_end)
 		return TRUE;
 
 	ji = mono_jit_info_table_find (

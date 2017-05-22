@@ -2161,10 +2161,11 @@ typedef struct {
 	GHashTable *source_file_to_class_ignorecase;
 } AgentDomainInfo;
 
+static AgentDomainInfo* s_AgentDomainInfo;
 static AgentDomainInfo* debugger_get_agent_domain_info (MonoDomain* domain)
 {
 #ifdef IL2CPP_DEBUGGER
-	return NULL;
+	return s_AgentDomainInfo;
 #else
 	return (AgentDomainInfo *)domain_jit_info (domain)->agent_info;
 #endif
@@ -2172,6 +2173,7 @@ static AgentDomainInfo* debugger_get_agent_domain_info (MonoDomain* domain)
 static void debugger_set_agent_domain_info (MonoDomain* domain, AgentDomainInfo* info)
 {
 #ifdef IL2CPP_DEBUGGER
+	s_AgentDomainInfo = info;
 #else
 	domain_jit_info (domain)->agent_info = info;
 #endif
@@ -2559,6 +2561,9 @@ save_thread_context (MonoContext *ctx)
 	else
 		mono_thread_state_init_from_current (&tls->context);
 #else
+	if (!ctx)
+		return;
+
 	NOT_IMPLEMENTED;
 #endif
 }
@@ -2686,7 +2691,7 @@ thread_interrupt (DebuggerTlsData *tls, MonoThreadInfo *info, MonoJitInfo *ji)
 #ifndef IL2CPP_DEBUGGER
 			mono_get_eh_callbacks ()->mono_walk_stack_with_state (get_last_frame, mono_thread_info_get_suspend_state (info), MONO_UNWIND_SIGNAL_SAFE, &data);
 #else 
-            NOT_IMPLEMENTED;
+            //NOT_IMPLEMENTED;
 #endif
 			if (data.last_frame_set) {
 				gpointer jit_tls = ((MonoThreadInfo*)tls->thread->thread_info)->jit_data;
@@ -5251,7 +5256,7 @@ start_single_stepping (void)
 	if (val == 1)
 		mono_arch_start_single_stepping ();
 #else 
-    NOT_IMPLEMENTED;
+   // NOT_IMPLEMENTED;
 #endif
 
 #else
@@ -5269,7 +5274,7 @@ stop_single_stepping (void)
 	if (val == 0)
 		mono_arch_stop_single_stepping ();
 #else 
-    NOT_IMPLEMENTED;
+    // NOT_IMPLEMENTED;
 #endif
 
 #else
