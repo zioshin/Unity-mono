@@ -3696,7 +3696,7 @@ mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset)
 	req->suspend_policy = SUSPEND_POLICY_NONE;
 	req->nmodifiers = nmodifiers;
 
-	set_breakpoint(method, il_offset, req);
+	return set_breakpoint(method, il_offset, req);
 }
 
 static void
