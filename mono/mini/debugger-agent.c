@@ -4321,7 +4321,11 @@ remove_breakpoint (BreakpointInstance *inst)
 	g_assert (count > 0);
 
 	if (count == 1 && inst->native_offset != SEQ_POINT_NATIVE_OFFSET_DEAD_CODE) {
+#ifndef IL2CPP_DEBUGGER
 		mono_arch_clear_breakpoint (ji, ip);
+#else
+        NOT_IMPLEMENTED;
+#endif
 		DEBUG_PRINTF (1, "[dbg] Clear breakpoint at %s [%p].\n", mono_method_full_name (jinfo_get_method (ji), TRUE), ip);
 	}
 #else
@@ -4751,9 +4755,12 @@ process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal)
 	/* 
 	 * Skip the instruction causing the breakpoint signal.
 	 */
-	if (from_signal)
+#ifndef IL2CPP_DEBUGGER
+    if (from_signal)
 		mono_arch_skip_breakpoint (ctx, ji);
-
+#else 
+    NOT_IMPLEMENTED;
+#endif
 	if (method->wrapper_type || tls->disable_breakpoints)
 		return;
 
@@ -4994,8 +5001,12 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal)
 	ip = (guint8 *)MONO_CONTEXT_GET_IP (ctx);
 
 	/* Skip the instruction causing the single step */
-	if (from_signal)
+#ifndef IL2CPP_DEBUGGER
+    if (from_signal)
 		mono_arch_skip_single_step (ctx);
+#else
+    NOT_IMPLEMENTED;
+#endif
 
 	if (suspend_count > 0) {
 		/* Fastpath during invokes, see in process_suspend () */
@@ -5105,6 +5116,7 @@ process_single_step (void)
 void
 mono_debugger_agent_single_step_event (void *sigctx)
 {
+#ifndef IL2CPP_DEBUGGER
 	/* Resume to process_single_step through the signal context */
 
 	// FIXME: Since step out/over is implemented using step in, the step in case should
@@ -5126,6 +5138,7 @@ mono_debugger_agent_single_step_event (void *sigctx)
 	}
 
 	resume_from_signal_handler (sigctx, process_single_step);
+#endif
 }
 
 void
@@ -5194,8 +5207,13 @@ start_single_stepping (void)
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
 	int val = InterlockedIncrement (&ss_count);
 
+#ifndef IL2CPP_DEBUGGER
 	if (val == 1)
 		mono_arch_start_single_stepping ();
+#else 
+    NOT_IMPLEMENTED;
+#endif
+
 #else
 	g_assert_not_reached ();
 #endif
@@ -5207,8 +5225,13 @@ stop_single_stepping (void)
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
 	int val = InterlockedDecrement (&ss_count);
 
+#ifndef IL2CPP_DEBUGGER
 	if (val == 0)
 		mono_arch_stop_single_stepping ();
+#else 
+    NOT_IMPLEMENTED
+#endif
+
 #else
 	g_assert_not_reached ();
 #endif
@@ -6431,7 +6454,8 @@ decode_value (MonoType *t, MonoDomain *domain, guint8 *addr, guint8 *buf, guint8
 static void
 add_var (Buffer *buf, MonoDebugMethodJitInfo *jit, MonoType *t, MonoDebugVarInfo *var, MonoContext *ctx, MonoDomain *domain, gboolean as_vtype)
 {
-	guint32 flags;
+#ifndef IL2CPP_DEBUGGER
+    guint32 flags;
 	int reg;
 	guint8 *addr, *gaddr;
 	mgreg_t reg_val;
@@ -6467,7 +6491,6 @@ add_var (Buffer *buf, MonoDebugMethodJitInfo *jit, MonoType *t, MonoDebugVarInfo
 		buffer_add_value_full (buf, t, gaddr, domain, as_vtype, NULL);
 		break;
 	case MONO_DEBUG_VAR_ADDRESS_MODE_GSHAREDVT_LOCAL: {
-#ifndef IL2CPP_DEBUGGER
 		MonoDebugVarInfo *info_var = jit->gsharedvt_info_var;
 		MonoDebugVarInfo *locals_var = jit->gsharedvt_locals_var;
 		MonoGSharedVtMethodRuntimeInfo *info;
@@ -6508,13 +6531,15 @@ add_var (Buffer *buf, MonoDebugMethodJitInfo *jit, MonoType *t, MonoDebugVarInfo
 		addr = locals + GPOINTER_TO_INT (info->entries [idx]);
 
 		buffer_add_value_full (buf, t, addr, domain, as_vtype, NULL);
-#endif
 		break;
 	}
 
 	default:
 		g_assert_not_reached ();
 	}
+#else 
+    NOT_IMPLEMENTED;
+#endif
 }
 
 static void
