@@ -2548,6 +2548,7 @@ static void invoke_method (void);
 static void
 save_thread_context (MonoContext *ctx)
 {
+#ifndef IL2CPP_DEBUGGER
 	DebuggerTlsData *tls;
 
 	tls = (DebuggerTlsData *)mono_native_tls_get_value (debugger_tls_id);
@@ -2557,6 +2558,9 @@ save_thread_context (MonoContext *ctx)
 		mono_thread_state_init_from_monoctx (&tls->context, ctx);
 	else
 		mono_thread_state_init_from_current (&tls->context);
+#else
+	NOT_IMPLEMENTED;
+#endif
 }
 
 /* Number of threads suspended */
@@ -4636,8 +4640,12 @@ clear_breakpoints_for_domain (MonoDomain *domain)
  */
 static void ss_calculate_framecount (DebuggerTlsData *tls, MonoContext *ctx)
 {
+#ifndef IL2CPP_DEBUGGER
 	if (!tls->context.valid)
 		mono_thread_state_init_from_monoctx (&tls->context, ctx);
+#else
+	NOT_IMPLEMENTED;
+#endif
 	compute_frame_info (tls->thread, tls);
 }
 
@@ -4861,6 +4869,7 @@ process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal)
 static void
 process_signal_event (void (*func) (DebuggerTlsData*, gboolean))
 {
+#ifndef IL2CPP_DEBUGGER
 	DebuggerTlsData *tls;
 	MonoThreadUnwindState orig_restore_state;
 	MonoContext ctx;
@@ -4877,6 +4886,9 @@ process_signal_event (void (*func) (DebuggerTlsData*, gboolean))
 	memcpy (&tls->restore_state, &orig_restore_state, sizeof (MonoThreadUnwindState));
 	mono_restore_context (&ctx);
 	g_assert_not_reached ();
+#else
+	NOT_IMPLEMENTED;
+#endif
 }
 
 static void
@@ -4885,6 +4897,7 @@ process_breakpoint (void)
 	process_signal_event (process_breakpoint_inner);
 }
 
+#ifndef IL2CPP_DEBUGGER
 static void
 resume_from_signal_handler (void *sigctx, void *func)
 {
@@ -4915,6 +4928,7 @@ resume_from_signal_handler (void *sigctx, void *func)
 	mono_ppc_set_func_into_sigctx (sigctx, func);
 #endif
 }
+#endif
 
 void
 mono_debugger_agent_breakpoint_hit (void *sigctx)
@@ -5378,8 +5392,12 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 
 		if (ctx && !frames) {
 			/* Need parent frames */
+#ifndef IL2CPP_DEBUGGER
 			if (!tls->context.valid)
 				mono_thread_state_init_from_monoctx (&tls->context, ctx);
+#else
+			NOT_IMPLEMENTED;
+#endif
 			compute_frame_info (tls->thread, tls);
 			frames = tls->frames;
 			nframes = tls->frame_count;
