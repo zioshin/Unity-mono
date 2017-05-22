@@ -5187,6 +5187,7 @@ debugger_agent_single_step_from_context (MonoContext *ctx)
 
 	g_assert (tls);
 
+#ifndef IL2CPP_DEBUGGER
 	/* Have to save/restore the restore_ctx as we can be called recursively during invokes etc. */
 	memcpy (&orig_restore_state, &tls->restore_state, sizeof (MonoThreadUnwindState));
 	mono_thread_state_init_from_monoctx (&tls->restore_state, ctx);
@@ -5196,6 +5197,9 @@ debugger_agent_single_step_from_context (MonoContext *ctx)
 
 	memcpy (ctx, &tls->restore_state.ctx, sizeof (MonoContext));
 	memcpy (&tls->restore_state, &orig_restore_state, sizeof (MonoThreadUnwindState));
+#else
+    NOT_IMPLEMENTED;
+#endif
 }
 
 void
@@ -5213,6 +5217,8 @@ debugger_agent_breakpoint_from_context (MonoContext *ctx)
 
 	tls = (DebuggerTlsData *)mono_native_tls_get_value (debugger_tls_id);
 	g_assert (tls);
+
+#ifndef IL2CPP_DEBUGGER
 	memcpy (&orig_restore_state, &tls->restore_state, sizeof (MonoThreadUnwindState));
 	mono_thread_state_init_from_monoctx (&tls->restore_state, ctx);
 	memcpy (&tls->handler_ctx, ctx, sizeof (MonoContext));
@@ -5223,6 +5229,10 @@ debugger_agent_breakpoint_from_context (MonoContext *ctx)
 	memcpy (&tls->restore_state, &orig_restore_state, sizeof (MonoThreadUnwindState));
 	if (MONO_CONTEXT_GET_IP (ctx) == orig_ip - 1)
 		MONO_CONTEXT_SET_IP (ctx, orig_ip);
+#else 
+    NOT_IMPLEMENTED;
+#endif
+
 }
 
 /*
@@ -5987,7 +5997,11 @@ mono_debugger_agent_begin_exception_filter (MonoException *exc, MonoContext *ctx
 	 *
 	 */
 
+#ifndef IL2CPP_DEBUGGER
 	g_assert (mono_thread_state_init_from_monoctx (&tls->filter_state, orig_ctx));
+#else 
+    NOT_IMPLEMENTED;
+#endif
 }
 
 void
