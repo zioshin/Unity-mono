@@ -1187,3 +1187,26 @@ mono_gc_is_finalizer_thread (MonoThread *thread)
 {
 	return thread == gc_thread;
 }
+
+void mono_gc_strong_handle_foreach(GFunc func, gpointer user_data)
+{
+	int gcHandleTypeIndex;
+	uint32_t i;
+	const HandleType types[] = { HANDLE_NORMAL, HANDLE_PINNED };
+
+	lock_handles (handles);
+
+	for (gcHandleTypeIndex = 0; gcHandleTypeIndex < 2; gcHandleTypeIndex++)
+    {
+        HandleData* handles = &gc_handles[types[gcHandleTypeIndex]];
+
+        for (i = 0; i < handles->size; i++)
+        {
+            if (handles->entries[i] != NULL)
+				func(handles->entries[i], user_data);
+        }
+    }
+
+	unlock_handles (handles);
+}
+
