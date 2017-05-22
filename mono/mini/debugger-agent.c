@@ -10,6 +10,8 @@
  */
 
 #include <config.h>
+
+#define IL2CPP_DEBUGGER 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,11 +54,15 @@
 #include <sys/endian.h>
 #endif
 
+
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/mono-debug-debugger.h>
 #include <mono/metadata/debug-mono-symfile.h>
 #include <mono/metadata/gc-internals.h>
+#include <mono/metadata/profiler.h>
 #include <mono/metadata/environment.h>
+#include <mono/metadata/tabledefs.h>
+#include <mono/metadata/tokentype.h>
 #include <mono/metadata/threads-types.h>
 #include <mono/metadata/threadpool-ms.h>
 #include <mono/metadata/socket-io.h>
@@ -72,8 +78,11 @@
 #include <mono/utils/mono-threads.h>
 #include <mono/utils/networking.h>
 #include "debugger-agent.h"
-#include "mini.h"
+//#include "mini.h"
 #include "seq-points.h"
+
+// copied from mini.h
+typedef MonoStackFrameInfo StackFrameInfo;
 
 /*
  * On iOS we can't use System.Environment.Exit () as it will do the wrong
@@ -83,6 +92,7 @@
 #define TRY_MANAGED_SYSTEM_ENVIRONMENT_EXIT
 #endif
 
+#define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
 
 #ifndef MONO_ARCH_SOFT_DEBUG_SUPPORTED
 #define DISABLE_DEBUGGER_AGENT 1
@@ -136,7 +146,9 @@ typedef struct
 	MonoDebugMethodJitInfo *jit;
 	MonoJitInfo *ji;
 	int flags;
+#ifndef IL2CPP_DEBUGGER
 	mgreg_t *reg_locations [MONO_MAX_IREGS];
+#endif
 	/*
 	 * Whenever ctx is set. This is FALSE for the last frame of running threads, since
 	 * the frame can become invalid.
@@ -1020,6 +1032,7 @@ mono_debugger_agent_init (void)
 	breakpoints_init ();
 	suspend_init ();
 
+#ifdef UNITY_HACK
 	mini_get_debug_options ()->gen_sdb_seq_points = TRUE;
 	/* 
 	 * This is needed because currently we don't handle liveness info.
@@ -1038,6 +1051,7 @@ mono_debugger_agent_init (void)
 	 * workaround.
 	 */
 	mini_get_debug_options ()->load_aot_jit_info_eagerly = TRUE;
+#endif
 
 #ifdef HAVE_SETPGID
 	if (agent_config.setpgid)
@@ -2147,6 +2161,43 @@ typedef struct {
 	GHashTable *source_file_to_class_ignorecase;
 } AgentDomainInfo;
 
+static AgentDomainInfo* debugger_get_agent_domain_info (MonoDomain* domain)
+{
+#ifdef IL2CPP_DEBUGGER
+	return NULL;
+#else
+	return (AgentDomainInfo *)domain_jit_info (domain)->agent_info;
+#endif
+}
+static void debugger_set_agent_domain_info (MonoDomain* domain, AgentDomainInfo* info)
+{
+#ifdef IL2CPP_DEBUGGER
+#else
+	domain_jit_info (domain)->agent_info = info;
+#endif
+}
+
+static GHashTable* debugger_get_domain_seq_points (MonoDomain* domain)
+{
+#ifdef IL2CPP_DEBUGGER
+	return NULL;
+#else
+	return domain_jit_info (domain)->seq_points;
+#endif
+}
+
+#ifdef IL2CPP_DEBUGGER
+static inline MonoMethod*
+jinfo_get_method (MonoJitInfo *ji)
+{
+	return NULL;
+}
+
+typedef struct MonoLMF MonoLMF;
+
+#define NOT_IMPLEMENTED do { g_assert_not_reached (); } while (0)
+#endif
+
 /* Maps id -> Id */
 /* Protected by the dbg lock */
 static GPtrArray *ids [ID_NUM];
@@ -2178,7 +2229,7 @@ ids_cleanup (void)
 void
 mono_debugger_agent_free_domain_info (MonoDomain *domain)
 {
-	AgentDomainInfo *info = (AgentDomainInfo *)domain_jit_info (domain)->agent_info;
+	AgentDomainInfo *info = debugger_get_agent_domain_info (domain);
 	int i, j;
 	GHashTableIter iter;
 	GPtrArray *file_names;
@@ -2213,7 +2264,7 @@ mono_debugger_agent_free_domain_info (MonoDomain *domain)
 		g_free (info);
 	}
 
-	domain_jit_info (domain)->agent_info = NULL;
+	debugger_set_agent_domain_info (domain, NULL);
 
 	/* Clear ids referencing structures in the domain */
 	dbg_lock ();
@@ -2240,10 +2291,10 @@ get_agent_domain_info (MonoDomain *domain)
 
 	mono_domain_lock (domain);
 
-	info = (AgentDomainInfo *)domain_jit_info (domain)->agent_info;
+	info = debugger_get_agent_domain_info (domain);
 	if (!info) {
 		info = g_new0 (AgentDomainInfo, 1);
-		domain_jit_info (domain)->agent_info = info;
+		debugger_set_agent_domain_info (domain, info);
 		info->loaded_classes = g_hash_table_new (mono_aligned_addr_hash, NULL);
 		info->source_files = g_hash_table_new (mono_aligned_addr_hash, NULL);
 		info->source_file_to_class = g_hash_table_new (g_str_hash, g_str_equal);
@@ -2572,7 +2623,7 @@ thread_interrupt (DebuggerTlsData *tls, MonoThreadInfo *info, MonoJitInfo *ji)
 
 	if (ji && !ji->is_trampoline) {
 		/* Running managed code, will be suspended by the single step code */
-		DEBUG_PRINTF (1, "[%p] Received interrupt while at %s(%p), continuing.\n", (gpointer)(gsize)tid, jinfo_get_method (ji)->name, ip);
+		//DEBUG_PRINTF (1, "[%p] Received interrupt while at %s(%p), continuing.\n", (gpointer)(gsize)tid, jinfo_get_method (ji)->name, ip);
 	} else {
 		/* 
 		 * Running native code, will be suspended when it returns to/enters 
@@ -3088,8 +3139,10 @@ process_frame (StackFrameInfo *info, MonoContext *ctx, gpointer user_data)
 	frame->native_offset = info->native_offset;
 	frame->flags = flags;
 	frame->ji = info->ji;
+#ifndef IL2CPP_DEBUGGER
 	if (info->reg_locations)
 		memcpy (frame->reg_locations, info->reg_locations, MONO_MAX_IREGS * sizeof (mgreg_t*));
+#endif
 	if (ctx) {
 		frame->ctx = *ctx;
 		frame->has_ctx = TRUE;
@@ -4327,9 +4380,9 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 				declaring = mono_method_get_declaring_generic_method (jmethod);
 
 			mono_domain_lock (domain);
-			seq_points = (MonoSeqPointInfo *)g_hash_table_lookup (domain_jit_info (domain)->seq_points, jmethod);
+			seq_points = (MonoSeqPointInfo *)g_hash_table_lookup (debugger_get_domain_seq_points (domain), jmethod);
 			if (!seq_points && declaring)
-				seq_points = (MonoSeqPointInfo *)g_hash_table_lookup (domain_jit_info (domain)->seq_points, declaring);
+				seq_points = (MonoSeqPointInfo *)g_hash_table_lookup (debugger_get_domain_seq_points (domain), declaring);
 			mono_domain_unlock (domain);
 			if (!seq_points)
 				/* Could be AOT code */
@@ -4420,7 +4473,7 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 	g_hash_table_iter_init (&iter, domains);
 	while (g_hash_table_iter_next (&iter, (void**)&domain, NULL)) {
 		mono_domain_lock (domain);
-		g_hash_table_iter_init (&iter2, domain_jit_info (domain)->seq_points);
+		g_hash_table_iter_init (&iter2, debugger_get_domain_seq_points (domain));
 		while (g_hash_table_iter_next (&iter2, (void**)&m, (void**)&seq_points)) {
 			if (bp_matches_method (bp, m)) {
 				/* Save the info locally to simplify the code inside the domain lock */
@@ -4863,9 +4916,12 @@ mono_debugger_agent_user_break (void)
 		mono_loader_unlock ();
 
 		process_event (EVENT_KIND_USER_BREAK, NULL, 0, &ctx, events, suspend_policy);
-	} else if (debug_options.native_debugger_break) {
+	}
+#ifndef IL2CPP_DEBUGGER
+	else if (debug_options.native_debugger_break) {
 		G_BREAKPOINT ();
 	}
+#endif
 }
 
 static const char*
@@ -5474,12 +5530,15 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 		/*
 		 * We are stopped at a throw site. Stepping should go to the catch site.
 		 */
-
+#ifndef IL2CPP_DEBUGGER
 		/* Find the the jit info for the catch context */
 		res = mono_find_jit_info_ext (
 			(MonoDomain *)tls->catch_state.unwind_data [MONO_UNWIND_DATA_DOMAIN],
 			(MonoJitTlsData *)((MonoThreadInfo*)thread->thread_info)->jit_data,
 			NULL, &tls->catch_state.ctx, &new_ctx, NULL, &lmf, NULL, &frame);
+#else
+		res = NULL;
+#endif
 		g_assert (res);
 		g_assert (frame.type == FRAME_TYPE_MANAGED);
 
@@ -6342,6 +6401,7 @@ add_var (Buffer *buf, MonoDebugMethodJitInfo *jit, MonoType *t, MonoDebugVarInfo
 		buffer_add_value_full (buf, t, gaddr, domain, as_vtype, NULL);
 		break;
 	case MONO_DEBUG_VAR_ADDRESS_MODE_GSHAREDVT_LOCAL: {
+#ifndef IL2CPP_DEBUGGER
 		MonoDebugVarInfo *info_var = jit->gsharedvt_info_var;
 		MonoDebugVarInfo *locals_var = jit->gsharedvt_locals_var;
 		MonoGSharedVtMethodRuntimeInfo *info;
@@ -6382,6 +6442,7 @@ add_var (Buffer *buf, MonoDebugMethodJitInfo *jit, MonoType *t, MonoDebugVarInfo
 		addr = locals + GPOINTER_TO_INT (info->entries [idx]);
 
 		buffer_add_value_full (buf, t, addr, domain, as_vtype, NULL);
+#endif
 		break;
 	}
 
@@ -6619,9 +6680,11 @@ clear_types_for_assembly (MonoAssembly *assembly)
 	MonoDomain *domain = mono_domain_get ();
 	AgentDomainInfo *info = NULL;
 
+#ifndef IL2CPP_DEBUGGER
 	if (!domain || !domain_jit_info (domain))
 		/* Can happen during shutdown */
 		return;
+#endif
 
 	info = get_agent_domain_info (domain);
 
@@ -6642,6 +6705,7 @@ add_thread (gpointer key, gpointer value, gpointer user_data)
 static ErrorCode
 do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 *p, guint8 **endp)
 {
+#ifndef IL2CPP_DEBUGGER
 	MonoError error;
 	guint8 *end = invoke->endp;
 	MonoMethod *m;
@@ -6889,6 +6953,9 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 	// FIXME: byref arguments
 	// FIXME: varargs
 	return ERR_NONE;
+#else
+	return ERR_NOT_IMPLEMENTED;
+#endif
 }
 
 /*
@@ -7325,7 +7392,7 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 		mono_loader_lock ();
 		g_hash_table_iter_init (&iter, domains);
 		while (g_hash_table_iter_next (&iter, NULL, (void**)&domain)) {
-			AgentDomainInfo *info = (AgentDomainInfo *)domain_jit_info (domain)->agent_info;
+			AgentDomainInfo *info = debugger_get_agent_domain_info (domain);
 
 			/* Update 'source_file_to_class' cache */
 			g_hash_table_iter_init (&kiter, info->loaded_classes);
@@ -9324,8 +9391,11 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 			err = decode_value (t, frame->domain, val_buf, p, &p, end);
 			if (err != ERR_NONE)
 				return err;
-
+#ifndef IL2CPP_DEBUGGER
 			set_var (t, var, &frame->ctx, frame->domain, val_buf, frame->reg_locations, &tls->restore_state.ctx);
+#else
+			return ERR_NOT_IMPLEMENTED;
+#endif
 		}
 		mono_metadata_free_mh (header);
 		break;
@@ -9350,8 +9420,11 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		err = decode_value (t, frame->domain, val_buf, p, &p, end);
 		if (err != ERR_NONE)
 			return err;
-
+#ifndef IL2CPP_DEBUGGER
 		set_var (&frame->actual_method->klass->this_arg, var, &frame->ctx, frame->domain, val_buf, frame->reg_locations, &tls->restore_state.ctx);
+#else
+		return ERR_NOT_IMPLEMENTED;
+#endif
 		break;
 	}
 	default:

@@ -8,6 +8,11 @@
 
 #include <mono/metadata/seq-points-data.h>
 
+#ifdef IL2CPP_DEBUGGER
+typedef struct MonoCompile MonoCompile;
+typedef struct MonoBasicBlock MonoBasicBlock;
+#endif
+
 void
 mono_save_seq_point_info (MonoCompile *cfg);
 

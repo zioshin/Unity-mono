@@ -134,6 +134,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\mono\mini\debugger-agent.h " />
+    <ClCompile Include="..\mono\mini\debugger-agent.c" />
+    <!--<ClInclude Include="..\mono\mini\seq-points.h " />
+    <ClCompile Include="..\mono\mini\seq-points.c" />-->
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="libmonoruntime.vcxproj" />
   <ImportGroup Label="ExtensionTargets">

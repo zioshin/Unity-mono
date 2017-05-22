@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\mono\mini\abcremoval.c">
@@ -139,9 +139,6 @@
     <ClCompile Include="..\mono\mini\mini-cross-helpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\mono\mini\mini-exceptions-native-unwinder.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\mono\mini\mini-x86-gsharedvt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -151,9 +148,8 @@
     <ClCompile Include="..\mono\mini\tramp-x86-gsharedvt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\mono\mini\lldb.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="..\mono\mini\mini-unity.c" />
+    <ClCompile Include="..\mono\mini\lldb.c  " />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\mono\mini\abcremoval.h">
