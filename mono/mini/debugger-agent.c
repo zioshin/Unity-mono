@@ -4910,10 +4910,10 @@ process_breakpoint (void)
 	process_signal_event (process_breakpoint_inner);
 }
 
-#ifndef IL2CPP_DEBUGGER
 static void
 resume_from_signal_handler (void *sigctx, void *func)
 {
+#ifndef IL2CPP_DEBUGGER
 	DebuggerTlsData *tls;
 	MonoContext ctx;
 
@@ -4940,8 +4940,8 @@ resume_from_signal_handler (void *sigctx, void *func)
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
 	mono_ppc_set_func_into_sigctx (sigctx, func);
 #endif
-}
 #endif
+}
 
 void
 mono_debugger_agent_breakpoint_hit (void *sigctx)
