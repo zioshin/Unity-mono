@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="libmonoruntime-common.targets.filters" />
+  <Import Project="libmonoruntime-unity.targets.filters" />
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{f0d81d7d-a611-4029-9484-16aabf6daa53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{38aed266-0ff7-4fb5-9ae2-a7a228bb9308}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\sgen">
+      <UniqueIdentifier>{ff1b5cf7-b859-4e70-8d52-5bed5ef3e240}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\gc">
+      <UniqueIdentifier>{35622e89-3498-4778-9bc1-89a4da3eff96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\gc">
+      <UniqueIdentifier>{8b45da75-d09e-45a3-b0dc-6fc601489f60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\sgen">
+      <UniqueIdentifier>{bc9f63c2-a3ff-48d3-9719-6f4926bf6c2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\boehm">
+      <UniqueIdentifier>{9746f306-5ce4-4fc6-8c91-bd3f3896b311}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
