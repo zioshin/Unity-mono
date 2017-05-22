@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <mono/metadata/object.h>
 
-typedef void(*MonoDebuggerCallback)();
-
 /**
  *	Custom exit function, called instead of system exit()
  */
@@ -44,11 +42,5 @@ unity_mono_method_is_generic (MonoMethod* method);
 void mono_unity_set_data_dir(const char* dir);
 char* mono_unity_get_data_dir();
 MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token);
-
-void unity_mono_install_debugger_callback(MonoDebuggerCallback callback);
-
-void* unity_mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset);
-
-void unity_mono_debugger_agent_clear_breakpoint(void *bp);
 
 #endif

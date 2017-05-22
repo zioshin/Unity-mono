@@ -301,20 +301,3 @@ MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token)
 {
 	return mono_class_get(image, type_token);
 }
-
-void unity_mono_install_debugger_callback(MonoDebuggerCallback callback)
-{
-	mono_install_debugger_callback(callback);
-}
-
-void*
-unity_mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset)
-{
-	mono_debugger_agent_set_breakpoint(method, il_offset);
-}
-
-void
-unity_mono_debugger_agent_clear_breakpoint(void *bp)
-{
-	mono_debugger_agent_clear_breakpoint(bp);
-}
