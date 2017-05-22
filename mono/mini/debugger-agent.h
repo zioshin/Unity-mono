@@ -29,9 +29,9 @@ void
 mono_debugger_agent_handle_exception (MonoException *ext, MonoContext *throw_ctx, MonoContext *catch_ctx) MONO_INTERNAL;
 
 MonoBreakpoint*
-mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset) MONO_INTERNAL;
+mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset);
 
 void
-mono_debugger_agent_clear_breakpoint(MonoBreakpoint *bp) MONO_INTERNAL;
+mono_debugger_agent_clear_breakpoint(MonoBreakpoint *bp);
 
 #endif

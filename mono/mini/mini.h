@@ -2035,5 +2035,5 @@ enum {
 
 typedef void(*MonoDebuggerCallback)();
 
-void mono_install_debugger_callback(MonoDebuggerCallback callback) MONO_INTERNAL;
+void mono_install_debugger_callback(MonoDebuggerCallback callback);
 #endif /* __MONO_MINI_H__ */
