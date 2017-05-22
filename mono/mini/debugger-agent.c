@@ -2186,6 +2186,16 @@ static GHashTable* debugger_get_domain_seq_points (MonoDomain* domain)
 #endif
 }
 
+static MonoMethod* debugger_get_method (char *addr, MonoDomain **out_domain)
+{
+#ifdef IL2CPP_DEBUGGER
+	return NULL;
+#else
+	MonoJitInfo* ji = mini_jit_info_table_find(mono_domain_get(), (char*)addr, out_domain);
+	return jinfo_get_method(ji);
+#endif
+}
+
 #ifdef IL2CPP_DEBUGGER
 static MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *method)
 {
@@ -2800,10 +2810,7 @@ process_suspend (DebuggerTlsData *tls, MonoContext *ctx)
 		return;
 	}
 
-	ji = mini_jit_info_table_find (mono_domain_get (), (char*)ip, NULL);
-
-	/* Can't suspend in these methods */
-	method = jinfo_get_method (ji);
+	method = debugger_get_method((char*)ip, NULL);
 	if (method->klass == mono_defaults.string_class && (!strcmp (method->name, "memset") || strstr (method->name, "memcpy")))
 		return;
 
@@ -4715,6 +4722,7 @@ breakpoint_matches_assembly (MonoBreakpoint *bp, MonoAssembly *assembly)
 static void
 process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal)
 {
+#ifndef IL2CPP_DEBUGGER
 	MonoJitInfo *ji;
 	guint8 *ip;
 	int i, j, suspend_policy;
@@ -4837,6 +4845,9 @@ process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal)
 		process_event (kind, method, 0, ctx, bp_events, suspend_policy);
 	if (enter_leave_events)
 		process_event (kind, method, 0, ctx, enter_leave_events, suspend_policy);
+#else
+	NOT_IMPLEMENTED;
+#endif
 }
 
 /* Process a breakpoint/single step event after resuming from a signal handler */
@@ -5001,15 +5012,15 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal)
 	if (mono_thread_internal_current () != ss_req->thread)
 		return;
 
+#ifndef IL2CPP_DEBUGGER
 	if (log_level > 0) {
 		ji = mini_jit_info_table_find (mono_domain_get (), (char*)ip, &domain);
 
 		DEBUG_PRINTF (1, "[%p] Single step event (depth=%s) at %s (%p)[0x%x], sp %p, last sp %p\n", (gpointer) (gsize) mono_native_thread_id_get (), ss_depth_to_string (ss_req->depth), mono_method_full_name (jinfo_get_method (ji), TRUE), MONO_CONTEXT_GET_IP (ctx), (int)((guint8*)MONO_CONTEXT_GET_IP (ctx) - (guint8*)ji->code_start), MONO_CONTEXT_GET_SP (ctx), ss_req->last_sp);
 	}
+#endif
 
-	ji = mini_jit_info_table_find (mono_domain_get (), (char*)ip, &domain);
-	g_assert (ji && !ji->is_trampoline);
-	method = jinfo_get_method (ji);
+	method = debugger_get_method ((char*)ip, &domain);
 	g_assert (method);
 
 	if (method->wrapper_type && method->wrapper_type != MONO_WRAPPER_DYNAMIC_METHOD)
@@ -5829,11 +5840,13 @@ mono_debugger_agent_handle_exception (MonoException *exc, MonoContext *throw_ctx
 	if (!inited)
 		return;
 
+#ifndef IL2CPP_DEBUGGER
 	ji = mini_jit_info_table_find (mono_domain_get (), (char *)MONO_CONTEXT_GET_IP (throw_ctx), NULL);
 	if (catch_ctx)
 		catch_ji = mini_jit_info_table_find (mono_domain_get (), (char *)MONO_CONTEXT_GET_IP (catch_ctx), NULL);
 	else
 		catch_ji = NULL;
+#endif
 
 	ei.exc = (MonoObject*)exc;
 	ei.caught = catch_ctx != NULL;
