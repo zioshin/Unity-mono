@@ -2194,6 +2194,13 @@ static MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *met
 #endif
 
 #ifdef IL2CPP_DEBUGGER
+static gboolean mono_find_seq_point(MonoDomain *domain, MonoMethod *method, gint32 il_offset, MonoSeqPointInfo **info, SeqPoint *seq_point)
+{
+	return FALSE;
+}
+#endif
+
+#ifdef IL2CPP_DEBUGGER
 static inline MonoMethod*
 jinfo_get_method (MonoJitInfo *ji)
 {
@@ -3116,11 +3123,15 @@ process_frame (StackFrameInfo *info, MonoContext *ctx, gpointer user_data)
 		return FALSE;
 
 	if (info->il_offset == -1) {
+#ifndef IL2CPP_DEBUGGER
 		/* mono_debug_il_offset_from_address () doesn't seem to be precise enough (#2092) */
 		if (ud->frames == NULL) {
 			if (mono_find_prev_seq_point_for_native_offset (info->domain, method, info->native_offset, NULL, &sp))
 				info->il_offset = sp.il_offset;
 		}
+#else
+		NOT_IMPLEMENTED;
+#endif
 		if (info->il_offset == -1)
 			info->il_offset = mono_debug_il_offset_from_address (method, info->domain, info->native_offset);
 	}
@@ -4744,7 +4755,11 @@ process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal)
 	 * The ip points to the instruction causing the breakpoint event, which is after
 	 * the offset recorded in the seq point map, so find the prev seq point before ip.
 	 */
+#ifndef IL2CPP_DEBUGGER
 	found_sp = mono_find_prev_seq_point_for_native_offset (mono_domain_get (), method, native_offset, &info, &sp);
+#else
+	found_sp = FALSE;
+#endif
 
 	if (!found_sp)
 		no_seq_points_found (method, native_offset);
@@ -5020,12 +5035,16 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal)
 	}
 
 
+#ifndef IL2CPP_DEBUGGER
 	/*
 	 * The ip points to the instruction causing the single step event, which is before
 	 * the offset recorded in the seq point map, so find the next seq point after ip.
 	 */
 	if (!mono_find_next_seq_point_for_native_offset (domain, method, (guint8*)ip - (guint8*)ji->code_start, &info, &sp))
 		return;
+#else
+	NOT_IMPLEMENTED;
+#endif
 
 	il_offset = sp.il_offset;
 
@@ -5338,7 +5357,11 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 				StackFrame *frame = frames [frame_index];
 
 				method = frame->method;
+#ifndef IL2CPP_DEBUGGER
 				found_sp = mono_find_prev_seq_point_for_native_offset (frame->domain, frame->method, frame->native_offset, &info, &local_sp);
+#else
+				found_sp = FALSE;
+#endif
 				sp = (found_sp)? &local_sp : NULL;
 				frame_index ++;
 				if (sp && sp->next_len != 0)
@@ -5353,7 +5376,11 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 					StackFrame *frame = frames [frame_index];
 
 					method = frame->method;
+#ifndef IL2CPP_DEBUGGER
 					found_sp = mono_find_prev_seq_point_for_native_offset (frame->domain, frame->method, frame->native_offset, &info, &local_sp);
+#else
+					found_sp = FALSE;
+#endif
 					sp = (found_sp)? &local_sp : NULL;
 					if (sp && sp->next_len != 0)
 						break;
@@ -5366,7 +5393,11 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 					StackFrame *frame = frames [frame_index];
 
 					parent_sp_method = frame->method;
+#ifndef IL2CPP_DEBUGGER
 					found_sp = mono_find_prev_seq_point_for_native_offset (frame->domain, frame->method, frame->native_offset, &parent_info, &local_parent_sp);
+#else
+					found_sp = FALSE;
+#endif
 					parent_sp = found_sp ? &local_parent_sp : NULL;
 					if (found_sp && parent_sp->next_len != 0)
 						break;
@@ -5415,6 +5446,7 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 		}
 
 		if (ss_req->depth == STEP_DEPTH_OVER) {
+#ifndef IL2CPP_DEBUGGER
 			/* Need to stop in catch clauses as well */
 			for (i = 0; i < nframes; ++i) {
 				StackFrame *frame = frames [i];
@@ -5432,6 +5464,9 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 					}
 				}
 			}
+#else
+			NOT_IMPLEMENTED;
+#endif
 		}
 
 		if (ss_req->depth == STEP_DEPTH_INTO) {
@@ -5529,6 +5564,7 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 	ss_req->start_sp = ss_req->last_sp = MONO_CONTEXT_GET_SP (&tls->context.ctx);
 
 	if (tls->catch_state.valid) {
+#ifndef IL2CPP_DEBUGGER
 		gboolean res;
 		StackFrameInfo frame;
 		MonoContext new_ctx;
@@ -5537,15 +5573,13 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 		/*
 		 * We are stopped at a throw site. Stepping should go to the catch site.
 		 */
-#ifndef IL2CPP_DEBUGGER
+
 		/* Find the the jit info for the catch context */
 		res = mono_find_jit_info_ext (
 			(MonoDomain *)tls->catch_state.unwind_data [MONO_UNWIND_DATA_DOMAIN],
 			(MonoJitTlsData *)((MonoThreadInfo*)thread->thread_info)->jit_data,
 			NULL, &tls->catch_state.ctx, &new_ctx, NULL, &lmf, NULL, &frame);
-#else
-		res = NULL;
-#endif
+
 		g_assert (res);
 		g_assert (frame.type == FRAME_TYPE_MANAGED);
 
@@ -5564,6 +5598,9 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 		step_to_catch = TRUE;
 		/* This make sure the seq point is not skipped by process_single_step () */
 		ss_req->last_sp = NULL;
+#else
+		NOT_IMPLEMENTED;
+#endif
 	}
 
 	if (!step_to_catch) {
@@ -5598,9 +5635,14 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 
 		if (frame) {
 			if (!method && frame->il_offset != -1) {
+#ifndef IL2CPP_DEBUGGER
 				/* FIXME: Sort the table and use a binary search */
 				found_sp = mono_find_prev_seq_point_for_native_offset (frame->domain, frame->method, frame->native_offset, &info, &local_sp);
+#else
+				found_sp = FALSE;
+#endif
 				sp = (found_sp)? &local_sp : NULL;
+
 				if (!sp)
 					no_seq_points_found (frame->method, frame->native_offset);
 				g_assert (sp);
