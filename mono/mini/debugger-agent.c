@@ -5229,7 +5229,7 @@ stop_single_stepping (void)
 	if (val == 0)
 		mono_arch_stop_single_stepping ();
 #else 
-    NOT_IMPLEMENTED
+    NOT_IMPLEMENTED;
 #endif
 
 #else
@@ -7209,7 +7209,7 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 	case CMD_VM_VERSION: {
 		char *build_info, *version;
 
-		build_info = mono_get_runtime_build_info ();
+		build_info = mono_get_runtime_callbacks()->get_runtime_build_info();
 		version = g_strdup_printf ("mono %s", build_info);
 
 		buffer_add_string (buf, version); /* vm version */
@@ -9361,6 +9361,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	if (!frame->has_ctx)
 		return ERR_ABSENT_INFORMATION;
 
+#ifndef IL2CPP_DEBUGGER
 	if (!frame->jit) {
 		frame->jit = mono_debug_find_method (frame->api_method, frame->domain);
 		if (!frame->jit && frame->api_method->is_inflated)
@@ -9376,6 +9377,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		}
 	}
 	jit = frame->jit;
+#endif
 
 	sig = mono_method_signature (frame->actual_method);
 
