@@ -4712,12 +4712,21 @@ mono_install_debugger_callback(MonoDebuggerCallback callback)
 	mono_debugger_callback = callback;
 }
 
-static int mono_invoke_debugger_callback()
+static int mono_invoke_debugger_callback(void* sigctx)
 {
+    MonoContext ctx;
+    static void(*restore_context) (void*);
+
 	if (!mono_debugger_callback)
 		return 0;
 
 	mono_debugger_callback();
+    mono_arch_sigctx_to_monoctx(sigctx, &ctx);
+    mono_arch_skip_breakpoint(&ctx);
+    if (!restore_context)
+        restore_context = mono_get_restore_context();
+
+    restore_context(&ctx);
 	return 1;
 }
 
@@ -5013,7 +5022,7 @@ SIG_HANDLER_SIGNATURE (mono_sigsegv_signal_handler)
 		mono_debugger_agent_single_step_event (ctx);
 		return;
 	} else if (mono_arch_is_breakpoint_event (info, ctx)) {
-		if(!mono_invoke_debugger_callback())
+		if(!mono_invoke_debugger_callback(ctx))
 			mono_debugger_agent_breakpoint_hit (ctx);
 		return;
 	}
