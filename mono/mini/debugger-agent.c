@@ -3418,7 +3418,7 @@ typedef struct {
 /*
  * Contains generic information about a breakpoint.
  */
-typedef struct {
+typedef struct _MonoBreakpoint {
 	/* 
 	 * The method where the breakpoint is placed. Can be NULL in which case it 
 	 * is inserted into every method. This is used to implement method entry/
@@ -3684,6 +3684,21 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req)
 	return bp;
 }
 
+MonoBreakpoint*
+mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset)
+{
+	EventRequest *req;
+	int nmodifiers = 0;
+
+	req = g_malloc0(sizeof(EventRequest) + (nmodifiers * sizeof(Modifier)));
+	req->id = InterlockedIncrement(&event_request_id);
+	req->event_kind = EVENT_KIND_BREAKPOINT;
+	req->suspend_policy = SUSPEND_POLICY_NONE;
+	req->nmodifiers = nmodifiers;
+
+	set_breakpoint(method, il_offset, req);
+}
+
 static void
 clear_breakpoint (MonoBreakpoint *bp)
 {
@@ -3704,6 +3719,12 @@ clear_breakpoint (MonoBreakpoint *bp)
 
 	g_ptr_array_free (bp->children, TRUE);
 	g_free (bp);
+}
+
+void
+mono_debugger_agent_clear_breakpoint(MonoBreakpoint *bp)
+{
+	clear_breakpoint(bp);
 }
 
 static void

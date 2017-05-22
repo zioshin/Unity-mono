@@ -4704,6 +4704,23 @@ mono_jit_find_compiled_method (MonoDomain *domain, MonoMethod *method)
 	return mono_jit_find_compiled_method_with_jit_info (domain, method, NULL);
 }
 
+static MonoDebuggerCallback mono_debugger_callback;
+
+void
+mono_install_debugger_callback(MonoDebuggerCallback callback)
+{
+	mono_debugger_callback = callback;
+}
+
+static int mono_invoke_debugger_callback()
+{
+	if (!mono_debugger_callback)
+		return 0;
+
+	mono_debugger_callback();
+	return 1;
+}
+
 typedef struct {
 	MonoMethod *method;
 	gpointer compiled_method;
@@ -4996,7 +5013,8 @@ SIG_HANDLER_SIGNATURE (mono_sigsegv_signal_handler)
 		mono_debugger_agent_single_step_event (ctx);
 		return;
 	} else if (mono_arch_is_breakpoint_event (info, ctx)) {
-		mono_debugger_agent_breakpoint_hit (ctx);
+		if(!mono_invoke_debugger_callback())
+			mono_debugger_agent_breakpoint_hit (ctx);
 		return;
 	}
 #endif

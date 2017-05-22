@@ -2033,4 +2033,7 @@ enum {
 	MONO_AOT_WRAPPER_LAST
 };
 
+typedef void(*MonoDebuggerCallback)();
+
+void mono_install_debugger_callback(MonoDebuggerCallback callback) MONO_INTERNAL;
 #endif /* __MONO_MINI_H__ */

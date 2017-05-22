@@ -13,8 +13,10 @@
 #include <mono/metadata/threads.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/utils/mono-string.h>
+#include <mono/mini/mini.h>
 
 #include <glib.h>
+#include "mini/debugger-agent.h"
 
 #ifdef WIN32
 #define UTF8_2_WIDE(src,dst) MultiByteToWideChar( CP_UTF8, 0, src, -1, dst, MAX_PATH )
@@ -298,4 +300,21 @@ mono_unity_get_data_dir()
 MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token)
 {
 	return mono_class_get(image, type_token);
+}
+
+void unity_mono_install_debugger_callback(MonoDebuggerCallback callback)
+{
+	mono_install_debugger_callback(callback);
+}
+
+void*
+unity_mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset)
+{
+	mono_debugger_agent_set_breakpoint(method, il_offset);
+}
+
+void
+unity_mono_debugger_agent_clear_breakpoint(void *bp)
+{
+	mono_debugger_agent_clear_breakpoint(bp);
 }

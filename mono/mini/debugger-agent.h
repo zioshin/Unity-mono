@@ -6,6 +6,7 @@
 /* IL offsets used to mark the sequence points belonging to method entry/exit events */
 #define METHOD_ENTRY_IL_OFFSET -1
 #define METHOD_EXIT_IL_OFFSET 0xffffff
+typedef struct _MonoBreakpoint MonoBreakpoint;
 
 void
 mono_debugger_agent_parse_options (char *options) MONO_INTERNAL;
@@ -26,5 +27,11 @@ gboolean mono_debugger_agent_thread_interrupt (void *sigctx, MonoJitInfo *ji) MO
 
 void
 mono_debugger_agent_handle_exception (MonoException *ext, MonoContext *throw_ctx, MonoContext *catch_ctx) MONO_INTERNAL;
+
+MonoBreakpoint*
+mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset) MONO_INTERNAL;
+
+void
+mono_debugger_agent_clear_breakpoint(MonoBreakpoint *bp) MONO_INTERNAL;
 
 #endif
