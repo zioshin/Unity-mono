@@ -4490,6 +4490,7 @@ clear_breakpoint (MonoBreakpoint *bp);
  * If ERROR is non-NULL, then it is set and NULL is returnd if some breakpoints couldn't be
  * inserted.
  */
+#ifndef IL2CPP_DEBUGGER
 static MonoBreakpoint*
 set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError *error)
 {
@@ -4561,6 +4562,62 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 
 	return bp;
 }
+#else
+
+typedef struct Il2CppMethodExecutionContextInfo
+{
+	MonoType** type;
+	const char* name;
+} Il2CppMethodExecutionContextInfo;
+
+typedef struct Il2CppSequencePoint
+{
+	const Il2CppMethodExecutionContextInfo* const executionContextInfos;
+	const uint32_t executionContextInfoCount;
+	const MonoMethod** method;
+	const char* const sourceFile;
+	const uint32_t lineStart, lineEnd;
+	const uint32_t columnStart, columnEnd;
+	const uint32_t ilOffset;
+	uint8_t isActive;
+} Il2CppSequencePoint;
+
+
+static uint32_t s_seq_points_count;
+static Il2CppSequencePoint** s_seq_points;
+void mono_debugger_set_il2cpp_breakpoints (uint32_t count, Il2CppSequencePoint** seq_points)
+{
+	s_seq_points_count = count;
+	s_seq_points = seq_points;
+}
+
+static MonoBreakpoint*
+set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError *error)
+{
+	MonoBreakpoint* bp = NULL;
+
+	if (error)
+		mono_error_init (error);
+
+	for (uint32_t i = 0; i < s_seq_points_count; i++)
+	{
+		if (*(s_seq_points[i]->method) == method && s_seq_points[i]->ilOffset == il_offset)
+		{
+			bp = g_new0 (MonoBreakpoint, 1);
+			bp->method = method;
+			bp->il_offset = il_offset;
+			bp->req = req;
+			bp->children = g_ptr_array_new ();
+
+			s_seq_points[i]->isActive = TRUE;
+			break;
+		}
+	}
+
+	return bp;
+}
+
+#endif
 
 static void
 clear_breakpoint (MonoBreakpoint *bp)
