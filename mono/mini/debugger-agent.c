@@ -4153,9 +4153,10 @@ jit_end (MonoProfiler *prof, MonoMethod *method, MonoJitInfo *jinfo, int result)
 	}
 
 	send_type_load (method->klass);
-
+#ifndef IL2CPP_DEBUGGER
 	if (!result)
 		add_pending_breakpoints (method, jinfo);
+#endif
 }
 
 /*
@@ -4355,7 +4356,7 @@ bp_matches_method (MonoBreakpoint *bp, MonoMethod *method)
 
 	return FALSE;
 }
-
+#ifndef IL2CPP_DEBUGGER
 /*
  * add_pending_breakpoints:
  *
@@ -4413,7 +4414,7 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 
 	mono_loader_unlock ();
 }
-
+#endif
 static void
 set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_points, MonoBreakpoint *bp, MonoError *error)
 {
@@ -4423,7 +4424,8 @@ set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_
 	if (error)
 		mono_error_init (error);
 
-	code = mono_jit_find_compiled_method_with_jit_info (domain, method, &ji);
+#ifndef IL2CPP_DEBUGGER
+    code = mono_jit_find_compiled_method_with_jit_info(domain, method, &ji);
 	if (!code) {
 		MonoError oerror;
 
@@ -4436,8 +4438,10 @@ set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_
 		g_assert (ji);
 	}
 	g_assert (code);
-
 	insert_breakpoint (seq_points, domain, ji, bp, error);
+#else
+    NOT_IMPLEMENTED;
+#endif
 }
 
 static void
