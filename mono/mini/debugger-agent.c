@@ -2683,7 +2683,11 @@ thread_interrupt (DebuggerTlsData *tls, MonoThreadInfo *info, MonoJitInfo *ji)
 			 * remain valid.
 			 */
 			data.last_frame_set = FALSE;
+#ifndef IL2CPP_DEBUGGER
 			mono_get_eh_callbacks ()->mono_walk_stack_with_state (get_last_frame, mono_thread_info_get_suspend_state (info), MONO_UNWIND_SIGNAL_SAFE, &data);
+#else 
+            NOT_IMPLEMENTED;
+#endif
 			if (data.last_frame_set) {
 				gpointer jit_tls = ((MonoThreadInfo*)tls->thread->thread_info)->jit_data;
 
@@ -3214,6 +3218,7 @@ compute_frame_info_from (MonoInternalThread *thread, DebuggerTlsData *tls, MonoT
 	int i, nframes;
 	GSList *l;
 
+#ifndef IL2CPP_DEBUGGER
 	user_data.tls = tls;
 	user_data.frames = NULL;
 
@@ -3227,6 +3232,9 @@ compute_frame_info_from (MonoInternalThread *thread, DebuggerTlsData *tls, MonoT
 		l = l->next;
 	}
 	*out_nframes = nframes;
+#else
+    NOT_IMPLEMENTED;
+#endif
 
 	return res;
 }
@@ -3246,6 +3254,7 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 
 	DEBUG_PRINTF (1, "Frames for %p(tid=%lx):\n", thread, (glong)thread->tid);
 
+#ifndef IL2CPP_DEBUGGER
 	user_data.tls = tls;
 	user_data.frames = NULL;
 	if (tls->terminated) {
@@ -3274,6 +3283,10 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 		tls->frame_count = 0;
 		return;
 	}
+#else
+    tls->frame_count = 0;
+    return;
+#endif
 
 	new_frame_count = g_slist_length (user_data.frames);
 	new_frames = g_new0 (StackFrame*, new_frame_count);
@@ -4959,7 +4972,9 @@ user_break_cb (StackFrameInfo *frame, MonoContext *ctx, gpointer data)
 void
 mono_debugger_agent_user_break (void)
 {
-	if (agent_config.enabled) {
+#ifndef IL2CPP_DEBUGGER
+    if (agent_config.enabled)
+    {
 		MonoContext ctx;
 		int suspend_policy;
 		GSList *events;
@@ -4975,10 +4990,11 @@ mono_debugger_agent_user_break (void)
 
 		process_event (EVENT_KIND_USER_BREAK, NULL, 0, &ctx, events, suspend_policy);
 	}
-#ifndef IL2CPP_DEBUGGER
 	else if (debug_options.native_debugger_break) {
 		G_BREAKPOINT ();
 	}
+#else 
+    NOT_IMPLEMENTED;
 #endif
 }
 
