@@ -2187,6 +2187,13 @@ static GHashTable* debugger_get_domain_seq_points (MonoDomain* domain)
 }
 
 #ifdef IL2CPP_DEBUGGER
+static MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *method)
+{
+	return NULL;
+}
+#endif
+
+#ifdef IL2CPP_DEBUGGER
 static inline MonoMethod*
 jinfo_get_method (MonoJitInfo *ji)
 {
