@@ -13,10 +13,8 @@
 #include <mono/metadata/threads.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/utils/mono-string.h>
-#include <mono/mini/mini.h>
 
 #include <glib.h>
-#include "mini/debugger-agent.h"
 
 #ifdef WIN32
 #define UTF8_2_WIDE(src,dst) MultiByteToWideChar( CP_UTF8, 0, src, -1, dst, MAX_PATH )
