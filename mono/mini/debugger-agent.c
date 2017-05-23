@@ -3357,7 +3357,7 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 #else
 		NOT_IMPLEMENTED;
 	} else if (tls->il2cpp_context.frameCount > 0) {
-		for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
+		for (int frame_index = tls->il2cpp_context.frameCount-1; frame_index >= 0; --frame_index)
 		{
 			Il2CppSequencePoint* seq_point = tls->il2cpp_context.sequencePoints[frame_index];
 			Il2CppSequencePointExecutionContext* exe_ctx = tls->il2cpp_context.executionContexts[frame_index];
@@ -9708,9 +9708,6 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 	switch (command) {
 	case CMD_STACK_FRAME_GET_VALUES: {
-#ifdef IL2CPP_DEBUGGER
-		NOT_IMPLEMENTED;
-#endif
 		MonoError error;
 		len = decode_int (p, &p, end);
 		header = mono_method_get_header_checked (frame->actual_method, &error);
@@ -9724,9 +9721,25 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 				DEBUG_PRINTF (4, "[dbg]   send arg %d.\n", pos);
 
+#ifndef IL2CPP_DEBUGGER
 				g_assert (pos >= 0 && pos < jit->num_params);
 
 				add_var (buf, jit, sig->params [pos], &jit->params [pos], &frame->ctx, frame->domain, FALSE);
+#else
+				for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
+				{
+					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
+					{
+						int val_index = pos;
+						if (frame->actual_method->signature->hasthis)
+						{
+							val_index++;
+						}
+						buffer_add_value_full(buf, sig->params[pos], tls->il2cpp_context.executionContexts[frame_index]->values[val_index], frame->domain, FALSE, NULL);
+						break;
+					}
+				}
+#endif
 			} else {
 				MonoDebugLocalsInfo *locals;
 
@@ -9736,11 +9749,22 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 					pos = locals->locals [pos].index;
 					mono_debug_free_locals (locals);
 				}
+#ifndef IL2CPP_DEBUGGER
 				g_assert (pos >= 0 && pos < jit->num_locals);
 
 				DEBUG_PRINTF (4, "[dbg]   send local %d.\n", pos);
 
 				add_var (buf, jit, header->locals [pos], &jit->locals [pos], &frame->ctx, frame->domain, FALSE);
+#else
+				for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
+				{
+					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
+					{
+						buffer_add_value_full(buf, header->locals[pos], tls->il2cpp_context.executionContexts[frame_index]->values[pos], frame->domain, FALSE, NULL);
+						break;
+					}
+				}
+#endif
 			}
 		}
 		mono_metadata_free_mh (header);
