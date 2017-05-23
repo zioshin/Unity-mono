@@ -42,7 +42,7 @@
 
 #ifdef HOST_WIN32
 #ifdef _MSC_VER
-#include <winsock2.h>
+#include <winsock2.h>d
 #include <process.h>
 #endif
 #include <ws2tcpip.h>
@@ -107,6 +107,38 @@ typedef MonoStackFrameInfo StackFrameInfo;
 #include <mono/utils/mono-os-mutex.h>
 
 #define THREAD_TO_INTERNAL(thread) (thread)->internal_thread
+
+#ifdef IL2CPP_DEBUGGER
+typedef struct Il2CppMethodExecutionContextInfo
+{
+	MonoType** type;
+	const char* name;
+} Il2CppMethodExecutionContextInfo;
+
+typedef struct Il2CppSequencePoint
+{
+	const Il2CppMethodExecutionContextInfo* const executionContextInfos;
+	const uint32_t executionContextInfoCount;
+	const MonoMethod** method;
+	const char* const sourceFile;
+	const uint32_t lineStart, lineEnd;
+	const uint32_t columnStart, columnEnd;
+	const uint32_t ilOffset;
+	uint8_t isActive;
+} Il2CppSequencePoint;
+
+typedef struct Il2CppSequencePointExecutionContext
+{
+	void** values;
+} Il2CppSequencePointExecutionContext;
+
+typedef struct Il2CppThreadUnwindState
+{
+	Il2CppSequencePoint** sequencePoints;
+	Il2CppSequencePointExecutionContext** executionContexts;
+	uint32_t frameCount;
+} Il2CppThreadUnwindState;
+#endif
 
 typedef struct {
 	gboolean enabled;
@@ -180,6 +212,9 @@ struct _InvokeData
 
 typedef struct {
 	MonoThreadUnwindState context;
+#ifdef IL2CPP_DEBUGGER
+	Il2CppThreadUnwindState il2cpp_context;
+#endif
 
 	/* This is computed on demand when it is requested using the wire protocol */
 	/* It is freed up when the thread is resumed */
@@ -2179,30 +2214,6 @@ static void debugger_set_agent_domain_info (MonoDomain* domain, AgentDomainInfo*
 #endif
 }
 
-
-typedef struct Il2CppMethodExecutionContextInfo
-{
-	MonoType** type;
-	const char* name;
-} Il2CppMethodExecutionContextInfo;
-
-typedef struct Il2CppSequencePoint
-{
-	const Il2CppMethodExecutionContextInfo* const executionContextInfos;
-	const uint32_t executionContextInfoCount;
-	const MonoMethod** method;
-	const char* const sourceFile;
-	const uint32_t lineStart, lineEnd;
-	const uint32_t columnStart, columnEnd;
-	const uint32_t ilOffset;
-	uint8_t isActive;
-} Il2CppSequencePoint;
-
-typedef struct Il2CppSequencePointExecutionContext
-{
-	void** values;
-} Il2CppSequencePointExecutionContext;
-
 static GHashTable* s_seq_points_hashtable;
 static GHashTable* s_jit_info_hashtable;
 
@@ -2603,16 +2614,18 @@ static void invoke_method (void);
 static void
 save_thread_context (MonoContext *ctx)
 {
-#ifndef IL2CPP_DEBUGGER
 	DebuggerTlsData *tls;
 
 	tls = (DebuggerTlsData *)mono_native_tls_get_value (debugger_tls_id);
 	g_assert (tls);
 
+#ifndef IL2CPP_DEBUGGER
 	if (ctx)
 		mono_thread_state_init_from_monoctx (&tls->context, ctx);
 	else
 		mono_thread_state_init_from_current (&tls->context);
+#else
+	mono_get_runtime_callbacks()->il2cpp_debugger_save_thread_context(&tls->il2cpp_context);
 #endif
 }
 
@@ -3307,17 +3320,22 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 
 	DEBUG_PRINTF (1, "Frames for %p(tid=%lx):\n", thread, (glong)thread->tid);
 
-#ifndef IL2CPP_DEBUGGER
 	user_data.tls = tls;
 	user_data.frames = NULL;
 	if (tls->terminated) {
 		tls->frame_count = 0;
 		return;
 	} if (!tls->really_suspended && tls->async_state.valid) {
+#ifndef IL2CPP_DEBUGGER
 		/* Have to use the state saved by the signal handler */
 		process_frame (&tls->async_last_frame, NULL, &user_data);
 		mono_walk_stack_with_state (process_frame, &tls->async_state, opts, &user_data);
+#else
+		// TODO: walk threads that are still running?
+		NOT_IMPLEMENTED;
+#endif
 	} else if (tls->filter_state.valid) {
+#ifndef IL2CPP_DEBUGGER
 		/*
 		 * We are inside an exception filter.
 		 *
@@ -3329,17 +3347,39 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 		 * After that, we resume unwinding from the location where the exception has been thrown.
 		 */
 		mono_walk_stack_with_state (process_frame, &tls->filter_state, opts, &user_data);
-	} else if (tls->context.valid) {
-		mono_walk_stack_with_state (process_frame, &tls->context, opts, &user_data);
+#else
+		NOT_IMPLEMENTED;
+#endif
+	}
+	else if (tls->context.valid) {
+#ifndef IL2CPP_DEBUGGER
+		mono_walk_stack_with_state(process_frame, &tls->context, opts, &user_data);
+#else
+		NOT_IMPLEMENTED;
+	} else if (tls->il2cpp_context.frameCount > 0) {
+		for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
+		{
+			Il2CppSequencePoint* seq_point = tls->il2cpp_context.sequencePoints[frame_index];
+			Il2CppSequencePointExecutionContext* exe_ctx = tls->il2cpp_context.executionContexts[frame_index];
+			StackFrame* frame = g_new0(StackFrame, 1);
+			frame->method = *seq_point->method;
+			frame->actual_method = *seq_point->method;
+			frame->api_method = *seq_point->method;
+			frame->il_offset = seq_point->ilOffset;
+			frame->native_offset = 0;
+			frame->flags = 0;
+			frame->ji = 0;
+			frame->domain = mono_domain_get();
+			frame->has_ctx = 1;
+
+			user_data.frames = g_slist_append(user_data.frames, frame);
+		}
+#endif
 	} else {
 		// FIXME:
 		tls->frame_count = 0;
 		return;
 	}
-#else
-    tls->frame_count = 0;
-    return;
-#endif
 
 	new_frame_count = g_slist_length (user_data.frames);
 	new_frames = g_new0 (StackFrame*, new_frame_count);
@@ -3352,10 +3392,12 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 		 * the still valid stack frames.
 		 */
 		for (i = 0; i < tls->frame_count; ++i) {
+#ifndef IL2CPP_DEBUGGER
 			if (MONO_CONTEXT_GET_SP (&tls->frames [i]->ctx) == MONO_CONTEXT_GET_SP (&f->ctx)) {
 				f->id = tls->frames [i]->id;
 				break;
 			}
+#endif
 		}
 
 		if (i >= tls->frame_count)
@@ -5416,7 +5458,7 @@ debugger_agent_single_step_from_context (MonoContext *ctx)
 }
 
 void
-unity_debugger_agent_breakpoint (Il2CppSequencePoint* sequencePoint, Il2CppSequencePointExecutionContext* executionContext)
+unity_debugger_agent_breakpoint (Il2CppSequencePoint* sequencePoint)
 {
 	DebuggerTlsData *tls;
 	MonoThreadUnwindState orig_restore_state;
@@ -9656,14 +9698,19 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 	sig = mono_method_signature (frame->actual_method);
 
+#ifndef IL2CPP_DEBUGGER
 	if (!jit->has_var_info || !mono_get_seq_points (frame->domain, frame->actual_method))
 		/*
 		 * The method is probably from an aot image compiled without soft-debug, variables might be dead, etc.
 		 */
 		return ERR_ABSENT_INFORMATION;
+#endif
 
 	switch (command) {
 	case CMD_STACK_FRAME_GET_VALUES: {
+#ifdef IL2CPP_DEBUGGER
+		NOT_IMPLEMENTED;
+#endif
 		MonoError error;
 		len = decode_int (p, &p, end);
 		header = mono_method_get_header_checked (frame->actual_method, &error);
