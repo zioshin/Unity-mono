@@ -64,6 +64,24 @@ static gpointer restore_stack_protection_tramp = NULL;
 static void try_more_restore (void);
 static void restore_stack_protection (void);
 
+static MonoExceptionCallback mono_exception_callback;
+
+static int mono_invoke_exception_callback(MonoException* exception, MonoContext* throw_ctx, MonoContext* catch_ctx)
+{
+	if(!mono_exception_callback)
+		return 0;
+
+	if(!mono_exception_callback(exception, throw_ctx, catch_ctx))
+		return 0;
+
+	return 1;
+}
+
+void mono_install_exception_callback(MonoExceptionCallback callback)
+{
+	mono_exception_callback = callback;
+}
+
 void
 mono_exceptions_init (void)
 {
@@ -1197,12 +1215,15 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gpointer origina
 		if (!mono_handle_exception_internal (&ctx_cp, obj, original_ip, TRUE, &first_filter_idx, out_ji)) {
 			if (mono_break_on_exc)
 				G_BREAKPOINT ();
-			mono_debugger_agent_handle_exception (obj, ctx, NULL);
+
+			if(!mono_invoke_exception_callback(obj, ctx, NULL))
+				mono_debugger_agent_handle_exception (obj, ctx, NULL);
 			// FIXME: This runs managed code so it might cause another stack overflow when
 			// we are handling a stack overflow
 			mono_unhandled_exception (obj);
 		} else {
-			mono_debugger_agent_handle_exception (obj, ctx, &ctx_cp);
+			if(!mono_invoke_exception_callback(obj, ctx, &ctx_cp))
+				mono_debugger_agent_handle_exception (obj, ctx, &ctx_cp);
 		}
 	}
 

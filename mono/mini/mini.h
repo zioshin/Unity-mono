@@ -2034,6 +2034,8 @@ enum {
 };
 
 typedef int(*MonoDebuggerCallback)(void*);
+typedef int(*MonoExceptionCallback)(MonoException* exception, void* throw_ctx, void* catch_ctx);
 
 void mono_install_debugger_callback(MonoDebuggerCallback callback);
+void mono_install_exception_callback(MonoExceptionCallback callback);
 #endif /* __MONO_MINI_H__ */

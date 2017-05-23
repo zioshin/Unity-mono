@@ -838,6 +838,7 @@ mono_unity_set_data_dir
 mono_unity_get_data_dir
 mono_unity_class_get
 mono_install_debugger_callback
+mono_install_exception_callback
 mono_debugger_agent_set_breakpoint
 mono_debugger_agent_clear_breakpoint
 mono_unity_get_stack_frames
