@@ -28,10 +28,10 @@ gboolean mono_debugger_agent_thread_interrupt (void *sigctx, MonoJitInfo *ji) MO
 void
 mono_debugger_agent_handle_exception (MonoException *ext, MonoContext *throw_ctx, MonoContext *catch_ctx) MONO_INTERNAL;
 
-MonoBreakpoint*
-mono_debugger_agent_set_breakpoint(MonoMethod *method, long il_offset);
+void
+mono_debugger_agent_set_breakpoint(MonoMethod *method, long bpil_offset);
 
 void
-mono_debugger_agent_clear_breakpoint(MonoBreakpoint *bp);
+mono_debugger_agent_clear_breakpoint(MonoMethod *method, long bpil_offset);
 
 #endif
