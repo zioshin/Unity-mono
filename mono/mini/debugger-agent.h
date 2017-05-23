@@ -34,4 +34,20 @@ mono_debugger_agent_set_breakpoint(MonoMethod *method, long bpil_offset);
 void
 mono_debugger_agent_clear_breakpoint(MonoMethod *method, long bpil_offset);
 
+typedef struct UnityStackFrame
+{
+    MonoMethod* method;
+    long il_offset;
+} UnityStackFrame;
+
+typedef struct UnityStackFrames
+{
+    UnityStackFrame* frames;
+    int length;
+} UnityStackFrames;
+
+void mono_unity_get_stack_frames(UnityStackFrames* frames, MonoContext* ctx);
+
+void mono_unity_free_stack_frames(UnityStackFrames* frames);
+
 #endif

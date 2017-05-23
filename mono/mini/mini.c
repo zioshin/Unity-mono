@@ -4720,8 +4720,11 @@ static int mono_invoke_debugger_callback(void* sigctx)
 	if (!mono_debugger_callback)
 		return 0;
 
-	mono_debugger_callback();
     mono_arch_sigctx_to_monoctx(sigctx, &ctx);
+
+    if (!mono_debugger_callback(&ctx))
+        return 0;
+
     mono_arch_skip_breakpoint(&ctx);
     if (!restore_context)
         restore_context = mono_get_restore_context();

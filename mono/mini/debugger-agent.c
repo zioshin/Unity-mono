@@ -7624,6 +7624,52 @@ debugger_thread (void *arg)
 	return 0;
 }
 
+static gboolean unity_process_frame(MonoMethod *method, gint32 native_offset, gint32 il_offset, gboolean managed, gpointer data)
+{
+    GSList** framesList = (GSList**)data;
+
+    UnityStackFrame* frame = NULL;
+
+    if (!managed)
+        return FALSE;
+
+    frame = g_new0(UnityStackFrame, 1);
+    frame->method = method;
+    frame->il_offset = il_offset;
+
+    *framesList = g_slist_append(*framesList, frame);
+
+    return FALSE;
+}
+
+void mono_unity_get_stack_frames(UnityStackFrames* frames, MonoContext* ctx)
+{
+    GSList* framesList = NULL;
+    GSList* current = NULL;
+    int idx = 0;
+
+    mono_jit_walk_stack_from_ctx(unity_process_frame, ctx, TRUE, &framesList);
+
+    frames->length = g_slist_length(framesList);
+    frames->frames = g_new0(UnityStackFrame, frames->length);
+
+    current = framesList;
+    for(idx = 0; idx < frames->length; idx++)
+    {
+        UnityStackFrame* currentFrame = (UnityStackFrame*)current->data;
+        frames->frames[idx].method = currentFrame->method;
+        frames->frames[idx].il_offset = currentFrame->il_offset;
+        current = g_slist_next(current);
+    }
+
+    g_slist_free(framesList);
+}
+
+void mono_unity_free_stack_frames(UnityStackFrames* frames)
+{
+    g_free(frames->frames);
+}
+
 #else /* DISABLE_DEBUGGER_AGENT */
 
 void
