@@ -3685,7 +3685,7 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req)
 }
 
 static void
-get_ji_and_ip(MonoMethod *method, long bpil_offset, MonoJitInfo** ji, long* ip)
+get_ji_and_ip(MonoMethod *method, long bpil_offset, MonoJitInfo** ji, guint8** ip)
 {
     int native_offset = 0;
     int i;
@@ -3696,7 +3696,7 @@ get_ji_and_ip(MonoMethod *method, long bpil_offset, MonoJitInfo** ji, long* ip)
     mono_jit_find_compiled_method_with_jit_info(domain, method, ji);
 
     mono_domain_lock(domain);
-    seq_points = g_hash_table_lookup(domain_jit_info(domain)->seq_points, method);
+    seq_points = g_hash_table_lookup(domain_jit_info(domain)->seq_points, (*ji)->method);
     mono_domain_unlock(domain);
 
     for (i = 0; i < seq_points->len; ++i) {
@@ -3712,8 +3712,8 @@ get_ji_and_ip(MonoMethod *method, long bpil_offset, MonoJitInfo** ji, long* ip)
 void
 mono_debugger_agent_set_breakpoint(MonoMethod *method, long bpil_offset)
 {
-    MonoJitInfo* ji;
-    long ip;
+    MonoJitInfo* ji = NULL;
+    guint8* ip = NULL;
     get_ji_and_ip(method, bpil_offset, &ji, &ip);
     mono_arch_set_breakpoint(ji, ip);
 }
