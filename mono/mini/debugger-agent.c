@@ -4672,7 +4672,7 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 	mono_loader_lock ();
 
 	for (i = 0; i < s_seq_points_count; ++i) {
-		if (bp_matches_method(bp, *(s_seq_points[i]->method))) {
+		if (bp_matches_method(bp, *(s_seq_points[i]->method)) && s_seq_points[i]->ilOffset == bp->il_offset) {
 
             BreakpointInstance* inst = g_new0(BreakpointInstance, 1);
             inst->il_offset = bp->il_offset;// it.seq_point.il_offset;
