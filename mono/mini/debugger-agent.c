@@ -655,7 +655,17 @@ typedef struct ReplyPacket {
 #ifdef PLATFORM_ANDROID
 #define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY ((level) <= log_level)) { g_print (__VA_ARGS__); } } while (0)
 #else
-#define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY ((level) <= log_level)) { fprintf (log_file, __VA_ARGS__); fflush (log_file); } } while (0)
+static void __win_printf111(int arg, ...)
+{
+    char buf[1024];
+    va_list l;
+    va_start(l, arg);
+    vsprintf(buf, va_arg(l, char*), l);
+    va_end(l);
+    OutputDebugStringA(buf);
+}
+
+#define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY((level) <= log_level)) { __win_printf111(0, __VA_ARGS__); } } while (0)
 #endif
 
 #ifdef HOST_WIN32
@@ -841,7 +851,10 @@ static void suspend_init (void);
 
 static void ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint *sp, MonoSeqPointInfo *info, MonoContext *ctx, DebuggerTlsData *tls, gboolean step_to_catch,
 					  StackFrame **frames, int nframes);
-static ErrorCode ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilter filter, EventRequest *req);
+static void ss_start_il2cpp(SingleStepReq *ss_req, DebuggerTlsData *tls);
+
+static ErrorCode ss_create_il2cpp(MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilter filter, EventRequest *req);
+static ErrorCode ss_create(MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilter filter, EventRequest *req);
 static void ss_destroy (SingleStepReq *req);
 
 static void start_debugger_thread (void);
@@ -4650,7 +4663,7 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 	bp->req = req;
 	bp->children = g_ptr_array_new ();
 
-	DEBUG_PRINTF (1, "[dbg] Setting %sbreakpoint at %s:0x%x.\n", (req->event_kind == EVENT_KIND_STEP) ? "single step " : "", method ? mono_method_full_name (method, TRUE) : "<all>", (int)il_offset);
+//	DEBUG_PRINTF (1, "[dbg] Setting %sbreakpoint at %s:0x%x.\n", (req->event_kind == EVENT_KIND_STEP) ? "single step " : "", method ? mono_method_full_name (method, TRUE) : "<all>", (int)il_offset);
 
 	methods = g_ptr_array_new ();
 	method_domains = g_ptr_array_new ();
@@ -4660,7 +4673,18 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 
 	for (i = 0; i < s_seq_points_count; ++i) {
 		if (bp_matches_method(bp, *(s_seq_points[i]->method))) {
-			set_bp_in_method(mono_get_root_domain (), *(s_seq_points[i]->method), NULL, bp, error);
+
+            BreakpointInstance* inst = g_new0(BreakpointInstance, 1);
+            inst->il_offset = bp->il_offset;// it.seq_point.il_offset;
+            inst->native_offset = 0;// it.seq_point.native_offset;
+            inst->ip = inst;// (guint8*)ji->code_start + it.seq_point.native_offset;
+            inst->domain = mono_domain_get();
+
+            s_seq_points[i]->isActive = TRUE;
+
+            mono_loader_lock();
+            g_ptr_array_add(bp->children, inst);
+            mono_loader_unlock();
 		}
 	}
 
@@ -4678,6 +4702,78 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 
 	return bp;
 }
+
+static MonoBreakpoint*
+set_breakpoint_fast(MonoMethod *method, Il2CppSequencePoint *sp, long il_offset, EventRequest *req, MonoError *error)
+{
+    MonoBreakpoint *bp;
+    GHashTableIter iter, iter2;
+    MonoDomain *domain;
+    MonoMethod *m;
+    MonoSeqPointInfo *seq_points;
+    GPtrArray *methods;
+    GPtrArray *method_domains;
+    GPtrArray *method_seq_points;
+    int i;
+
+    if (error)
+        mono_error_init(error);
+
+    // FIXME:
+    // - suspend/resume the vm to prevent code patching problems
+    // - multiple breakpoints on the same location
+    // - dynamic methods
+    // - races
+
+    bp = g_new0(MonoBreakpoint, 1);
+    bp->method = method;
+    bp->il_offset = il_offset;
+    bp->req = req;
+    bp->children = g_ptr_array_new();
+
+    DEBUG_PRINTF (1, "[dbg] Setting %sbreakpoint at %s:0x%x.\n", (req->event_kind == EVENT_KIND_STEP) ? "single step " : "", method ? mono_method_full_name (method, TRUE) : "<all>", (int)il_offset);
+
+    methods = g_ptr_array_new();
+    method_domains = g_ptr_array_new();
+    method_seq_points = g_ptr_array_new();
+
+    mono_loader_lock();
+
+//     for (i = 0; i < s_seq_points_count; ++i)
+//     {
+//         if (bp_matches_method(bp, *(s_seq_points[i]->method)))
+//         {
+
+            BreakpointInstance* inst = g_new0(BreakpointInstance, 1);
+            inst->il_offset = bp->il_offset;// it.seq_point.il_offset;
+            inst->native_offset = 0;// it.seq_point.native_offset;
+            inst->ip = inst;// (guint8*)ji->code_start + it.seq_point.native_offset;
+            inst->domain = mono_domain_get();
+
+            sp->isActive = TRUE;
+
+            mono_loader_lock();
+            g_ptr_array_add(bp->children, inst);
+            mono_loader_unlock();
+//         }
+//     }
+
+    g_ptr_array_add(breakpoints, bp);
+    mono_loader_unlock();
+
+    g_ptr_array_free(methods, TRUE);
+    g_ptr_array_free(method_domains, TRUE);
+    g_ptr_array_free(method_seq_points, TRUE);
+
+    if (error && !mono_error_ok(error))
+    {
+        clear_breakpoint(bp);
+        return NULL;
+    }
+
+    return bp;
+}
+
 #ifndef IL2CPP_DEBUGGER
 #else
 
@@ -4796,7 +4892,7 @@ static void ss_calculate_framecount (DebuggerTlsData *tls, MonoContext *ctx)
 	if (!tls->context.valid)
 		mono_thread_state_init_from_monoctx (&tls->context, ctx);
 #else
-	NOT_IMPLEMENTED;
+	//NOT_IMPLEMENTED;
 #endif
 	compute_frame_info (tls->thread, tls);
 }
@@ -4898,7 +4994,7 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Mono
 	GSList *bp_events = NULL, *ss_events = NULL, *enter_leave_events = NULL;
 	EventKind kind = EVENT_KIND_BREAKPOINT;
 	MonoContext *ctx = &tls->restore_state.ctx;
-	MonoSeqPointInfo *info;
+	//MonoSeqPointInfo *info;
 	SeqPoint sp;
 	gboolean found_sp;
 
@@ -4955,12 +5051,13 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Mono
 		if (mono_thread_internal_current () != ss_req->thread)
 			continue;
 
-		hit = ss_update (ss_req, ji, &sp, tls, ctx);
-		if (hit)
+		//hit = ss_update (ss_req, ji, &sp, tls, ctx);
+		//if (hit)
 			g_ptr_array_add (ss_reqs, req);
 
 		/* Start single stepping again from the current sequence point */
-		ss_start (ss_req, method, &sp, info, ctx, tls, FALSE, NULL, 0);
+		//ss_start (ss_req, method, &sp, info, ctx, tls, FALSE, NULL, 0);
+        ss_start_il2cpp(ss_req, tls);
 	}
 
 	if (ss_reqs->len > 0)
@@ -5647,8 +5744,35 @@ ss_bp_add_one (SingleStepReq *ss_req, int *ss_req_bp_count, GHashTable **ss_req_
 			g_hash_table_insert (*ss_req_bp_cache, bp, bp);
 		(*ss_req_bp_count)++;
 	} else {
-		DEBUG_PRINTF (1, "[dbg] Candidate breakpoint at %s:[il=0x%x] is a duplicate for this step request, will not add.\n", mono_method_full_name (method, TRUE), (int)il_offset);
+		//DEBUG_PRINTF (1, "[dbg] Candidate breakpoint at %s:[il=0x%x] is a duplicate for this step request, will not add.\n", mono_method_full_name (method, TRUE), (int)il_offset);
 	}
+}
+
+static void
+ss_bp_add_one_il2cpp(SingleStepReq *ss_req, int *ss_req_bp_count, GHashTable **ss_req_bp_cache,
+    MonoMethod *method, guint32 il_offset, Il2CppSequencePoint *sp)
+{
+    // This list is getting too long, switch to using the hash table
+    if (!*ss_req_bp_cache && *ss_req_bp_count > MAX_LINEAR_SCAN_BPS)
+    {
+        *ss_req_bp_cache = g_hash_table_new(ss_bp_hash, ss_bp_eq);
+        for (GSList *l = ss_req->bps; l; l = l->next)
+            g_hash_table_insert(*ss_req_bp_cache, l->data, l->data);
+    }
+
+    if (ss_bp_is_unique(ss_req->bps, *ss_req_bp_cache, method, il_offset))
+    {
+        // Create and add breakpoint
+        MonoBreakpoint *bp = set_breakpoint_fast(method, sp, il_offset, ss_req->req, NULL);
+        ss_req->bps = g_slist_append(ss_req->bps, bp);
+        if (*ss_req_bp_cache)
+            g_hash_table_insert(*ss_req_bp_cache, bp, bp);
+        (*ss_req_bp_count)++;
+    }
+    else
+    {
+        DEBUG_PRINTF (1, "[dbg] Candidate breakpoint at %s:[il=0x%x] is a duplicate for this step request, will not add.\n", mono_method_full_name (method, TRUE), (int)il_offset);
+    }
 }
 
 /*
@@ -5851,6 +5975,91 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 		g_hash_table_destroy (ss_req_bp_cache);
 }
 
+gboolean
+il2cpp_find_prev_seq_point_for_native_offset(MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info, SeqPoint* seq_point)
+{
+}
+
+static ErrorCode
+ss_create_il2cpp(MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilter filter, EventRequest *req)
+{
+    DebuggerTlsData *tls;
+
+    mono_loader_lock();
+    tls = (DebuggerTlsData *)mono_g_hash_table_lookup(thread_to_tls, thread);
+    mono_loader_unlock();
+    g_assert(tls);
+
+    ss_req = g_new0(SingleStepReq, 1);
+    ss_req->req = req;
+    ss_req->thread = thread;
+    ss_req->size = size;
+    ss_req->depth = depth;
+    ss_req->filter = filter;
+    req->info = ss_req;
+
+    ss_start_il2cpp(ss_req, tls);
+
+    return ERR_NONE;
+}
+
+static void
+ss_start_il2cpp(SingleStepReq *ss_req, DebuggerTlsData *tls)
+{
+    // When 8 or more entries are in bps, we build a hash table to serve as a set of breakpoints.
+    // Recreating this on each pass is a little wasteful but at least keeps behavior linear.
+    int ss_req_bp_count = g_slist_length(ss_req->bps);
+    GHashTable *ss_req_bp_cache = NULL;
+
+    /* Stop the previous operation */
+    ss_stop(ss_req);
+
+    DEBUG_PRINTF(0, "Step depth: %d\n", ss_req->depth);
+    int topFrame = ss_req->depth == STEP_DEPTH_OVER ? tls->il2cpp_context.frameCount : tls->il2cpp_context.frameCount - 1;
+
+    for (int j = 0; j < topFrame; j++)
+    {
+        MonoMethod *curMethod = *(tls->il2cpp_context.sequencePoints[j]->method);
+        for (int i = 0; i < s_seq_points_count; i++)
+        {
+            MonoMethod *spMethod = *(s_seq_points[i]->method);
+            if (spMethod == curMethod)
+            {
+                ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, spMethod, s_seq_points[i]->ilOffset, s_seq_points[i]);
+            }
+            else if (spMethod->is_inflated && curMethod->is_inflated)
+            {
+                MonoMethodInflated *bpimethod = (MonoMethodInflated*)curMethod;
+                MonoMethodInflated *imethod = (MonoMethodInflated*)spMethod;
+
+                /* Open generic methods should match closed generic methods of the same class */
+                if (bpimethod->declaring == imethod->declaring && bpimethod->context.class_inst == imethod->context.class_inst && bpimethod->context.method_inst && bpimethod->context.method_inst->is_open)
+                {
+                    gboolean ok = TRUE;
+                    for (i = 0; i < bpimethod->context.method_inst->type_argc; ++i)
+                    {
+                        MonoType *t1 = bpimethod->context.method_inst->type_argv[i];
+
+                        /* FIXME: Handle !mvar */
+                        if (t1->type != MONO_TYPE_MVAR)
+                        {
+                            ok = FALSE;
+                            break;
+                        }
+                    }
+                    if (ok)
+                    {
+                        ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, spMethod, s_seq_points[i]->ilOffset, s_seq_points[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    if (ss_req_bp_cache)
+        g_hash_table_destroy(ss_req_bp_cache);
+}
+
 /*
  * Start single stepping of thread THREAD
  */
@@ -5903,12 +6112,14 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 	tls = (DebuggerTlsData *)mono_g_hash_table_lookup (thread_to_tls, thread);
 	mono_loader_unlock ();
 	g_assert (tls);
+
+#ifndef IL2CPP_DEBUGGER
 	if (!tls->context.valid) {
 		DEBUG_PRINTF (1, "Received a single step request on a thread with no managed frames.");
 		return ERR_INVALID_ARGUMENT;
 	}
 
-	if (tls->restore_state.valid && MONO_CONTEXT_GET_IP (&tls->context.ctx) != MONO_CONTEXT_GET_IP (&tls->restore_state.ctx)) {
+    if (tls->restore_state.valid && MONO_CONTEXT_GET_IP (&tls->context.ctx) != MONO_CONTEXT_GET_IP (&tls->restore_state.ctx)) {
 		/*
 		 * Need to start single stepping from restore_state and not from the current state
 		 */
@@ -5953,6 +6164,7 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 		/* This make sure the seq point is not skipped by process_single_step () */
 		ss_req->last_sp = NULL;
 	}
+#endif
 
 	if (!step_to_catch) {
 		StackFrame *frame = NULL;
@@ -5994,7 +6206,7 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 					no_seq_points_found (frame->method, frame->native_offset);
 				g_assert (sp);
 				method = frame->method;
-			}
+            }
 		}
 	}
 
@@ -6015,11 +6227,11 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 		*tls->il2cpp_global_breakpoint_active = TRUE;
 		break;
 	case STEP_DEPTH_OVER:
-		NOT_IMPLEMENTED;
+		ss_create_il2cpp(thread, size, depth, filter, req);
 		break;
 	case STEP_DEPTH_OUT:
-		NOT_IMPLEMENTED;
-		break;
+        ss_create_il2cpp(thread, size, depth, filter, req);
+        break;
 	default:
 		NOT_IMPLEMENTED;
 	}
@@ -8100,8 +8312,9 @@ event_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				return err;
 			}
 
-			err = ss_create (THREAD_TO_INTERNAL (step_thread), size, depth, filter, req);
-			if (err != ERR_NONE) {
+            err = ss_create(THREAD_TO_INTERNAL(step_thread), size, depth, filter, req);
+
+            if (err != ERR_NONE) {
 				g_free (req);
 				return err;
 			}
