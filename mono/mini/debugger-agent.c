@@ -4334,6 +4334,7 @@ breakpoints_init (void)
 	bp_locs = g_hash_table_new (NULL, NULL);
 }
 
+#ifndef IL2CPP_DEBUGGER
 /*
  * insert_breakpoint:
  *
@@ -4416,11 +4417,7 @@ insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo
 		DEBUG_PRINTF (1, "[dbg] Attempting to insert seq point at dead IL offset %d, ignoring.\n", (int)bp->il_offset);
 	} else if (count == 0) {
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
-#ifndef IL2CPP_DEBUGGER
 		mono_arch_set_breakpoint (ji, inst->ip);
-#else
-		NOT_IMPLEMENTED;
-#endif
 #else
 		NOT_IMPLEMENTED;
 #endif
@@ -4428,7 +4425,33 @@ insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo
 
 	DEBUG_PRINTF (1, "[dbg] Inserted breakpoint at %s:[il=0x%x,native=0x%x] [%p](%d).\n", mono_method_full_name (jinfo_get_method (ji), TRUE), (int)it.seq_point.il_offset, (int)it.seq_point.native_offset, inst->ip, count);
 }
+#else
+static void insert_breakpoint(MonoDomain *domain, MonoMethod *method, MonoBreakpoint *bp)
+{
+	BreakpointInstance* inst = g_new0(BreakpointInstance, 1);
+	inst->il_offset = bp->il_offset;// it.seq_point.il_offset;
+	inst->native_offset = 0;// it.seq_point.native_offset;
+	inst->ip = inst;// (guint8*)ji->code_start + it.seq_point.native_offset;
+	inst->domain = domain;
 
+	for (uint32_t i = 0; i < s_seq_points_count; i++)
+	{
+		if (*(s_seq_points[i]->method) == method && s_seq_points[i]->ilOffset == bp->il_offset)
+		{
+			s_seq_points[i]->isActive = TRUE;
+			break;
+		}
+	}
+
+	mono_loader_lock();
+
+	g_ptr_array_add(bp->children, inst);
+
+	mono_loader_unlock();
+}
+#endif
+
+#ifndef IL2CPP_DEBUGGER
 static void
 remove_breakpoint (BreakpointInstance *inst)
 {
@@ -4445,17 +4468,14 @@ remove_breakpoint (BreakpointInstance *inst)
 	g_assert (count > 0);
 
 	if (count == 1 && inst->native_offset != SEQ_POINT_NATIVE_OFFSET_DEAD_CODE) {
-#ifndef IL2CPP_DEBUGGER
 		mono_arch_clear_breakpoint (ji, ip);
-#else
-        NOT_IMPLEMENTED;
-#endif
 		DEBUG_PRINTF (1, "[dbg] Clear breakpoint at %s [%p].\n", mono_method_full_name (jinfo_get_method (ji), TRUE), ip);
 	}
 #else
 	NOT_IMPLEMENTED;
 #endif
 }
+#endif
 
 /*
  * This doesn't take any locks.
@@ -4527,15 +4547,12 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 		}
 
 		if (!found) {
+#ifndef IL2CPP_DEBUGGER
 			MonoMethod *declaring = NULL;
 
 			jmethod = jinfo_get_method (ji);
 			if (jmethod->is_inflated)
-#ifndef IL2CPP_DEBUGGER
 				declaring = mono_method_get_declaring_generic_method (jmethod);
-#else
-				NOT_IMPLEMENTED;
-#endif
 
 			mono_domain_lock (domain);
 			seq_points = (MonoSeqPointInfo *)g_hash_table_lookup (debugger_get_domain_seq_points (domain), jmethod);
@@ -4548,6 +4565,9 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 			g_assert (seq_points);
 
 			insert_breakpoint (seq_points, domain, ji, bp, NULL);
+#else
+			insert_breakpoint(domain, ji->d.method, bp);
+#endif
 		}
 	}
 
@@ -4559,7 +4579,6 @@ set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_
 {
 	gpointer code;
 	MonoJitInfo *ji;
-	BreakpointInstance* inst;
 
 	if (error)
 		mono_error_init (error);
@@ -4581,30 +4600,7 @@ set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_
 
 	insert_breakpoint (seq_points, domain, ji, bp, error);
 #else
-	code = unity_mono_jit_find_compiled_method_with_jit_info (domain, method, &ji);
-
-	inst = g_new0 (BreakpointInstance, 1);
-	inst->il_offset = bp->il_offset;// it.seq_point.il_offset;
-	inst->native_offset = 0;// it.seq_point.native_offset;
-	inst->ip = 0;// (guint8*)ji->code_start + it.seq_point.native_offset;
-	inst->ji = ji;
-	inst->domain = domain;
-
-	for (uint32_t i = 0; i < s_seq_points_count; i++)
-	{
-		if (*(s_seq_points[i]->method) == method && s_seq_points[i]->ilOffset == bp->il_offset)
-		{
-			s_seq_points[i]->isActive = TRUE;
-			break;
-		}
-	}
-
-	mono_loader_lock ();
-
-	g_ptr_array_add (bp->children, inst);
-
-	mono_loader_unlock ();
-
+	insert_breakpoint(domain, method, bp);
 #endif
 }
 
@@ -4656,26 +4652,11 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 	method_seq_points = g_ptr_array_new ();
 
 	mono_loader_lock ();
-	g_hash_table_iter_init (&iter, domains);
-	while (g_hash_table_iter_next (&iter, (void**)&domain, NULL)) {
-		mono_domain_lock (domain);
-		g_hash_table_iter_init (&iter2, debugger_get_domain_seq_points (domain));
-		while (g_hash_table_iter_next (&iter2, (void**)&m, (void**)&seq_points)) {
-			if (bp_matches_method (bp, m)) {
-				/* Save the info locally to simplify the code inside the domain lock */
-				g_ptr_array_add (methods, m);
-				g_ptr_array_add (method_domains, domain);
-				g_ptr_array_add (method_seq_points, seq_points);
-			}
-		}
-		mono_domain_unlock (domain);
-	}
 
-	for (i = 0; i < methods->len; ++i) {
-		m = (MonoMethod *)g_ptr_array_index (methods, i);
-		domain = (MonoDomain *)g_ptr_array_index (method_domains, i);
-		seq_points = (MonoSeqPointInfo *)g_ptr_array_index (method_seq_points, i);
-		set_bp_in_method (domain, m, seq_points, bp, error);
+	for (i = 0; i < s_seq_points_count; ++i) {
+		if (bp_matches_method(bp, *(s_seq_points[i]->method))) {
+			set_bp_in_method(mono_get_root_domain (), *(s_seq_points[i]->method), NULL, bp, error);
+		}
 	}
 
 	g_ptr_array_add (breakpoints, bp);
@@ -4715,7 +4696,9 @@ clear_breakpoint (MonoBreakpoint *bp)
 	for (i = 0; i < bp->children->len; ++i) {
 		BreakpointInstance *inst = (BreakpointInstance *)g_ptr_array_index (bp->children, i);
 
+#ifndef IL2CPP_DEBUGGER
 		remove_breakpoint (inst);
+#endif
 
 		g_free (inst);
 	}
@@ -4782,7 +4765,9 @@ clear_breakpoints_for_domain (MonoDomain *domain)
 			BreakpointInstance *inst = (BreakpointInstance *)g_ptr_array_index (bp->children, j);
 
 			if (inst->domain == domain) {
+#ifndef IL2CPP_DEBUGGER
 				remove_breakpoint (inst);
+#endif
 
 				g_free (inst);
 
@@ -4938,7 +4923,7 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Mono
 
 		for (j = 0; j < bp->children->len; ++j) {
 			inst = (BreakpointInstance *)g_ptr_array_index (bp->children, j);
-			if (inst->ji == ji && inst->il_offset == bp->il_offset  /*inst->il_offset == sp.il_offset && inst->native_offset == sp.native_offset*/) {
+			if (/*inst->ji == ji &&*/ inst->il_offset == bp->il_offset  /*inst->il_offset == sp.il_offset && inst->native_offset == sp.native_offset*/) {
 				if (bp->req->event_kind == EVENT_KIND_STEP) {
 					g_ptr_array_add (ss_reqs_orig, bp->req);
 				}
@@ -4950,9 +4935,9 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Mono
 	}
 	if (bp_reqs->len == 0 && ss_reqs_orig->len == 0) {
 		/* Maybe a method entry/exit event */
-		if (sp.il_offset == METHOD_ENTRY_IL_OFFSET)
+		if (bp->il_offset == METHOD_ENTRY_IL_OFFSET)
 			kind = EVENT_KIND_METHOD_ENTRY;
-		else if (sp.il_offset == METHOD_EXIT_IL_OFFSET)
+		else if (bp->il_offset == METHOD_EXIT_IL_OFFSET)
 			kind = EVENT_KIND_METHOD_EXIT;
 	}
 
