@@ -9869,7 +9869,9 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	MonoDebugMethodJitInfo *jit;
 	MonoMethodSignature *sig;
 	gssize id;
+#ifndef IL2CPP_DEBUGGER
 	MonoMethodHeader *header;
+#endif
 
 	objid = decode_objid (p, &p, end);
 	err = get_object (objid, (MonoObject**)&thread_obj);
@@ -9937,8 +9939,11 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	case CMD_STACK_FRAME_GET_VALUES: {
 		MonoError error;
 		len = decode_int (p, &p, end);
+
+#ifndef IL2CPP_DEBUGGER
 		header = mono_method_get_header_checked (frame->actual_method, &error);
 		mono_error_assert_ok (&error); /* FIXME report error */
+#endif
 
 		for (i = 0; i < len; ++i) {
 			pos = decode_int (p, &p, end);
@@ -9968,6 +9973,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				}
 #endif
 			} else {
+#ifndef IL2CPP_DEBUGGER
 				MonoDebugLocalsInfo *locals;
 
 				locals = mono_debug_lookup_locals (frame->method);
@@ -9976,7 +9982,6 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 					pos = locals->locals [pos].index;
 					mono_debug_free_locals (locals);
 				}
-#ifndef IL2CPP_DEBUGGER
 				g_assert (pos >= 0 && pos < jit->num_locals);
 
 				DEBUG_PRINTF (4, "[dbg]   send local %d.\n", pos);
@@ -9987,14 +9992,18 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				{
 					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
 					{
-						buffer_add_value_full(buf, header->locals[pos], tls->il2cpp_context.executionContexts[frame_index]->values[pos], frame->domain, FALSE, NULL);
+						Il2CppSequencePoint* sequencePoint = tls->il2cpp_context.sequencePoints[frame_index];
+						Il2CppSequencePointExecutionContext* executionContext = tls->il2cpp_context.executionContexts[frame_index];
+						buffer_add_value_full(buf, *sequencePoint->executionContextInfos[pos].type, executionContext->values[pos], frame->domain, FALSE, NULL);
 						break;
 					}
 				}
 #endif
 			}
 		}
+#ifndef IL2CPP_DEBUGGER
 		mono_metadata_free_mh (header);
+#endif
 		break;
 	}
 	case CMD_STACK_FRAME_GET_THIS: {
@@ -10044,8 +10053,10 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		MonoDebugVarInfo *var;
 
 		len = decode_int (p, &p, end);
+#ifndef IL2CPP_DEBUGGER
 		header = mono_method_get_header_checked (frame->actual_method, &error);
 		mono_error_assert_ok (&error); /* FIXME report error */
+#endif
 
 		for (i = 0; i < len; ++i) {
 			pos = decode_int (p, &p, end);
@@ -10058,6 +10069,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				t = sig->params [pos];
 				var = &jit->params [pos];
 			} else {
+#ifndef IL2CPP_DEBUGGER
 				MonoDebugLocalsInfo *locals;
 
 				locals = mono_debug_lookup_locals (frame->method);
@@ -10070,6 +10082,9 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 				t = header->locals [pos];
 				var = &jit->locals [pos];
+#else
+				NOT_IMPLEMENTED;
+#endif
 			}
 
 			if (MONO_TYPE_IS_REFERENCE (t))
@@ -10085,7 +10100,9 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 			return ERR_NOT_IMPLEMENTED;
 #endif
 		}
+#ifndef IL2CPP_DEBUGGER
 		mono_metadata_free_mh (header);
+#endif
 		break;
 	}
 	case CMD_STACK_FRAME_GET_DOMAIN: {
