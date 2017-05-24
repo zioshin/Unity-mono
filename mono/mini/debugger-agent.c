@@ -109,10 +109,18 @@ typedef MonoStackFrameInfo StackFrameInfo;
 #define THREAD_TO_INTERNAL(thread) (thread)->internal_thread
 
 #ifdef IL2CPP_DEBUGGER
+typedef enum MethodVariableKind
+{
+	kMethodVariableKind_This,
+	kMethodVariableKind_Parameter,
+	kMethodVariableKind_LocalVariable
+} MethodVariableKind;
+
 typedef struct Il2CppMethodExecutionContextInfo
 {
 	MonoType** type;
 	const char* name;
+	const MethodVariableKind variableKind;
 } Il2CppMethodExecutionContextInfo;
 
 typedef struct Il2CppSequencePoint
@@ -9856,6 +9864,45 @@ thread_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	return ERR_NONE;
 }
 
+#ifdef IL2CPP_DEBUGGER
+
+static uint32_t GetExecutionContextIndex(const Il2CppSequencePoint* sequencePoint, MethodVariableKind variableKind, uint32_t variablePosition)
+{
+	uint32_t executionContextPosition, variablesIterated = 0;
+
+	for (executionContextPosition = 0;; executionContextPosition++)
+	{
+		g_assert(executionContextPosition < sequencePoint->executionContextInfoCount);
+
+		if (sequencePoint->executionContextInfos[executionContextPosition].variableKind == variableKind)
+		{
+			if (variablesIterated == variablePosition)
+				return executionContextPosition;
+
+			variablesIterated++;
+		}
+	}
+}
+
+static void SendVariableData(DebuggerTlsData* tls, StackFrame* frame, Buffer* buf, MethodVariableKind variableKind, uint32_t variablePosition)
+{
+	for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
+	{
+		if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
+		{
+			Il2CppSequencePoint* sequencePoint = tls->il2cpp_context.sequencePoints[frame_index];
+			Il2CppSequencePointExecutionContext* executionContext = tls->il2cpp_context.executionContexts[frame_index];
+			uint32_t executionContextPosition = GetExecutionContextIndex(sequencePoint, variableKind, variablePosition);
+			MonoType* localVariableType = *sequencePoint->executionContextInfos[executionContextPosition].type;
+			void* localVariableValue = executionContext->values[executionContextPosition];
+			buffer_add_value_full(buf, localVariableType, localVariableValue, frame->domain, FALSE, NULL);
+			break;
+		}
+	}
+}
+
+#endif
+
 static ErrorCode
 frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 {
@@ -9958,19 +10005,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 				add_var (buf, jit, sig->params [pos], &jit->params [pos], &frame->ctx, frame->domain, FALSE);
 #else
-				for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
-				{
-					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
-					{
-						int val_index = pos;
-						if (frame->actual_method->signature->hasthis)
-						{
-							val_index++;
-						}
-						buffer_add_value_full(buf, sig->params[pos], tls->il2cpp_context.executionContexts[frame_index]->values[val_index], frame->domain, FALSE, NULL);
-						break;
-					}
-				}
+				SendVariableData(tls, frame, buf, kMethodVariableKind_Parameter, pos);
 #endif
 			} else {
 #ifndef IL2CPP_DEBUGGER
@@ -9988,16 +10023,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 				add_var (buf, jit, header->locals [pos], &jit->locals [pos], &frame->ctx, frame->domain, FALSE);
 #else
-				for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
-				{
-					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
-					{
-						Il2CppSequencePoint* sequencePoint = tls->il2cpp_context.sequencePoints[frame_index];
-						Il2CppSequencePointExecutionContext* executionContext = tls->il2cpp_context.executionContexts[frame_index];
-						buffer_add_value_full(buf, *sequencePoint->executionContextInfos[pos].type, executionContext->values[pos], frame->domain, FALSE, NULL);
-						break;
-					}
-				}
+				SendVariableData(tls, frame, buf, kMethodVariableKind_LocalVariable, pos);
 #endif
 			}
 		}
@@ -10033,14 +10059,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 #ifndef IL2CPP_DEBUGGER
 				add_var (buf, jit, &frame->api_method->klass->byval_arg, jit->this_var, &frame->ctx, frame->domain, TRUE);
 #else
-				for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
-				{
-					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
-					{
-						buffer_add_value_full(buf, &frame->api_method->klass->byval_arg, tls->il2cpp_context.executionContexts[frame_index]->values[0], frame->domain, TRUE, NULL);
-						break;
-					}
-				}
+				SendVariableData(tls, frame, buf, kMethodVariableKind_This, 0);
 #endif
 			}
 		}
