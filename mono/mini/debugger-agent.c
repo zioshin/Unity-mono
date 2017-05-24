@@ -9776,14 +9776,36 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				MonoObject *p = NULL;
 				buffer_add_value (buf, &mono_defaults.object_class->byval_arg, &p, frame->domain);
 			} else {
+#ifndef IL2CPP_DEBUGGER
 				add_var (buf, jit, &frame->actual_method->klass->this_arg, jit->this_var, &frame->ctx, frame->domain, TRUE);
+#else
+				for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
+				{
+					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
+					{
+						buffer_add_value_full(buf, &frame->actual_method->klass->this_arg, tls->il2cpp_context.executionContexts[frame_index]->values[0], frame->domain, TRUE, NULL);
+						break;
+					}
+				}
+#endif
 			}
 		} else {
 			if (!sig->hasthis) {
 				MonoObject *p = NULL;
 				buffer_add_value (buf, &frame->actual_method->klass->byval_arg, &p, frame->domain);
 			} else {
+#ifndef IL2CPP_DEBUGGER
 				add_var (buf, jit, &frame->api_method->klass->byval_arg, jit->this_var, &frame->ctx, frame->domain, TRUE);
+#else
+				for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
+				{
+					if (*(tls->il2cpp_context.sequencePoints[frame_index]->method) == frame->actual_method)
+					{
+						buffer_add_value_full(buf, &frame->api_method->klass->byval_arg, tls->il2cpp_context.executionContexts[frame_index]->values[0], frame->domain, TRUE, NULL);
+						break;
+					}
+				}
+#endif
 			}
 		}
 		break;
