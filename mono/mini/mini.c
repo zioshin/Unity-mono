@@ -4712,24 +4712,33 @@ mono_install_debugger_callback(MonoDebuggerCallback callback)
 	mono_debugger_callback = callback;
 }
 
+static MonoContext debugger_callback_ctx;
+
+static void mono_invoke_debugger_callback2()
+{
+    static void(*restore_context) (void*);
+
+    mono_debugger_callback(&debugger_callback_ctx);
+
+    mono_arch_skip_breakpoint(&debugger_callback_ctx);
+    if (!restore_context)
+        restore_context = mono_get_restore_context();
+
+    restore_context(&debugger_callback_ctx);
+}
+
 static int mono_invoke_debugger_callback(void* sigctx)
 {
     MonoContext ctx;
-    static void(*restore_context) (void*);
 
 	if (!mono_debugger_callback)
 		return 0;
 
     mono_arch_sigctx_to_monoctx(sigctx, &ctx);
+    memcpy(&debugger_callback_ctx, &ctx, sizeof(MonoContext));
 
-    if (!mono_debugger_callback(&ctx))
-        return 0;
-
-    mono_arch_skip_breakpoint(&ctx);
-    if (!restore_context)
-        restore_context = mono_get_restore_context();
-
-    restore_context(&ctx);
+    mono_arch_setup_resume_sighandler_ctx(&ctx, mono_invoke_debugger_callback2);
+    mono_arch_monoctx_to_sigctx(&ctx, sigctx);
 	return 1;
 }
 
