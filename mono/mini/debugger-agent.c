@@ -214,6 +214,7 @@ typedef struct {
 	MonoThreadUnwindState context;
 #ifdef IL2CPP_DEBUGGER
 	Il2CppThreadUnwindState il2cpp_context;
+	uint8_t* il2cpp_global_breakpoint_active;
 #endif
 
 	/* This is computed on demand when it is requested using the wire protocol */
@@ -4047,6 +4048,10 @@ thread_startup (MonoProfiler *prof, uintptr_t tid)
 	mono_g_hash_table_insert (tid_to_thread_obj, GUINT_TO_POINTER (tid), mono_thread_current ());
 	mono_loader_unlock ();
 
+#ifdef IL2CPP_DEBUGGER
+	tls->il2cpp_global_breakpoint_active = mono_get_runtime_callbacks()->get_global_breakpoint_state_pointer();
+#endif
+
 	process_profiler_event (EVENT_KIND_THREAD_START, thread);
 
 	/*
@@ -5268,6 +5273,7 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal)
 	SeqPoint sp;
 	MonoSeqPointInfo *info;
 
+#ifndef IL2CPP_DEBUGGER
 	ip = (guint8 *)MONO_CONTEXT_GET_IP (ctx);
 
 	/* Skip the instruction causing the single step */
@@ -5330,17 +5336,12 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal)
 			return;
 	}
 
-
-#ifndef IL2CPP_DEBUGGER
 	/*
 	 * The ip points to the instruction causing the single step event, which is before
 	 * the offset recorded in the seq point map, so find the next seq point after ip.
 	 */
 	if (!mono_find_next_seq_point_for_native_offset (domain, method, (guint8*)ip - (guint8*)ji->code_start, &info, &sp))
 		return;
-#else
-	NOT_IMPLEMENTED;
-#endif
 
 	il_offset = sp.il_offset;
 
@@ -5356,6 +5357,7 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal)
 		return;
 
 	// FIXME: Has to lock earlier
+#endif
 
 	reqs = g_ptr_array_new ();
 
@@ -5363,13 +5365,22 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal)
 
 	g_ptr_array_add (reqs, ss_req->req);
 
+#ifndef IL2CPP_DEBUGGER
 	events = create_event_list (EVENT_KIND_STEP, reqs, ji, NULL, &suspend_policy);
+#else
+	events = create_event_list(EVENT_KIND_STEP, reqs, NULL, NULL, &suspend_policy);
+#endif
 
 	g_ptr_array_free (reqs, TRUE);
 
 	mono_loader_unlock ();
 
+#ifndef IL2CPP_DEBUGGER
 	process_event (EVENT_KIND_STEP, jinfo_get_method (ji), il_offset, ctx, events, suspend_policy);
+#else
+	Il2CppSequencePoint* sequence_pt = tls->il2cpp_context.sequencePoints[tls->il2cpp_context.frameCount - 1];
+	process_event(EVENT_KIND_STEP, *(sequence_pt->method), sequence_pt->ilOffset, NULL, events, suspend_policy);
+#endif
 }
 
 static void
@@ -5438,7 +5449,9 @@ debugger_agent_single_step_from_context (MonoContext *ctx)
 	memcpy (ctx, &tls->restore_state.ctx, sizeof (MonoContext));
 	memcpy (&tls->restore_state, &orig_restore_state, sizeof (MonoThreadUnwindState));
 #else
-    NOT_IMPLEMENTED;
+	save_thread_context(NULL);
+
+	process_single_step_inner(tls, FALSE);
 #endif
 }
 
@@ -5541,6 +5554,7 @@ stop_single_stepping (void)
 static void
 ss_stop (SingleStepReq *ss_req)
 {
+#ifndef IL2CPP_DEBUGGER
 	if (ss_req->bps) {
 		GSList *l;
 
@@ -5555,6 +5569,7 @@ ss_stop (SingleStepReq *ss_req)
 		stop_single_stepping ();
 		ss_req->global = FALSE;
 	}
+#endif
 }
 
 /*
@@ -5875,6 +5890,8 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 	ss_req->filter = filter;
 	req->info = ss_req;
 
+#ifndef IL2CPP_DEBUGGER
+
 	for (int i = 0; i < req->nmodifiers; i++) {
 		if (req->modifiers[i].kind == MOD_KIND_ASSEMBLY_ONLY) {
 			ss_req->user_assemblies = req->modifiers[i].data.assemblies;
@@ -5902,7 +5919,6 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 	ss_req->start_sp = ss_req->last_sp = MONO_CONTEXT_GET_SP (&tls->context.ctx);
 
 	if (tls->catch_state.valid) {
-#ifndef IL2CPP_DEBUGGER
 		gboolean res;
 		StackFrameInfo frame;
 		MonoContext new_ctx;
@@ -5936,9 +5952,6 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 		step_to_catch = TRUE;
 		/* This make sure the seq point is not skipped by process_single_step () */
 		ss_req->last_sp = NULL;
-#else
-		NOT_IMPLEMENTED;
-#endif
 	}
 
 	if (!step_to_catch) {
@@ -5973,12 +5986,8 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 
 		if (frame) {
 			if (!method && frame->il_offset != -1) {
-#ifndef IL2CPP_DEBUGGER
 				/* FIXME: Sort the table and use a binary search */
 				found_sp = mono_find_prev_seq_point_for_native_offset (frame->domain, frame->method, frame->native_offset, &info, &local_sp);
-#else
-				found_sp = FALSE;
-#endif
 				sp = (found_sp)? &local_sp : NULL;
 
 				if (!sp)
@@ -5995,6 +6004,26 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 
 	if (frames)
 		free_frames (frames, nframes);
+#else
+	tls = (DebuggerTlsData *)mono_g_hash_table_lookup(thread_to_tls, thread);
+	mono_loader_unlock();
+	g_assert(tls);
+
+	switch (depth)
+	{
+	case STEP_DEPTH_INTO:
+		*tls->il2cpp_global_breakpoint_active = TRUE;
+		break;
+	case STEP_DEPTH_OVER:
+		NOT_IMPLEMENTED;
+		break;
+	case STEP_DEPTH_OUT:
+		NOT_IMPLEMENTED;
+		break;
+	default:
+		NOT_IMPLEMENTED;
+	}
+#endif
 
 	return ERR_NONE;
 }

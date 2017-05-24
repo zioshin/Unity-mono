@@ -585,6 +585,7 @@ typedef struct {
 	gpointer (*create_jump_trampoline) (MonoDomain *domain, MonoMethod *method, gboolean add_sync_wrapper, MonoError *error);
 	gpointer (*create_jit_trampoline) (MonoDomain *domain, MonoMethod *method, MonoError *error);
 	void     (*il2cpp_debugger_save_thread_context)(Il2CppThreadUnwindState* context);
+	uint8_t* (*get_global_breakpoint_state_pointer)();
 } MonoRuntimeCallbacks;
 
 typedef gboolean (*MonoInternalStackWalk) (MonoStackFrameInfo *frame, MonoContext *ctx, gpointer data);
