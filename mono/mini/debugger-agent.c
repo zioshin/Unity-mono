@@ -4326,6 +4326,7 @@ typedef struct {
 	guint8 *ip;
 	MonoJitInfo *ji;
 	MonoDomain *domain;
+    Il2CppSequencePoint* seq_point;
 } BreakpointInstance;
 
 /*
@@ -4540,6 +4541,7 @@ bp_matches_method (MonoBreakpoint *bp, MonoMethod *method)
 	return FALSE;
 }
 
+#ifndef IL2CPP_DEBUGGER
 /*
  * add_pending_breakpoints:
  *
@@ -4575,7 +4577,6 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 		}
 
 		if (!found) {
-#ifndef IL2CPP_DEBUGGER
 			MonoMethod *declaring = NULL;
 
 			jmethod = jinfo_get_method (ji);
@@ -4593,44 +4594,12 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 			g_assert (seq_points);
 
 			insert_breakpoint (seq_points, domain, ji, bp, NULL);
-#else
-			insert_breakpoint(domain, ji->d.method, bp);
-#endif
 		}
 	}
 
 	mono_loader_unlock ();
 }
-
-static void
-set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_points, MonoBreakpoint *bp, MonoError *error)
-{
-	gpointer code;
-	MonoJitInfo *ji;
-
-	if (error)
-		mono_error_init (error);
-
-#ifndef IL2CPP_DEBUGGER
-    code = mono_jit_find_compiled_method_with_jit_info(domain, method, &ji);
-	if (!code) {
-		MonoError oerror;
-
-		/* Might be AOTed code */
-		mono_class_init (method->klass);
-		code = mono_aot_get_method_checked (domain, method, &oerror);
-		g_assert (code);
-		mono_error_assert_ok (&oerror);
-		ji = mono_jit_info_table_find (domain, (char *)code);
-		g_assert (ji);
-	}
-	g_assert (code);
-
-	insert_breakpoint (seq_points, domain, ji, bp, error);
-#else
-	insert_breakpoint(domain, method, bp);
 #endif
-}
 
 static void
 clear_breakpoint (MonoBreakpoint *bp);
@@ -4689,6 +4658,7 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
             inst->native_offset = 0;// it.seq_point.native_offset;
             inst->ip = inst;// (guint8*)ji->code_start + it.seq_point.native_offset;
             inst->domain = mono_domain_get();
+            inst->seq_point = s_seq_points[i];
 
             s_seq_points[i]->isActive = TRUE;
 
@@ -4759,6 +4729,7 @@ set_breakpoint_fast(MonoMethod *method, Il2CppSequencePoint *sp, long il_offset,
             inst->native_offset = 0;// it.seq_point.native_offset;
             inst->ip = inst;// (guint8*)ji->code_start + it.seq_point.native_offset;
             inst->domain = mono_domain_get();
+            inst->seq_point = sp;
 
             sp->isActive = TRUE;
 
@@ -4993,7 +4964,7 @@ breakpoint_matches_assembly (MonoBreakpoint *bp, MonoAssembly *assembly)
 
 
 static void
-unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, MonoMethod* method)
+unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Il2CppSequencePoint* sequencePoint)
 {
 	MonoJitInfo *ji = NULL;
 	guint8 *ip;
@@ -5007,6 +4978,7 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Mono
 	//MonoSeqPointInfo *info;
 	SeqPoint sp;
 	gboolean found_sp;
+    MonoMethod* method = *(sequencePoint->method);
 
 	/*
 	* Skip the instruction causing the breakpoint signal.
@@ -5036,7 +5008,15 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Mono
 			inst = (BreakpointInstance *)g_ptr_array_index (bp->children, j);
 			if (/*inst->ji == ji &&*/ inst->il_offset == bp->il_offset  /*inst->il_offset == sp.il_offset && inst->native_offset == sp.native_offset*/) {
 				if (bp->req->event_kind == EVENT_KIND_STEP) {
-					g_ptr_array_add (ss_reqs_orig, bp->req);
+                    for (int j = 0; j < bp->children->len; ++j)
+                    {
+                        BreakpointInstance *inst = (BreakpointInstance *)g_ptr_array_index(bp->children, j);
+                        if (inst->seq_point == sequencePoint)
+                        {
+                            g_ptr_array_add(ss_reqs_orig, bp->req);
+                            break;
+                        }
+                    }
 				}
 				else {
 					g_ptr_array_add (bp_reqs, bp->req);
@@ -5052,23 +5032,12 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Mono
 			kind = EVENT_KIND_METHOD_EXIT;
 	}
 
-	/* Process single step requests */
-	for (i = 0; i < ss_reqs_orig->len; ++i) {
-		EventRequest *req = (EventRequest *)g_ptr_array_index (ss_reqs_orig, i);
-		SingleStepReq *ss_req = (SingleStepReq *)req->info;
-		gboolean hit;
-
-		if (mono_thread_internal_current () != ss_req->thread)
-			continue;
-
-		//hit = ss_update (ss_req, ji, &sp, tls, ctx);
-		//if (hit)
-			g_ptr_array_add (ss_reqs, req);
-
-		/* Start single stepping again from the current sequence point */
-		//ss_start (ss_req, method, &sp, info, ctx, tls, FALSE, NULL, 0);
+    g_assert(ss_reqs_orig->len <= 1);
+    if (ss_reqs_orig->len == 1)
+    {
+        g_ptr_array_add(ss_reqs, ss_reqs_orig->pdata);
         ss_start_il2cpp(ss_req, tls);
-	}
+    }
 
 	if (ss_reqs->len > 0)
 		ss_events = create_event_list (EVENT_KIND_STEP, ss_reqs, ji, NULL, &suspend_policy);
@@ -5575,7 +5544,7 @@ unity_debugger_agent_breakpoint (Il2CppSequencePoint* sequencePoint)
 	tls = (DebuggerTlsData *)mono_native_tls_get_value (debugger_tls_id);
 	g_assert (tls);
 
-	unity_process_breakpoint_inner (tls, FALSE, *(sequencePoint->method));
+	unity_process_breakpoint_inner (tls, FALSE, sequencePoint);
 }
 
 void
@@ -5645,7 +5614,12 @@ stop_single_stepping (void)
 	if (val == 0)
 		mono_arch_stop_single_stepping ();
 #else
-    // NOT_IMPLEMENTED;
+    if (ss_req)
+    {
+        DebuggerTlsData *tls = (DebuggerTlsData *)mono_g_hash_table_lookup(thread_to_tls, ss_req->thread);
+        g_assert(tls);
+        *tls->il2cpp_global_breakpoint_active = FALSE;
+    }
 #endif
 
 #else
@@ -5661,7 +5635,6 @@ stop_single_stepping (void)
 static void
 ss_stop (SingleStepReq *ss_req)
 {
-#ifndef IL2CPP_DEBUGGER
 	if (ss_req->bps) {
 		GSList *l;
 
@@ -5676,7 +5649,6 @@ ss_stop (SingleStepReq *ss_req)
 		stop_single_stepping ();
 		ss_req->global = FALSE;
 	}
-#endif
 }
 
 /*
