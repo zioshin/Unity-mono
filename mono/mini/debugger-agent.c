@@ -4308,8 +4308,10 @@ jit_end (MonoProfiler *prof, MonoMethod *method, MonoJitInfo *jinfo, int result)
 	}
 
 	send_type_load (method->klass);
+#ifndef IL2CPP_DEBUGGER
 	if (!result)
 		add_pending_breakpoints (method, jinfo);
+#endif
 }
 
 /*
