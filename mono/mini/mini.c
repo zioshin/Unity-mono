@@ -4737,7 +4737,12 @@ static int mono_invoke_debugger_callback(void* sigctx)
     mono_arch_sigctx_to_monoctx(sigctx, &ctx);
     memcpy(&debugger_callback_ctx, &ctx, sizeof(MonoContext));
 
+#ifdef MONO_ARCH_HAVE_SETUP_RESUME_FROM_SIGNAL_HANDLER_CTX
     mono_arch_setup_resume_sighandler_ctx(&ctx, mono_invoke_debugger_callback2);
+#else
+    MONO_CONTEXT_SET_IP(&ctx, mono_invoke_debugger_callback2);
+#endif
+
     mono_arch_monoctx_to_sigctx(&ctx, sigctx);
 	return 1;
 }
