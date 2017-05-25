@@ -94,7 +94,7 @@ void mono_unity_get_stack_frames(UnityStackFrames* frames, MonoContext* ctx);
 
 void mono_unity_free_stack_frames(UnityStackFrames* frames);
 
-void mono_unity_get_local_vars(UnityVariables* locals, MonoContext* ctx);
+void mono_unity_get_local_vars(UnityVariables* localVariableList, MonoContext* ctx, MonoMethod* method);
 
 void mono_unity_free_local_vars(UnityVariables* locals);
 
