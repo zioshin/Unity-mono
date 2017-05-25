@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <limits.h>
 
+#define IL2CPP_DEBUGGER 1
 
 #ifdef _MSC_VER
 #pragma include_alias(<eglib-config.h>, <eglib-config.hw>)

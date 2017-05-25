@@ -13,6 +13,8 @@
 #include <mono/metadata/reflection.h>
 #include <mono/metadata/mono-debug.h>
 
+#ifndef IL2CPP_DEBUGGER
+
 typedef struct MonoSymbolFileOffsetTable	MonoSymbolFileOffsetTable;
 typedef struct MonoSymbolFileLineNumberEntry	MonoSymbolFileLineNumberEntry;
 typedef struct MonoSymbolFileMethodAddress	MonoSymbolFileMethodAddress;
@@ -163,5 +165,6 @@ mono_debug_image_has_debug_info (MonoImage *image);
 
 MONO_END_DECLS
 
-#endif /* __MONO_SYMFILE_H__ */
+#endif
 
+#endif /* __MONO_SYMFILE_H__ */

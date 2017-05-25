@@ -1119,7 +1119,9 @@ mono_profiler_coverage_get (MonoProfiler *prof, MonoMethod *method, MonoProfileC
 	const unsigned char *start, *end, *cil_code;
 	MonoMethodHeader *header;
 	MonoProfileCoverageEntry entry;
+#ifndef IL2CPP_DEBUGGER
 	MonoDebugMethodInfo *debug_minfo;
+#endif
 
 	mono_profiler_coverage_lock ();
 	if (coverage_hash)
@@ -1132,7 +1134,9 @@ mono_profiler_coverage_get (MonoProfiler *prof, MonoMethod *method, MonoProfileC
 	header = mono_method_get_header_checked (method, &error);
 	mono_error_assert_ok (&error);
 	start = mono_method_header_get_code (header, &code_size, NULL);
+#ifndef IL2CPP_DEBUGGER
 	debug_minfo = mono_debug_lookup_method (method);
+#endif
 
 	end = start + code_size;
 	for (i = 0; i < info->entries; ++i) {
@@ -1145,6 +1149,7 @@ mono_profiler_coverage_get (MonoProfiler *prof, MonoMethod *method, MonoProfileC
 			entry.counter = info->data [i].count;
 			entry.line = entry.col = 1;
 			entry.filename = NULL;
+#ifndef IL2CPP_DEBUGGER
 			if (debug_minfo) {
 				MonoDebugSourceLocation *location;
 
@@ -1156,6 +1161,7 @@ mono_profiler_coverage_get (MonoProfiler *prof, MonoMethod *method, MonoProfileC
 					mono_debug_free_source_location (location);
 				}
 			}
+#endif
 
 			func (prof, &entry);
 			g_free (fname);

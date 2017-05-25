@@ -469,7 +469,9 @@ mono_domain_create (void)
 	mono_perfcounters->loader_total_appdomains++;
 #endif
 
+#ifndef IL2CPP_DEBUGGER
 	mono_debug_domain_create (domain);
+#endif
 
 	if (create_domain_hook)
 		create_domain_hook (domain);
@@ -871,7 +873,9 @@ mono_cleanup (void)
 	mono_loader_cleanup ();
 	mono_classes_cleanup ();
 	mono_assemblies_cleanup ();
+#ifndef IL2CPP_DEBUGGER
 	mono_debug_cleanup ();
+#endif
 	mono_images_cleanup ();
 	mono_metadata_cleanup ();
 
@@ -1068,7 +1072,9 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 
 	mono_profiler_appdomain_event (domain, MONO_PROFILE_START_UNLOAD);
 
+#ifndef IL2CPP_DEBUGGER
 	mono_debug_domain_unload (domain);
+#endif
 
 	mono_appdomains_lock ();
 	appdomains_list [domain->domain_id] = NULL;

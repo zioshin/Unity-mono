@@ -3530,9 +3530,13 @@ dump_thread (MonoInternalThread *thread, ThreadDumpUserData *ud)
 			method = mono_jit_info_get_method (frame->ji);
 
 		if (method) {
+#ifndef IL2CPP_DEBUGGER
 			gchar *location = mono_debug_print_stack_frame (method, frame->native_offset, frame->domain);
 			g_string_append_printf (text, "  %s\n", location);
 			g_free (location);
+#else
+            g_assert(0); // Not implemented
+#endif
 		} else {
 			g_string_append_printf (text, "  at <unknown> <0x%05x>\n", frame->native_offset);
 		}
@@ -3583,7 +3587,9 @@ mono_threads_get_thread_dump (MonoArray **out_threads, MonoArray **out_stack_fra
 	ThreadDumpUserData ud;
 	MonoInternalThread *thread_array [128];
 	MonoDomain *domain = mono_domain_get ();
+#ifndef IL2CPP_DEBUGGER
 	MonoDebugSourceLocation *location;
+#endif
 	int tindex, nthreads;
 
 	mono_error_init (error);
@@ -3647,8 +3653,10 @@ mono_threads_get_thread_dump (MonoArray **out_threads, MonoArray **out_stack_fra
 					goto leave;
 				MONO_OBJECT_SETREF (sf, method, rm);
 
+#ifndef IL2CPP_DEBUGGER
 				location = mono_debug_lookup_source_location (method, frame->native_offset, domain);
-				if (location) {
+				if (location)
+                {
 					sf->il_offset = location->il_offset;
 
 					if (location && location->source_file) {
@@ -3657,7 +3665,10 @@ mono_threads_get_thread_dump (MonoArray **out_threads, MonoArray **out_stack_fra
 						sf->column = location->column;
 					}
 					mono_debug_free_source_location (location);
-				} else {
+				}
+                else
+#endif
+                {
 					sf->il_offset = -1;
 				}
 			}

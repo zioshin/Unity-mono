@@ -17,6 +17,8 @@
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/mono-debug.h>
 
+#ifndef IL2CPP_DEBUGGER
+
 MonoPPDBFile*
 mono_ppdb_load_file (MonoImage *image, const guint8 *raw_contents, int size);
 
@@ -34,5 +36,7 @@ mono_ppdb_get_seq_points (MonoDebugMethodInfo *minfo, char **source_file, GPtrAr
 
 MonoDebugLocalsInfo*
 mono_ppdb_lookup_locals (MonoDebugMethodInfo *minfo);
+
+#endif
 
 #endif

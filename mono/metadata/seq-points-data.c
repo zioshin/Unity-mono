@@ -9,6 +9,8 @@
 
 #include "seq-points-data.h"
 
+#ifndef IL2CPP_DEBUGGER
+
 typedef struct {
 	guint8 *data;
 	int len;
@@ -501,3 +503,5 @@ mono_seq_point_data_get_il_offset (char *path, guint32 method_token, guint32 met
 
 	return TRUE;
 }
+
+#endif

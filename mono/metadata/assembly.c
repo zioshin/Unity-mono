@@ -3493,7 +3493,9 @@ mono_assembly_close_except_image_pools (MonoAssembly *assembly)
 
 	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_ASSEMBLY, "Unloading assembly %s [%p].", assembly->aname.name, assembly);
 
+#ifndef IL2CPP_DEBUGGER
 	mono_debug_close_image (assembly->image);
+#endif
 
 	mono_assemblies_lock ();
 	loaded_assemblies = g_list_remove (loaded_assemblies, assembly);

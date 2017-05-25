@@ -14,10 +14,12 @@
 void            mono_debugger_lock                          (void);
 void            mono_debugger_unlock                        (void);
 
+#ifndef IL2CPP_DEBUGGER
 void
 mono_debug_get_seq_points (MonoDebugMethodInfo *minfo, char **source_file, GPtrArray **source_file_list, int **source_files, MonoSymSeqPoint **seq_points, int *n_seq_points);
 
 MONO_API void
 mono_debug_free_locals (MonoDebugLocalsInfo *info);
+#endif
 
 #endif /* __MONO_DEBUG_DEBUGGER_H__ */

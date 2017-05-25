@@ -10,6 +10,8 @@
 #include <mono/metadata/image.h>
 #include <mono/metadata/appdomain.h>
 
+#ifndef IL2CPP_DEBUGGER
+
 MONO_BEGIN_DECLS
 
 typedef struct _MonoSymbolTable			MonoSymbolTable;
@@ -214,9 +216,11 @@ mono_debug_print_stack_frame (MonoMethod *method, uint32_t native_offset, MonoDo
 MONO_API int             mono_debugger_method_has_breakpoint       (MonoMethod *method);
 MONO_API int             mono_debugger_insert_breakpoint           (const char *method_name, mono_bool include_namespace);
 
-MONO_API void mono_set_is_debugger_attached (mono_bool attached);
-MONO_API mono_bool mono_is_debugger_attached (void);
-
 MONO_END_DECLS
+
+#endif
+
+MONO_API void mono_set_is_debugger_attached(mono_bool attached);
+MONO_API mono_bool mono_is_debugger_attached(void);
 
 #endif /* __MONO_DEBUG_H__ */

@@ -38,6 +38,8 @@
 #include <unistd.h>
 #endif
 
+#ifndef IL2CPP_DEBUGGER
+
 #define RANGE_TABLE_CHUNK_SIZE		256
 #define CLASS_TABLE_CHUNK_SIZE		256
 #define TYPE_TABLE_PTR_CHUNK_SIZE	256
@@ -835,3 +837,5 @@ mono_debug_symfile_lookup_locals (MonoDebugMethodInfo *minfo)
 
 	return res;
 }
+
+#endif

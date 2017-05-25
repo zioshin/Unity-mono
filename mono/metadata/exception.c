@@ -938,9 +938,13 @@ append_frame_and_continue (MonoMethod *method, gpointer ip, size_t native_offset
 	GString *text = (GString*)user_data;
 
 	if (method) {
+#ifndef IL2CPP_DEBUGGER
 		char *msg = mono_debug_print_stack_frame (method, native_offset, domain);
 		g_string_append_printf (text, "%s\n", msg);
 		g_free (msg);
+#else
+        g_assert(0); // not implemented
+#endif
 	} else {
 		g_string_append_printf (text, "<unknown native frame 0x%x>\n", ip);
 	}

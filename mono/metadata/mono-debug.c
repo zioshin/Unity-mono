@@ -26,6 +26,8 @@
 #include <mono/metadata/runtime.h>
 #include <string.h>
 
+#ifndef IL2CPP_DEBUGGER
+
 #define ALIGN_TO(val,align) ((((guint64)val) + ((align) - 1)) & ~((align) - 1))
 
 #if NO_UNALIGNED_ACCESS
@@ -62,8 +64,6 @@ static GHashTable *mono_debug_handles;
 static GHashTable *data_table_hash;
 
 static mono_mutex_t debugger_lock_mutex;
-
-static gboolean is_attached = FALSE;
 
 static MonoDebugHandle     *mono_debug_open_image      (MonoImage *image, const guint8 *raw_contents, int size);
 
@@ -929,18 +929,6 @@ mono_debug_print_stack_frame (MonoMethod *method, guint32 native_offset, MonoDom
 	return res;
 }
 
-void
-mono_set_is_debugger_attached (gboolean attached)
-{
-	is_attached = attached;
-}
-
-gboolean
-mono_is_debugger_attached (void)
-{
-	return is_attached;
-}
-
 /*
  * Bundles
  */
@@ -1016,4 +1004,20 @@ mono_debug_get_seq_points (MonoDebugMethodInfo *minfo, char **source_file, GPtrA
 		mono_ppdb_get_seq_points (minfo, source_file, source_file_list, source_files, seq_points, n_seq_points);
 	else
 		mono_debug_symfile_get_seq_points (minfo, source_file, source_file_list, source_files, seq_points, n_seq_points);
+}
+
+#endif
+
+static gboolean is_attached = FALSE;
+
+void
+mono_set_is_debugger_attached(gboolean attached)
+{
+    is_attached = attached;
+}
+
+gboolean
+mono_is_debugger_attached(void)
+{
+    return is_attached;
 }

@@ -29,6 +29,8 @@
 
 #include "debug-mono-ppdb.h"
 
+#ifndef IL2CPP_DEBUGGER
+
 struct _MonoPPDBFile {
 	MonoImage *image;
 	GHashTable *doc_hash;
@@ -595,3 +597,5 @@ mono_ppdb_lookup_locals (MonoDebugMethodInfo *minfo)
 
 	return res;
 }
+
+#endif

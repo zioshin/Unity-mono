@@ -2008,8 +2008,10 @@ ves_icall_System_AppDomain_LoadAssemblyRaw (MonoAppDomain *ad,
 		return NULL;
 	}
 
+#ifndef IL2CPP_DEBUGGER
 	if (raw_symbol_store != NULL)
 		mono_debug_open_image_from_memory (image, mono_array_addr (raw_symbol_store, guint8, 0), mono_array_length (raw_symbol_store));
+#endif
 
 	ass = mono_assembly_load_from_full (image, "", &status, refonly);
 
