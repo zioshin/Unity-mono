@@ -116,11 +116,17 @@ typedef enum MethodVariableKind
 	kMethodVariableKind_LocalVariable
 } MethodVariableKind;
 
+typedef enum SequencePointKind
+{
+    kSequencePointKind_Normal,
+    kSequencePointKind_StepOut
+} SequencePointKind;
+
 typedef struct Il2CppMethodExecutionContextInfo
 {
-	MonoType** type;
-	const char* name;
-	const MethodVariableKind variableKind;
+    const MonoType* const* const type;
+    const char* const name;
+    const MethodVariableKind variableKind;
 } Il2CppMethodExecutionContextInfo;
 
 typedef struct Il2CppSequencePoint
@@ -132,6 +138,7 @@ typedef struct Il2CppSequencePoint
 	const uint32_t lineStart, lineEnd;
 	const uint32_t columnStart, columnEnd;
 	const uint32_t ilOffset;
+    const SequencePointKind kind;
 	uint8_t isActive;
 } Il2CppSequencePoint;
 
@@ -4683,8 +4690,7 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 	return bp;
 }
 
-static MonoBreakpoint*
-set_breakpoint_fast(MonoMethod *method, Il2CppSequencePoint *sp, long il_offset, EventRequest *req, MonoError *error)
+static MonoBreakpoint* set_breakpoint_fast(Il2CppSequencePoint *sp, EventRequest *req, MonoError *error)
 {
     MonoBreakpoint *bp;
     GHashTableIter iter, iter2;
@@ -4706,12 +4712,12 @@ set_breakpoint_fast(MonoMethod *method, Il2CppSequencePoint *sp, long il_offset,
     // - races
 
     bp = g_new0(MonoBreakpoint, 1);
-    bp->method = method;
-    bp->il_offset = il_offset;
+    bp->method = *sp->method;
+    bp->il_offset = sp->ilOffset;
     bp->req = req;
     bp->children = g_ptr_array_new();
 
-    DEBUG_PRINTF (1, "[dbg] Setting %sbreakpoint at %s:0x%x.\n", (req->event_kind == EVENT_KIND_STEP) ? "single step " : "", method ? mono_method_full_name (method, TRUE) : "<all>", (int)il_offset);
+    DEBUG_PRINTF (1, "[dbg] Setting %sbreakpoint at %s:0x%x.\n", (req->event_kind == EVENT_KIND_STEP) ? "single step " : "", bp->method ? mono_method_full_name (bp->method, TRUE) : "<all>", (int)bp->il_offset);
 
     methods = g_ptr_array_new();
     method_domains = g_ptr_array_new();
@@ -5738,9 +5744,7 @@ ss_bp_add_one (SingleStepReq *ss_req, int *ss_req_bp_count, GHashTable **ss_req_
 	}
 }
 
-static void
-ss_bp_add_one_il2cpp(SingleStepReq *ss_req, int *ss_req_bp_count, GHashTable **ss_req_bp_cache,
-    MonoMethod *method, guint32 il_offset, Il2CppSequencePoint *sp)
+static void ss_bp_add_one_il2cpp(SingleStepReq *ss_req, int *ss_req_bp_count, GHashTable **ss_req_bp_cache, Il2CppSequencePoint *sp)
 {
     // This list is getting too long, switch to using the hash table
     if (!*ss_req_bp_cache && *ss_req_bp_count > MAX_LINEAR_SCAN_BPS)
@@ -5750,10 +5754,10 @@ ss_bp_add_one_il2cpp(SingleStepReq *ss_req, int *ss_req_bp_count, GHashTable **s
             g_hash_table_insert(*ss_req_bp_cache, l->data, l->data);
     }
 
-    if (ss_bp_is_unique(ss_req->bps, *ss_req_bp_cache, method, il_offset))
+    if (ss_bp_is_unique(ss_req->bps, *ss_req_bp_cache, *sp->method, sp->ilOffset))
     {
         // Create and add breakpoint
-        MonoBreakpoint *bp = set_breakpoint_fast(method, sp, il_offset, ss_req->req, NULL);
+        MonoBreakpoint *bp = set_breakpoint_fast(sp, ss_req->req, NULL);
         ss_req->bps = g_slist_append(ss_req->bps, bp);
         if (*ss_req_bp_cache)
             g_hash_table_insert(*ss_req_bp_cache, bp, bp);
@@ -5761,7 +5765,7 @@ ss_bp_add_one_il2cpp(SingleStepReq *ss_req, int *ss_req_bp_count, GHashTable **s
     }
     else
     {
-        DEBUG_PRINTF (1, "[dbg] Candidate breakpoint at %s:[il=0x%x] is a duplicate for this step request, will not add.\n", mono_method_full_name (method, TRUE), (int)il_offset);
+        DEBUG_PRINTF (1, "[dbg] Candidate breakpoint at %s:[il=0x%x] is a duplicate for this step request, will not add.\n", mono_method_full_name (*sp->method, TRUE), (int)sp->ilOffset);
     }
 }
 
@@ -6010,45 +6014,27 @@ ss_start_il2cpp(SingleStepReq *ss_req, DebuggerTlsData *tls)
     ss_stop(ss_req);
 
     DEBUG_PRINTF(0, "Step depth: %d\n", ss_req->depth);
-    int topFrame = ss_req->depth == STEP_DEPTH_OVER ? tls->il2cpp_context.frameCount : tls->il2cpp_context.frameCount - 1;
+    g_assert(ss_req->depth != STEP_DEPTH_INTO);
 
-    for (int j = 0; j < topFrame; j++)
+    if (ss_req->depth == STEP_DEPTH_OVER)
     {
-        MonoMethod *curMethod = *(tls->il2cpp_context.sequencePoints[j]->method);
+        MonoMethod* currentMethod = *tls->il2cpp_context.sequencePoints[tls->il2cpp_context.frameCount - 1]->method;
         for (int i = 0; i < s_seq_points_count; i++)
         {
-            MonoMethod *spMethod = *(s_seq_points[i]->method);
-            if (spMethod == curMethod)
-            {
-                ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, spMethod, s_seq_points[i]->ilOffset, s_seq_points[i]);
-            }
-            else if (spMethod->is_inflated && curMethod->is_inflated)
-            {
-                MonoMethodInflated *bpimethod = (MonoMethodInflated*)curMethod;
-                MonoMethodInflated *imethod = (MonoMethodInflated*)spMethod;
+            if (s_seq_points[i]->kind != kSequencePointKind_Normal)
+                continue;
 
-                /* Open generic methods should match closed generic methods of the same class */
-                if (bpimethod->declaring == imethod->declaring && bpimethod->context.class_inst == imethod->context.class_inst && bpimethod->context.method_inst && bpimethod->context.method_inst->is_open)
-                {
-                    gboolean ok = TRUE;
-                    for (i = 0; i < bpimethod->context.method_inst->type_argc; ++i)
-                    {
-                        MonoType *t1 = bpimethod->context.method_inst->type_argv[i];
-
-                        /* FIXME: Handle !mvar */
-                        if (t1->type != MONO_TYPE_MVAR)
-                        {
-                            ok = FALSE;
-                            break;
-                        }
-                    }
-                    if (ok)
-                    {
-                        ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, spMethod, s_seq_points[i]->ilOffset, s_seq_points[i]);
-                    }
-                }
-            }
+            Il2CppSequencePoint* sequencePoint = s_seq_points[i];
+            if (*sequencePoint->method == currentMethod)
+                ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, sequencePoint);
         }
+    }
+
+    if (tls->il2cpp_context.frameCount > 1)
+    {
+        Il2CppSequencePoint* sequencePointForStepOut = tls->il2cpp_context.sequencePoints[tls->il2cpp_context.frameCount - 2];
+        g_assert(sequencePointForStepOut->kind == kSequencePointKind_StepOut);
+        ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, sequencePointForStepOut);
     }
 
     if (ss_req_bp_cache)
