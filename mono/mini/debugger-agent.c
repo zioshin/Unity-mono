@@ -67,6 +67,7 @@
 #include <mono/metadata/threadpool-ms.h>
 #include <mono/metadata/socket-io.h>
 #include <mono/metadata/assembly.h>
+#include <mono/metadata/marshal.h>
 #include <mono/metadata/runtime.h>
 #include <mono/metadata/verify-internals.h>
 #include <mono/metadata/reflection-internals.h>
@@ -78,7 +79,10 @@
 #include <mono/utils/mono-threads.h>
 #include <mono/utils/networking.h>
 #include "debugger-agent.h"
-//#include "mini.h"
+
+#ifndef IL2CPP_DEBUGGER
+#include "mini.h"
+#endif
 #include "seq-points.h"
 
 // copied from mini.h
@@ -672,7 +676,7 @@ typedef struct ReplyPacket {
 
 #ifdef PLATFORM_ANDROID
 #define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY ((level) <= log_level)) { g_print (__VA_ARGS__); } } while (0)
-#else
+#elif defined(HOST_WIN32)
 static void __win_printf111(int arg, ...)
 {
     char buf[1024];
@@ -684,6 +688,8 @@ static void __win_printf111(int arg, ...)
 }
 
 #define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY((level) <= log_level)) { __win_printf111(0, __VA_ARGS__); } } while (0)
+#else
+#define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY ((level) <= log_level)) { fprintf (log_file, __VA_ARGS__); fflush (log_file); } } while (0)
 #endif
 
 #ifdef HOST_WIN32
@@ -2252,6 +2258,7 @@ static GHashTable* s_jit_info_hashtable;
 
 static uint32_t s_seq_points_count;
 static Il2CppSequencePoint** s_seq_points;
+#endif
 
 #else
 
@@ -2276,7 +2283,7 @@ static MonoMethod* debugger_get_method (char *addr, MonoDomain **out_domain)
 }
 
 #ifdef IL2CPP_DEBUGGER
-static MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *method)
+MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *method)
 {
 	g_assert_not_reached ();
 	return NULL;
@@ -2284,7 +2291,7 @@ static MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *met
 #endif
 
 #ifdef IL2CPP_DEBUGGER
-static gboolean mono_find_seq_point(MonoDomain *domain, MonoMethod *method, gint32 il_offset, MonoSeqPointInfo **info, SeqPoint *seq_point)
+gboolean mono_find_seq_point(MonoDomain *domain, MonoMethod *method, gint32 il_offset, MonoSeqPointInfo **info, SeqPoint *seq_point)
 {
 	g_assert_not_reached ();
 	return FALSE;
@@ -4350,7 +4357,9 @@ typedef struct {
 	guint8 *ip;
 	MonoJitInfo *ji;
 	MonoDomain *domain;
+#ifdef IL2CPP_DEBUGGER
     Il2CppSequencePoint* seq_point;
+#endif
 } BreakpointInstance;
 
 /*
@@ -9449,8 +9458,8 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
             buffer_add_int(buf, 0);
             buffer_add_string(buf, "");
             buffer_add_int(buf, 0);
-            break;
-        }
+		break;
+	}
 
         buffer_add_int(buf, header->code_size);
         if (CHECK_PROTOCOL_VERSION(2, 13)) {
