@@ -5001,12 +5001,12 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Il2C
 	for (i = 0; i < breakpoints->len; ++i) {
 		bp = (MonoBreakpoint *)g_ptr_array_index (breakpoints, i);
 
-		if (!bp->method)
+		if (!bp->method || bp->method != *(sequencePoint->method))
 			continue;
 
 		for (j = 0; j < bp->children->len; ++j) {
 			inst = (BreakpointInstance *)g_ptr_array_index (bp->children, j);
-			if (/*inst->ji == ji &&*/ inst->il_offset == bp->il_offset  /*inst->il_offset == sp.il_offset && inst->native_offset == sp.native_offset*/) {
+			if (inst->il_offset == bp->il_offset) {
 				if (bp->req->event_kind == EVENT_KIND_STEP) {
                     for (int j = 0; j < bp->children->len; ++j)
                     {
