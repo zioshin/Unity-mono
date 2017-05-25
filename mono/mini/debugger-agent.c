@@ -4780,6 +4780,8 @@ clear_breakpoint (MonoBreakpoint *bp)
 
 #ifndef IL2CPP_DEBUGGER
 		remove_breakpoint (inst);
+#else
+		inst->seq_point->isActive = FALSE;
 #endif
 
 		g_free (inst);
