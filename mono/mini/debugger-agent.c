@@ -5024,7 +5024,7 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Il2C
 			}
 		}
 	}
-	if (bp_reqs->len == 0 && ss_reqs_orig->len == 0) {
+	if (bp && bp_reqs->len == 0 && ss_reqs_orig->len == 0) {
 		/* Maybe a method entry/exit event */
 		if (bp->il_offset == METHOD_ENTRY_IL_OFFSET)
 			kind = EVENT_KIND_METHOD_ENTRY;
