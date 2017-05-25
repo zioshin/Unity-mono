@@ -2258,7 +2258,6 @@ static GHashTable* s_jit_info_hashtable;
 
 static uint32_t s_seq_points_count;
 static Il2CppSequencePoint** s_seq_points;
-#endif
 
 #else
 
@@ -9357,7 +9356,7 @@ static const Il2CppMethodExecutionContextInfo* GetExecutionContextInfo(MonoMetho
         }
     }
 
-    g_assert(false); // shouldn't be ever reached
+    g_assert(FALSE); // shouldn't be ever reached
 }
 
 static ErrorCode
