@@ -42,7 +42,7 @@
 
 #ifdef HOST_WIN32
 #ifdef _MSC_VER
-#include <winsock2.h>d
+#include <winsock2.h>
 #include <process.h>
 #endif
 #include <ws2tcpip.h>
