@@ -7634,18 +7634,24 @@ debugger_thread (void *arg)
 	return 0;
 }
 
-static gboolean unity_process_frame(MonoMethod *method, gint32 native_offset, gint32 il_offset, gboolean managed, gpointer data)
+static gboolean unity_process_frame(StackFrameInfo *frameInfo, MonoContext *ctx, gpointer data)
 {
     GSList** framesList = (GSList**)data;
 
     UnityStackFrame* frame = NULL;
 
-    if (!managed)
+    if (!frameInfo->managed)
         return FALSE;
 
     frame = g_new0(UnityStackFrame, 1);
-    frame->method = method;
-    frame->il_offset = il_offset;
+    frame->il_offset = frameInfo->il_offset;
+    frame->ctx = g_new0(MonoContext, 1);
+    memcpy(frame->ctx, ctx, sizeof(MonoContext));
+
+    if (frameInfo->ji)
+        frame->method = frameInfo->ji->method;
+    else
+        frame->method = frameInfo->method;
 
     *framesList = g_slist_append(*framesList, frame);
 
@@ -7658,7 +7664,7 @@ void mono_unity_get_stack_frames(UnityStackFrames* frames, MonoContext* ctx)
     GSList* current = NULL;
     int idx = 0;
 
-    mono_jit_walk_stack_from_ctx(unity_process_frame, ctx, TRUE, &framesList);
+    mono_jit_walk_stack_from_ctx_in_thread(unity_process_frame, mono_domain_get(), ctx, TRUE, mono_thread_current(),mono_get_lmf(), &framesList);
 
     frames->length = g_slist_length(framesList);
     frames->frames = g_new0(UnityStackFrame, frames->length);
@@ -7669,6 +7675,7 @@ void mono_unity_get_stack_frames(UnityStackFrames* frames, MonoContext* ctx)
         UnityStackFrame* currentFrame = (UnityStackFrame*)current->data;
         frames->frames[idx].method = currentFrame->method;
         frames->frames[idx].il_offset = currentFrame->il_offset;
+        frames->frames[idx].ctx = currentFrame->ctx;
         current = g_slist_next(current);
     }
 
@@ -7677,7 +7684,13 @@ void mono_unity_get_stack_frames(UnityStackFrames* frames, MonoContext* ctx)
 
 void mono_unity_free_stack_frames(UnityStackFrames* frames)
 {
+    int idx = 0;
+
     g_free(frames->frames);
+    for (idx = 0; idx < frames->length; idx++)
+    {
+        g_free(frames->frames[idx].ctx);
+    }
 }
 
 void unity_var_assign_value_and_type(UnityVariable* unityvar, MonoType* t, void* addr)
@@ -7829,12 +7842,11 @@ void fill_unityvariable_value(UnityVariable* unityvar, MonoContext* ctx, MonoDeb
     }
 }
 
-void mono_unity_get_local_vars(UnityVariables* localVariableList, MonoContext* ctx)
+void mono_unity_get_local_vars(UnityVariables* localVariableList, MonoContext* ctx, MonoMethod* method)
 {
     MonoMethodSignature *signature = NULL;
     MonoMethodHeader *header = NULL;
     MonoDomain* domain = NULL;
-    MonoMethod* method = NULL;
     DebuggerTlsData *tls = NULL;
     MonoInternalThread *thread;
     MonoThread *thread_obj;
@@ -7846,26 +7858,30 @@ void mono_unity_get_local_vars(UnityVariables* localVariableList, MonoContext* c
     char **names;
 
     domain = mono_domain_get();
-    ip = MONO_CONTEXT_GET_IP(ctx);
-    ji = mini_jit_info_table_find(domain, ip, &domain);
-    method = ji->method;
+    ji = mono_jit_find_compiled_method_with_jit_info(domain, method, &ji);
 
     signature = mono_method_signature(method);
     header = mono_method_get_header(method);
 
     jit = mono_debug_find_method(method, domain);
 
-    localVariableList->length = jit->num_params + jit->num_locals;
+    localVariableList->length = jit->num_params + jit->num_locals + 1;
     localVariableList->variables = g_new0(UnityVariable, localVariableList->length);
 
     //Fill the arguments
-
     g_assert(signature->param_count == jit->num_params);
+
+    localVariableList->variables[0].name = g_strdup("this");
+    localVariableList->variables[0].group = Unity_Local;
+    localVariableList->variables[0].type = NULL;
+    localVariableList->variables[0].varType = Unity_Pointer;
+    localVariableList->variables[0].pointerVar = jit->this_var;
+
 
     names = g_new(char *, jit->num_params);
     mono_method_get_param_names(method, (const char **)names);
     for (i = 0; i < jit->num_params; ++i) {
-        UnityVariable* current = &localVariableList->variables[i];
+        UnityVariable* current = &localVariableList->variables[i + 1];
         MonoDebugVarInfo *var = &jit->params[i];
         MonoType* type = signature->params[i];
         current->name = g_strdup(names[i]);
@@ -7878,7 +7894,7 @@ void mono_unity_get_local_vars(UnityVariables* localVariableList, MonoContext* c
 
     locals = mono_debug_lookup_locals(method);
     for (i = 0; i < jit->num_locals; ++i) {
-        UnityVariable* current = &localVariableList->variables[jit->num_params + i];
+        UnityVariable* current = &localVariableList->variables[jit->num_params + 1 + i];
         MonoDebugVarInfo *var = &jit->locals[i];
         MonoType* type = header->locals[i];
         current->name = g_strdup(locals->locals[i].name);

@@ -38,6 +38,7 @@ typedef struct UnityStackFrame
 {
     MonoMethod* method;
     long il_offset;
+    MonoContext* ctx;
 } UnityStackFrame;
 
 typedef struct UnityStackFrames
