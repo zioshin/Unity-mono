@@ -5613,13 +5613,6 @@ stop_single_stepping (void)
 #ifndef IL2CPP_DEBUGGER
 	if (val == 0)
 		mono_arch_stop_single_stepping ();
-#else
-    if (ss_req)
-    {
-        DebuggerTlsData *tls = (DebuggerTlsData *)mono_g_hash_table_lookup(thread_to_tls, ss_req->thread);
-        g_assert(tls);
-        *tls->il2cpp_global_breakpoint_active = FALSE;
-    }
 #endif
 
 #else
