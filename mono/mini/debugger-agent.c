@@ -5037,7 +5037,7 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Il2C
     g_assert(ss_reqs_orig->len <= 1);
     if (ss_reqs_orig->len == 1)
     {
-        g_ptr_array_add(ss_reqs, ss_reqs_orig->pdata);
+        g_ptr_array_add(ss_reqs, g_ptr_array_index(ss_reqs_orig, 0));
         ss_start_il2cpp(ss_req, tls);
     }
 
@@ -5952,11 +5952,6 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 		g_hash_table_destroy (ss_req_bp_cache);
 }
 
-gboolean
-il2cpp_find_prev_seq_point_for_native_offset(MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info, SeqPoint* seq_point)
-{
-}
-
 static ErrorCode
 ss_create_il2cpp(MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilter filter, EventRequest *req)
 {
@@ -5973,7 +5968,17 @@ ss_create_il2cpp(MonoInternalThread *thread, StepSize size, StepDepth depth, Ste
     ss_req->size = size;
     ss_req->depth = depth;
     ss_req->filter = filter;
+    ss_req->nframes = tls->il2cpp_context.frameCount;
+
+    if (tls->il2cpp_context.frameCount > 0)
+    {
+        Il2CppSequencePoint* seq_point = tls->il2cpp_context.sequencePoints[tls->il2cpp_context.frameCount - 1];
+        ss_req->last_method = seq_point->method;
+        ss_req->last_line = seq_point->lineEnd;
+    }
+
     req->info = ss_req;
+
 
     ss_start_il2cpp(ss_req, tls);
 
