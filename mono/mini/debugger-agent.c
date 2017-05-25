@@ -5006,6 +5006,17 @@ unity_process_breakpoint_inner (DebuggerTlsData *tls, gboolean from_signal, Il2C
 		if (!bp->method || bp->method != *(sequencePoint->method))
 			continue;
 
+        if (bp->req->event_kind == EVENT_KIND_STEP)
+        {
+            SingleStepReq *ss_req = (SingleStepReq *)bp->req->info;
+            gboolean validFrame = FALSE;
+            validFrame |= ss_req->depth == STEP_DEPTH_INTO;
+            validFrame |= ss_req->depth == STEP_DEPTH_OVER && tls->il2cpp_context.frameCount <= ss_req->nframes;
+            validFrame |= ss_req->depth == STEP_DEPTH_OUT && tls->il2cpp_context.frameCount < ss_req->nframes;
+            if (!validFrame)
+                continue;
+        }
+
 		for (j = 0; j < bp->children->len; ++j) {
 			inst = (BreakpointInstance *)g_ptr_array_index (bp->children, j);
 			if (inst->il_offset == bp->il_offset) {
@@ -5545,6 +5556,8 @@ unity_debugger_agent_breakpoint (Il2CppSequencePoint* sequencePoint)
 
 	tls = (DebuggerTlsData *)mono_native_tls_get_value (debugger_tls_id);
 	g_assert (tls);
+
+    save_thread_context(NULL);
 
 	unity_process_breakpoint_inner (tls, FALSE, sequencePoint);
 }
