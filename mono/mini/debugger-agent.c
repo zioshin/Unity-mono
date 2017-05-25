@@ -669,7 +669,7 @@ typedef struct ReplyPacket {
 
 #ifdef PLATFORM_ANDROID
 #define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY ((level) <= log_level)) { g_print (__VA_ARGS__); } } while (0)
-#else
+#elif defined(HOST_WIN32)
 static void __win_printf111(int arg, ...)
 {
     char buf[1024];
@@ -681,6 +681,8 @@ static void __win_printf111(int arg, ...)
 }
 
 #define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY((level) <= log_level)) { __win_printf111(0, __VA_ARGS__); } } while (0)
+#else
+#define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY ((level) <= log_level)) { fprintf (log_file, __VA_ARGS__); fflush (log_file); } } while (0)
 #endif
 
 #ifdef HOST_WIN32
@@ -2270,7 +2272,7 @@ static MonoMethod* debugger_get_method (char *addr, MonoDomain **out_domain)
 }
 
 #ifdef IL2CPP_DEBUGGER
-static MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *method)
+MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *method)
 {
 	g_assert_not_reached ();
 	return NULL;
@@ -2278,7 +2280,7 @@ static MonoSeqPointInfo* mono_get_seq_points(MonoDomain *domain, MonoMethod *met
 #endif
 
 #ifdef IL2CPP_DEBUGGER
-static gboolean mono_find_seq_point(MonoDomain *domain, MonoMethod *method, gint32 il_offset, MonoSeqPointInfo **info, SeqPoint *seq_point)
+gboolean mono_find_seq_point(MonoDomain *domain, MonoMethod *method, gint32 il_offset, MonoSeqPointInfo **info, SeqPoint *seq_point)
 {
 	g_assert_not_reached ();
 	return FALSE;
