@@ -67,6 +67,7 @@
 #include <mono/metadata/threadpool-ms.h>
 #include <mono/metadata/socket-io.h>
 #include <mono/metadata/assembly.h>
+#include <mono/metadata/marshal.h>
 #include <mono/metadata/runtime.h>
 #include <mono/metadata/verify-internals.h>
 #include <mono/metadata/reflection-internals.h>
@@ -78,7 +79,10 @@
 #include <mono/utils/mono-threads.h>
 #include <mono/utils/networking.h>
 #include "debugger-agent.h"
-//#include "mini.h"
+
+#ifndef IL2CPP_DEBUGGER
+#include "mini.h"
+#endif
 #include "seq-points.h"
 
 // copied from mini.h
@@ -2248,8 +2252,10 @@ static void debugger_set_agent_domain_info (MonoDomain* domain, AgentDomainInfo*
 static GHashTable* s_seq_points_hashtable;
 static GHashTable* s_jit_info_hashtable;
 
+#ifdef IL2CPP_DEBUGGER
 static uint32_t s_seq_points_count;
 static Il2CppSequencePoint** s_seq_points;
+#endif
 
 static GHashTable* debugger_get_domain_seq_points (MonoDomain* domain)
 {
@@ -4335,7 +4341,9 @@ typedef struct {
 	guint8 *ip;
 	MonoJitInfo *ji;
 	MonoDomain *domain;
+#ifdef IL2CPP_DEBUGGER
     Il2CppSequencePoint* seq_point;
+#endif
 } BreakpointInstance;
 
 /*
