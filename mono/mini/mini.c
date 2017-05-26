@@ -4705,11 +4705,27 @@ mono_jit_find_compiled_method (MonoDomain *domain, MonoMethod *method)
 }
 
 static MonoDebuggerCallback mono_debugger_callback;
+static MonoDebuggerCallback mono_should_call_debugger_callback;
 
 void
 mono_install_debugger_callback(MonoDebuggerCallback callback)
 {
 	mono_debugger_callback = callback;
+}
+
+static int
+mono_should_invoke_debugger_callback(void* ip)
+{
+	if(!mono_should_call_debugger_callback)
+		return 1;
+
+	return mono_should_call_debugger_callback(ip);
+}
+
+void
+mono_install_should_invoke_debugger_callback(MonoDebuggerCallback callback)
+{
+	mono_should_call_debugger_callback = callback;
 }
 
 static MonoContext debugger_callback_ctx;
@@ -4730,12 +4746,18 @@ static void mono_invoke_debugger_callback2()
 static int mono_invoke_debugger_callback(void* sigctx)
 {
     MonoContext ctx;
+	guint8 *ip;
 
 	if (!mono_debugger_callback)
 		return 0;
 
     mono_arch_sigctx_to_monoctx(sigctx, &ctx);
     memcpy(&debugger_callback_ctx, &ctx, sizeof(MonoContext));
+
+	ip = MONO_CONTEXT_GET_IP (&ctx);
+
+    if (!mono_should_invoke_debugger_callback(ip))
+    	return 0;
 
 #ifdef MONO_ARCH_HAVE_SETUP_RESUME_FROM_SIGNAL_HANDLER_CTX
     mono_arch_setup_resume_sighandler_ctx(&ctx, mono_invoke_debugger_callback2);

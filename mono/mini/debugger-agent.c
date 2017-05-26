@@ -3716,7 +3716,7 @@ get_ji_and_ip(MonoMethod *method, long bpil_offset, MonoJitInfo** ji, guint8** i
     return 1;
 }
 
-int
+void*
 mono_debugger_agent_set_breakpoint(MonoMethod *method, long bpil_offset)
 {
     MonoJitInfo* ji = NULL;
@@ -3725,7 +3725,7 @@ mono_debugger_agent_set_breakpoint(MonoMethod *method, long bpil_offset)
         return 0;
 
     mono_arch_set_breakpoint(ji, ip);
-    return 1;
+    return ip;
 }
 
 static void
