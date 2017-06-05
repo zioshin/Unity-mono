@@ -74,6 +74,7 @@
     <ClCompile Include="..\mono\utils\mono-math.c" />
     <ClCompile Include="..\mono\utils\mono-md5.c" />
     <ClCompile Include="..\mono\utils\mono-mmap.c" />
+    <ClCompile Include="..\mono\utils\mono-mmap-windows.c" />
     <ClCompile Include="..\mono\utils\mono-networkinterfaces.c" />
     <ClCompile Include="..\mono\utils\mono-rand.c" />
     <ClCompile Include="..\mono\utils\mono-threads-state-machine.c" />
