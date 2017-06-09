@@ -683,18 +683,27 @@ namespace Microsoft.Win32 {
 
         // Gets an error message for a Win32 error code.
         internal static String GetMessage(int errorCode) {
-            StringBuilder sb = StringBuilderCache.Acquire(512);
-            int result = Win32Native.FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS |
-                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                IntPtr.Zero, errorCode, 0, sb, sb.Capacity, IntPtr.Zero);
-            if (result != 0) {
-                // result is the # of characters copied to the StringBuilder.
-                return StringBuilderCache.GetStringAndRelease(sb);
-            }
-            else {
-                StringBuilderCache.Release(sb);
-                return Environment.GetResourceString("UnknownError_Num", errorCode);
-            }
+#if MONO
+			// This is how Mono used to implement GetMessage before it started using reference source
+			if (!IsWindows()) {
+				return "Error " + errorCode;
+			} else {
+#endif
+				StringBuilder sb = StringBuilderCache.Acquire(512);
+				int result = Win32Native.FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS |
+					FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
+					IntPtr.Zero, errorCode, 0, sb, sb.Capacity, IntPtr.Zero);
+				if (result != 0) {
+					// result is the # of characters copied to the StringBuilder.
+					return StringBuilderCache.GetStringAndRelease(sb);
+				}
+				else {
+					StringBuilderCache.Release(sb);
+					return Environment.GetResourceString("UnknownError_Num", errorCode);
+				}
+#if MONO
+			}
+#endif
         }
         
 #if FEATURE_PAL
@@ -2709,5 +2718,13 @@ namespace Microsoft.Win32 {
         [DllImport(KERNEL32, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal extern static bool QueryUnbiasedInterruptTime(out ulong UnbiasedTime);
+		
+#if MONO
+		private static bool IsWindows()
+		{
+			int platform = (int)Environment.OSVersion.Platform;
+			return ((platform != 4) && (platform != 6) && (platform != 128));
+		}
+#endif
     }
 }
