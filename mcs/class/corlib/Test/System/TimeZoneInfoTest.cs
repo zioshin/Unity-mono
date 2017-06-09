@@ -979,11 +979,13 @@ namespace MonoTests.System
 			[Test]
 			public void SubminuteDSTOffsets ()
 			{
+				string[] subMinuteDSTs;
+			
 				if (IsWindows())
 				{
 					subMinuteDSTs = new string[]
 					{
-						"GMT Standard Time"
+						"GMT Standard Time",
 						"W. Europe Standard Time",
 						"Newfoundland Standard Time",
 						"Newfoundland Standard Time",
