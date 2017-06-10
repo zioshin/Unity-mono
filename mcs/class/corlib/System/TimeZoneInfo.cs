@@ -5016,10 +5016,13 @@ namespace System {
 				// OnDeserialization is called after each instance of this class is deserialized.
 				// This callback method performs TransitionTime validation after being deserialized.
 
-				try {
-					ValidateTransitionTime (m_timeOfDay, (Int32)m_month, (Int32)m_week, (Int32)m_day, m_dayOfWeek);
-				} catch (ArgumentException e) {
-					throw new SerializationException ("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
+				// POSIX path does not have precise TransitionTimes - instead, it only has date info. Therefore all of our transition times will be invalid.
+				if (IsWindows) {					
+					try {
+						ValidateTransitionTime (m_timeOfDay, (Int32)m_month, (Int32)m_week, (Int32)m_day, m_dayOfWeek);
+					} catch (ArgumentException e) {
+						throw new SerializationException ("An error occurred while deserializing the object.  The serialized data is corrupt.", e);
+					}
 				}
 			}
 
