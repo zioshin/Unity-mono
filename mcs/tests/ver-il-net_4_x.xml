@@ -14651,6 +14651,9 @@
       <method name="Void Test_21()" attrs="129">
         <size>5</size>
       </method>
+      <method name="Void Test_22(Boolean)" attrs="129">
+        <size>24</size>
+      </method>
     </type>
   </test>
   <test name="gtest-410.cs">
@@ -72471,6 +72474,16 @@
     <type name="N2.M">
       <method name="Void Main()" attrs="150">
         <size>8</size>
+      </method>
+      <method name="Void .ctor()" attrs="6278">
+        <size>7</size>
+      </method>
+    </type>
+  </test>
+  <test name="test-static-using-13.cs">
+    <type name="Program">
+      <method name="Void Main(System.String[])" attrs="150">
+        <size>4</size>
       </method>
       <method name="Void .ctor()" attrs="6278">
         <size>7</size>

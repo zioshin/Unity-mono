@@ -31,6 +31,7 @@ MONO_API int          mono_file_map_fd    (MonoFileMap *fmap);
 MONO_API int          mono_file_map_close (MonoFileMap *fmap);
 
 MONO_API int   mono_pagesize   (void);
+MONO_API int   mono_valloc_granule(void);
 MONO_API void* mono_valloc     (void *addr, size_t length, int flags);
 MONO_API void* mono_valloc_aligned (size_t length, size_t alignment, int flags);
 MONO_API int   mono_vfree      (void *addr, size_t length);
