@@ -334,6 +334,8 @@ xbuild_4_0_dirs := \
 	$(xbuild_2_0_dirs)	\
 	Microsoft.Build
 
+unitystandard_dirs := $(net_4_x_dirs)
+
 monodroid_SUBDIRS := $(monodroid_dirs)
 monotouch_SUBDIRS := $(monotouch_dirs)
 monotouch_watch_SUBDIRS := $(monotouch_watch_dirs)
@@ -352,6 +354,7 @@ xbuild_12_SUBDIRS := $(xbuild_4_0_dirs)
 xbuild_14_SUBDIRS := $(xbuild_4_0_dirs) Microsoft.NuGet.Build.Tasks
 winaot_SUBDIRS := $(winaot_dirs)
 orbis_SUBDIRS := $(monotouch_dirs)
+unitystandard_SUBDIRS := $(unitystandard_dirs)
 
 include ../build/rules.make
 
