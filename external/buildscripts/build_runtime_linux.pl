@@ -2,7 +2,10 @@ use lib ('.', "../../Tools/perl_lib","perl_lib");
 use Cwd;
 use File::Path;
 use Getopt::Long;
-use Tools qw(InstallNameTool);
+use File::Basename qw (dirname);
+
+use lib File::Spec->rel2abs(dirname(__FILE__));
+use SDKDownloader;
 
 my $root = getcwd();
 my $skipbuild=0;
@@ -10,6 +13,16 @@ my $debug = 0;
 my $minimal = 0;
 my $build64 = 0;
 my $build_armel = 0;
+
+sub CheckInstallSDK
+{
+    my ($root) = @_;
+    if ($ENV{'UNITY_THISISABUILDMACHINE'} || $ENV{'UNITY_USE_LINUX_SDK'})
+    {
+        SDKDownloader::PrepareSDK('linux-sdk', '20170609', "$root/artifacts");
+    }
+
+}
 
 GetOptions(
    "skipbuild=i"=>\$skipbuild,
@@ -39,6 +52,7 @@ my $platform = $build64 ? 'linux64' : $build_armel ? 'linux-armel' : 'linux32' ;
 my $bintarget = "$root/builds/monodistribution/bin-$platform";
 my $libtarget = "$root/builds/embedruntimes/$platform";
 my $etctarget = "$root/builds/monodistribution/etc-$platform";
+my $commandPrefix = '';
 
 if ($minimal)
 {
@@ -55,6 +69,13 @@ if (not $skipbuild)
 {
 	#rmtree($bintarget);
 	#rmtree($libtarget);
+
+	CheckInstallSDK($root);
+
+	if($ENV{'LINUX_BUILD_ENVIRONMENT'})
+	{
+		$commandPrefix = "schroot -c $ENV{'LINUX_BUILD_ENVIRONMENT'} --";
+	}
 
 	my $archflags = '-DLINUX=1';
 
@@ -81,7 +102,7 @@ if (not $skipbuild)
 	$ENV{LDFLAGS} = "$archflags";
 
 	#this will fail on a fresh working copy, so don't die on it.
-	system("make distclean");
+	system("$commandPrefix make distclean");
 	#were going to tell autogen to use a specific cache file, that we purposely remove before starting.
         #that way, autogen is forced to do all its config stuff again, which should make this buildscript
         #more robust if other targetplatforms have been built from this same workincopy
@@ -89,11 +110,11 @@ if (not $skipbuild)
 
 	chdir("$root/eglib") eq 1 or die ("Failed chdir 1");
 	#this will fail on a fresh working copy, so don't die on it.
-	system("make distclean");
-	system("autoreconf -i") eq 0 or die ("Failed autoreconfing eglib");
+	system("$commandPrefix make distclean");
+	system("$commandPrefix autoreconf -i") eq 0 or die ("Failed autoreconfing eglib");
 	chdir("$root") eq 1 or die ("Failed chdir 2");
 
-	system("autoreconf -i") eq 0 or die ("Failed autoreconfing mono");
+	system("$commandPrefix autoreconf -i") eq 0 or die ("Failed autoreconfing mono");
 	my @autogenparams = ();
 	unshift(@autogenparams, "--cache-file=linux.cache");
 	unshift(@autogenparams, "--disable-mcs-build");
@@ -122,11 +143,10 @@ if (not $skipbuild)
 	print("\n\n\n\nCalling configure with these parameters: ");
 	system("echo", @autogenparams);
 	print("\n\n\n\n\n");
-	system("calling ./configure",@autogenparams);
-	system("./configure", @autogenparams) eq 0 or die ("failing configuring mono");
 
-	system("make clean") eq 0 or die ("failed make cleaning");
-	system("make") eq 0 or die ("failing running make for mono");
+	system("$commandPrefix ./configure " . join(' ', @autogenparams)) eq 0 or die ("failing configuring mono");
+	system("$commandPrefix make clean") eq 0 or die ("failed make cleaning");
+	system("$commandPrefix make") eq 0 or die ("failing running make for mono");
 }
 
 mkpath($bintarget);
