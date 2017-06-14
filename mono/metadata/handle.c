@@ -72,6 +72,55 @@ const MonoObjectHandle mono_null_value_handle = NULL;
 
 #define THIS_IS_AN_OK_NUMBER_OF_HANDLES 100
 
+#ifdef HAVE_BOEHM_GC
+static HandleStack*
+new_handle_stack ()
+{
+	return (HandleStack *)mono_gc_alloc_fixed (sizeof (HandleStack), MONO_GC_DESCRIPTOR_NULL, MONO_ROOT_SOURCE_HANDLE, "Thread Handle Stack");
+}
+
+static void
+free_handle_stack (HandleStack *stack)
+{
+	mono_gc_free_fixed (stack);
+}
+
+static HandleChunk*
+new_handle_chunk ()
+{
+	return (HandleChunk *)GC_MALLOC (sizeof (HandleChunk));
+}
+
+static void
+free_handle_chunk (HandleChunk *chunk)
+{
+}
+#else
+static HandleStack*
+new_handle_stack ()
+{
+	return g_new (HandleStack, 1);
+}
+
+static void
+free_handle_stack (HandleStack *stack)
+{
+	g_free (stack);
+}
+
+static HandleChunk*
+new_handle_chunk ()
+{
+	return g_new (HandleChunk, 1);
+}
+
+static void
+free_handle_chunk (HandleChunk *chunk)
+{
+	g_free (chunk);
+}
+#endif
+
 /* Actual handles implementation */
 MonoRawHandle
 mono_handle_new (MonoObject *object)
@@ -107,7 +156,7 @@ retry:
 		handles->top = top;
 		goto retry;
 	}
-	HandleChunk *new_chunk = g_new (HandleChunk, 1);
+	HandleChunk *new_chunk = new_handle_chunk ();
 	new_chunk->size = 0;
 	new_chunk->prev = top;
 	new_chunk->next = NULL;
@@ -123,8 +172,8 @@ retry:
 HandleStack*
 mono_handle_stack_alloc (void)
 {
-	HandleStack *stack = g_new (HandleStack, 1);
-	HandleChunk *chunk = g_new (HandleChunk, 1);
+	HandleStack *stack = new_handle_stack ();
+	HandleChunk *chunk = new_handle_chunk ();
 
 	chunk->size = 0;
 	chunk->prev = chunk->next = NULL;
@@ -143,11 +192,11 @@ mono_handle_stack_free (HandleStack *stack)
 	mono_memory_write_barrier ();
 	while (c) {
 		HandleChunk *next = c->next;
-		g_free (c);
+		free_handle_chunk (c);
 		c = next;
 	}
-	g_free (c);
-	g_free (stack);
+	free_handle_chunk (c);
+	free_handle_stack (stack);
 }
 
 void
