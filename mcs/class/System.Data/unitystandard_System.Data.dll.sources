@@ -1,6 +1,6 @@
 Assembly/AssemblyInfo.cs
 ../../build/common/Consts.cs
-../../build/common/Locale.cs
+# GEN REMOVED ../../build/common/Locale.cs
 ../../build/common/SR.cs
 ../../build/common/MonoTODOAttribute.cs
 ../../build/common/AssemblyRef.cs
@@ -17,7 +17,7 @@ ReferenceSources/SqlInternalConnectionTds.cs
 
 corefx/SR.cs
 
-Microsoft.SqlServer.Server/SqlDataRecord.cs
+# GEN REMOVED Microsoft.SqlServer.Server/SqlDataRecord.cs
 Microsoft.SqlServer.Server/SqlMetaData.cs
 System.Data.SqlClient/SortOrder.cs
 System.Data.SqlClient/SqlNotificationType.cs
@@ -25,7 +25,7 @@ System.Data.SqlClient/SqlNotificationInfo.cs
 System.Data.SqlClient/SqlNotificationSource.cs
 System.Data.SqlClient/SqlAsyncState.cs
 System.Data.SqlClient/SqlAsyncResult.cs
-System.Data.SqlClient/SqlClientMetaDataCollectionNames.cs
+# GEN REMOVED System.Data.SqlClient/SqlClientMetaDataCollectionNames.cs
 System.Data.SqlClient/SqlCommand.cs
 System.Data.SqlClient/SqlCommandBuilder.cs
 System.Data.SqlClient/SqlConnection.cs
@@ -61,7 +61,7 @@ System.Data.SqlClient/SqlDecimalExtensions.cs
 
 System.Data.Common/DbTypes.cs
 System.Data.Common/ExceptionHelper.cs
-System.Data.Common/DbConnectionStringBuilderHelper.cs
+# GEN REMOVED System.Data.Common/DbConnectionStringBuilderHelper.cs
 
 ../referencesource/System.Data/bid/inc/cs/bidPrivateBase.cs
 ../referencesource/System.Data/Misc/PrivilegedConfigurationManager.cs
@@ -155,16 +155,16 @@ System.Data.Common/DbConnectionStringBuilderHelper.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbBuffer.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionClosed.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionFactory.cs
-# ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionHelper.cs
+# GEN REMOVED # ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionHelper.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionInternal.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolCounters.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPool.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolGroup.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolGroupProviderInfo.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolIdentity.cs
-# ../referencesource/System.Data/System/Data/ProviderBase/DbParameterCollectionHelper.cs
-# ../referencesource/System.Data/System/Data/ProviderBase/DbParameterHelper.cs
-../referencesource/System.Data/System/Data/SQLTypes/SqlTypesSchemaImporter.cs
+# GEN REMOVED # ../referencesource/System.Data/System/Data/ProviderBase/DbParameterCollectionHelper.cs
+# GEN REMOVED # ../referencesource/System.Data/System/Data/ProviderBase/DbParameterHelper.cs
+# GEN REMOVED ../referencesource/System.Data/System/Data/SQLTypes/SqlTypesSchemaImporter.cs
 
 # GEN REMOVED #include corefx.common.sources
 
@@ -177,7 +177,7 @@ System.Data.Common/DbConnectionStringBuilderHelper.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Data/ColumnTypeConverter.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Data/CommandBehavior.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Data/CommandType.cs
-../../../external/corefx/src/System.Data.Common/src/System/Data/Common/AdapterSwitches.cs
+# GEN REMOVED INCLUDED ../../../external/corefx/src/System.Data.Common/src/System/Data/Common/AdapterSwitches.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Data/Common/BigIntegerStorage.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Data/Common/BooleanStorage.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Data/Common/ByteStorage.cs
@@ -403,8 +403,8 @@ System.Data.Common/DbConnectionStringBuilderHelper.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Xml/XmlDataImplementation.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Xml/XPathNodePointer.cs
 ../../../external/corefx/src/System.Data.Common/src/System/Xml/XmlDataDocument.cs
-
-../referencesource/System.Data/Microsoft/SqlServer/Server/SqlTriggerContext.cs
+# GEN REMOVED INCLUDED .
+# GEN REMOVED INCLUDED ../referencesource/System.Data/Microsoft/SqlServer/Server/SqlTriggerContext.cs
 ../referencesource/System.Data/Misc/ExternDll.cs
 ../referencesource/System.Data/Misc/HResults.cs
 ../referencesource/System.Data/System/Data/CodeGen/StrongTypingException.cs
@@ -420,32 +420,32 @@ System.Data.Common/DbConnectionStringBuilderHelper.cs
 ../referencesource/System.Data/System/Data/Common/DbDataReader.cs
 ../referencesource/System.Data/System/Data/Common/DbProviderFactory.cs
 ../referencesource/System.Data/System/Data/Common/FieldNameLookup.cs
-../referencesource/System.Data/System/Data/Common/GreenMethods.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Common/GreenMethods.cs
 ../referencesource/System.Data/System/Data/Common/MultipartIdentifier.cs
 ../referencesource/System.Data/System/Data/Common/NameValuePair.cs
 ../referencesource/System.Data/System/Data/Common/NameValuePermission.cs
-../referencesource/System.Data/System/Data/Common/SQLTypes/SqlXmlStorage.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Common/SQLTypes/SqlXmlStorage.cs
 ../referencesource/System.Data/System/Data/OleDb/OleDbType.cs
 ../referencesource/System.Data/System/Data/OleDb/PropertyAttributes.cs
-../referencesource/System.Data/System/Data/OperationAbortedException.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/OperationAbortedException.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolAuthenticationContext.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolAuthenticationContextKey.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolOptions.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbConnectionPoolProviderInfo.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbMetaDataFactory.cs
 ../referencesource/System.Data/System/Data/ProviderBase/DbReferenceCollection.cs
-../referencesource/System.Data/System/Data/ProviderBase/TimeoutTimer.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/ProviderBase/TimeoutTimer.cs
 ../referencesource/System.Data/System/Data/ProviderBase/WrappedIUnknown.cs
-../referencesource/System.Data/System/Data/Sql/IBinarySerialize.cs
-../referencesource/System.Data/System/Data/Sql/invalidudtexception.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Sql/IBinarySerialize.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Sql/invalidudtexception.cs
 ../referencesource/System.Data/System/Data/Sql/SqlDataSourceEnumerator.cs
-../referencesource/System.Data/System/Data/Sql/SqlFacetAttribute.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Sql/SqlFacetAttribute.cs
 ../referencesource/System.Data/System/Data/Sql/SqlFunctionAttribute.cs
-../referencesource/System.Data/System/Data/Sql/SqlGenericUtil.cs
-../referencesource/System.Data/System/Data/Sql/SqlMethodAttribute.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Sql/SqlGenericUtil.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Sql/SqlMethodAttribute.cs
 ../referencesource/System.Data/System/Data/Sql/SqlNotificationRequest.cs
-../referencesource/System.Data/System/Data/Sql/SqlProcedureAttribute.cs
-../referencesource/System.Data/System/Data/Sql/SqlTriggerAttribute.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Sql/SqlProcedureAttribute.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Data/System/Data/Sql/SqlTriggerAttribute.cs
 ../referencesource/System.Data/System/Data/Sql/SqlUserDefinedAggregateAttribute.cs
 ../referencesource/System.Data/System/Data/Sql/SqlUserDefinedTypeAttribute.cs
 ../referencesource/System.Data/System/Data/Sql/TriggerAction.cs

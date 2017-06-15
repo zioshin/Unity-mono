@@ -6,7 +6,7 @@ Microsoft.CSharp/CSharpCodeProvider.cs
 Microsoft.VisualBasic/VBCodeCompiler.cs
 Microsoft.VisualBasic/VBCodeGenerator.cs
 Microsoft.VisualBasic/VBCodeProvider.cs
-Microsoft.Win32/IntranetZoneCredentialPolicy.cs
+# GEN REMOVED Microsoft.Win32/IntranetZoneCredentialPolicy.cs
 Microsoft.Win32/PowerModeChangedEventArgs.cs
 Microsoft.Win32/PowerModeChangedEventHandler.cs
 Microsoft.Win32/PowerModes.cs
@@ -32,7 +32,7 @@ System/MonoToolsLocator.cs
 System.CodeDom.Compiler/CodeCompiler.cs
 System.CodeDom.Compiler/CodeDomConfigurationHandler.cs
 System.CodeDom.Compiler/CodeDomProvider.cs
-System.CodeDom.Compiler/CodeParser.cs
+# GEN REMOVED System.CodeDom.Compiler/CodeParser.cs
 System.CodeDom.Compiler/Compiler.cs
 System.CodeDom.Compiler/CompilerCollection.cs
 System.CodeDom.Compiler/CompilerInfo.cs
@@ -43,29 +43,29 @@ System.CodeDom.Compiler/Executor.cs
 System.CodeDom.Compiler/TempFileCollection.cs
 System.Configuration/ApplicationScopedSettingAttribute.cs
 System.Configuration/ApplicationSettingsBase.cs
-System.Configuration/ApplicationSettingsGroup.cs
-System.Configuration/AppSettingsReader.cs
+# GEN REMOVED System.Configuration/ApplicationSettingsGroup.cs
+# GEN REMOVED System.Configuration/AppSettingsReader.cs
 System.Configuration/ClientSettingsSection.cs
-System.Configuration/ConfigHelper.cs
+# GEN REMOVED System.Configuration/ConfigHelper.cs
 System.Configuration/ConfigurationException.cs
 System.Configuration/ConfigurationSettings.cs
 System.Configuration/ConfigXmlDocument.cs
 System.Configuration/CustomizableFileSettingsProvider.cs
 System.Configuration/DefaultSettingValueAttribute.cs
-System.Configuration/DictionarySectionHandler.cs
+# GEN REMOVED System.Configuration/DictionarySectionHandler.cs
 System.Configuration/IApplicationSettingsProvider.cs
 System.Configuration/IConfigurationSectionHandler.cs
 System.Configuration/IConfigurationSystem.cs
 System.Configuration/IConfigXmlNode.cs
 System.Configuration/IdnElement.cs
-System.Configuration/IgnoreSectionHandler.cs
-System.Configuration/IriParsingElement.cs
-System.Configuration/IPersistComponentSettings.cs
+# GEN REMOVED System.Configuration/IgnoreSectionHandler.cs
+# GEN REMOVED System.Configuration/IriParsingElement.cs
+# GEN REMOVED System.Configuration/IPersistComponentSettings.cs
 System.Configuration/ISettingsProviderService.cs
 System.Configuration/LocalFileSettingsProvider.cs
-System.Configuration/NameValueFileSectionHandler.cs
-System.Configuration/NameValueSectionHandler.cs
-System.Configuration/NoSettingsVersionUpgradeAttribute.cs
+# GEN REMOVED System.Configuration/NameValueFileSectionHandler.cs
+# GEN REMOVED System.Configuration/NameValueSectionHandler.cs
+# GEN REMOVED System.Configuration/NoSettingsVersionUpgradeAttribute.cs
 System.Configuration/SettingAttribute.cs
 System.Configuration/SettingChangingEventArgs.cs
 System.Configuration/SettingChangingEventHandler.cs
@@ -92,13 +92,13 @@ System.Configuration/SettingsSerializeAs.cs
 System.Configuration/SettingValueElement.cs
 System.Configuration/SettingsManageability.cs
 System.Configuration/SettingsManageabilityAttribute.cs
-System.Configuration/SettingsGroupDescriptionAttribute.cs
+# GEN REMOVED System.Configuration/SettingsGroupDescriptionAttribute.cs
 System.Configuration/SettingsDescriptionAttribute.cs
-System.Configuration/SettingsGroupNameAttribute.cs
-System.Configuration/SingleTagSectionHandler.cs
+# GEN REMOVED System.Configuration/SettingsGroupNameAttribute.cs
+# GEN REMOVED System.Configuration/SingleTagSectionHandler.cs
 System.Configuration/SpecialSetting.cs
-System.Configuration/SpecialSettingAttribute.cs
-System.Configuration/UriSection.cs
+# GEN REMOVED System.Configuration/SpecialSettingAttribute.cs
+# GEN REMOVED System.Configuration/UriSection.cs
 System.Configuration/UserSettingsGroup.cs
 System.Configuration/UserScopedSettingAttribute.cs
 
@@ -107,7 +107,7 @@ System.Diagnostics/CounterCreationDataCollection.cs
 System.Diagnostics/CounterCreationData.cs
 System.Diagnostics/CounterSampleCalculator.cs
 System.Diagnostics/CounterSample.cs
-System.Diagnostics/DiagnosticsConfigurationHandler.cs
+# GEN REMOVED System.Diagnostics/DiagnosticsConfigurationHandler.cs
 System.Diagnostics/EntryWrittenEventArgs.cs
 System.Diagnostics/EntryWrittenEventHandler.cs
 System.Diagnostics/EventInstance.cs
@@ -143,7 +143,7 @@ System.Diagnostics/PerformanceCounterPermission.cs
 System.Diagnostics/PerformanceCounterPermissionEntryCollection.cs
 System.Diagnostics/PerformanceCounterPermissionEntry.cs
 System.Diagnostics/PerformanceCounterType.cs
-System.Diagnostics/TraceSourceInfo.cs
+# GEN REMOVED System.Diagnostics/TraceSourceInfo.cs
 System.Diagnostics/Win32EventLog.cs
 
 System.IO/DefaultWatcher.cs
@@ -192,7 +192,7 @@ System.Net.Configuration/ConnectionManagementElementCollection.cs
 System.Net.Configuration/ConnectionManagementElement.cs
 System.Net.Configuration/ConnectionManagementHandler.cs
 System.Net.Configuration/ConnectionManagementSection.cs
-System.Net.Configuration/DefaultProxyHandler.cs
+# GEN REMOVED System.Net.Configuration/DefaultProxyHandler.cs
 System.Net.Configuration/DefaultProxySection.cs
 System.Net.Configuration/FtpCachePolicyElement.cs
 System.Net.Configuration/HttpCachePolicyElement.cs
@@ -200,8 +200,8 @@ System.Net.Configuration/HttpWebRequestElement.cs
 System.Net.Configuration/Ipv6Element.cs
 System.Net.Configuration/MailSettingsSectionGroup.cs
 System.Net.Configuration/ModuleElement.cs
-System.Net.Configuration/NetAuthenticationModuleHandler.cs
-System.Net.Configuration/NetConfigurationHandler.cs
+# GEN REMOVED System.Net.Configuration/NetAuthenticationModuleHandler.cs
+# GEN REMOVED System.Net.Configuration/NetConfigurationHandler.cs
 System.Net.Configuration/NetSectionGroup.cs
 System.Net.Configuration/PerformanceCountersElement.cs
 System.Net.Configuration/ProxyElement.cs
@@ -215,7 +215,7 @@ System.Net.Configuration/SocketElement.cs
 System.Net.Configuration/WebProxyScriptElement.cs
 System.Net.Configuration/WebRequestModuleElementCollection.cs
 System.Net.Configuration/WebRequestModuleElement.cs
-System.Net.Configuration/WebRequestModuleHandler.cs
+# GEN REMOVED System.Net.Configuration/WebRequestModuleHandler.cs
 System.Net.Configuration/WebRequestModulesSection.cs
 
 System.Net.Mail/SmtpPermission.cs
@@ -258,8 +258,8 @@ Mono.Net.Dns/ResolverError.cs
 Mono.Net.Dns/SimpleResolverEventArgs.cs
 ReferenceSources/BinaryCompatibility.cs
 ReferenceSources/ConfigurationManagerInternalFactory.cs
-ReferenceSources/SR2.cs
-../referencesource/System/compmod/system/diagnostics/ConsoleTraceListener.cs
+# GEN REMOVED ReferenceSources/SR2.cs
+# GEN REMOVED ../referencesource/System/compmod/system/diagnostics/ConsoleTraceListener.cs
 ../referencesource/System/compmod/system/diagnostics/FilterElement.cs
 ../referencesource/System/compmod/system/diagnostics/PerfCounterSection.cs
 ../referencesource/System/compmod/system/diagnostics/SourceElementsCollection.cs
@@ -373,7 +373,7 @@ ReferenceSources/SR2.cs
 
 Assembly/AssemblyInfo.cs
 ../../build/common/SR.cs
-
+# GEN REMOVED INCLUDED .
 corefx/ZLibNative.cs
 Microsoft.Win32.SafeHandles/SafeX509ChainHandle.cs
 System/IOSelector.cs
@@ -410,13 +410,13 @@ System.IO/RenamedEventHandler.cs
 System.IO/WaitForChangedResult.cs
 System.IO/WatcherChangeTypes.cs
 System.Net/AuthenticationManager.cs
-System.Net/BasicClient.cs
+# GEN REMOVED INCLUDED System.Net/BasicClient.cs
 System.Net/BindIPEndPoint.cs
 System.Net/ChunkedInputStream.cs
 System.Net/ChunkStream.cs
 System.Net/DecompressionMethods.cs
 System.Net/DefaultCertificatePolicy.cs
-System.Net/DigestClient.cs
+# GEN REMOVED INCLUDED System.Net/DigestClient.cs
 System.Net/Dns.cs
 System.Net/EndPointListener.cs
 System.Net/EndPointManager.cs
@@ -449,7 +449,7 @@ System.Net/ListenerPrefix.cs
 System.Net/MacProxy.cs
 System.Net/MonoHttpDate.cs
 System.Net/NetConfig.cs
-System.Net/NtlmClient.cs
+# GEN REMOVED INCLUDED System.Net/NtlmClient.cs
 System.Net/RequestStream.cs
 System.Net/ResponseStream.cs
 System.Net/ServicePoint.cs
@@ -515,9 +515,9 @@ System.Net.Sockets/Socket.cs
 System.Net.Sockets/SocketAsyncEventArgs.cs
 System.Net.Sockets/SocketAsyncResult.cs
 System.Net.Sockets/SocketOperation.cs
-System.Net.Sockets/SocketReceiveFromResult.cs
-System.Net.Sockets/SocketReceiveMessageFromResult.cs
-System.Net.Sockets/SocketTaskExtensions.cs
+# GEN REMOVED INCLUDED System.Net.Sockets/SocketReceiveFromResult.cs
+# GEN REMOVED INCLUDED System.Net.Sockets/SocketReceiveMessageFromResult.cs
+# GEN REMOVED INCLUDED System.Net.Sockets/SocketTaskExtensions.cs
 System.Net.WebSockets/ClientWebSocket.cs
 System.Net.WebSockets/ClientWebSocketOptions.cs
 System.Net.WebSockets/HttpListenerWebSocketContext.cs
@@ -556,10 +556,10 @@ System.Security.Authentication.ExtendedProtection/ExtendedProtectionPolicy.cs
 System.Security.Authentication.ExtendedProtection/ExtendedProtectionPolicyTypeConverter.cs
 System.Security.Authentication.ExtendedProtection/PolicyEnforcement.cs
 System.Security.Authentication.ExtendedProtection/ProtectionScenario.cs
-System.Security.Authentication.ExtendedProtection.Configuration/ConfigUtil.cs
-System.Security.Authentication.ExtendedProtection.Configuration/ExtendedProtectionPolicyElement.cs
-System.Security.Authentication.ExtendedProtection.Configuration/ServiceNameElement.cs
-System.Security.Authentication.ExtendedProtection.Configuration/ServiceNameElementCollection.cs
+# GEN REMOVED INCLUDED System.Security.Authentication.ExtendedProtection.Configuration/ConfigUtil.cs
+# GEN REMOVED INCLUDED System.Security.Authentication.ExtendedProtection.Configuration/ExtendedProtectionPolicyElement.cs
+# GEN REMOVED INCLUDED System.Security.Authentication.ExtendedProtection.Configuration/ServiceNameElement.cs
+# GEN REMOVED INCLUDED System.Security.Authentication.ExtendedProtection.Configuration/ServiceNameElementCollection.cs
 System.Security.Cryptography/AsnEncodedData.cs
 System.Security.Cryptography/AsnEncodedDataCollection.cs
 System.Security.Cryptography/AsnEncodedDataEnumerator.cs
@@ -622,7 +622,7 @@ Mono.Btls/MonoBtlsStream.cs
 Mono.Btls/MonoBtlsUtils.cs
 Mono.Btls/MonoBtlsX509.cs
 Mono.Btls/MonoBtlsX509Chain.cs
-Mono.Btls/MonoBtlsX509Crl.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Crl.cs
 Mono.Btls/MonoBtlsX509Error.cs
 Mono.Btls/MonoBtlsX509Exception.cs
 Mono.Btls/MonoBtlsX509FileType.cs
@@ -634,7 +634,7 @@ Mono.Btls/MonoBtlsX509LookupType.cs
 Mono.Btls/MonoBtlsX509Name.cs
 Mono.Btls/MonoBtlsX509NameEntryType.cs
 Mono.Btls/MonoBtlsX509Purpose.cs
-Mono.Btls/MonoBtlsX509Revoked.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Revoked.cs
 Mono.Btls/MonoBtlsX509Store.cs
 Mono.Btls/MonoBtlsX509StoreCtx.cs
 Mono.Btls/MonoBtlsX509StoreManager.cs
@@ -644,11 +644,11 @@ Mono.Btls/MonoBtlsX509VerifyFlags.cs
 Mono.Btls/MonoBtlsX509VerifyParam.cs
 Mono.Btls/X509CertificateImplBtls.cs
 Mono.Btls/X509ChainImplBtls.cs
-Mono.Http/NtlmClient.cs
+# GEN REMOVED INCLUDED Mono.Http/NtlmClient.cs
 Mono.AppleTls/AppleCertificateHelper.cs
 Mono.AppleTls/AppleTlsContext.cs
-Mono.AppleTls/AppleTlsProvider.cs
-Mono.AppleTls/AppleTlsStream.cs
+# GEN REMOVED INCLUDED Mono.AppleTls/AppleTlsProvider.cs
+# GEN REMOVED INCLUDED Mono.AppleTls/AppleTlsStream.cs
 Mono.AppleTls/INativeObject.cs
 Mono.AppleTls/Certificate.cs
 Mono.AppleTls/ImportExport.cs
@@ -675,9 +675,9 @@ Mono.Net.Security/MonoTlsStream.cs
 Mono.Net.Security/NoReflectionHelper.cs
 Mono.Net.Security/SystemCertificateValidator.cs
 Mono.Util/MonoPInvokeCallbackAttribute.cs
-MonoTouch/Dummy.cs
+# GEN REMOVED INCLUDED MonoTouch/Dummy.cs
 ReferenceSources/AutoWebProxyScriptEngine.cs
-ReferenceSources/AssertWrapper.cs
+# GEN REMOVED INCLUDED ReferenceSources/AssertWrapper.cs
 ReferenceSources/CAPI.cs
 ReferenceSources/EnvironmentHelpers.cs
 ReferenceSources/HttpApi.cs
@@ -735,7 +735,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/compmod/system/collections/specialized/bitvector32.cs
 ../referencesource/System/compmod/system/collections/specialized/casesensitivestringdictionary.cs
 ../referencesource/System/compmod/system/collections/specialized/collectionsutil.cs
-../referencesource/System/compmod/system/collections/specialized/fixedstringlookup.cs
+# GEN REMOVED INCLUDED ../referencesource/System/compmod/system/collections/specialized/fixedstringlookup.cs
 ../referencesource/System/compmod/system/collections/specialized/hybriddictionary.cs
 ../referencesource/System/compmod/system/collections/specialized/inotifycollectionchanged.cs
 ../referencesource/System/compmod/system/collections/specialized/iordereddictionary.cs
@@ -746,7 +746,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/compmod/system/collections/specialized/ordereddictionary.cs
 ../referencesource/System/compmod/system/collections/specialized/stringcollection.cs
 ../referencesource/System/compmod/system/collections/specialized/stringdictionary.cs
-../referencesource/System/compmod/system/collections/specialized/stringdictionarywithcomparer.cs
+# GEN REMOVED INCLUDED ../referencesource/System/compmod/system/collections/specialized/stringdictionarywithcomparer.cs
 ../referencesource/System/compmod/system/componentmodel/AddingNewEventArgs.cs
 ../referencesource/System/compmod/system/componentmodel/AddingNewEventHandler.cs
 ../referencesource/System/compmod/system/componentmodel/AmbientValueAttribute.cs
@@ -793,9 +793,9 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/compmod/system/componentmodel/DataObjectMethodType.cs
 ../referencesource/System/compmod/system/componentmodel/DateTimeConverter.cs
 ../referencesource/System/compmod/system/componentmodel/DateTimeOffsetConverter.cs
-../referencesource/System/compmod/system/componentmodel/DebugExtendedPropertyDescriptor.cs
-../referencesource/System/compmod/system/componentmodel/DebugReflectEventDescriptor.cs
-../referencesource/System/compmod/system/componentmodel/DebugReflectPropertyDescriptor.cs
+# GEN REMOVED INCLUDED ../referencesource/System/compmod/system/componentmodel/DebugExtendedPropertyDescriptor.cs
+# GEN REMOVED INCLUDED ../referencesource/System/compmod/system/componentmodel/DebugReflectEventDescriptor.cs
+# GEN REMOVED INCLUDED ../referencesource/System/compmod/system/componentmodel/DebugReflectPropertyDescriptor.cs
 ../referencesource/System/compmod/system/componentmodel/DebugTypeDescriptor.cs
 ../referencesource/System/compmod/system/componentmodel/DecimalConverter.cs
 ../referencesource/System/compmod/system/componentmodel/DefaultBindingPropertyAttribute.cs
@@ -907,7 +907,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/compmod/system/componentmodel/ExpandableObjectConverter.cs
 ../referencesource/System/compmod/system/componentmodel/ExtendedPropertyDescriptor.cs
 ../referencesource/System/compmod/system/componentmodel/ExtenderProvidedPropertyAttribute.cs
-../referencesource/System/compmod/system/componentmodel/FxCopSuppression.cs
+# GEN REMOVED INCLUDED ../referencesource/System/compmod/system/componentmodel/FxCopSuppression.cs
 ../referencesource/System/compmod/system/componentmodel/GuidConverter.cs
 ../referencesource/System/compmod/system/componentmodel/HandledEventArgs.cs
 ../referencesource/System/compmod/system/componentmodel/HandledEventHandler.cs
@@ -936,7 +936,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/compmod/system/componentmodel/Int16Converter.cs
 ../referencesource/System/compmod/system/componentmodel/Int32Converter.cs
 ../referencesource/System/compmod/system/componentmodel/Int64Converter.cs
-../referencesource/System/compmod/system/componentmodel/IntSecurity.cs
+# GEN REMOVED INCLUDED ../referencesource/System/compmod/system/componentmodel/IntSecurity.cs
 ../referencesource/System/compmod/system/componentmodel/InvalidAsynchronousStateException.cs
 ../referencesource/System/compmod/system/componentmodel/InvalidEnumArgumentException.cs
 ../referencesource/System/compmod/system/componentmodel/IRaiseItemChangedEvents.cs
@@ -1073,7 +1073,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/net/System/Net/_Semaphore.cs
 ../referencesource/System/net/System/Net/_ServiceNameStore.cs
 ../referencesource/System/net/System/Net/_TimerThread.cs
-../referencesource/System/net/System/Net/_WebProxyDataBuilder.cs
+# GEN REMOVED INCLUDED ../referencesource/System/net/System/Net/_WebProxyDataBuilder.cs
 ../referencesource/System/net/System/Net/AuthenticationScheme.cs
 ../referencesource/System/net/System/Net/AuthenticationSchemeSelector.cs
 ../referencesource/System/net/System/Net/Authorization.cs
@@ -1104,7 +1104,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/net/System/Net/IPEndPoint.cs
 ../referencesource/System/net/System/Net/IPHostEntry.cs
 ../referencesource/System/net/System/Net/iwebproxy.cs
-../referencesource/System/net/System/Net/IWebProxyFinder.cs
+# GEN REMOVED INCLUDED ../referencesource/System/net/System/Net/IWebProxyFinder.cs
 ../referencesource/System/net/System/Net/IWebRequestCreate.cs
 ../referencesource/System/net/System/Net/NetworkAccess.cs
 ../referencesource/System/net/System/Net/NetworkCredential.cs
@@ -1217,7 +1217,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/net/System/Net/mail/MailBnfHelper.cs
 ../referencesource/System/net/System/Net/mail/MailHeaderInfo.cs
 ../referencesource/System/net/System/Net/mail/MimeBasePart.cs
-../referencesource/System/net/System/Net/mail/MimeEmbeddedMessagePart.cs
+# GEN REMOVED INCLUDED ../referencesource/System/net/System/Net/mail/MimeEmbeddedMessagePart.cs
 ../referencesource/System/net/System/Net/mail/MimeMultiPart.cs
 ../referencesource/System/net/System/Net/mail/MimeMultiPartType.cs
 ../referencesource/System/net/System/Net/mail/MimePart.cs
@@ -1238,7 +1238,7 @@ ReferenceSources/Win32Exception.cs
 ../referencesource/System/sys/system/runtime/versioning/FrameworkName.cs
 ../referencesource/System/sys/system/threading/Barrier.cs
 ../referencesource/System/sys/system/threading/semaphore.cs
-../referencesource/System/sys/system/windows/markup/ValueSerializerAttribute.cs
+# GEN REMOVED INCLUDED ../referencesource/System/sys/system/windows/markup/ValueSerializerAttribute.cs
 ../referencesource/System/security/system/security/Authentication/ExtendedProtection/TokenBinding.cs
 ../referencesource/System/security/system/security/Authentication/ExtendedProtection/ServiceNameCollection.cs
 ../referencesource/System/security/system/security/cryptography/oid.cs

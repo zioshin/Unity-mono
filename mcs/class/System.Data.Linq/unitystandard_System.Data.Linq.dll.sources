@@ -87,7 +87,7 @@ src/DbLinq/Data/Linq/Implementation/IEntityTracker.cs
 src/DbLinq/Data/Linq/Implementation/MemberModificationHandler.cs
 src/DbLinq/Data/Linq/Implementation/QueryProvider.cs
 src/DbLinq/Data/Linq/Implementation/VendorProvider.cs
-src/DbLinq/Data/Linq/ITable.cs
+# GEN REMOVED src/DbLinq/Data/Linq/ITable.cs
 src/DbLinq/Data/Linq/IVendorProvider.cs
 src/DbLinq/Data/Linq/Mapping/AttributedAbstractMetaDataMember.cs
 src/DbLinq/Data/Linq/Mapping/AttributedAssociationMetaDataMember.cs
@@ -100,7 +100,7 @@ src/DbLinq/Data/Linq/Mapping/AttributedMetaType.cs
 src/DbLinq/Data/Linq/Mapping/AttributeMappingSource.cs
 src/DbLinq/Data/Linq/Mapping/LambdaMetaAccessor.cs
 src/DbLinq/Data/Linq/Mapping/MappingContext.cs
-src/DbLinq/Data/Linq/Mapping/XmlMappingSource.cs
+# GEN REMOVED src/DbLinq/Data/Linq/Mapping/XmlMappingSource.cs
 src/DbLinq/Data/Linq/RefreshMode.cs
 src/DbLinq/Data/Linq/Sql/SqlLiteralPart.cs
 src/DbLinq/Data/Linq/Sql/SqlParameterPart.cs
@@ -112,9 +112,9 @@ src/DbLinq/Data/Linq/SqlClient/IngresProvider.cs
 src/DbLinq/Data/Linq/SqlClient/MySqlProvider.cs
 src/DbLinq/Data/Linq/SqlClient/OracleProvider.cs
 src/DbLinq/Data/Linq/SqlClient/PostgreSqlProvider.cs
-src/DbLinq/Data/Linq/SqlClient/Sql2000Provider.cs
-src/DbLinq/Data/Linq/SqlClient/Sql2005Provider.cs
-src/DbLinq/Data/Linq/SqlClient/Sql2008Provider.cs
+# GEN REMOVED src/DbLinq/Data/Linq/SqlClient/Sql2000Provider.cs
+# GEN REMOVED src/DbLinq/Data/Linq/SqlClient/Sql2005Provider.cs
+# GEN REMOVED src/DbLinq/Data/Linq/SqlClient/Sql2008Provider.cs
 src/DbLinq/Data/Linq/SqlClient/SqliteProvider.cs
 src/DbLinq/Data/Linq/SqlClient/SqlServerProvider.cs
 src/DbLinq/Data/Linq/Sugar/AbstractQuery.cs
@@ -235,7 +235,7 @@ src/DbLinq/Schema/ProcedureName.cs
 src/DbLinq/Schema/SchemaName.cs
 src/DbLinq/Schema/TableName.cs
 src/DbLinq/Schema/WordsExtraction.cs
-src/DbLinq/System.Data.Linq/Assembly/AssemblyInfo.cs
+# GEN REMOVED src/DbLinq/System.Data.Linq/Assembly/AssemblyInfo.cs
 src/DbLinq/System.Data.Linq/Binary.cs
 src/DbLinq/System.Data.Linq/ChangeConflictCollection.cs
 src/DbLinq/System.Data.Linq/ChangeConflictException.cs

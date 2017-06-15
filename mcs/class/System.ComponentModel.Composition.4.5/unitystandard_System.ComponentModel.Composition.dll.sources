@@ -1,11 +1,11 @@
 src/Assembly/AssemblyInfo.cs
 ../../build/common/Consts.cs
 
-src/ComponentModel/ContractAdditions.cs
+# GEN REMOVED src/ComponentModel/ContractAdditions.cs
 src/ComponentModel/PlatformWorkarounds.cs
 src/ComponentModel/Strings.Designer.cs
-src/ComponentModel/SuppressMessages.cs
-src/ComponentModel/SuppressMessagesBaselined.cs
+# GEN REMOVED src/ComponentModel/SuppressMessages.cs
+# GEN REMOVED src/ComponentModel/SuppressMessagesBaselined.cs
 src/ComponentModel/Microsoft/Internal/ContractServices.cs
 src/ComponentModel/Microsoft/Internal/AttributeServices.cs
 src/ComponentModel/Microsoft/Internal/Lock.Reader.cs
@@ -30,7 +30,7 @@ src/ComponentModel/System/ComponentModel/Composition/ExceptionBuilder.cs
 src/ComponentModel/System/ComponentModel/Composition/ImportCardinalityMismatchException.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportCardinalityCheckResult.cs
 src/ComponentModel/System/ComponentModel/Composition/MetadataServices.cs
-src/ComponentModel/System/ComponentModel/Composition/MetadataAttributeAttribute.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/MetadataAttributeAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/CompositionContractMismatchException.cs
 src/ComponentModel/System/ComponentModel/Composition/ChangeRejectedException.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportFactoryOfT.cs
@@ -43,7 +43,7 @@ src/ComponentModel/System/ComponentModel/Composition/ExportServices.DisposableLa
 src/ComponentModel/System/ComponentModel/Composition/MetadataViewGenerator.cs
 src/ComponentModel/System/ComponentModel/Composition/ConstraintServices.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportLifetimeContextOfT.cs
-src/ComponentModel/System/ComponentModel/Composition/ImportingConstructorAttribute.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/ImportingConstructorAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/ImportManyAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/ImportSource.cs
 src/ComponentModel/System/ComponentModel/Composition/MetadataViewProvider.cs
@@ -56,7 +56,7 @@ src/ComponentModel/System/ComponentModel/Composition/CompositionErrorDebuggerPro
 src/ComponentModel/System/ComponentModel/Composition/ImportAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportFactoryOfTTMetadata.cs
 src/ComponentModel/System/ComponentModel/Composition/PartCreationPolicyAttribute.cs
-src/ComponentModel/System/ComponentModel/Composition/PartNotDiscoverableAttribute.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/PartNotDiscoverableAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportServices.cs
 src/ComponentModel/System/ComponentModel/Composition/MetadataViewImplementationAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportMetadataAttribute.cs
@@ -139,7 +139,7 @@ src/ComponentModel/System/ComponentModel/Composition/AttributedModel/AttributedP
 src/ComponentModel/System/ComponentModel/Composition/Diagnostics/CompositionTraceId.cs
 src/ComponentModel/System/ComponentModel/Composition/Diagnostics/CompositionTraceSource.cs
 src/ComponentModel/System/ComponentModel/Composition/Diagnostics/CompositionTrace.cs
-src/ComponentModel/System/ComponentModel/Composition/Diagnostics/TraceSourceTraceWriter.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/Diagnostics/TraceSourceTraceWriter.cs
 src/ComponentModel/System/ComponentModel/Composition/Diagnostics/TraceWriter.cs
 src/ComponentModel/System/ComponentModel/Composition/Diagnostics/SilverlightTraceWriter.cs
 src/ComponentModel/System/ComponentModel/Composition/ReflectionModel/ReflectionExtensions.cs

@@ -7,30 +7,30 @@ System.EnterpriseServices/ApplicationAccessControlAttribute.cs
 System.EnterpriseServices/ApplicationActivationAttribute.cs
 System.EnterpriseServices/ApplicationIDAttribute.cs
 System.EnterpriseServices/ApplicationNameAttribute.cs
-System.EnterpriseServices/ApplicationQueuingAttribute.cs
+# GEN REMOVED System.EnterpriseServices/ApplicationQueuingAttribute.cs
 System.EnterpriseServices/AuthenticationOption.cs
 System.EnterpriseServices/AutoCompleteAttribute.cs
 System.EnterpriseServices/BindingOption.cs
 System.EnterpriseServices/BOID.cs
 System.EnterpriseServices/BYOT.cs
-System.EnterpriseServices/COMTIIntrinsicsAttribute.cs
-System.EnterpriseServices/ComponentAccessControlAttribute.cs
-System.EnterpriseServices/ConstructionEnabledAttribute.cs
+# GEN REMOVED System.EnterpriseServices/COMTIIntrinsicsAttribute.cs
+# GEN REMOVED System.EnterpriseServices/ComponentAccessControlAttribute.cs
+# GEN REMOVED System.EnterpriseServices/ConstructionEnabledAttribute.cs
 System.EnterpriseServices/ContextUtil.cs
-System.EnterpriseServices/DescriptionAttribute.cs
-System.EnterpriseServices/EventClassAttribute.cs
-System.EnterpriseServices/EventTrackingEnabledAttribute.cs
-System.EnterpriseServices/ExceptionClassAttribute.cs
-System.EnterpriseServices/IAsyncErrorNotify.cs
+# GEN REMOVED System.EnterpriseServices/DescriptionAttribute.cs
+# GEN REMOVED System.EnterpriseServices/EventClassAttribute.cs
+# GEN REMOVED System.EnterpriseServices/EventTrackingEnabledAttribute.cs
+# GEN REMOVED System.EnterpriseServices/ExceptionClassAttribute.cs
+# GEN REMOVED System.EnterpriseServices/IAsyncErrorNotify.cs
 System.EnterpriseServices/IConfigurationAttribute.cs
-System.EnterpriseServices/IISIntrinsicsAttribute.cs
+# GEN REMOVED System.EnterpriseServices/IISIntrinsicsAttribute.cs
 System.EnterpriseServices/ImpersonationLevelOption.cs
 System.EnterpriseServices/InheritanceOption.cs
 System.EnterpriseServices/InstallationFlags.cs
-System.EnterpriseServices/InterfaceQueuingAttribute.cs
-System.EnterpriseServices/IPlaybackControl.cs
-System.EnterpriseServices/IProcessInitControl.cs
-System.EnterpriseServices/IProcessInitializer.cs
+# GEN REMOVED System.EnterpriseServices/InterfaceQueuingAttribute.cs
+# GEN REMOVED System.EnterpriseServices/IPlaybackControl.cs
+# GEN REMOVED System.EnterpriseServices/IProcessInitControl.cs
+# GEN REMOVED System.EnterpriseServices/IProcessInitializer.cs
 System.EnterpriseServices/IRegistrationHelper.cs
 System.EnterpriseServices/IRemoteDispatch.cs
 System.EnterpriseServices/ISecurityCallContext.cs
@@ -41,12 +41,12 @@ System.EnterpriseServices/IServicedComponentInfo.cs
 System.EnterpriseServices/ISharedProperty.cs
 System.EnterpriseServices/ISharedPropertyGroup.cs
 System.EnterpriseServices/ITransaction.cs
-System.EnterpriseServices/JustInTimeActivationAttribute.cs
-System.EnterpriseServices/LoadBalancingSupportedAttribute.cs
-System.EnterpriseServices/MustRunInClientContextAttribute.cs
+# GEN REMOVED System.EnterpriseServices/JustInTimeActivationAttribute.cs
+# GEN REMOVED System.EnterpriseServices/LoadBalancingSupportedAttribute.cs
+# GEN REMOVED System.EnterpriseServices/MustRunInClientContextAttribute.cs
 System.EnterpriseServices/ObjectPoolingAttribute.cs
 System.EnterpriseServices/PartitionOption.cs
-System.EnterpriseServices/PrivateComponentAttribute.cs
+# GEN REMOVED System.EnterpriseServices/PrivateComponentAttribute.cs
 System.EnterpriseServices/PropertyLockMode.cs
 System.EnterpriseServices/PropertyReleaseMode.cs
 System.EnterpriseServices/RegistrationErrorInfo.cs
@@ -55,20 +55,20 @@ System.EnterpriseServices/RegistrationException.cs
 System.EnterpriseServices/RegistrationHelper.cs
 System.EnterpriseServices/RegistrationHelperTx.cs
 System.EnterpriseServices/ResourcePool.cs
-System.EnterpriseServices/SecureMethodAttribute.cs
+# GEN REMOVED System.EnterpriseServices/SecureMethodAttribute.cs
 System.EnterpriseServices/SecurityCallContext.cs
 System.EnterpriseServices/SecurityCallers.cs
 System.EnterpriseServices/SecurityIdentity.cs
-System.EnterpriseServices/SecurityRoleAttribute.cs
+# GEN REMOVED System.EnterpriseServices/SecurityRoleAttribute.cs
 System.EnterpriseServices/ServicedComponent.cs
-System.EnterpriseServices/ServicedComponentException.cs
+# GEN REMOVED System.EnterpriseServices/ServicedComponentException.cs
 System.EnterpriseServices/ServiceConfig.cs
 System.EnterpriseServices/ServiceDomain.cs
 System.EnterpriseServices/SharedProperty.cs
 System.EnterpriseServices/SharedPropertyGroup.cs
 System.EnterpriseServices/SharedPropertyGroupManager.cs
 System.EnterpriseServices/SxsOption.cs
-System.EnterpriseServices/SynchronizationAttribute.cs
+# GEN REMOVED System.EnterpriseServices/SynchronizationAttribute.cs
 System.EnterpriseServices/SynchronizationOption.cs
 System.EnterpriseServices/ThreadPoolOption.cs
 ../../build/common/MonoTODOAttribute.cs
@@ -78,7 +78,7 @@ System.EnterpriseServices/TransactionOption.cs
 System.EnterpriseServices/TransactionStatus.cs
 System.EnterpriseServices/TransactionVote.cs
 System.EnterpriseServices/XACTTRANSINFO.cs
-System.EnterpriseServices.CompensatingResourceManager/ApplicationCrmEnabledAttribute.cs
+# GEN REMOVED System.EnterpriseServices.CompensatingResourceManager/ApplicationCrmEnabledAttribute.cs
 System.EnterpriseServices.CompensatingResourceManager/Clerk.cs
 System.EnterpriseServices.CompensatingResourceManager/ClerkInfo.cs
 System.EnterpriseServices.CompensatingResourceManager/ClerkMonitor.cs

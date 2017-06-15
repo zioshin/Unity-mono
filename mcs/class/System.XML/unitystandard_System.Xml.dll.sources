@@ -15,7 +15,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/IlGen/XmlILModule.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/IlGen/XmlILOptimization.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/IlGen/XmlILOptimizerVisitor.cs
-../referencesource/System.Data.SqlXml/System/Xml/Xsl/IlGen/XmlIlTrace.cs
+# GEN REMOVED ../referencesource/System.Data.SqlXml/System/Xml/Xsl/IlGen/XmlIlTrace.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/IlGen/XmlIlTypeHelper.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/IlGen/XmlIlVisitor.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/ISourceLineInfo.cs
@@ -52,7 +52,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/QilUnary.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/QilValidationVisitor.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/QilVisitor.cs
-../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/QilXmlReader.cs
+# GEN REMOVED ../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/QilXmlReader.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/QilXmlWriter.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/SerializationHints.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/QIL/SubstitutionList.cs
@@ -71,7 +71,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/TreeIterators.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/WhitespaceRuleLookup.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/WhitespaceRuleReader.cs
-../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/XmlAggregates.cs
+# GEN REMOVED ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/XmlAggregates.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/XmlAttributeCache.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/XmlCollation.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Runtime/XmlExtensionFunction.cs
@@ -107,7 +107,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathAxis.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathBuilder.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathCompileException.cs
-../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathContext.cs
+# GEN REMOVED ../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathContext.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathOperator.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathParser.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/XPath/XPathQilFactory.cs
@@ -209,9 +209,9 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Data.SqlXml/System/Xml/Xsl/Xslt/XslVisitor.cs
 ../referencesource/System.Xml/InternalApis/NDP_Common/inc/Win8Helpers.cs
 ../referencesource/System.Xml/misc/HResults.cs
-../referencesource/System.Xml/misc/InvariantComparer.cs
+# GEN REMOVED ../referencesource/System.Xml/misc/InvariantComparer.cs
 ../referencesource/System.Xml/misc/PrivilegedConfigurationManager.cs
-../referencesource/System.Xml/System/Xml/Assembly/System.Xml.Assembly.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/Assembly/System.Xml.Assembly.cs
 ../referencesource/System.Xml/System/Xml/AsyncHelper.cs
 ../referencesource/System.Xml/System/Xml/Base64Decoder.cs
 ../referencesource/System.Xml/System/Xml/Base64EncoderAsync.cs
@@ -226,17 +226,17 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Xml/System/Xml/Bits.cs
 ../referencesource/System.Xml/System/Xml/BitStack.cs
 ../referencesource/System.Xml/System/Xml/ByteStack.cs
-../referencesource/System.Xml/System/Xml/Cache/Shape.cs
-../referencesource/System.Xml/System/Xml/Cache/ShapeGenerator.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/Cache/Shape.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/Cache/ShapeGenerator.cs
 ../referencesource/System.Xml/System/Xml/Cache/XPathDocumentBuilder.cs
 ../referencesource/System.Xml/System/Xml/Cache/XPathDocumentIterator.cs
 ../referencesource/System.Xml/System/Xml/Cache/XPathDocumentNavigator.cs
-../referencesource/System.Xml/System/Xml/Cache/XPathDocumentView.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/Cache/XPathDocumentView.cs
 ../referencesource/System.Xml/System/Xml/Cache/XPathNode.cs
 ../referencesource/System.Xml/System/Xml/Cache/XPathNodeHelper.cs
 ../referencesource/System.Xml/System/Xml/Cache/XPathNodeInfoAtom.cs
-../referencesource/System.Xml/System/Xml/Cache/XPathNodeView.cs
-../referencesource/System.Xml/System/Xml/Cache/XPathNodeViewPropertyDescriptor.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/Cache/XPathNodeView.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/Cache/XPathNodeViewPropertyDescriptor.cs
 ../referencesource/System.Xml/System/Xml/Core/BinaryCompatibility.cs
 ../referencesource/System.Xml/System/Xml/Core/CharEntityEncoderFallback.cs
 ../referencesource/System.Xml/System/Xml/Core/ConformanceLevel.cs
@@ -560,7 +560,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Xml/System/Xml/Serialization/Configuration/SchemaImporterExtensionElement.cs
 ../referencesource/System.Xml/System/Xml/Serialization/Configuration/SchemaImporterExtensionElementCollection.cs
 ../referencesource/System.Xml/System/Xml/Serialization/Configuration/SchemaImporterExtensionsSection.cs
-../referencesource/System.Xml/System/Xml/Serialization/Configuration/SerializationSectionGroup.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/Serialization/Configuration/SerializationSectionGroup.cs
 ../referencesource/System.Xml/System/Xml/Serialization/Configuration/XmlSerializerSection.cs
 
 ../referencesource/System.Xml/System/Xml/ValidateNames.cs

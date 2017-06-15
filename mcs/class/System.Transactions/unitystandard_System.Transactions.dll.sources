@@ -1,6 +1,6 @@
 Assembly/AssemblyInfo.cs
 ../../build/common/Consts.cs
-../../build/common/Locale.cs
+# GEN REMOVED ../../build/common/Locale.cs
 ../../build/common/MonoTODOAttribute.cs
 System.Transactions/CommittableTransaction.cs
 System.Transactions/Delegates.cs
@@ -36,7 +36,7 @@ System.Transactions/TransactionScopeOption.cs
 System.Transactions/TransactionStatus.cs
 System.Transactions/Configuration/DefaultSettingsSection.cs
 System.Transactions/Configuration/MachineSettingsSection.cs
-System.Transactions/Configuration/TransactionsSectionGroup.cs
+# GEN REMOVED System.Transactions/Configuration/TransactionsSectionGroup.cs
 
 # [SourcesGen] Files from includes
 

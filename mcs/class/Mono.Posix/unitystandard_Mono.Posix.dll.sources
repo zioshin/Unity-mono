@@ -1,15 +1,15 @@
 ./Assembly/AssemblyInfo.cs
 ../../build/common/Consts.cs
 ../../build/common/Locale.cs
-./Mono.Unix/AbstractUnixEndPoint.cs
-./Mono.Unix/Catalog.cs
+# GEN REMOVED ./Mono.Unix/AbstractUnixEndPoint.cs
+# GEN REMOVED ./Mono.Unix/Catalog.cs
 ./Mono.Unix/FileAccessPermissions.cs
 ./Mono.Unix/FileAccessPattern.cs
 ./Mono.Unix/FileHandleOperations.cs
 ./Mono.Unix/FileSpecialAttributes.cs
 ./Mono.Unix/FileTypes.cs
 ./Mono.Unix/PeerCred.cs
-./Mono.Unix/StdioFileStream.cs
+# GEN REMOVED ./Mono.Unix/StdioFileStream.cs
 ./Mono.Unix/UnixClient.cs
 ./Mono.Unix/UnixDirectoryInfo.cs
 ./Mono.Unix/UnixDriveInfo.cs
@@ -23,7 +23,7 @@
 ./Mono.Unix/UnixListener.cs
 ./Mono.Unix/UnixMarshal.cs
 ./Mono.Unix/UnixPath.cs
-./Mono.Unix/UnixPipes.cs
+# GEN REMOVED ./Mono.Unix/UnixPipes.cs
 ./Mono.Unix/UnixProcess.cs
 ./Mono.Unix/UnixSignal.cs
 ./Mono.Unix/UnixStream.cs
@@ -38,10 +38,10 @@
 ./Mono.Unix.Native/Stdlib.cs
 ./Mono.Unix.Native/Syscall.cs
 ./Mono.Unix.Native/TypeAttributes.cs
-./Mono.Posix/Catalog.cs
-./Mono.Posix/PeerCred.cs
+# GEN REMOVED ./Mono.Posix/Catalog.cs
+# GEN REMOVED ./Mono.Posix/PeerCred.cs
 ./Mono.Posix/Syscall.cs
-./Mono.Posix/UnixEndPoint.cs
+# GEN REMOVED ./Mono.Posix/UnixEndPoint.cs
 ./Mono.Remoting.Channels.Unix/UnixBinaryClientFormatterSink.cs
 ./Mono.Remoting.Channels.Unix/UnixBinaryClientFormatterSinkProvider.cs
 ./Mono.Remoting.Channels.Unix/UnixBinaryCore.cs

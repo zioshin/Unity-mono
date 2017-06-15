@@ -2,12 +2,12 @@ Assembly/AssemblyInfo.cs
 ../../build/common/Consts.cs
 ../../build/common/Locale.cs
 System.Drawing/Bitmap.cs
-System.Drawing/BitmapSuffixInSameAssemblyAttribute.cs
-System.Drawing/BitmapSuffixInSatelliteAssemblyAttribute.cs
+# GEN REMOVED System.Drawing/BitmapSuffixInSameAssemblyAttribute.cs
+# GEN REMOVED System.Drawing/BitmapSuffixInSatelliteAssemblyAttribute.cs
 System.Drawing/Brush.cs
 System.Drawing/Brushes.cs
 System.Drawing/BufferedGraphics.cs
-System.Drawing/BufferedGraphicsManager.cs
+# GEN REMOVED System.Drawing/BufferedGraphicsManager.cs
 System.Drawing/BufferedGraphicsContext.cs
 System.Drawing/CharacterRange.cs
 System.Drawing/macFunctions.cs
@@ -67,13 +67,13 @@ System.Drawing/TextureBrush.cs
 System.Drawing/ToolboxBitmapAttribute.cs
 System.Drawing.Design/UITypeEditorEditStyle.cs
 System.Drawing.Design/IPropertyValueUIService.cs
-System.Drawing.Design/IToolboxItemProvider.cs
+# GEN REMOVED System.Drawing.Design/IToolboxItemProvider.cs
 System.Drawing.Design/PropertyValueItem.cs
 System.Drawing.Design/PropertyValueUIHandler.cs
 System.Drawing.Design/PropertyValueUIItemInvokeHandler.cs
 System.Drawing.Design/CategoryNameCollection.cs
 System.Drawing.Design/IToolboxService.cs
-System.Drawing.Design/IToolboxUser.cs
+System.Drawing.Design/IToolboxUser.cs 
 System.Drawing.Design/PaintValueEventArgs.cs
 System.Drawing.Design/ToolboxComponentsCreatedEventArgs.cs
 System.Drawing.Design/ToolboxComponentsCreatedEventHandler.cs
@@ -83,7 +83,7 @@ System.Drawing.Design/ToolboxItemCreatorCallback.cs
 System.Drawing.Design/ToolboxItem.cs
 System.Drawing.Design/UITypeEditor.cs
 System.Drawing.Design/ToolboxItemCollection.cs
-System.Drawing.Drawing2D/AdjustableArrowCap.cs
+# GEN REMOVED System.Drawing.Drawing2D/AdjustableArrowCap.cs
 System.Drawing.Drawing2D/Blend.cs
 System.Drawing.Drawing2D/ColorBlend.cs
 System.Drawing.Drawing2D/CombineMode.cs
@@ -97,7 +97,7 @@ System.Drawing.Drawing2D/FillMode.cs
 System.Drawing.Drawing2D/FlushIntention.cs
 System.Drawing.Drawing2D/GraphicsContainer.cs
 System.Drawing.Drawing2D/GraphicsPath.cs
-System.Drawing.Drawing2D/GraphicsPathIterator.cs
+# GEN REMOVED System.Drawing.Drawing2D/GraphicsPathIterator.cs
 System.Drawing.Drawing2D/GraphicsState.cs
 System.Drawing.Drawing2D/HatchBrush.cs
 System.Drawing.Drawing2D/HatchStyle.cs
@@ -109,7 +109,7 @@ System.Drawing.Drawing2D/LineJoin.cs
 System.Drawing.Drawing2D/Matrix.cs
 System.Drawing.Drawing2D/MatrixOrder.cs
 System.Drawing.Drawing2D/PathData.cs
-System.Drawing.Drawing2D/PathGradientBrush.cs
+# GEN REMOVED System.Drawing.Drawing2D/PathGradientBrush.cs
 System.Drawing.Drawing2D/PathPointType.cs
 System.Drawing.Drawing2D/PenAlignment.cs
 System.Drawing.Drawing2D/PenType.cs
