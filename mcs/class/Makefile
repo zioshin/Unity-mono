@@ -334,7 +334,41 @@ xbuild_4_0_dirs := \
 	$(xbuild_2_0_dirs)	\
 	Microsoft.Build
 
-unitystandard_dirs := $(net_4_x_dirs)
+unitystandard_dirs := \
+	corlib \
+	Mono.Security \
+	System \
+	Mono.Posix \
+	System.Core \
+	System.Security \
+	System.Configuration \
+	$(resgen_dir) \
+	System.IO.Compression \
+	System.IO.Compression.FileSystem \
+	System.Drawing \
+	System.Transactions \
+	System.EnterpriseServices \
+	Mono.Data.Tds \
+	System.Numerics \
+	System.Data \
+	System.ComponentModel.DataAnnotations \
+	Accessibility \
+	Mono.WebBrowser \
+	System.Runtime.Serialization.Formatters.Soap \
+	System.Windows.Forms \
+	Mono.Data.Sqlite \
+	System.Web.ApplicationServices \
+	Novell.Directory.Ldap \
+	System.DirectoryServices \
+	System.Web \
+	System.Web.Services \
+	System.Design \
+	System.ServiceModel.Internals \
+	SMDiagnostics \
+	System.Runtime.Serialization \
+	System.Xml.Linq \
+	System.Net.Http \
+	System.Runtime.InteropServices.RuntimeInformation
 
 monodroid_SUBDIRS := $(monodroid_dirs)
 monotouch_SUBDIRS := $(monotouch_dirs)
