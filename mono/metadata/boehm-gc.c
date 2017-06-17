@@ -416,7 +416,7 @@ boehm_thread_detach (MonoThreadInfo *info)
 	 * GC lock to free it. The detach callback 
 	 * does not hold any locks while unregister does.
 	 */
-	mono_handle_stack_free (p->handle_stack);
+	mono_handle_stack_free (info->handle_stack);
 }
 
 static void
