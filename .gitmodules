@@ -64,4 +64,5 @@
 	url = https://github.com/Unity-Technologies/libatomic_ops.git
 [submodule "external/mbedtls"]
 	path = external/mbedtls
-	url = https://github.com/Unity-Technologies/mbedtls
+	url = git@github.com:Unity-Technologies/mbedtls.git
+

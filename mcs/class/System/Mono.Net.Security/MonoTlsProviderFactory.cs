@@ -178,6 +178,12 @@ namespace Mono.Net.Security
 					defaultProvider = appleProvider;
 				}
 
+				// no default implementation for now
+				{
+					var mbedtlsProvider = "Mono.Mbed.MonoMbedTlsProvider";
+					providerRegistration.Add ("mbedtls", mbedtlsProvider);
+				}
+
 				if (defaultProvider == null)
 					defaultProvider = legacyProvider;
 
