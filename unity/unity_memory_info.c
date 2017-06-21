@@ -115,7 +115,7 @@ static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 		MonoClass* baseClass;
 		MonoVTable* vtable;
 
-        type->flags = (klass->valuetype || klass->byval_arg.type == MONO_TYPE_PTR) ? kValueType : kNone;
+		type->flags = (klass->valuetype || klass->byval_arg.type == MONO_TYPE_PTR) ? kValueType : kNone;
 		type->fieldCount = 0;
 
 		if(mono_class_num_fields(klass) > 0)
@@ -128,7 +128,7 @@ static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 				metaField->typeIndex = FindClassIndex(context->allTypes, mono_class_from_mono_type(field->type));
 
 				// This will happen if fields type is not initialized
-                // It's OK to skip it, because it means the field is guaranteed to be null on any object
+				// It's OK to skip it, because it means the field is guaranteed to be null on any object
 				if (metaField->typeIndex == -1)
 					continue;
 
@@ -136,10 +136,10 @@ static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 				if((field->type->attrs & FIELD_ATTRIBUTE_LITERAL) != 0)
 					continue;
 
-                metaField->isStatic = (field->type->attrs & FIELD_ATTRIBUTE_STATIC) != 0;
-                metaField->offset = field->offset;
-                metaField->name = field->name;
-                type->fieldCount++;
+				metaField->isStatic = (field->type->attrs & FIELD_ATTRIBUTE_STATIC) != 0;
+				metaField->offset = field->offset;
+				metaField->name = field->name;
+				type->fieldCount++;
 			}
 		}
 
@@ -198,23 +198,23 @@ static int MonoMemPoolNumChunks(MonoMemPool* pool)
 
 typedef struct SectionIterationContext
 {
-    MonoManagedMemorySection* currentSection;
+	MonoManagedMemorySection* currentSection;
 } SectionIterationContext;
 
 static void AllocateMemoryForSection(void* context, void* sectionStart, void* sectionEnd)
 {
 	ptrdiff_t sectionSize;
 
-    SectionIterationContext* ctx = (SectionIterationContext*)context;
-    MonoManagedMemorySection* section = ctx->currentSection;
+	SectionIterationContext* ctx = (SectionIterationContext*)context;
+	MonoManagedMemorySection* section = ctx->currentSection;
 
-    section->sectionStartAddress = (uint64_t)sectionStart;
-    sectionSize = (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart);
+	section->sectionStartAddress = (uint64_t)sectionStart;
+	sectionSize = (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart);
 
-    section->sectionSize = (uint32_t)(sectionSize);
-    section->sectionBytes = g_new(uint8_t, section->sectionSize);
+	section->sectionSize = (uint32_t)(sectionSize);
+	section->sectionBytes = g_new(uint8_t, section->sectionSize);
 
-    ctx->currentSection++;
+	ctx->currentSection++;
 }
 
 static void AllocateMemoryForMemPoolChunk(void* chunkStart, void* chunkEnd, void* context)
@@ -224,14 +224,14 @@ static void AllocateMemoryForMemPoolChunk(void* chunkStart, void* chunkEnd, void
 
 static void CopyHeapSection(void* context, void* sectionStart, void* sectionEnd)
 {
-    SectionIterationContext* ctx = (SectionIterationContext*)(context);
-    MonoManagedMemorySection* section = ctx->currentSection;
+	SectionIterationContext* ctx = (SectionIterationContext*)(context);
+	MonoManagedMemorySection* section = ctx->currentSection;
 
-    g_assert(section->sectionStartAddress == (uint64_t)(sectionStart));
-    g_assert(section->sectionSize == (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart));
-    memcpy(section->sectionBytes, sectionStart, section->sectionSize);
+	g_assert(section->sectionStartAddress == (uint64_t)(sectionStart));
+	g_assert(section->sectionSize == (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart));
+	memcpy(section->sectionBytes, sectionStart, section->sectionSize);
 
-    ctx->currentSection++;
+	ctx->currentSection++;
 }
 
 static void CopyMemPoolChunk(void* chunkStart, void* chunkEnd, void* context)
@@ -268,12 +268,12 @@ static void AllocateMemoryForImageMemPool(MonoAssembly *assembly, void *user_dat
 
 static void* CaptureHeapInfo(void* monoManagedHeap)
 {
-    MonoManagedHeap* heap = (MonoManagedHeap*)monoManagedHeap;
+	MonoManagedHeap* heap = (MonoManagedHeap*)monoManagedHeap;
 	MonoDomain* domain = mono_domain_get();
 	SectionIterationContext iterationContext;
 
 	// Increment count for each heap section
-    heap->sectionCount = GC_get_heap_section_count();
+	heap->sectionCount = GC_get_heap_section_count();
 	// Increment count for the domain mem pool chunk
 	heap->sectionCount += MonoMemPoolNumChunks(domain->mp);
 	// Increment count for each image mem pool chunk
@@ -292,36 +292,36 @@ static void* CaptureHeapInfo(void* monoManagedHeap)
 	// Allocate memory for each image mem pool chunk
 	mono_assembly_foreach((GFunc)AllocateMemoryForImageMemPool,  &iterationContext);
 
-    return NULL;
+	return NULL;
 }
 
 static void FreeMonoManagedHeap(MonoManagedHeap* heap)
 {
 	uint32_t i;
 
-    for (i = 0; i < heap->sectionCount; i++)
-    {
-        g_free(heap->sections[i].sectionBytes);
-    }
+	for (i = 0; i < heap->sectionCount; i++)
+	{
+		g_free(heap->sections[i].sectionBytes);
+	}
 
-    g_free(heap->sections);
+	g_free(heap->sections);
 }
 
 typedef struct VerifyHeapSectionStillValidIterationContext
 {
-    MonoManagedMemorySection* currentSection;
-    gboolean wasValid;
+	MonoManagedMemorySection* currentSection;
+	gboolean wasValid;
 } VerifyHeapSectionStillValidIterationContext;
 
 static void VerifyHeapSectionIsStillValid(void* context, void* sectionStart, void* sectionEnd)
 {
-    VerifyHeapSectionStillValidIterationContext* iterationContext = (VerifyHeapSectionStillValidIterationContext*)context;
-    if (iterationContext->currentSection->sectionSize != (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart))
-        iterationContext->wasValid = FALSE;
-    else if (iterationContext->currentSection->sectionStartAddress != (uint64_t)(sectionStart))
-        iterationContext->wasValid = FALSE;
+	VerifyHeapSectionStillValidIterationContext* iterationContext = (VerifyHeapSectionStillValidIterationContext*)context;
+	if (iterationContext->currentSection->sectionSize != (uint8_t*)(sectionEnd) - (uint8_t*)(sectionStart))
+		iterationContext->wasValid = FALSE;
+	else if (iterationContext->currentSection->sectionStartAddress != (uint64_t)(sectionStart))
+		iterationContext->wasValid = FALSE;
 
-    iterationContext->currentSection++;
+	iterationContext->currentSection++;
 }
 
 static gboolean MonoManagedHeapStillValid(MonoManagedHeap* heap)
@@ -334,14 +334,14 @@ static gboolean MonoManagedHeapStillValid(MonoManagedHeap* heap)
 	currentSectionCount += MonoMemPoolNumChunks(domain->mp);
 	currentSectionCount += MonoImagesMemPoolNumChunks();
 
-    if (heap->sectionCount != currentSectionCount)
+	if (heap->sectionCount != currentSectionCount)
 		return FALSE;
 
 	iterationContext.currentSection = heap->sections;
 	iterationContext.wasValid = TRUE;
 
 	GC_foreach_heap_section(&iterationContext, VerifyHeapSectionIsStillValid);
-    
+	
 	return iterationContext.wasValid;
 }
 
@@ -367,7 +367,7 @@ static void CaptureManagedHeap(MonoManagedHeap* heap)
 		GC_stop_world_external();
 
 		if (MonoManagedHeapStillValid(heap))
-	        break;
+			break;
 
 		GC_start_world_external();
 
@@ -375,7 +375,7 @@ static void CaptureManagedHeap(MonoManagedHeap* heap)
 	}
 	
 	iterationContext.currentSection = heap->sections;
-    GC_foreach_heap_section(&iterationContext, CopyHeapSection);
+	GC_foreach_heap_section(&iterationContext, CopyHeapSection);
 
 	mono_domain_lock (domain);
 	mono_mempool_foreach_chunk(domain->mp, CopyMemPoolChunk, &iterationContext);
@@ -399,11 +399,11 @@ static inline void CaptureGCHandleTargets(MonoGCHandles* gcHandles)
 	mono_gc_strong_handle_foreach((GFunc)GCHandleIterationCallback, &trackedObjects);
 
 	gcHandles->trackedObjectCount = (uint32_t)g_list_length(trackedObjects);
-    gcHandles->pointersToObjects = (uint64_t*)g_new0(uint64_t, gcHandles->trackedObjectCount);
+	gcHandles->pointersToObjects = (uint64_t*)g_new0(uint64_t, gcHandles->trackedObjectCount);
 
 	trackedObject = trackedObjects;
 
-    for (i = 0; i < gcHandles->trackedObjectCount; i++)
+	for (i = 0; i < gcHandles->trackedObjectCount; i++)
 	{
 		gcHandles->pointersToObjects[i] = (uint64_t)trackedObject->data;
 		trackedObject = g_list_next(trackedObject);
@@ -414,12 +414,12 @@ static inline void CaptureGCHandleTargets(MonoGCHandles* gcHandles)
 
 static void FillRuntimeInformation(MonoRuntimeInformation* runtimeInfo)
 {
-    runtimeInfo->pointerSize = (uint32_t)(sizeof(void*));
-    runtimeInfo->objectHeaderSize = (uint32_t)(sizeof(MonoObject));
-    runtimeInfo->arrayHeaderSize = offsetof(MonoArray, vector);
-    runtimeInfo->arraySizeOffsetInHeader = offsetof(MonoArray, max_length);
-    runtimeInfo->arrayBoundsOffsetInHeader = offsetof(MonoArray, bounds);
-    runtimeInfo->allocationGranularity = (uint32_t)(2 * sizeof(void*));
+	runtimeInfo->pointerSize = (uint32_t)(sizeof(void*));
+	runtimeInfo->objectHeaderSize = (uint32_t)(sizeof(MonoObject));
+	runtimeInfo->arrayHeaderSize = offsetof(MonoArray, vector);
+	runtimeInfo->arraySizeOffsetInHeader = offsetof(MonoArray, max_length);
+	runtimeInfo->arrayBoundsOffsetInHeader = offsetof(MonoArray, bounds);
+	runtimeInfo->allocationGranularity = (uint32_t)(2 * sizeof(void*));
 }
 
 MonoManagedMemorySnapshot* mono_unity_capture_memory_snapshot()
@@ -438,23 +438,23 @@ MonoManagedMemorySnapshot* mono_unity_capture_memory_snapshot()
 void mono_unity_free_captured_memory_snapshot(MonoManagedMemorySnapshot* snapshot)
 {
 	uint32_t i;
-    MonoMetadataSnapshot* metadata = &snapshot->metadata;
+	MonoMetadataSnapshot* metadata = &snapshot->metadata;
 
 	FreeMonoManagedHeap(&snapshot->heap);
 
-    g_free(snapshot->gcHandles.pointersToObjects);
+	g_free(snapshot->gcHandles.pointersToObjects);
 
-    for (i = 0; i < metadata->typeCount; i++)
-    {
-        if ((metadata->types[i].flags & kArray) == 0)
-        {
-            g_free(metadata->types[i].fields);
-            g_free(metadata->types[i].statics);
-        }
+	for (i = 0; i < metadata->typeCount; i++)
+	{
+		if ((metadata->types[i].flags & kArray) == 0)
+		{
+			g_free(metadata->types[i].fields);
+			g_free(metadata->types[i].statics);
+		}
 
 		g_free(metadata->types[i].name);
-    }
+	}
 
-    g_free(metadata->types);
-    g_free(snapshot);
+	g_free(metadata->types);
+	g_free(snapshot);
 }

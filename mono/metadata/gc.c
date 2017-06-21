@@ -1197,16 +1197,15 @@ void mono_gc_strong_handle_foreach(GFunc func, gpointer user_data)
 	lock_handles (handles);
 
 	for (gcHandleTypeIndex = 0; gcHandleTypeIndex < 2; gcHandleTypeIndex++)
-    {
-        HandleData* handles = &gc_handles[types[gcHandleTypeIndex]];
+	{
+		HandleData* handles = &gc_handles[types[gcHandleTypeIndex]];
 
-        for (i = 0; i < handles->size; i++)
-        {
-            if (handles->entries[i] != NULL)
+		for (i = 0; i < handles->size; i++)
+		{
+			if (handles->entries[i] != NULL)
 				func(handles->entries[i], user_data);
-        }
-    }
+		}
+	}
 
 	unlock_handles (handles);
 }
-
