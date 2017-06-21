@@ -66,7 +66,7 @@ System.Configuration/ConnectionStringSettings.cs
 System.Configuration/ContextInformation.cs
 System.Configuration/DefaultSection.cs
 System.Configuration/DefaultValidator.cs
-System.Configuration/DpapiProtectedConfigurationProvider.cs
+# GEN REMOVED System.Configuration/DpapiProtectedConfigurationProvider.cs
 System.Configuration/ElementInformation.cs
 System.Configuration/ExeConfigurationFileMap.cs
 # GEN REMOVED System.Configuration/ExeContext.cs
@@ -101,7 +101,7 @@ System.Configuration/ProviderSettings.cs
 System.Configuration/ProviderSettingsCollection.cs
 # GEN REMOVED System.Configuration/RegexStringValidator.cs
 # GEN REMOVED System.Configuration/RegexStringValidatorAttribute.cs
-System.Configuration/RsaProtectedConfigurationProvider.cs
+# GEN REMOVED System.Configuration/RsaProtectedConfigurationProvider.cs
 System.Configuration/SectionInfo.cs
 System.Configuration/SectionGroupInfo.cs
 System.Configuration/SectionInformation.cs

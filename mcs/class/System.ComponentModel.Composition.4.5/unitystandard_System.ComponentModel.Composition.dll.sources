@@ -44,7 +44,7 @@ src/ComponentModel/System/ComponentModel/Composition/MetadataViewGenerator.cs
 src/ComponentModel/System/ComponentModel/Composition/ConstraintServices.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportLifetimeContextOfT.cs
 # GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/ImportingConstructorAttribute.cs
-src/ComponentModel/System/ComponentModel/Composition/ImportManyAttribute.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/ImportManyAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/ImportSource.cs
 src/ComponentModel/System/ComponentModel/Composition/MetadataViewProvider.cs
 src/ComponentModel/System/ComponentModel/Composition/ExportAttribute.cs
@@ -68,7 +68,7 @@ src/ComponentModel/System/ComponentModel/Composition/CompositionErrorId.cs
 src/ComponentModel/System/ComponentModel/Composition/CompositionResult.cs
 src/ComponentModel/System/ComponentModel/Composition/CatalogReflectionContextAttribute.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/ExportProvider.cs
-src/ComponentModel/System/ComponentModel/Composition/Hosting/ApplicationCatalog.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/Hosting/ApplicationCatalog.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/AtomicCompositionExtensions.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/TypeCatalog.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/INotifyComposablePartCatalogChanged.cs
@@ -90,10 +90,10 @@ src/ComponentModel/System/ComponentModel/Composition/Hosting/ComposablePartCatal
 src/ComponentModel/System/ComponentModel/Composition/Hosting/ComposablePartExportProvider.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/CompositionScopeDefinition.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/CompositionServices.cs
-src/ComponentModel/System/ComponentModel/Composition/Hosting/CatalogExtensions.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/Hosting/CatalogExtensions.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/CompositionContainer.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/CatalogExportProvider.cs
-src/ComponentModel/System/ComponentModel/Composition/Hosting/CompositionService.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/Hosting/CompositionService.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/FilteredCatalog.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/CatalogExportProvider.CatalogExport.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/CatalogExportProvider.ScopeFactoryExport.cs
@@ -109,7 +109,7 @@ src/ComponentModel/System/ComponentModel/Composition/Hosting/ImportEngine.Engine
 src/ComponentModel/System/ComponentModel/Composition/Hosting/ExportProvider.GetExportOverrides.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/FilteredCatalog.DependenciesTraversal.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/ComposablePartCatalogCollection.cs
-src/ComponentModel/System/ComponentModel/Composition/Hosting/AggregateCatalog.cs
+# GEN REMOVED src/ComponentModel/System/ComponentModel/Composition/Hosting/AggregateCatalog.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/ImportEngine.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/CatalogExportProvider.CatalogChangeProxy.cs
 src/ComponentModel/System/ComponentModel/Composition/Hosting/DirectoryCatalog.DirectoryCatalogDebuggerProxy.cs

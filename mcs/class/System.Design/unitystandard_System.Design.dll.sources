@@ -1,23 +1,23 @@
 Assembly/AssemblyInfo.cs
-System.ComponentModel.Design/ActiveDesignSurfaceChangedEventArgs.cs
-System.ComponentModel.Design/ActiveDesignSurfaceChangedEventHandler.cs
+# GEN REMOVED System.ComponentModel.Design/ActiveDesignSurfaceChangedEventArgs.cs
+# GEN REMOVED System.ComponentModel.Design/ActiveDesignSurfaceChangedEventHandler.cs
 # GEN REMOVED System.ComponentModel.Design/ArrayEditor.cs
-System.ComponentModel.Design/BinaryEditor.cs
-System.ComponentModel.Design/ByteViewer.cs
+# GEN REMOVED System.ComponentModel.Design/BinaryEditor.cs
+# GEN REMOVED System.ComponentModel.Design/ByteViewer.cs
 # GEN REMOVED System.ComponentModel.Design/CollectionEditor.cs
 System.ComponentModel.Design/ComponentActionsType.cs
-System.ComponentModel.Design/ComponentDesigner.cs
-System.ComponentModel.Design.Data/DataSourceDescriptor.cs
-System.ComponentModel.Design.Data/DataSourceDescriptorCollection.cs
-System.ComponentModel.Design.Data/DataSourceGroup.cs
-System.ComponentModel.Design.Data/DataSourceGroupCollection.cs
+# GEN REMOVED System.ComponentModel.Design/ComponentDesigner.cs
+# GEN REMOVED System.ComponentModel.Design.Data/DataSourceDescriptor.cs
+# GEN REMOVED System.ComponentModel.Design.Data/DataSourceDescriptorCollection.cs
+# GEN REMOVED System.ComponentModel.Design.Data/DataSourceGroup.cs
+# GEN REMOVED System.ComponentModel.Design.Data/DataSourceGroupCollection.cs
 # GEN REMOVED System.ComponentModel.Design.Data/DataSourceProviderService.cs
-System.ComponentModel.Design.Data/DesignerDataColumn.cs
-System.ComponentModel.Design.Data/DesignerDataConnection.cs
+# GEN REMOVED System.ComponentModel.Design.Data/DesignerDataColumn.cs
+# GEN REMOVED System.ComponentModel.Design.Data/DesignerDataConnection.cs
 # GEN REMOVED System.ComponentModel.Design.Data/DesignerDataParameter.cs
 # GEN REMOVED System.ComponentModel.Design.Data/DesignerDataRelationship.cs
 # GEN REMOVED System.ComponentModel.Design.Data/DesignerDataSchemaClass.cs
-System.ComponentModel.Design.Data/DesignerDataStoredProcedure.cs
+# GEN REMOVED System.ComponentModel.Design.Data/DesignerDataStoredProcedure.cs
 # GEN REMOVED System.ComponentModel.Design.Data/DesignerDataTable.cs
 # GEN REMOVED System.ComponentModel.Design.Data/DesignerDataTableBase.cs
 # GEN REMOVED System.ComponentModel.Design.Data/DesignerDataView.cs
@@ -26,61 +26,61 @@ System.ComponentModel.Design.Data/DesignerDataStoredProcedure.cs
 System.ComponentModel.Design.Data/QueryBuilderMode.cs
 # GEN REMOVED System.ComponentModel.Design/DateTimeEditor.cs
 # GEN REMOVED System.ComponentModel.Design/DesignerActionHeaderItem.cs
-System.ComponentModel.Design/DesignerActionItem.cs
-System.ComponentModel.Design/DesignerActionItemCollection.cs
-System.ComponentModel.Design/DesignerActionList.cs
-System.ComponentModel.Design/DesignerActionListCollection.cs
-System.ComponentModel.Design/DesignerActionListsChangedEventArgs.cs
-System.ComponentModel.Design/DesignerActionListsChangedEventHandler.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionItem.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionItemCollection.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionList.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionListCollection.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionListsChangedEventArgs.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionListsChangedEventHandler.cs
 System.ComponentModel.Design/DesignerActionListsChangedType.cs
 # GEN REMOVED System.ComponentModel.Design/DesignerActionMethodItem.cs
 # GEN REMOVED System.ComponentModel.Design/DesignerActionPropertyItem.cs
-System.ComponentModel.Design/DesignerActionService.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionService.cs
 # GEN REMOVED System.ComponentModel.Design/DesignerActionTextItem.cs
-System.ComponentModel.Design/DesignerActionUIService.cs
-System.ComponentModel.Design/DesignerActionUIStateChangeEventArgs.cs
-System.ComponentModel.Design/DesignerActionUIStateChangeEventHandler.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionUIService.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionUIStateChangeEventArgs.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerActionUIStateChangeEventHandler.cs
 System.ComponentModel.Design/DesignerActionUIStateChangeType.cs
-System.ComponentModel.Design/DesignerCommandSet.cs
-System.ComponentModel.Design/DesignerEventService.cs
-System.ComponentModel.Design/DesignerHost.cs
-System.ComponentModel.Design/DesignModeNestedContainer.cs
-System.ComponentModel.Design/DesignModeSite.cs
-System.ComponentModel.Design/DesignSurface.cs
-System.ComponentModel.Design/DesignSurfaceCollection.cs
-System.ComponentModel.Design/DesignSurfaceEventArgs.cs
-System.ComponentModel.Design/DesignSurfaceEventHandler.cs
-System.ComponentModel.Design/DesignSurfaceManager.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerCommandSet.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerEventService.cs
+# GEN REMOVED System.ComponentModel.Design/DesignerHost.cs
+# GEN REMOVED System.ComponentModel.Design/DesignModeNestedContainer.cs
+# GEN REMOVED System.ComponentModel.Design/DesignModeSite.cs
+# GEN REMOVED System.ComponentModel.Design/DesignSurface.cs
+# GEN REMOVED System.ComponentModel.Design/DesignSurfaceCollection.cs
+# GEN REMOVED System.ComponentModel.Design/DesignSurfaceEventArgs.cs
+# GEN REMOVED System.ComponentModel.Design/DesignSurfaceEventHandler.cs
+# GEN REMOVED System.ComponentModel.Design/DesignSurfaceManager.cs
 System.ComponentModel.Design/DesignSurfaceServiceContainer.cs
 System.ComponentModel.Design/DisplayMode.cs
-System.ComponentModel.Design/ExceptionCollection.cs
+# GEN REMOVED System.ComponentModel.Design/ExceptionCollection.cs
 # GEN REMOVED System.ComponentModel.Design/EventBindingService.cs
-System.ComponentModel.Design/ExtenderService.cs
+# GEN REMOVED System.ComponentModel.Design/ExtenderService.cs
 # GEN REMOVED System.ComponentModel.Design/IComponentDesignerDebugService.cs
 # GEN REMOVED System.ComponentModel.Design/IComponentDesignerStateService.cs
-System.ComponentModel.Design/InheritanceService.cs
-System.ComponentModel.Design/LoadedEventArgs.cs
-System.ComponentModel.Design/LoadedEventHandler.cs
-System.ComponentModel.Design/LocalizationExtenderProvider.cs
-System.ComponentModel.Design/MenuCommandService.cs
-System.ComponentModel.Design/MenuCommandsChangedEventArgs.cs
-System.ComponentModel.Design/MenuCommandsChangedEventHandler.cs
+# GEN REMOVED System.ComponentModel.Design/InheritanceService.cs
+# GEN REMOVED System.ComponentModel.Design/LoadedEventArgs.cs
+# GEN REMOVED System.ComponentModel.Design/LoadedEventHandler.cs
+# GEN REMOVED System.ComponentModel.Design/LocalizationExtenderProvider.cs
+# GEN REMOVED System.ComponentModel.Design/MenuCommandService.cs
+# GEN REMOVED System.ComponentModel.Design/MenuCommandsChangedEventArgs.cs
+# GEN REMOVED System.ComponentModel.Design/MenuCommandsChangedEventHandler.cs
 System.ComponentModel.Design/MenuCommandsChangedType.cs
 # GEN REMOVED System.ComponentModel.Design/MultilineStringEditor.cs
-System.ComponentModel.Design/ObjectSelectorEditor.cs
+# GEN REMOVED System.ComponentModel.Design/ObjectSelectorEditor.cs
 # GEN REMOVED System.ComponentModel.Design/ReferenceService.cs
-System.ComponentModel.Design/SelectionService.cs
-System.ComponentModel.Design/TypeDescriptorFilterService.cs
-System.ComponentModel.Design/UndoEngine.cs
+# GEN REMOVED System.ComponentModel.Design/SelectionService.cs
+# GEN REMOVED System.ComponentModel.Design/TypeDescriptorFilterService.cs
+# GEN REMOVED System.ComponentModel.Design/UndoEngine.cs
 System.ComponentModel.Design.Serialization/BasicDesignerLoader.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/CodeDomComponentSerializationService.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/CodeDomDesignerLoader.cs
 System.ComponentModel.Design.Serialization/CodeDomLocalizationModel.cs
-System.ComponentModel.Design.Serialization/CodeDomLocalizationProvider.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/CodeDomLocalizationProvider.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/CodeDomSerializationProvider.cs
-System.ComponentModel.Design.Serialization/CodeDomSerializer.cs
-System.ComponentModel.Design.Serialization/CodeDomSerializerBase.cs
-System.ComponentModel.Design.Serialization/CodeDomSerializerException.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/CodeDomSerializer.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/CodeDomSerializerBase.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/CodeDomSerializerException.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/CollectionCodeDomSerializer.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/ComponentCodeDomSerializer.cs
 System.ComponentModel.Design.Serialization/DesignerSerializationManager.cs
@@ -88,140 +88,140 @@ System.ComponentModel.Design.Serialization/DesignerSerializationManager.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/EventCodeDomSerializer.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/ExpressionContext.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/ICodeDomDesignerReload.cs
-System.ComponentModel.Design.Serialization/MemberCodeDomSerializer.cs
-System.ComponentModel.Design.Serialization/ObjectStatementCollection.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/MemberCodeDomSerializer.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/ObjectStatementCollection.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/PrimitiveCodeDomSerializer.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/PropertyCodeDomSerializer.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/RootCodeDomSerializer.cs
-System.ComponentModel.Design.Serialization/RootContext.cs
-System.ComponentModel.Design.Serialization/SerializeAbsoluteContext.cs
-System.ComponentModel.Design.Serialization/StatementContext.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/RootContext.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/SerializeAbsoluteContext.cs
+# GEN REMOVED System.ComponentModel.Design.Serialization/StatementContext.cs
 # GEN REMOVED System.ComponentModel.Design.Serialization/TypeCodeDomSerializer.cs
-System.Data.Design/MethodSignatureGenerator.cs
+# GEN REMOVED System.Data.Design/MethodSignatureGenerator.cs
 System.Data.Design/ParameterGenerationOption.cs
 System.Data.Design/TypedDataSetGenerator.cs
 # GEN REMOVED System.Data.Design/TypedDataSetGeneratorException.cs
 System.Data.Design/TypedDataSetSchemaImporterExtension.cs
 # GEN REMOVED System.Design/DummyClass.cs
-System.Diagnostics.Design/LogConverter.cs
-System.Diagnostics.Design/ProcessDesigner.cs
-System.Diagnostics.Design/ProcessModuleDesigner.cs
-System.Diagnostics.Design/ProcessThreadDesigner.cs
+# GEN REMOVED System.Diagnostics.Design/LogConverter.cs
+# GEN REMOVED System.Diagnostics.Design/ProcessDesigner.cs
+# GEN REMOVED System.Diagnostics.Design/ProcessModuleDesigner.cs
+# GEN REMOVED System.Diagnostics.Design/ProcessThreadDesigner.cs
 # GEN REMOVED System.Diagnostics.Design/StringValueConverter.cs
-System.Messaging.Design/MessageDesigner.cs
-System.Resources.Tools/StronglyTypedResourceBuilder.cs
-System.ServiceProcess.Design/ServiceControllerDesigner.cs
+# GEN REMOVED System.Messaging.Design/MessageDesigner.cs
+# GEN REMOVED System.Resources.Tools/StronglyTypedResourceBuilder.cs
+# GEN REMOVED System.ServiceProcess.Design/ServiceControllerDesigner.cs
 # GEN REMOVED System.Web.UI.Design/AppSettingsExpressionEditor.cs
-System.Web.UI.Design/CalendarDataBindingHandler.cs
-System.Web.UI.Design/ClientScriptItem.cs
-System.Web.UI.Design/ClientScriptItemCollection.cs
-System.Web.UI.Design/ConnectionStringEditor.cs
-System.Web.UI.Design/ContainerControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design/CalendarDataBindingHandler.cs
+# GEN REMOVED System.Web.UI.Design/ClientScriptItem.cs
+# GEN REMOVED System.Web.UI.Design/ClientScriptItemCollection.cs
+# GEN REMOVED System.Web.UI.Design/ConnectionStringEditor.cs
+# GEN REMOVED System.Web.UI.Design/ContainerControlDesigner.cs
 # GEN REMOVED System.Web.UI.Design/ContentDefinition.cs
 System.Web.UI.Design/ContentDesignerState.cs
-System.Web.UI.Design/ColorBuilder.cs
+# GEN REMOVED System.Web.UI.Design/ColorBuilder.cs
 # GEN REMOVED System.Web.UI.Design/ConnectionStringsExpressionEditor.cs
-System.Web.UI.Design/ControlDesigner.cs
-System.Web.UI.Design/ControlDesignerState.cs
+# GEN REMOVED System.Web.UI.Design/ControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design/ControlDesignerState.cs
 System.Web.UI.Design/ControlLocation.cs
-System.Web.UI.Design/ControlParser.cs
-System.Web.UI.Design/ControlPersister.cs
+# GEN REMOVED System.Web.UI.Design/ControlParser.cs
+# GEN REMOVED System.Web.UI.Design/ControlPersister.cs
 # GEN REMOVED System.Web.UI.Design/DataBindingCollectionConverter.cs
-System.Web.UI.Design/DataBindingCollectionEditor.cs
-System.Web.UI.Design/DataBindingHandler.cs
-System.Web.UI.Design/DataBindingValueUIHandler.cs
-System.Web.UI.Design/DataColumnSelectionConverter.cs
-System.Web.UI.Design/DataFieldConverter.cs
-System.Web.UI.Design/DataMemberConverter.cs
-System.Web.UI.Design/DataSetFieldSchema.cs
-System.Web.UI.Design/DataSetSchema.cs
-System.Web.UI.Design/DataSetViewSchema.cs
-System.Web.UI.Design/DataSourceBooleanViewSchemaConverter.cs
-System.Web.UI.Design/DataSourceDesigner.cs
-System.Web.UI.Design/DataSourceViewSchemaConverter.cs
-System.Web.UI.Design/DataSourceConverter.cs
-System.Web.UI.Design/DesignTimeData.cs
-System.Web.UI.Design/DesignTimeResourceProviderFactory.cs
-System.Web.UI.Design/DesignerAutoFormat.cs
-System.Web.UI.Design/DesignerAutoFormatCollection.cs
-System.Web.UI.Design/DesignerAutoFormatStyle.cs
-System.Web.UI.Design/DesignerDataSourceView.cs
-System.Web.UI.Design/DesignerHierarchicalDataSourceView.cs
-System.Web.UI.Design/DesignerObject.cs
-System.Web.UI.Design/DesignerRegion.cs
-System.Web.UI.Design/DesignerRegionCollection.cs
-System.Web.UI.Design/DesignerRegionMouseEventArgs.cs
-System.Web.UI.Design/EditableDesignerRegion.cs
-System.Web.UI.Design/ExpressionEditor.cs
-System.Web.UI.Design/ExpressionEditorSheet.cs
-System.Web.UI.Design/ExpressionsCollectionConverter.cs
-System.Web.UI.Design/ExpressionsCollectionEditor.cs
-System.Web.UI.Design/HierarchicalDataSourceConverter.cs
-System.Web.UI.Design/HierarchicalDataSourceDesigner.cs
-System.Web.UI.Design/HtmlControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design/DataBindingCollectionEditor.cs
+# GEN REMOVED System.Web.UI.Design/DataBindingHandler.cs
+# GEN REMOVED System.Web.UI.Design/DataBindingValueUIHandler.cs
+# GEN REMOVED System.Web.UI.Design/DataColumnSelectionConverter.cs
+# GEN REMOVED System.Web.UI.Design/DataFieldConverter.cs
+# GEN REMOVED System.Web.UI.Design/DataMemberConverter.cs
+# GEN REMOVED System.Web.UI.Design/DataSetFieldSchema.cs
+# GEN REMOVED System.Web.UI.Design/DataSetSchema.cs
+# GEN REMOVED System.Web.UI.Design/DataSetViewSchema.cs
+# GEN REMOVED System.Web.UI.Design/DataSourceBooleanViewSchemaConverter.cs
+# GEN REMOVED System.Web.UI.Design/DataSourceDesigner.cs
+# GEN REMOVED System.Web.UI.Design/DataSourceViewSchemaConverter.cs
+# GEN REMOVED System.Web.UI.Design/DataSourceConverter.cs
+# GEN REMOVED System.Web.UI.Design/DesignTimeData.cs
+# GEN REMOVED System.Web.UI.Design/DesignTimeResourceProviderFactory.cs
+# GEN REMOVED System.Web.UI.Design/DesignerAutoFormat.cs
+# GEN REMOVED System.Web.UI.Design/DesignerAutoFormatCollection.cs
+# GEN REMOVED System.Web.UI.Design/DesignerAutoFormatStyle.cs
+# GEN REMOVED System.Web.UI.Design/DesignerDataSourceView.cs
+# GEN REMOVED System.Web.UI.Design/DesignerHierarchicalDataSourceView.cs
+# GEN REMOVED System.Web.UI.Design/DesignerObject.cs
+# GEN REMOVED System.Web.UI.Design/DesignerRegion.cs
+# GEN REMOVED System.Web.UI.Design/DesignerRegionCollection.cs
+# GEN REMOVED System.Web.UI.Design/DesignerRegionMouseEventArgs.cs
+# GEN REMOVED System.Web.UI.Design/EditableDesignerRegion.cs
+# GEN REMOVED System.Web.UI.Design/ExpressionEditor.cs
+# GEN REMOVED System.Web.UI.Design/ExpressionEditorSheet.cs
+# GEN REMOVED System.Web.UI.Design/ExpressionsCollectionConverter.cs
+# GEN REMOVED System.Web.UI.Design/ExpressionsCollectionEditor.cs
+# GEN REMOVED System.Web.UI.Design/HierarchicalDataSourceConverter.cs
+# GEN REMOVED System.Web.UI.Design/HierarchicalDataSourceDesigner.cs
+# GEN REMOVED System.Web.UI.Design/HtmlControlDesigner.cs
 # GEN REMOVED System.Web.UI.Design/HtmlIntrinsicControlDesigner.cs
-System.Web.UI.Design/HyperLinkDataBindingHandler.cs
+# GEN REMOVED System.Web.UI.Design/HyperLinkDataBindingHandler.cs
 # GEN REMOVED System.Web.UI.Design/IContentResolutionService.cs
 # GEN REMOVED System.Web.UI.Design/IControlDesignerBehaviour.cs
-System.Web.UI.Design/IControlDesignerTag.cs
-System.Web.UI.Design/IControlDesignerView.cs
-System.Web.UI.Design/IDataBindingSchemaProvider.cs
-System.Web.UI.Design/IDataSourceDesigner.cs
-System.Web.UI.Design/IDataSourceSchema.cs
-System.Web.UI.Design/IDataSourceFieldSchema.cs
-System.Web.UI.Design/IDataSourceProvider.cs
-System.Web.UI.Design/IDataSourceViewSchema.cs
+# GEN REMOVED System.Web.UI.Design/IControlDesignerTag.cs
+# GEN REMOVED System.Web.UI.Design/IControlDesignerView.cs
+# GEN REMOVED System.Web.UI.Design/IDataBindingSchemaProvider.cs
+# GEN REMOVED System.Web.UI.Design/IDataSourceDesigner.cs
+# GEN REMOVED System.Web.UI.Design/IDataSourceSchema.cs
+# GEN REMOVED System.Web.UI.Design/IDataSourceFieldSchema.cs
+# GEN REMOVED System.Web.UI.Design/IDataSourceProvider.cs
+# GEN REMOVED System.Web.UI.Design/IDataSourceViewSchema.cs
 # GEN REMOVED System.Web.UI.Design/IDesignTimeResourceProviderFactoryService.cs
-System.Web.UI.Design/IDesignTimeResourceWriter.cs
+# GEN REMOVED System.Web.UI.Design/IDesignTimeResourceWriter.cs
 # GEN REMOVED System.Web.UI.Design/IDocumentProjectItem.cs
 # GEN REMOVED System.Web.UI.Design/IFolderProjectItem.cs
-System.Web.UI.Design/IHierarchicalDataSourceDesigner.cs
-System.Web.UI.Design/IHtmlControlDesignerBehavior.cs
+# GEN REMOVED System.Web.UI.Design/IHierarchicalDataSourceDesigner.cs
+# GEN REMOVED System.Web.UI.Design/IHtmlControlDesignerBehavior.cs
 # GEN REMOVED System.Web.UI.Design/IWebAdministrationService.cs
 # GEN REMOVED System.Web.UI.Design/ImageUrlEditor.cs
-System.Web.UI.Design/IProjectItem.cs
-System.Web.UI.Design/ITemplateEditingFrame.cs
-System.Web.UI.Design/ITemplateEditingService.cs
-System.Web.UI.Design/IWebApplication.cs
+# GEN REMOVED System.Web.UI.Design/IProjectItem.cs
+# GEN REMOVED System.Web.UI.Design/ITemplateEditingFrame.cs
+# GEN REMOVED System.Web.UI.Design/ITemplateEditingService.cs
+# GEN REMOVED System.Web.UI.Design/IWebApplication.cs
 # GEN REMOVED System.Web.UI.Design/IWebFormReferenceManager.cs
 # GEN REMOVED System.Web.UI.Design/IWebFormsBuilderUIService.cs
-System.Web.UI.Design/IWebFormsDocumentService.cs
+# GEN REMOVED System.Web.UI.Design/IWebFormsDocumentService.cs
 # GEN REMOVED System.Web.UI.Design/MailFileEditor.cs
 # GEN REMOVED System.Web.UI.Design/MdbDataFileEditor.cs
-System.Web.UI.Design/ReadWriteControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design/ReadWriteControlDesigner.cs
 # GEN REMOVED System.Web.UI.Design/ResourceExpressionEditor.cs
-System.Web.UI.Design/ResourceExpressionEditorSheet.cs
-System.Web.UI.Design/SkinIDTypeConverter.cs
+# GEN REMOVED System.Web.UI.Design/ResourceExpressionEditorSheet.cs
+# GEN REMOVED System.Web.UI.Design/SkinIDTypeConverter.cs
 # GEN REMOVED System.Web.UI.Design/SupportsPreviewControlAttribute.cs
-System.Web.UI.Design/TemplatedControlDesigner.cs
-System.Web.UI.Design/TemplateDefinition.cs
-System.Web.UI.Design/TemplatedEditableDesignerRegion.cs
-System.Web.UI.Design/TemplateEditingService.cs
-System.Web.UI.Design/TemplateEditingVerb.cs
+# GEN REMOVED System.Web.UI.Design/TemplatedControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design/TemplateDefinition.cs
+# GEN REMOVED System.Web.UI.Design/TemplatedEditableDesignerRegion.cs
+# GEN REMOVED System.Web.UI.Design/TemplateEditingService.cs
+# GEN REMOVED System.Web.UI.Design/TemplateEditingVerb.cs
 # GEN REMOVED System.Web.UI.Design/TemplateModeChangedEventArgs.cs
-System.Web.UI.Design/TemplateGroup.cs
-System.Web.UI.Design/TemplateGroupCollection.cs
-System.Web.UI.Design/TextControlDesigner.cs
-System.Web.UI.Design/TextDataBindingHandler.cs
-System.Web.UI.Design/TransactedChangeCallback.cs
-System.Web.UI.Design/TypeSchema.cs
-System.Web.UI.Design/UrlBuilder.cs
+# GEN REMOVED System.Web.UI.Design/TemplateGroup.cs
+# GEN REMOVED System.Web.UI.Design/TemplateGroupCollection.cs
+# GEN REMOVED System.Web.UI.Design/TextControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design/TextDataBindingHandler.cs
+# GEN REMOVED System.Web.UI.Design/TransactedChangeCallback.cs
+# GEN REMOVED System.Web.UI.Design/TypeSchema.cs
+# GEN REMOVED System.Web.UI.Design/UrlBuilder.cs
 System.Web.UI.Design/UrlBuilderOptions.cs
-System.Web.UI.Design/UrlEditor.cs
+# GEN REMOVED System.Web.UI.Design/UrlEditor.cs
 # GEN REMOVED System.Web.UI.Design/UserControlDesigner.cs
 # GEN REMOVED System.Web.UI.Design/UserControlFileEditor.cs
-System.Web.UI.Design/ViewEvent.cs
-System.Web.UI.Design/ViewEventArgs.cs
-System.Web.UI.Design/ViewEventHandler.cs
+# GEN REMOVED System.Web.UI.Design/ViewEvent.cs
+# GEN REMOVED System.Web.UI.Design/ViewEventArgs.cs
+# GEN REMOVED System.Web.UI.Design/ViewEventHandler.cs
 System.Web.UI.Design/ViewFlags.cs
-System.Web.UI.Design/ViewRendering.cs
-System.Web.UI.Design/WebControlToolboxItem.cs
-System.Web.UI.Design/WebFormsDesignerActionService.cs
-System.Web.UI.Design/WebFormsReferenceManager.cs
-System.Web.UI.Design/WebFormsRootDesigner.cs
+# GEN REMOVED System.Web.UI.Design/ViewRendering.cs
+# GEN REMOVED System.Web.UI.Design/WebControlToolboxItem.cs
+# GEN REMOVED System.Web.UI.Design/WebFormsDesignerActionService.cs
+# GEN REMOVED System.Web.UI.Design/WebFormsReferenceManager.cs
+# GEN REMOVED System.Web.UI.Design/WebFormsRootDesigner.cs
 # GEN REMOVED System.Web.UI.Design/XmlDataFileEditor.cs
-System.Web.UI.Design/XmlDocumentSchema.cs
-System.Web.UI.Design/XmlFileEditor.cs
+# GEN REMOVED System.Web.UI.Design/XmlDocumentSchema.cs
+# GEN REMOVED System.Web.UI.Design/XmlFileEditor.cs
 # GEN REMOVED System.Web.UI.Design/XmlUrlEditor.cs
 # GEN REMOVED System.Web.UI.Design/XsdSchemaFileEditor.cs
 # GEN REMOVED System.Web.UI.Design/XslTransformFileEditor.cs
@@ -232,7 +232,7 @@ System.Web.UI.Design/XmlFileEditor.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/CalendarDesigner.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/CheckBoxDesigner.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/CompositeControlDesigner.cs
-System.Web.UI.Design.WebControls/DataSourceIDConverter.cs
+# GEN REMOVED System.Web.UI.Design.WebControls/DataSourceIDConverter.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/DataProviderNameConverter.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/LinkButtonDesigner.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/ListControlDesigner.cs
@@ -250,75 +250,75 @@ System.Web.UI.Design.WebControls/DataSourceIDConverter.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/BaseDataListComponentEditor.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/ListControlDataBindingHandler.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/LabelDesigner.cs
-System.Web.UI.Design.WebControls/BaseDataBoundControlDesigner.cs
-System.Web.UI.Design.WebControls/DataBoundControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design.WebControls/BaseDataBoundControlDesigner.cs
+# GEN REMOVED System.Web.UI.Design.WebControls/DataBoundControlDesigner.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/DataListComponentEditor.cs
 # GEN REMOVED System.Web.UI.Design.WebControls/HierarchicalDataBoundControlDesigner.cs
 # GEN REMOVED System.Web.UI.Design.Util/DummyClass.cs
 # GEN REMOVED System.Windows.Forms.Design/AnchorEditor.cs
-System.Windows.Forms.Design/AxImporter.cs
-System.Windows.Forms.Design/AxParameterData.cs
-System.Windows.Forms.Design/AxWrapperGen.cs
-System.Windows.Forms.Design/BorderSidesEditor.cs
-System.Windows.Forms.Design/ComponentDocumentDesigner.cs
-System.Windows.Forms.Design/ComponentTray.cs
-System.Windows.Forms.Design/ControlBindingsConverter.cs
+# GEN REMOVED System.Windows.Forms.Design/AxImporter.cs
+# GEN REMOVED System.Windows.Forms.Design/AxParameterData.cs
+# GEN REMOVED System.Windows.Forms.Design/AxWrapperGen.cs
+# GEN REMOVED System.Windows.Forms.Design/BorderSidesEditor.cs
+# GEN REMOVED System.Windows.Forms.Design/ComponentDocumentDesigner.cs
+# GEN REMOVED System.Windows.Forms.Design/ComponentTray.cs
+# GEN REMOVED System.Windows.Forms.Design/ControlBindingsConverter.cs
 # GEN REMOVED System.Windows.Forms.Design/ControlCodeDomSerializer.cs
 # GEN REMOVED System.Windows.Forms.Design/ControlCollectionCodeDomSerializer.cs
-System.Windows.Forms.Design/ControlDataObject.cs
-System.Windows.Forms.Design/ControlDesigner.cs
+# GEN REMOVED System.Windows.Forms.Design/ControlDataObject.cs
+# GEN REMOVED System.Windows.Forms.Design/ControlDesigner.cs
 # GEN REMOVED System.Windows.Forms.Design/DataMemberFieldConverter.cs
 # GEN REMOVED System.Windows.Forms.Design/DataMemberFieldEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/DataMemberListEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/DataSourceConverter.cs
-System.Windows.Forms.Design/DefaultMenuCommands.cs
-System.Windows.Forms.Design/DesignerOptions.cs
+# GEN REMOVED System.Windows.Forms.Design/DefaultMenuCommands.cs
+# GEN REMOVED System.Windows.Forms.Design/DesignerOptions.cs
 # GEN REMOVED System.Windows.Forms.Design/DockEditor.cs
-System.Windows.Forms.Design/DocumentDesigner.cs
-System.Windows.Forms.Design/EventHandlerService.cs
-System.Windows.Forms.Design/FileNameEditor.cs
+# GEN REMOVED System.Windows.Forms.Design/DocumentDesigner.cs
+# GEN REMOVED System.Windows.Forms.Design/EventHandlerService.cs
+# GEN REMOVED System.Windows.Forms.Design/FileNameEditor.cs
 System.Windows.Forms.Design/FolderNameEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/FormDocumentDesigner.cs
 # GEN REMOVED System.Windows.Forms.Design/FormatStringEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/ImageCollectionEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/ImageIndexEditor.cs
-System.Windows.Forms.Design/ImageListCodeDomSerializer.cs
+# GEN REMOVED System.Windows.Forms.Design/ImageListCodeDomSerializer.cs
 # GEN REMOVED System.Windows.Forms.Design/ImageListImageEditor.cs
-System.Windows.Forms.Design/IMenuEditorService.cs
-System.Windows.Forms.Design/IMessageReceiver.cs
-System.Windows.Forms.Design/IOleDragClient.cs
+# GEN REMOVED System.Windows.Forms.Design/IMenuEditorService.cs
+# GEN REMOVED System.Windows.Forms.Design/IMessageReceiver.cs
+# GEN REMOVED System.Windows.Forms.Design/IOleDragClient.cs
 # GEN REMOVED System.Windows.Forms.Design/ISelectionUIHandler.cs
-System.Windows.Forms.Design/IUISelectionService.cs
+# GEN REMOVED System.Windows.Forms.Design/IUISelectionService.cs
 # GEN REMOVED System.Windows.Forms.Design/ListControlStringCollectionEditor.cs
-System.Windows.Forms.Design/MaskDescriptor.cs
-System.Windows.Forms.Design/MenuCommands.cs
+# GEN REMOVED System.Windows.Forms.Design/MaskDescriptor.cs
+# GEN REMOVED System.Windows.Forms.Design/MenuCommands.cs
 System.Windows.Forms.Design/Native.cs
 # GEN REMOVED System.Windows.Forms.Design/PanelDesigner.cs
-System.Windows.Forms.Design/ParentControlDesigner.cs
-System.Windows.Forms.Design/ScrollableControlDesigner.cs
-System.Windows.Forms.Design/SelectionFrame.cs
+# GEN REMOVED System.Windows.Forms.Design/ParentControlDesigner.cs
+# GEN REMOVED System.Windows.Forms.Design/ScrollableControlDesigner.cs
+# GEN REMOVED System.Windows.Forms.Design/SelectionFrame.cs
 System.Windows.Forms.Design/SelectionRules.cs
-System.Windows.Forms.Design/ShortcutKeysEditor.cs
+# GEN REMOVED System.Windows.Forms.Design/ShortcutKeysEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/SplitContainerDesigner.cs
 # GEN REMOVED System.Windows.Forms.Design/StringArrayEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/StringCollectionEditor.cs
 # GEN REMOVED System.Windows.Forms.Design/TabPageCollectionEditor.cs
-System.Windows.Forms.Design/UISelectionService.cs
-System.Windows.Forms.Design/WindowsFormsDesignerOptionService.cs
-System.Windows.Forms.Design/WndProcRouter.cs
-System.Windows.Forms.Design.Behavior/Adorner.cs
-System.Windows.Forms.Design.Behavior/Behavior.cs
-System.Windows.Forms.Design.Behavior/BehaviorDragDropEventArgs.cs
-System.Windows.Forms.Design.Behavior/BehaviorDragDropEventHandler.cs
-System.Windows.Forms.Design.Behavior/BehaviorService.cs
-System.Windows.Forms.Design.Behavior/BehaviorServiceAdornerCollection.cs
-System.Windows.Forms.Design.Behavior/BehaviorServiceAdornerCollectionEnumerator.cs
-System.Windows.Forms.Design.Behavior/ComponentGlyph.cs
-System.Windows.Forms.Design.Behavior/ControlBodyGlyph.cs
-System.Windows.Forms.Design.Behavior/Glyph.cs
-System.Windows.Forms.Design.Behavior/GlyphCollection.cs
+# GEN REMOVED System.Windows.Forms.Design/UISelectionService.cs
+# GEN REMOVED System.Windows.Forms.Design/WindowsFormsDesignerOptionService.cs
+# GEN REMOVED System.Windows.Forms.Design/WndProcRouter.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/Adorner.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/Behavior.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/BehaviorDragDropEventArgs.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/BehaviorDragDropEventHandler.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/BehaviorService.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/BehaviorServiceAdornerCollection.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/BehaviorServiceAdornerCollectionEnumerator.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/ComponentGlyph.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/ControlBodyGlyph.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/Glyph.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/GlyphCollection.cs
 System.Windows.Forms.Design.Behavior/GlyphSelectionType.cs
-System.Windows.Forms.Design.Behavior/SnapLine.cs
+# GEN REMOVED System.Windows.Forms.Design.Behavior/SnapLine.cs
 System.Windows.Forms.Design.Behavior/SnapLinePriority.cs
 System.Windows.Forms.Design.Behavior/SnapLineType.cs
 

@@ -18,7 +18,7 @@ ReferenceSources/SqlInternalConnectionTds.cs
 corefx/SR.cs
 
 # GEN REMOVED Microsoft.SqlServer.Server/SqlDataRecord.cs
-Microsoft.SqlServer.Server/SqlMetaData.cs
+# GEN REMOVED Microsoft.SqlServer.Server/SqlMetaData.cs
 System.Data.SqlClient/SortOrder.cs
 System.Data.SqlClient/SqlNotificationType.cs
 System.Data.SqlClient/SqlNotificationInfo.cs
@@ -40,21 +40,21 @@ System.Data.SqlClient/SqlInitialCatalogConverter.cs
 System.Data.SqlClient/NetworkLibraryConverter.cs
 System.Data.SqlClient/SqlParameter.cs
 System.Data.SqlClient/SqlParameterCollection.cs
-System.Data.SqlClient/SqlParameterConverter.cs
+# GEN REMOVED System.Data.SqlClient/SqlParameterConverter.cs
 System.Data.SqlClient/SqlRowUpdatedEventArgs.cs
 System.Data.SqlClient/SqlRowUpdatedEventHandler.cs
 System.Data.SqlClient/SqlRowUpdatingEventArgs.cs
 System.Data.SqlClient/SqlRowUpdatingEventHandler.cs
 System.Data.SqlClient/SqlTransaction.cs
 System.Data.SqlClient/SqlXmlTextReader.cs
-System.Data.SqlClient/SQLDebugging.cs
+# GEN REMOVED System.Data.SqlClient/SQLDebugging.cs
 System.Data.SqlClient/SqlClientFactory.cs
-System.Data.SqlClient/SqlBulkCopy.cs
+# GEN REMOVED System.Data.SqlClient/SqlBulkCopy.cs
 System.Data.SqlClient/SqlBulkCopyOptions.cs
-System.Data.SqlClient/SqlBulkCopyColumnMapping.cs
-System.Data.SqlClient/SqlBulkCopyColumnMappingCollection.cs
-System.Data.SqlClient/SqlRowsCopiedEventHandler.cs
-System.Data.SqlClient/SqlRowsCopiedEventArgs.cs
+# GEN REMOVED System.Data.SqlClient/SqlBulkCopyColumnMapping.cs
+# GEN REMOVED System.Data.SqlClient/SqlBulkCopyColumnMappingCollection.cs
+# GEN REMOVED System.Data.SqlClient/SqlRowsCopiedEventHandler.cs
+# GEN REMOVED System.Data.SqlClient/SqlRowsCopiedEventArgs.cs
 System.Data.SqlClient/SqlNotificationEventArgs.cs
 System.Data.SqlClient/OnChangeEventHandler.cs
 System.Data.SqlClient/SqlDecimalExtensions.cs

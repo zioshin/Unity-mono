@@ -1,14 +1,14 @@
 Assembly/AssemblyInfo.cs
 ../../build/common/Consts.cs
 # GEN REMOVED ../../build/common/Locale.cs
-System.DirectoryServices/ActiveDirectoryAccessRule.cs
-System.DirectoryServices/ActiveDirectoryAuditRule.cs
+# GEN REMOVED System.DirectoryServices/ActiveDirectoryAccessRule.cs
+# GEN REMOVED System.DirectoryServices/ActiveDirectoryAuditRule.cs
 System.DirectoryServices/ActiveDirectoryRights.cs
 System.DirectoryServices/ActiveDirectorySecurityInheritance.cs
 System.DirectoryServices/AuthenticationTypes.cs
-System.DirectoryServices/DirectoryEntries.cs
-System.DirectoryServices/DirectoryEntry.cs
-System.DirectoryServices/DirectorySearcher.cs
+# GEN REMOVED System.DirectoryServices/DirectoryEntries.cs
+# GEN REMOVED System.DirectoryServices/DirectoryEntry.cs
+# GEN REMOVED System.DirectoryServices/DirectorySearcher.cs
 # GEN REMOVED System.DirectoryServices/DirectoryServicesCOMException.cs
 System.DirectoryServices/DirectoryServicesPermission.cs
 System.DirectoryServices/DirectoryServicesPermissionAccess.cs
@@ -19,28 +19,28 @@ System.DirectoryServices/DirectoryServicesPermissionEntryCollection.cs
 System.DirectoryServices/DirectorySynchronizationOptions.cs
 # GEN REMOVED System.DirectoryServices/DirectoryVirtualListView.cs
 # GEN REMOVED System.DirectoryServices/DirectoryVirtualListViewContext.cs
-System.DirectoryServices/DSDescriptionAttribute.cs
+# GEN REMOVED System.DirectoryServices/DSDescriptionAttribute.cs
 System.DirectoryServices/ExtendedDN.cs
 # GEN REMOVED System.DirectoryServices/ExtendedRightAccessRule.cs
 # GEN REMOVED System.DirectoryServices/ListChildrenAccessRule.cs
 System.DirectoryServices/PasswordEncodingMethod.cs
 System.DirectoryServices/PropertyAccess.cs
 # GEN REMOVED System.DirectoryServices/PropertyAccessRule.cs
-System.DirectoryServices/PropertyCollection.cs
+# GEN REMOVED System.DirectoryServices/PropertyCollection.cs
 # GEN REMOVED System.DirectoryServices/PropertySetAccessRule.cs
-System.DirectoryServices/PropertyValueCollection.cs
+# GEN REMOVED System.DirectoryServices/PropertyValueCollection.cs
 System.DirectoryServices/ReferralChasingOption.cs
-System.DirectoryServices/ResultPropertyCollection.cs
-System.DirectoryServices/ResultPropertyValueCollection.cs
-System.DirectoryServices/SchemaNameCollection.cs
-System.DirectoryServices/SearchResult.cs
-System.DirectoryServices/SearchResultCollection.cs
+# GEN REMOVED System.DirectoryServices/ResultPropertyCollection.cs
+# GEN REMOVED System.DirectoryServices/ResultPropertyValueCollection.cs
+# GEN REMOVED System.DirectoryServices/SchemaNameCollection.cs
+# GEN REMOVED System.DirectoryServices/SearchResult.cs
+# GEN REMOVED System.DirectoryServices/SearchResultCollection.cs
 System.DirectoryServices/SearchScope.cs
 System.DirectoryServices/SortDirection.cs
-System.DirectoryServices/SortOption.cs
+# GEN REMOVED System.DirectoryServices/SortOption.cs
 ../../build/common/MonoTODOAttribute.cs
-System.DirectoryServices.Design/DirectoryEntryConverter.cs
-System.DirectoryServices.ActiveDirectory/ActiveDirectoryObjectNotFoundException.cs
+# GEN REMOVED System.DirectoryServices.Design/DirectoryEntryConverter.cs
+# GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectoryObjectNotFoundException.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectoryOperationException.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectoryPartition.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectoryReplicationMetadata.cs
@@ -52,7 +52,7 @@ System.DirectoryServices.ActiveDirectory/ActiveDirectoryRole.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectorySchemaClassCollection.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectorySchemaProperty.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectorySchemaPropertyCollection.cs
-System.DirectoryServices.ActiveDirectory/ActiveDirectorySecurity.cs
+# GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectorySecurity.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectoryServerDownException.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectorySite.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/ActiveDirectorySiteCollection.cs
@@ -70,7 +70,7 @@ System.DirectoryServices.ActiveDirectory/ActiveDirectoryTransportType.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/AttributeMetadataCollection.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/DirectoryContext.cs
 System.DirectoryServices.ActiveDirectory/DirectoryContextType.cs
-System.DirectoryServices.ActiveDirectory/DirectoryEntryConfiguration.cs
+# GEN REMOVED System.DirectoryServices.ActiveDirectory/DirectoryEntryConfiguration.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/DirectoryServer.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/DirectoryServerCollection.cs
 # GEN REMOVED System.DirectoryServices.ActiveDirectory/Domain.cs

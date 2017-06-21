@@ -6,17 +6,17 @@ System.IO.Pipes/PipeWin32.cs
 
 System.Security.Cryptography/AesCryptoServiceProvider.cs
 System.Security.Cryptography/AesTransform.cs
-System.Security.Cryptography/MD5Cng.cs
-System.Security.Cryptography/SHA1Cng.cs
-System.Security.Cryptography/SHA256Cng.cs
-System.Security.Cryptography/SHA384Cng.cs
-System.Security.Cryptography/SHA512Cng.cs
+# GEN REMOVED System.Security.Cryptography/MD5Cng.cs
+# GEN REMOVED System.Security.Cryptography/SHA1Cng.cs
+# GEN REMOVED System.Security.Cryptography/SHA256Cng.cs
+# GEN REMOVED System.Security.Cryptography/SHA384Cng.cs
+# GEN REMOVED System.Security.Cryptography/SHA512Cng.cs
 
 ../referencesource/System.Core/System/Security/Cryptography/AesManaged.cs
 # GEN REMOVED ../referencesource/System.Core/System/Security/Cryptography/ECDiffieHellman.cs
 ../referencesource/System.Core/System/Security/Cryptography/ECKeyXmlFormat.cs
 
-# GEN REMOVED ../referencesource/System.Core/System/threading/ReaderWriterLockSlim/LockRecursionException.cs
+../referencesource/System.Core/System/threading/ReaderWriterLockSlim/LockRecursionException.cs
 
 # [SourcesGen] Files from includes
 
@@ -58,13 +58,13 @@ corefx/LambdaExpression.cs
 corefx/SR.cs
 corefx/SR.missing.cs
 ../referencesource/System.Core/Microsoft/Scripting/Utils/Action.cs
-# GEN REMOVED INCLUDED ../referencesource/System.Core/Microsoft/Scripting/Utils/Extension.cs
+../referencesource/System.Core/Microsoft/Scripting/Utils/Extension.cs
 ../referencesource/System.Core/Microsoft/Scripting/Utils/Function.cs
 ../referencesource/System.Core/Microsoft/Scripting/Utils/StrongBox.cs
-# GEN REMOVED INCLUDED ../referencesource/System.Core/System/FuncAndAction.cs
-# GEN REMOVED INCLUDED ../referencesource/System.Core/System/InvalidTimeZoneException.cs
-# GEN REMOVED INCLUDED ../referencesource/System.Core/System/TimeZoneInfo.cs
-# GEN REMOVED INCLUDED ../referencesource/System.Core/System/TimeZoneNotFoundException.cs
+../referencesource/System.Core/System/FuncAndAction.cs
+../referencesource/System.Core/System/InvalidTimeZoneException.cs
+../referencesource/System.Core/System/TimeZoneInfo.cs
+../referencesource/System.Core/System/TimeZoneNotFoundException.cs
 ../referencesource/System.Core/System/Collections/Generic/BitHelper.cs
 ../referencesource/System.Core/System/Collections/Generic/HashSet.cs
 ../referencesource/System.Core/System/Collections/Generic/HashSetDebugView.cs
@@ -76,7 +76,7 @@ corefx/SR.missing.cs
 ../referencesource/System.Core/System/IO/MemoryMappedFiles/MemoryMappedViewStream.cs
 ../referencesource/System.Core/System/Runtime/CompilerServices/DynamicAttribute.cs
 # GEN REMOVED INCLUDED ../referencesource/System.Core/System/Runtime/CompilerServices/ExecutionScope.cs
-# GEN REMOVED INCLUDED ../referencesource/System.Core/System/Security/Cryptography/Aes.cs
+../referencesource/System.Core/System/Security/Cryptography/Aes.cs
 ../referencesource/System.Core/System/Security/Cryptography/BCryptNative.cs
 ../referencesource/System.Core/System/Security/Cryptography/CngAlgorithm.cs
 ../referencesource/System.Core/System/Security/Cryptography/CngAlgorithmGroup.cs
@@ -88,9 +88,9 @@ corefx/SR.missing.cs
 ../referencesource/System.Core/System/Security/Cryptography/CngUIPolicy.cs
 ../referencesource/System.Core/System/Security/Cryptography/ECDiffieHellmanPublicKey.cs
 ../referencesource/System.Core/System/Security/Cryptography/ECDsa.cs
-../referencesource/System.Core/System/Security/Cryptography/ECDsaCng.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Core/System/Security/Cryptography/ECDsaCng.cs
 ../referencesource/System.Core/System/Security/Cryptography/NCryptNative.cs
-../referencesource/System.Core/System/Security/Cryptography/RsaCng.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Core/System/Security/Cryptography/RsaCng.cs
 ../referencesource/System.Core/System/threading/ReaderWriterLockSlim/ReaderWriterLockSlim.cs
 ../referencesource/System.Core/System/threading/Tasks/TaskExtensions.cs
 System.Runtime.InteropServices/ComAwareEventInfo.cs

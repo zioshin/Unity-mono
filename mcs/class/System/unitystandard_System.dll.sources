@@ -7,29 +7,29 @@ Microsoft.VisualBasic/VBCodeCompiler.cs
 Microsoft.VisualBasic/VBCodeGenerator.cs
 Microsoft.VisualBasic/VBCodeProvider.cs
 # GEN REMOVED Microsoft.Win32/IntranetZoneCredentialPolicy.cs
-Microsoft.Win32/PowerModeChangedEventArgs.cs
-Microsoft.Win32/PowerModeChangedEventHandler.cs
+# GEN REMOVED Microsoft.Win32/PowerModeChangedEventArgs.cs
+# GEN REMOVED Microsoft.Win32/PowerModeChangedEventHandler.cs
 Microsoft.Win32/PowerModes.cs
-Microsoft.Win32/SessionEndedEventArgs.cs
-Microsoft.Win32/SessionEndedEventHandler.cs
-Microsoft.Win32/SessionEndingEventArgs.cs
-Microsoft.Win32/SessionEndingEventHandler.cs
+# GEN REMOVED Microsoft.Win32/SessionEndedEventArgs.cs
+# GEN REMOVED Microsoft.Win32/SessionEndedEventHandler.cs
+# GEN REMOVED Microsoft.Win32/SessionEndingEventArgs.cs
+# GEN REMOVED Microsoft.Win32/SessionEndingEventHandler.cs
 Microsoft.Win32/SessionEndReasons.cs
-Microsoft.Win32/SessionSwitchEventArgs.cs
-Microsoft.Win32/SessionSwitchEventHandler.cs
+# GEN REMOVED Microsoft.Win32/SessionSwitchEventArgs.cs
+# GEN REMOVED Microsoft.Win32/SessionSwitchEventHandler.cs
 Microsoft.Win32/SessionSwitchReason.cs
-Microsoft.Win32/SystemEvents.cs
-Microsoft.Win32/TimerElapsedEventArgs.cs
-Microsoft.Win32/TimerElapsedEventHandler.cs
+# GEN REMOVED Microsoft.Win32/SystemEvents.cs
+# GEN REMOVED Microsoft.Win32/TimerElapsedEventArgs.cs
+# GEN REMOVED Microsoft.Win32/TimerElapsedEventHandler.cs
 Microsoft.Win32/UserPreferenceCategory.cs
-Microsoft.Win32/UserPreferenceChangedEventArgs.cs
-Microsoft.Win32/UserPreferenceChangedEventHandler.cs
-Microsoft.Win32/UserPreferenceChangingEventArgs.cs
-Microsoft.Win32/UserPreferenceChangingEventHandler.cs
+# GEN REMOVED Microsoft.Win32/UserPreferenceChangedEventArgs.cs
+# GEN REMOVED Microsoft.Win32/UserPreferenceChangedEventHandler.cs
+# GEN REMOVED Microsoft.Win32/UserPreferenceChangingEventArgs.cs
+# GEN REMOVED Microsoft.Win32/UserPreferenceChangingEventHandler.cs
 
 System/MonoToolsLocator.cs
 
-System.CodeDom.Compiler/CodeCompiler.cs
+# GEN REMOVED System.CodeDom.Compiler/CodeCompiler.cs
 System.CodeDom.Compiler/CodeDomConfigurationHandler.cs
 System.CodeDom.Compiler/CodeDomProvider.cs
 # GEN REMOVED System.CodeDom.Compiler/CodeParser.cs
@@ -39,7 +39,7 @@ System.CodeDom.Compiler/CompilerInfo.cs
 System.CodeDom.Compiler/CompilerProviderOption.cs
 System.CodeDom.Compiler/CompilerProviderOptionsCollection.cs
 System.CodeDom.Compiler/CompilerResults.cs
-System.CodeDom.Compiler/Executor.cs
+# GEN REMOVED System.CodeDom.Compiler/Executor.cs
 System.CodeDom.Compiler/TempFileCollection.cs
 System.Configuration/ApplicationScopedSettingAttribute.cs
 System.Configuration/ApplicationSettingsBase.cs
@@ -124,7 +124,7 @@ System.Diagnostics/EventLogPermissionEntryCollection.cs
 System.Diagnostics/EventLogPermissionEntry.cs
 System.Diagnostics/EventLogTraceListener.cs
 System.Diagnostics/EventSourceCreationData.cs
-System.Diagnostics/ICollectData.cs
+# GEN REMOVED System.Diagnostics/ICollectData.cs
 System.Diagnostics/InstanceDataCollectionCollection.cs
 System.Diagnostics/InstanceDataCollection.cs
 System.Diagnostics/InstanceData.cs
@@ -136,7 +136,7 @@ System.Diagnostics/PerformanceCounterCategoryType.cs
 System.Diagnostics/PerformanceCounter.cs
 System.Diagnostics/PerformanceCounterInstaller.cs
 System.Diagnostics/PerformanceCounterInstanceLifetime.cs
-System.Diagnostics/PerformanceCounterManager.cs
+# GEN REMOVED System.Diagnostics/PerformanceCounterManager.cs
 System.Diagnostics/PerformanceCounterPermissionAccess.cs
 System.Diagnostics/PerformanceCounterPermissionAttribute.cs
 System.Diagnostics/PerformanceCounterPermission.cs
@@ -174,10 +174,10 @@ System.IO.Ports/WinSerialStream.cs
 
 System.Media/AudioData.cs
 System.Media/AudioDevice.cs
-System.Media/SoundPlayer.cs
-System.Media/SystemSound.cs
-System.Media/SystemSounds.cs
-System.Media/Win32SoundPlayer.cs
+# GEN REMOVED System.Media/SoundPlayer.cs
+# GEN REMOVED System.Media/SystemSound.cs
+# GEN REMOVED System.Media/SystemSounds.cs
+# GEN REMOVED System.Media/Win32SoundPlayer.cs
 
 System.Net/DnsAsyncResult.cs
 System.Net/DnsPermissionAttribute.cs
@@ -258,7 +258,7 @@ Mono.Net.Dns/ResolverError.cs
 Mono.Net.Dns/SimpleResolverEventArgs.cs
 ReferenceSources/BinaryCompatibility.cs
 ReferenceSources/ConfigurationManagerInternalFactory.cs
-# GEN REMOVED ReferenceSources/SR2.cs
+ReferenceSources/SR2.cs
 # GEN REMOVED ../referencesource/System/compmod/system/diagnostics/ConsoleTraceListener.cs
 ../referencesource/System/compmod/system/diagnostics/FilterElement.cs
 ../referencesource/System/compmod/system/diagnostics/PerfCounterSection.cs
@@ -607,43 +607,43 @@ System.Threading/ThreadExceptionEventArgs.cs
 System.Threading/ThreadExceptionEventHandler.cs
 System.Timers/ElapsedEventArgs.cs
 System.Windows.Input/ICommand.cs
-Mono.Btls/MonoBtlsBio.cs
-Mono.Btls/MonoBtlsContext.cs
-Mono.Btls/MonoBtlsError.cs
-Mono.Btls/MonoBtlsException.cs
-Mono.Btls/MonoBtlsKey.cs
-Mono.Btls/MonoBtlsObject.cs
-Mono.Btls/MonoBtlsPkcs12.cs
-Mono.Btls/MonoBtlsProvider.cs
-Mono.Btls/MonoBtlsSsl.cs
-Mono.Btls/MonoBtlsSslCtx.cs
-Mono.Btls/MonoBtlsSslError.cs
-Mono.Btls/MonoBtlsStream.cs
-Mono.Btls/MonoBtlsUtils.cs
-Mono.Btls/MonoBtlsX509.cs
-Mono.Btls/MonoBtlsX509Chain.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsBio.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsContext.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsError.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsException.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsKey.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsObject.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsPkcs12.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsProvider.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsSsl.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsSslCtx.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsSslError.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsStream.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsUtils.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Chain.cs
 # GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Crl.cs
-Mono.Btls/MonoBtlsX509Error.cs
-Mono.Btls/MonoBtlsX509Exception.cs
-Mono.Btls/MonoBtlsX509FileType.cs
-Mono.Btls/MonoBtlsX509Format.cs
-Mono.Btls/MonoBtlsX509Lookup.cs
-Mono.Btls/MonoBtlsX509LookupMonoCollection.cs
-Mono.Btls/MonoBtlsX509LookupMono.cs
-Mono.Btls/MonoBtlsX509LookupType.cs
-Mono.Btls/MonoBtlsX509Name.cs
-Mono.Btls/MonoBtlsX509NameEntryType.cs
-Mono.Btls/MonoBtlsX509Purpose.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Error.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Exception.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509FileType.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Format.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Lookup.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509LookupMonoCollection.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509LookupMono.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509LookupType.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Name.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509NameEntryType.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Purpose.cs
 # GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Revoked.cs
-Mono.Btls/MonoBtlsX509Store.cs
-Mono.Btls/MonoBtlsX509StoreCtx.cs
-Mono.Btls/MonoBtlsX509StoreManager.cs
-Mono.Btls/MonoBtlsX509StoreType.cs
-Mono.Btls/MonoBtlsX509TrustKind.cs
-Mono.Btls/MonoBtlsX509VerifyFlags.cs
-Mono.Btls/MonoBtlsX509VerifyParam.cs
-Mono.Btls/X509CertificateImplBtls.cs
-Mono.Btls/X509ChainImplBtls.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509Store.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509StoreCtx.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509StoreManager.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509StoreType.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509TrustKind.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509VerifyFlags.cs
+# GEN REMOVED INCLUDED Mono.Btls/MonoBtlsX509VerifyParam.cs
+# GEN REMOVED INCLUDED Mono.Btls/X509CertificateImplBtls.cs
+# GEN REMOVED INCLUDED Mono.Btls/X509ChainImplBtls.cs
 # GEN REMOVED INCLUDED Mono.Http/NtlmClient.cs
 Mono.AppleTls/AppleCertificateHelper.cs
 Mono.AppleTls/AppleTlsContext.cs

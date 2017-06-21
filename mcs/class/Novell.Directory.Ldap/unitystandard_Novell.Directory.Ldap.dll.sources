@@ -177,13 +177,13 @@ Novell.Directory.Ldap.Extensions/BackupRestoreConstants.cs
 # GEN REMOVED Novell.Directory.Ldap.Extensions/LdapBackupRequest.cs
 # GEN REMOVED Novell.Directory.Ldap.Extensions/LdapBackupResponse.cs
 # GEN REMOVED Novell.Directory.Ldap.Extensions/LdapRestoreRequest.cs
-Novell.Directory.Ldap.Controls/LdapEntryChangeControl.cs
+# GEN REMOVED Novell.Directory.Ldap.Controls/LdapEntryChangeControl.cs
 Novell.Directory.Ldap.Controls/LdapPersistSearchControl.cs
 # GEN REMOVED Novell.Directory.Ldap.Controls/LdapSortControl.cs
 # GEN REMOVED Novell.Directory.Ldap.Controls/LdapSortKey.cs
-Novell.Directory.Ldap.Controls/LdapSortResponse.cs
+# GEN REMOVED Novell.Directory.Ldap.Controls/LdapSortResponse.cs
 # GEN REMOVED Novell.Directory.Ldap.Controls/LdapVirtualListControl.cs
-Novell.Directory.Ldap.Controls/LdapVirtualListResponse.cs
+# GEN REMOVED Novell.Directory.Ldap.Controls/LdapVirtualListResponse.cs
 Novell.Directory.Ldap.Events/LdapEventConstants.cs
 Novell.Directory.Ldap.Events/BaseEventArgs.cs
 Novell.Directory.Ldap.Events/DirectoryExceptionEventArgs.cs
@@ -196,24 +196,24 @@ Novell.Directory.Ldap.Events/LdapEventSource.cs
 Novell.Directory.Ldap.Events.Edir/EdirEventConstants.cs
 # GEN REMOVED Novell.Directory.Ldap.Events.Edir/EdirEventArgs.cs
 # GEN REMOVED Novell.Directory.Ldap.Events.Edir/EdirEventSpecifier.cs
-Novell.Directory.Ldap.Events.Edir/EdirEventIntermediateResponse.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir/EdirEventIntermediateResponse.cs
 # GEN REMOVED Novell.Directory.Ldap.Events.Edir/MonitorEventResponse.cs
 # GEN REMOVED Novell.Directory.Ldap.Events.Edir/MonitorEventRequest.cs
 # GEN REMOVED Novell.Directory.Ldap.Events.Edir/EdirEventSource.cs
-Novell.Directory.Ldap.Events.Edir.EventData/BaseEdirEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/DSETimeStamp.cs
-Novell.Directory.Ldap.Events.Edir.EventData/EntryEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/ValueEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/ReferralAddress.cs
-Novell.Directory.Ldap.Events.Edir.EventData/DebugParameter.cs
-Novell.Directory.Ldap.Events.Edir.EventData/DebugEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/GeneralDSEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/BinderyObjectEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/SecurityEquivalenceEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/ModuleStateEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/NetworkAddressEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/ConnectionStateEventData.cs
-Novell.Directory.Ldap.Events.Edir.EventData/ChangeAddressEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/BaseEdirEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/DSETimeStamp.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/EntryEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/ValueEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/ReferralAddress.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/DebugParameter.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/DebugEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/GeneralDSEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/BinderyObjectEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/SecurityEquivalenceEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/ModuleStateEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/NetworkAddressEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/ConnectionStateEventData.cs
+# GEN REMOVED Novell.Directory.Ldap.Events.Edir.EventData/ChangeAddressEventData.cs
 
 # [SourcesGen] Files from includes
 

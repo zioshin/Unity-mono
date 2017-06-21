@@ -8,23 +8,23 @@
 ./Mono.Unix/FileHandleOperations.cs
 ./Mono.Unix/FileSpecialAttributes.cs
 ./Mono.Unix/FileTypes.cs
-./Mono.Unix/PeerCred.cs
+# GEN REMOVED ./Mono.Unix/PeerCred.cs
 # GEN REMOVED ./Mono.Unix/StdioFileStream.cs
-./Mono.Unix/UnixClient.cs
+# GEN REMOVED ./Mono.Unix/UnixClient.cs
 ./Mono.Unix/UnixDirectoryInfo.cs
 ./Mono.Unix/UnixDriveInfo.cs
 ./Mono.Unix/UnixEncoding.cs
-./Mono.Unix/UnixEnvironment.cs
-./Mono.Unix/UnixEndPoint.cs
+# GEN REMOVED ./Mono.Unix/UnixEnvironment.cs
+# GEN REMOVED ./Mono.Unix/UnixEndPoint.cs
 ./Mono.Unix/UnixFileInfo.cs
 ./Mono.Unix/UnixFileSystemInfo.cs
 ./Mono.Unix/UnixGroupInfo.cs
 ./Mono.Unix/UnixIOException.cs
-./Mono.Unix/UnixListener.cs
+# GEN REMOVED ./Mono.Unix/UnixListener.cs
 ./Mono.Unix/UnixMarshal.cs
 ./Mono.Unix/UnixPath.cs
 # GEN REMOVED ./Mono.Unix/UnixPipes.cs
-./Mono.Unix/UnixProcess.cs
+# GEN REMOVED ./Mono.Unix/UnixProcess.cs
 ./Mono.Unix/UnixSignal.cs
 ./Mono.Unix/UnixStream.cs
 ./Mono.Unix/UnixSymbolicLinkInfo.cs
@@ -42,19 +42,19 @@
 # GEN REMOVED ./Mono.Posix/PeerCred.cs
 ./Mono.Posix/Syscall.cs
 # GEN REMOVED ./Mono.Posix/UnixEndPoint.cs
-./Mono.Remoting.Channels.Unix/UnixBinaryClientFormatterSink.cs
-./Mono.Remoting.Channels.Unix/UnixBinaryClientFormatterSinkProvider.cs
-./Mono.Remoting.Channels.Unix/UnixBinaryCore.cs
-./Mono.Remoting.Channels.Unix/UnixBinaryServerFormatterSink.cs
-./Mono.Remoting.Channels.Unix/UnixBinaryServerFormatterSinkProvider.cs
-./Mono.Remoting.Channels.Unix/UnixChannel.cs
-./Mono.Remoting.Channels.Unix/UnixClientChannel.cs
-./Mono.Remoting.Channels.Unix/UnixClientTransportSink.cs
-./Mono.Remoting.Channels.Unix/UnixClientTransportSinkProvider.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixBinaryClientFormatterSink.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixBinaryClientFormatterSinkProvider.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixBinaryCore.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixBinaryServerFormatterSink.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixBinaryServerFormatterSinkProvider.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixChannel.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixClientChannel.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixClientTransportSink.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixClientTransportSinkProvider.cs
 ./Mono.Remoting.Channels.Unix/UnixMessageIO.cs
-./Mono.Remoting.Channels.Unix/UnixServerChannel.cs
-./Mono.Remoting.Channels.Unix/UnixServerTransportSink.cs
-./Mono.Remoting.Channels.Unix/UnixConnectionPool.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixServerChannel.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixServerTransportSink.cs
+# GEN REMOVED ./Mono.Remoting.Channels.Unix/UnixConnectionPool.cs
 
 # [SourcesGen] Files from includes
 

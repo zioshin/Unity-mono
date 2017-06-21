@@ -211,7 +211,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Xml/misc/HResults.cs
 # GEN REMOVED ../referencesource/System.Xml/misc/InvariantComparer.cs
 ../referencesource/System.Xml/misc/PrivilegedConfigurationManager.cs
-# GEN REMOVED ../referencesource/System.Xml/System/Xml/Assembly/System.Xml.Assembly.cs
+../referencesource/System.Xml/System/Xml/Assembly/System.Xml.Assembly.cs
 ../referencesource/System.Xml/System/Xml/AsyncHelper.cs
 ../referencesource/System.Xml/System/Xml/Base64Decoder.cs
 ../referencesource/System.Xml/System/Xml/Base64EncoderAsync.cs
@@ -356,7 +356,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Xml/System/Xml/Dom/XPathNodeList.cs
 ../referencesource/System.Xml/System/Xml/EmptyEnumerator.cs
 ../referencesource/System.Xml/System/Xml/HWStack.cs
-../referencesource/System.Xml/System/Xml/IApplicationResourceStreamResolver.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/IApplicationResourceStreamResolver.cs
 ../referencesource/System.Xml/System/Xml/IHasXmlNode.cs
 ../referencesource/System.Xml/System/Xml/IXmlLineInfo.cs
 ../referencesource/System.Xml/System/Xml/IXmlNamespaceResolver.cs
@@ -585,7 +585,7 @@ ReferenceSources/ThisAssembly.cs
 ../referencesource/System.Xml/System/Xml/XmlSecureResolver.cs
 ../referencesource/System.Xml/System/Xml/XmlUrlResolverAsync.cs
 ../referencesource/System.Xml/System/Xml/XmlUrlResolver.cs
-../referencesource/System.Xml/System/Xml/XmlXapResolver.cs
+# GEN REMOVED ../referencesource/System.Xml/System/Xml/XmlXapResolver.cs
 ../referencesource/System.Xml/System/Xml/XPath/Internal/AbsoluteQuery.cs
 ../referencesource/System.Xml/System/Xml/XPath/Internal/AstNode.cs
 ../referencesource/System.Xml/System/Xml/XPath/Internal/AttributeQuery.cs

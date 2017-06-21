@@ -4,7 +4,7 @@
 
 # [SourcesGen] Files from includes
 
-# GEN REMOVED INCLUDED ../../build/common/SR.cs
+../../build/common/SR.cs
 Assembly/AssemblyInfo.cs
 # GEN REMOVED INCLUDED .
 ReferenceSources/DiagnosticUtility.cs
@@ -162,11 +162,11 @@ ReferenceSources/XmlFormatWriterGenerator_static.cs
 # GEN REMOVED INCLUDED ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/Configuration/SerializationSectionGroup.cs
 ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/Configuration/TypeElementCollection.cs
 ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/Configuration/TypeElement.cs
-../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/CodeExporter.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/CodeExporter.cs
 ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/ContractCodeDomInfo.cs
-../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/ImportOptions.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/ImportOptions.cs
 ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/SchemaExporter.cs
 ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/SchemaHelper.cs
 ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/SchemaImporter.cs
 ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/XsdDataContractExporter.cs
-../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/XsdDataContractImporter.cs
+# GEN REMOVED INCLUDED ../referencesource/System.Runtime.Serialization/System/Runtime/Serialization/XsdDataContractImporter.cs

@@ -22,9 +22,9 @@ Mono.Mozilla/interfaces/nsIAccessibleRelation.cs
 Mono.Mozilla/interfaces/nsIAccessibleRetrieval.cs
 Mono.Mozilla/interfaces/nsIAccessNode.cs
 Mono.Mozilla/interfaces/nsIArray.cs
-# GEN REMOVED Mono.Mozilla/interfaces/nsICancelable.cs
+Mono.Mozilla/interfaces/nsICancelable.cs
 Mono.Mozilla/interfaces/nsIChannel.cs
-# GEN REMOVED Mono.Mozilla/interfaces/nsIClassInfo.cs
+Mono.Mozilla/interfaces/nsIClassInfo.cs
 Mono.Mozilla/interfaces/nsIDocumentEncoder.cs
 Mono.Mozilla/interfaces/nsIDocumentEncoderNodeFixup.cs
 Mono.Mozilla/interfaces/nsIDOMCounter.cs
@@ -58,8 +58,8 @@ Mono.Mozilla/interfaces/nsILoadGroup.cs
 Mono.Mozilla/interfaces/nsIObserver.cs
 Mono.Mozilla/interfaces/nsIOutputStream.cs
 Mono.Mozilla/interfaces/nsIPersistentProperties.cs
-# GEN REMOVED Mono.Mozilla/interfaces/nsIPrefBranch.cs
-# GEN REMOVED Mono.Mozilla/interfaces/nsIPrefService.cs
+Mono.Mozilla/interfaces/nsIPrefBranch.cs
+Mono.Mozilla/interfaces/nsIPrefService.cs
 Mono.Mozilla/interfaces/nsIProperties.cs
 Mono.Mozilla/interfaces/nsIProtocolHandler.cs
 Mono.Mozilla/interfaces/nsIRequest.cs
@@ -72,7 +72,7 @@ Mono.Mozilla/interfaces/nsIURIContentListener.cs
 Mono.Mozilla/interfaces/nsIWeakReference.cs
 Mono.Mozilla/interfaces/nsIWebBrowser.cs
 Mono.Mozilla/interfaces/nsIWebBrowserChrome.cs
-# GEN REMOVED Mono.Mozilla/interfaces/nsIWebBrowserPersist.cs
+Mono.Mozilla/interfaces/nsIWebBrowserPersist.cs
 Mono.Mozilla/interfaces/nsIWebBrowserStream.cs
 Mono.Mozilla/interfaces/nsIWebProgress.cs
 Mono.Mozilla/interfaces/nsIWebProgressListener.cs
@@ -99,7 +99,7 @@ Mono.Mozilla/interfaces/nsIDOMWindow.cs
 Mono.Mozilla/interfaces/nsIDOMWindowCollection.cs
 Mono.Mozilla/interfaces/nsIInterfaceRequestor.cs
 Mono.Mozilla/interfaces/nsISelection.cs
-# GEN REMOVED Mono.Mozilla/interfaces/nsIWebBrowserChromeFocus.cs
+Mono.Mozilla/interfaces/nsIWebBrowserChromeFocus.cs
 Mono.Mozilla/interfaces/nsIWebBrowserFocus.cs
 Mono.Mozilla/interfaces/nsIDOMAttr.cs
 Mono.Mozilla/interfaces/nsIDOMCDATASection.cs

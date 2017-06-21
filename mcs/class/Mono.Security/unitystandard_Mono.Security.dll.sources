@@ -142,7 +142,7 @@
 ./Mono.Security.Interface/CipherSuiteCode.cs
 ./Mono.Security.Interface/ExchangeAlgorithmType.cs
 ./Mono.Security.Interface/HashAlgorithmType.cs
-./Mono.Security.Interface/IBufferOffsetSize.cs
+# GEN REMOVED ./Mono.Security.Interface/IBufferOffsetSize.cs
 # GEN REMOVED ./Mono.Security.Interface/IMonoTlsEventSink.cs
 ./Mono.Security.Interface/IMonoSslStream.cs
 ./Mono.Security.Interface/MonoTlsConnectionInfo.cs
@@ -153,10 +153,10 @@
 ./Mono.Security.Interface/TlsProtocolCode.cs
 ./Mono.Security.Interface/TlsProtocols.cs
 
-./Mono.Security.Interface/BufferOffsetSize.cs
-./Mono.Security.Interface/SecretParameters.cs
-./Mono.Security.Interface/SecureBuffer.cs
-./Mono.Security.Interface/TlsBuffer.cs
+# GEN REMOVED ./Mono.Security.Interface/BufferOffsetSize.cs
+# GEN REMOVED ./Mono.Security.Interface/SecretParameters.cs
+# GEN REMOVED ./Mono.Security.Interface/SecureBuffer.cs
+# GEN REMOVED ./Mono.Security.Interface/TlsBuffer.cs
 # GEN REMOVED ./Mono.Security.Interface/TlsMultiBuffer.cs
 
 # [SourcesGen] Files from includes

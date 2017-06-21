@@ -6,9 +6,9 @@ System.Drawing/Bitmap.cs
 # GEN REMOVED System.Drawing/BitmapSuffixInSatelliteAssemblyAttribute.cs
 System.Drawing/Brush.cs
 System.Drawing/Brushes.cs
-System.Drawing/BufferedGraphics.cs
+# GEN REMOVED System.Drawing/BufferedGraphics.cs
 # GEN REMOVED System.Drawing/BufferedGraphicsManager.cs
-System.Drawing/BufferedGraphicsContext.cs
+# GEN REMOVED System.Drawing/BufferedGraphicsContext.cs
 System.Drawing/CharacterRange.cs
 System.Drawing/macFunctions.cs
 System.Drawing/ColorConverter.cs
@@ -66,23 +66,23 @@ System.Drawing/SystemPens.cs
 System.Drawing/TextureBrush.cs
 System.Drawing/ToolboxBitmapAttribute.cs
 System.Drawing.Design/UITypeEditorEditStyle.cs
-System.Drawing.Design/IPropertyValueUIService.cs
+# GEN REMOVED System.Drawing.Design/IPropertyValueUIService.cs
 # GEN REMOVED System.Drawing.Design/IToolboxItemProvider.cs
-System.Drawing.Design/PropertyValueItem.cs
-System.Drawing.Design/PropertyValueUIHandler.cs
-System.Drawing.Design/PropertyValueUIItemInvokeHandler.cs
-System.Drawing.Design/CategoryNameCollection.cs
-System.Drawing.Design/IToolboxService.cs
-System.Drawing.Design/IToolboxUser.cs 
+# GEN REMOVED System.Drawing.Design/PropertyValueItem.cs
+# GEN REMOVED System.Drawing.Design/PropertyValueUIHandler.cs
+# GEN REMOVED System.Drawing.Design/PropertyValueUIItemInvokeHandler.cs
+# GEN REMOVED System.Drawing.Design/CategoryNameCollection.cs
+# GEN REMOVED System.Drawing.Design/IToolboxService.cs
+# GEN REMOVED System.Drawing.Design/IToolboxUser.cs 
 System.Drawing.Design/PaintValueEventArgs.cs
-System.Drawing.Design/ToolboxComponentsCreatedEventArgs.cs
-System.Drawing.Design/ToolboxComponentsCreatedEventHandler.cs
-System.Drawing.Design/ToolboxComponentsCreatingEventArgs.cs
-System.Drawing.Design/ToolboxComponentsCreatingEventHandler.cs
-System.Drawing.Design/ToolboxItemCreatorCallback.cs
-System.Drawing.Design/ToolboxItem.cs
+# GEN REMOVED System.Drawing.Design/ToolboxComponentsCreatedEventArgs.cs
+# GEN REMOVED System.Drawing.Design/ToolboxComponentsCreatedEventHandler.cs
+# GEN REMOVED System.Drawing.Design/ToolboxComponentsCreatingEventArgs.cs
+# GEN REMOVED System.Drawing.Design/ToolboxComponentsCreatingEventHandler.cs
+# GEN REMOVED System.Drawing.Design/ToolboxItemCreatorCallback.cs
+# GEN REMOVED System.Drawing.Design/ToolboxItem.cs
 System.Drawing.Design/UITypeEditor.cs
-System.Drawing.Design/ToolboxItemCollection.cs
+# GEN REMOVED System.Drawing.Design/ToolboxItemCollection.cs
 # GEN REMOVED System.Drawing.Drawing2D/AdjustableArrowCap.cs
 System.Drawing.Drawing2D/Blend.cs
 System.Drawing.Drawing2D/ColorBlend.cs
