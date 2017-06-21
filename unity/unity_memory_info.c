@@ -21,6 +21,42 @@ typedef struct CollectMetadataContext
 	MonoMetadataSnapshot* metadata;
 } CollectMetadataContext;
 
+static void ContextInsertClass(CollectMetadataContext* context, MonoClass* klass)
+{
+	if(klass->inited)
+		g_hash_table_insert(context->allTypes, klass, (gpointer)(context->currentIndex++));
+}
+
+static void CollectHashMapClass(gpointer key, gpointer value, gpointer user_data)
+{
+	CollectMetadataContext* context = (CollectMetadataContext*)user_data;
+	MonoClass* klass = (MonoClass*)value;
+	ContextInsertClass(context, klass);
+}
+
+static void CollectHashMapListClasses(gpointer key, gpointer value, gpointer user_data)
+{
+	CollectMetadataContext* context = (CollectMetadataContext*)user_data;
+	GSList* list = (GSList*)value;
+
+	while (list != NULL) 
+	{
+		MonoClass* klass = (MonoClass*)list->data;
+		ContextInsertClass(context, klass);
+
+		list = g_slist_next(list);
+	}
+}
+
+static void CollectHashMapGenericClass(gpointer key, gpointer value, gpointer user_data)
+{
+	CollectMetadataContext* context = (CollectMetadataContext*)user_data;
+	MonoGenericClass* genericClass = (MonoGenericClass*)value;
+
+	if(genericClass->cached_class != NULL)
+		ContextInsertClass(context, genericClass->cached_class);
+}
+
 static void CollectAssemblyMetaData (MonoAssembly *assembly, void *user_data)
 {
 	int i;
@@ -31,10 +67,13 @@ static void CollectAssemblyMetaData (MonoAssembly *assembly, void *user_data)
 	for(i = 0; i < tdef->rows-1; ++i)
 	{
 		MonoClass* klass = mono_class_get (image, (i + 2) | MONO_TOKEN_TYPE_DEF);
-
-		if(klass->inited)
-			g_hash_table_insert(context->allTypes, klass, (gpointer)(context->currentIndex++));
+		ContextInsertClass(context, klass);
 	}
+
+	g_hash_table_foreach(image->array_cache, CollectHashMapListClasses, user_data);
+	g_hash_table_foreach(image->szarray_cache, CollectHashMapClass, user_data);
+	g_hash_table_foreach(image->ptr_cache, CollectHashMapClass, user_data);
+	g_hash_table_foreach(image->generic_class_cache, CollectHashMapGenericClass, user_data);
 }
 
 static int FindClassIndex(GHashTable* hashTable, MonoClass* klass)
@@ -200,23 +239,58 @@ static void CopyMemPoolChunk(void* chunkStart, void* chunkEnd, void* context)
 	CopyHeapSection(context, chunkStart, chunkEnd);
 }
 
+static void AddImageMemoryPoolChunkCount (MonoAssembly *assembly, MonoManagedHeap* heap)
+{
+	heap->sectionCount += MonoMemPoolNumChunks(assembly->image->mempool);
+}
+
+static void IncrementCountForImageMemPoolNumChunks(MonoAssembly *assembly, void *user_data)
+{
+	int* count = (int*)user_data;
+	(*count) += MonoMemPoolNumChunks(assembly->image->mempool);
+}
+
+static int MonoImagesMemPoolNumChunks()
+{
+	int count = 0;
+	mono_assembly_foreach((GFunc)IncrementCountForImageMemPoolNumChunks, &count);
+	return count;
+}
+
+static void AllocateMemoryForImageMemPool(MonoAssembly *assembly, void *user_data)
+{
+	MonoImage* image = assembly->image;
+
+	mono_image_lock (image);
+	mono_mempool_foreach_chunk(image->mempool, AllocateMemoryForMemPoolChunk, user_data);
+	mono_image_unlock (image);
+}
+
 static void* CaptureHeapInfo(void* monoManagedHeap)
 {
     MonoManagedHeap* heap = (MonoManagedHeap*)monoManagedHeap;
 	MonoDomain* domain = mono_domain_get();
 	SectionIterationContext iterationContext;
 
+	// Increment count for each heap section
     heap->sectionCount = GC_get_heap_section_count();
+	// Increment count for the domain mem pool chunk
 	heap->sectionCount += MonoMemPoolNumChunks(domain->mp);
+	// Increment count for each image mem pool chunk
+	heap->sectionCount += MonoImagesMemPoolNumChunks();
+
 	heap->sections = g_new0(MonoManagedMemorySection, heap->sectionCount);
 
 	iterationContext.currentSection = heap->sections;
 
+	// Allocate memory for each heap section
 	GC_foreach_heap_section(&iterationContext, AllocateMemoryForSection);
-
+	// Allocate memory for the domain mem pool chunk
 	mono_domain_lock (domain);
 	mono_mempool_foreach_chunk(domain->mp, AllocateMemoryForMemPoolChunk, &iterationContext);
 	mono_domain_unlock(domain);
+	// Allocate memory for each image mem pool chunk
+	mono_assembly_foreach((GFunc)AllocateMemoryForImageMemPool,  &iterationContext);
 
     return NULL;
 }
@@ -254,8 +328,13 @@ static gboolean MonoManagedHeapStillValid(MonoManagedHeap* heap)
 {
 	MonoDomain* domain = mono_domain_get();
 	VerifyHeapSectionStillValidIterationContext iterationContext;
+	int currentSectionCount;
 
-    if (heap->sectionCount != GC_get_heap_section_count() + MonoMemPoolNumChunks(domain->mp))
+	currentSectionCount = GC_get_heap_section_count();
+	currentSectionCount += MonoMemPoolNumChunks(domain->mp);
+	currentSectionCount += MonoImagesMemPoolNumChunks();
+
+    if (heap->sectionCount != currentSectionCount)
 		return FALSE;
 
 	iterationContext.currentSection = heap->sections;
