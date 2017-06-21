@@ -28,5 +28,8 @@
     <ClInclude Include="$(MonoSourceLocation)\eglib\src\glib.h" />
     <ClInclude Include="$(MonoSourceLocation)\eglib\src\gmodule.h" />
     <ClInclude Include="$(MonoSourceLocation)\eglib\src\sort.frag.h" />
+    <ClInclude Include="$(MonoSourceLocation)\eglib\src\eglib-remap.h" />
+    <ClInclude Include="$(MonoSourceLocation)\eglib\src\eglib-config.hw" />
+    <ClInclude Include="$(MonoSourceLocation)\eglib\src\unicode-data.h" />
   </ItemGroup>
 </Project>

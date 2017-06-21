@@ -98,6 +98,7 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\utils\os-event-win32.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MonoSourceLocation)\mono\utils\checked-build.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\dlmalloc.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\dtrace.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\freebsd-dwarf.h" />
@@ -135,6 +136,7 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-math.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-membar.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-memory-model.h" />
+    <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-mmap-internals.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-mmap.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-networkinterfaces.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-once.h" />
@@ -153,7 +155,7 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-threads.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-threads-api.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-threads-coop.h" />
-    <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-threads-posix-signals.h" />
+    <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-threads-debug.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-time.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-tls.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-uri.h" />
@@ -163,10 +165,10 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\valgrind.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\atomic.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-hwcap.h" />
-    <ClInclude Include="$(MonoSourceLocation)\mono\utils\mono-hwcap-x86.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\bsearch.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\memfuncs.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\parse.h" />
     <ClInclude Include="$(MonoSourceLocation)\mono\utils\os-event.h" />
+    <ClInclude Include="$(MonoSourceLocation)\mono\utils\w32api.h" />
   </ItemGroup>  
 </Project>
