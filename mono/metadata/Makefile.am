@@ -1,9 +1,8 @@
 if HOST_WIN32
-win32_sources = \
+win32_common_sources = \
 	console-win32.c \
 	console-win32-internals.h \
 	cominterop-win32-internals.h \
-	w32file-win32.c \
 	w32file-win32-internals.h \
 	icall-windows.c \
 	icall-windows-internals.h \
@@ -19,7 +18,9 @@ win32_sources = \
 	w32socket-win32.c \
 	w32error-win32.c
 
-platform_sources = $(win32_sources)
+platform_common_sources = $(win32_common_sources)
+platform_mono_sources = \
+	w32file-win32.c
 
 # Use -m here. This will use / as directory separator (C:/WINNT).
 # The files that use MONO_ASSEMBLIES and/or MONO_CFG_DIR replace the
@@ -39,7 +40,7 @@ else
 
 assembliesdir = $(exec_prefix)/lib
 confdir = $(sysconfdir)
-unix_sources = \
+unix_common_sources = \
 	console-unix.c \
 	w32mutex-unix.c \
 	w32semaphore-unix.c \
@@ -51,16 +52,18 @@ unix_sources = \
 	w32process-unix-haiku.c \
 	w32process-unix-default.c \
 	w32socket-unix.c \
-	w32file-unix.c \
 	w32file-unix-glob.c \
 	w32file-unix-glob.h \
 	w32error-unix.c
 
-platform_sources = $(unix_sources)
+platform_mono_sources = \
+	w32file-unix.c
+
+platform_common_sources = $(unix_common_sources)
 endif
 
 if PLATFORM_ANDROID
-platform_sources += ../../support/libm/complex.c
+platform_common_sources += ../../support/libm/complex.c
 endif
 
 #
@@ -135,14 +138,15 @@ null_gc_sources = \
 	null-gc.c
 
 unity_sources =	\
-	file-mmap-unity.c	
+	file-mmap-unity.c \
+	w32file-unity.c	
 
 mono_sources = \
 	file-mmap-posix.c \
 	file-mmap-windows.c
 
 common_sources = \
-	$(platform_sources)	\
+	$(platform_common_sources)	\
 	appdomain-icalls.h	\
 	assembly.c		\
 	assembly-internals.h	\
@@ -324,11 +328,11 @@ sgen_sources = \
 	sgen-mono.c		\
 	sgen-client-mono.h
 
-libmonoruntime_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(null_gc_sources) $(boehm_sources) $(mono_sources)
+libmonoruntime_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(null_gc_sources) $(boehm_sources) $(platform_mono_sources) $(mono_sources)
 libmonoruntime_la_CFLAGS = $(BOEHM_DEFINES) $(LIBGC_CPPFLAGS)
 libmonoruntime_la_LIBADD = libmonoruntime-config.la
 
-libmonoruntimebdwgc_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(null_gc_sources) $(boehm_sources) $(mono_sources)
+libmonoruntimebdwgc_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(null_gc_sources) $(boehm_sources) $(platform_mono_sources) $(mono_sources)
 libmonoruntimebdwgc_la_CFLAGS = $(BDWGC_DEFINES) $(LIBGCBDWGC_CPPFLAGS)
 libmonoruntimebdwgc_la_LIBADD = libmonoruntime-config.la $(btls_libs)
 
@@ -336,7 +340,7 @@ libmonoruntime_unity_il2cpp_bdwgc_la_SOURCES = $(common_sources) $(gc_dependent_
 libmonoruntime_unity_il2cpp_bdwgc_la_CFLAGS = $(libmonoruntimebdwgc_la_CFLAGS) -DIL2CPP_ON_MONO -DDISABLE_JIT -DDISABLE_REMOTING -fexceptions -DPLATFORM_UNITY -I../../../../il2cpp/build/libil2cpp/os/c-api
 libmonoruntime_unity_il2cpp_bdwgc_la_LIBADD = libmonoruntime-config.la $(btls_libs)
 
-libmonoruntimesgen_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(sgen_sources) $(mono_sources)
+libmonoruntimesgen_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(sgen_sources) $(platform_mono_sources) $(mono_sources)
 libmonoruntimesgen_la_CFLAGS = $(SGEN_DEFINES)
 libmonoruntimesgen_la_LIBADD = libmonoruntime-config.la
 
