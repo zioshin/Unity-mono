@@ -1,0 +1,15 @@
+../../build/common/Consts.cs
+../../build/common/SR.cs
+Assembly/AssemblyInfo.cs
+Assembly/TypeForwarders.cs
+SR.cs
+
+# GEN REMOVED ../../../external/corefx/src/Common/src/System/Numerics/Hashing/HashHelpers.cs
+# GEN REMOVED ../../../external/corefx/src/System.Numerics.Vectors/src/System/Numerics/ConstantHelper.cs
+# GEN REMOVED ../../../external/corefx/src/System.Numerics.Vectors/src/System/Numerics//JitIntrinsicAttribute.cs
+# GEN REMOVED ../../../external/corefx/src/System.Numerics.Vectors/src/System/Numerics//Register.cs
+# GEN REMOVED ../../../external/corefx/src/System.Numerics.Vectors/src/System/Numerics//Vector_Operations.cs
+# GEN REMOVED ../../../external/corefx/src/System.Numerics.Vectors/src/System/Numerics//Vector.cs
+
+# [SourcesGen] Files from includes
+

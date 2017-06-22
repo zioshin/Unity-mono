@@ -1,0 +1,10 @@
+# GEN REMOVED #include mobile_System.IdentityModel.dll.sources
+
+# [SourcesGen] Files from includes
+
+../../build/common/Consts.cs
+# GEN REMOVED INCLUDED ../../build/common/MonoTODOAttribute.cs
+Assembly/AssemblyInfo.cs
+# GEN REMOVED INCLUDED .
+# GEN REMOVED INCLUDED System.IdentityModel.Selectors/X509CertificateValidator.cs
+System.ServiceModel.Security/X509CertificateValidationMode.cs

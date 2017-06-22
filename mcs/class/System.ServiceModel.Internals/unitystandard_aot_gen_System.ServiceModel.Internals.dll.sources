@@ -1,0 +1,83 @@
+../../build/common/Consts.cs
+# GEN REMOVED ../../build/common/SR.cs
+../../build/common/AssemblyRef.cs
+EventLogEntryType.cs
+InternalSR.cs
+Assembly/AssemblyInfo.cs
+../referencesource/System.ServiceModel.Internals/AssemblyInfo.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/ActionItem.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/AssertHelper.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/AsyncCompletionResult.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/AsyncEventArgsCallback.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/AsyncEventArgs.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/AsyncResult.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/AsyncWaitHandle.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/BackoffTimeoutHelper.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/BufferedOutputStream.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/CallbackException.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Collections/HopperCache.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Collections/NullableKeyDictionary.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Collections/ObjectCache.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Collections/ObjectCacheItem.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Collections/ObjectCacheSettings.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Collections/OrderedDictionary.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Collections/ValidatingCollection.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/CompletedAsyncResult.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/ComputerNameFormat.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/ActivityControl.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/DiagnosticEventProvider.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/DiagnosticTraceBase.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/DiagnosticTraceSource.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/DictionaryTraceRecord.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/EtwDiagnosticTrace.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/EtwProvider.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/EventDescriptor.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/EventLogCategory.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/EventLogEventId.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/EventLogger.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/EventTraceActivity.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/ITraceSourceStringProvider.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/PerformanceCounterNameAttribute.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/StringTraceRecord.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Diagnostics/TraceRecord.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/DiagnosticStrings.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/DuplicateDetector.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/ExceptionTrace.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/FastAsyncCallback.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/FatalException.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/FxCop.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Fx.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/HashHelper.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/IAsyncEventArgs.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/InputQueue.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/InternalBufferManager.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Interop/SafeEventLogWriteHandle.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Interop/UnsafeNativeMethods.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/IOThreadCancellationTokenSource.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/IOThreadScheduler.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/IOThreadTimer.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/MruCache.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/NameGenerator.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/PartialTrustHelpers.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/ReadOnlyDictionaryInternal.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/ReadOnlyKeyedCollection.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/ScheduleActionItemAsyncResult.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/SignalGate.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/SynchronizedPool.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/TaskExtensions.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/ThreadNeutralSemaphore.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/Ticks.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/TimeoutHelper.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/TraceChannel.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/TraceEventLevel.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/TraceEventOpcode.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/TraceLevelHelper.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/TracePayload.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/TypedAsyncResult.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/TypeHelper.cs
+# GEN REMOVED ../referencesource/System.ServiceModel.Internals/System/Runtime/UrlUtility.cs
+../referencesource/System.ServiceModel.Internals/System/Runtime/WaitCallbackActionItem.cs
+../referencesource/System.ServiceModel.Internals/TraceCore.Designer.cs
+
+# [SourcesGen] Files from includes
+

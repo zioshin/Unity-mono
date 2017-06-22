@@ -1,0 +1,36 @@
+# GEN REMOVED #include mobile_System.ServiceModel.Web.dll.sources
+
+# [SourcesGen] Files from includes
+
+../../build/common/Consts.cs
+# GEN REMOVED INCLUDED ../../build/common/Locale.cs
+../../build/common/MonoTODOAttribute.cs
+Assembly/AssemblyInfo.cs
+Assembly/TypeForwarders.cs
+System.ServiceModel.Channels/WebBodyFormatMessageProperty.cs
+System.ServiceModel.Channels/WebContentFormat.cs
+System.ServiceModel.Channels/WebContentTypeMapper.cs
+System.ServiceModel.Channels/WebMessageEncoder.cs
+System.ServiceModel.Channels/WebMessageEncoderFactory.cs
+System.ServiceModel.Channels/WebMessageEncodingBindingElement.cs
+System.ServiceModel.Description/WebHttpBehavior.cs
+# GEN REMOVED INCLUDED System.ServiceModel.Dispatcher/JsonQueryStringConverter.cs
+System.ServiceModel.Dispatcher/QueryStringConverter.cs
+System.ServiceModel.Dispatcher/WebMessageFormatter.cs
+# GEN REMOVED INCLUDED System.ServiceModel.Web/IncomingWebResponseContext.cs
+# GEN REMOVED INCLUDED System.ServiceModel.Web/OutgoingWebRequestContext.cs
+System.ServiceModel.Web/WebAttributeInfo.cs
+# GEN REMOVED INCLUDED System.ServiceModel.Web/WebChannelFactory.cs
+System.ServiceModel.Web/WebGetAttribute.cs
+System.ServiceModel.Web/WebInvokeAttribute.cs
+System.ServiceModel.Web/WebMessageBodyStyle.cs
+System.ServiceModel.Web/WebMessageFormat.cs
+# GEN REMOVED INCLUDED System.ServiceModel.Web/WebOperationContext.cs
+# GEN REMOVED INCLUDED System.ServiceModel/WebHttpBinding.cs
+# GEN REMOVED INCLUDED System.ServiceModel/WebHttpSecurity.cs
+System.ServiceModel/WebHttpSecurityMode.cs
+System/UriTemplate.cs
+# GEN REMOVED INCLUDED System/UriTemplateEquivalenceComparer.cs
+System/UriTemplateMatch.cs
+# GEN REMOVED INCLUDED System/UriTemplateMatchException.cs
+# GEN REMOVED INCLUDED System/UriTemplateTable.cs
