@@ -370,6 +370,29 @@ unitystandard_dirs := \
 	System.Net.Http \
 	System.Runtime.InteropServices.RuntimeInformation
 
+unitystandardaot_dirs := $(monotouch_dirs)
+
+unitystandard_aot_gen_dirs := \
+	mscorlib \
+	System.ComponentModel.Composition.4.5 \
+	System \
+	Mono.Security \
+	System.Xml \
+	System.Core \
+	System.Data \
+	Mono.Data.Tds \
+	System.Numerics \
+	System.Transactions \
+	System.Drawing \
+	System.IO.Compression \
+	System.IO.Compression.FileSystem \
+	System.Net.Http \
+	System.Runtime.InteropServices.RuntimeInformation \
+	System.Runtime.Serialization \
+	System.ServiceModel.Internals \
+	System.Web.Services \
+	System.Xml.Linq
+
 monodroid_SUBDIRS := $(monodroid_dirs)
 monotouch_SUBDIRS := $(monotouch_dirs)
 monotouch_watch_SUBDIRS := $(monotouch_watch_dirs)
@@ -389,10 +412,13 @@ xbuild_14_SUBDIRS := $(xbuild_4_0_dirs) Microsoft.NuGet.Build.Tasks
 winaot_SUBDIRS := $(winaot_dirs)
 orbis_SUBDIRS := $(monotouch_dirs)
 unitystandard_SUBDIRS := $(unitystandard_dirs)
+unitystandardaot_SUBDIRS := $(unitystandardaot_dirs)
+unitystandard_aot_gen_dirs_SUBDIRS := $(unitystandard_aot_gen_dirs)
+
 
 include ../build/rules.make
 
-SUBDIRS = $(testing_aot_full_dirs) $(testing_aot_hybrid_dirs) $(monotouch_dirs) $(monodroid_dirs) $(xammac_dirs) $(net_4_x_dirs) $(net_4_x_parallel_dirs) $(xammac_net_4_5_SUBDIRS)
+SUBDIRS = $(testing_aot_full_dirs) $(testing_aot_hybrid_dirs) $(monotouch_dirs) $(monodroid_dirs) $(xammac_dirs) $(net_4_x_dirs) $(net_4_x_parallel_dirs) $(xammac_net_4_5_SUBDIRS) $(unitystandard_dirs) $(unitystandardaot_dirs) $(unitystandard_aot_gen_dirs)
 
 DIST_ONLY_SUBDIRS = dlr aot-compiler reference-assemblies $(xbuild_4_0_dirs) Microsoft.NuGet.Build.Tasks
 
