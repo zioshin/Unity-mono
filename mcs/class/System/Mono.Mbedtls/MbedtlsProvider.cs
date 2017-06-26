@@ -86,8 +86,6 @@ namespace Mono.Mbedtls
 
 			uint flags = 0;
 			int result = Mbedtls.mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHost, ref flags, IntPtr.Zero, IntPtr.Zero);
-			Console.Error.WriteLine("result {0:X4}", -result);
-			Console.Error.WriteLine("flags {0:X4}", flags);
 
 			Mbedtls.mbedtls_x509_crt_free (ref crt_ca);
 			Mbedtls.mbedtls_x509_crt_free (ref trust_ca);

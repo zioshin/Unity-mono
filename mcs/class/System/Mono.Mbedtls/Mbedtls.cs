@@ -25,6 +25,8 @@ namespace Mono.Mbedtls
 		}
 	}
 
+	[MonoTODO ("To ensure struct consistency we would need to statically compile mbedtls with mono")]
+	[MonoTODO ("To ensure struct consistency we would need to make sure enums are compiled as 32bit ints or change the struct member types")]
 	class Mbedtls
 	{
 		internal const int MBEDTLS_SSL_HELLO_REQUEST = 0x00;
@@ -176,17 +178,23 @@ namespace Mono.Mbedtls
 		internal const uint MBEDTLS_X509_BADCRL_BAD_PK         = 0x040000;  /**< The CRL is signed with an unacceptable PK alg (eg RSA vs ECDSA). */
 		internal const uint MBEDTLS_X509_BADCRL_BAD_KEY        = 0x080000;  /**< The CRL is signed with an unacceptable key (eg bad curve, RSA too short). */
 
-		// 
+		// Make sure structs can hold enough data needed by mbedtls
 		[StructLayout (LayoutKind.Sequential)]
 		unsafe internal struct mbedtls_entropy_context
 		{
-			public fixed byte buffer [4096];
+			public fixed byte buffer [2048];
 		}
 
 		[StructLayout (LayoutKind.Sequential)]
 		unsafe internal struct mbedtls_ssl_config
 		{
-			public fixed byte buffer [4096];
+			public fixed byte buffer [1024];
+		}
+
+		[StructLayout (LayoutKind.Sequential)]
+		unsafe internal struct mbedtls_ctr_drbg_context
+		{
+			public fixed byte buffer [1024];
 		}
 
 		[StructLayout (LayoutKind.Sequential)]
@@ -199,13 +207,7 @@ namespace Mono.Mbedtls
 			internal int major_ver;
 			internal int minor_ver;
 			internal uint badmac_seen;
-			public fixed byte buffer [4096];
-		}
-
-		[StructLayout (LayoutKind.Sequential)]
-		unsafe internal struct mbedtls_ctr_drbg_context
-		{
-			public fixed byte buffer [4096];
+			public fixed byte buffer [1024];
 		}
 
 		[StructLayout (LayoutKind.Sequential)]
@@ -367,6 +369,15 @@ namespace Mono.Mbedtls
 
 		[DllImport ("mbedtls")]
 		extern internal static void mbedtls_ssl_conf_verify (ref mbedtls_ssl_config conf, mbedtls_verify_t f_vrfy, IntPtr p_vrfy);
+
+		[DllImport ("mbedtls")]
+		extern internal static void mbedtls_ssl_conf_min_version (ref mbedtls_ssl_config conf, int major, int minor);
+
+		[DllImport ("mbedtls")]
+		extern internal static void mbedtls_ssl_conf_max_version (ref mbedtls_ssl_config conf, int major, int minor);
+
+		[DllImport ("mbedtls")]
+		extern internal static void mbedtls_ssl_conf_ciphersuites (ref mbedtls_ssl_config conf, IntPtr ciphersuites);
 
 		// --------------------------------
 		// X.509

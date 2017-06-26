@@ -53,9 +53,11 @@ namespace Mono.Mbedtls
 
 		NativeBuffer m_NativeIOReadBuffer;
 		NativeBuffer m_NativeIOWriteBuffer;
+		NativeBuffer m_NativeEnabledCiphers;
 
 		byte [] m_ManagedBuffer = new byte[0];
 
+		[MonoTODO ("Move stuff to StartHandshake")]
 		internal MbedtlsContext (
 		    MobileAuthenticatedStream parent,
 		    bool serverMode, string targetHost,
@@ -68,6 +70,7 @@ namespace Mono.Mbedtls
 			m_NativeBuffer        = new NativeBuffer();
 			m_NativeIOReadBuffer  = new NativeBuffer();
 			m_NativeIOWriteBuffer = new NativeBuffer();
+			m_NativeEnabledCiphers      = new NativeBuffer();
 
 			// Initialize native structs
 			Mbedtls.mbedtls_ssl_init (out m_SslContext);
@@ -102,6 +105,19 @@ namespace Mono.Mbedtls
 
 			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
 			    "SSL context setup failed");
+
+			TlsProtocolCode min, max;
+			GetProtocolVersions (out min, out max);
+			Mbedtls.mbedtls_ssl_conf_min_version (ref m_SslConfig, 3, GetProtocol(min));
+			Mbedtls.mbedtls_ssl_conf_max_version (ref m_SslConfig, 3, GetProtocol(max));
+
+			if (Settings != null && Settings.EnabledCiphers != null) {
+				m_NativeEnabledCiphers.EnsureSize((Settings.EnabledCiphers.Length + 1) * sizeof(uint));
+				for (int i = 0; i < Settings.EnabledCiphers.Length; ++i)
+					Marshal.WriteInt32 (m_NativeEnabledCiphers.DataPtr, i*4, (int)Settings.EnabledCiphers[i]);
+				Marshal.WriteInt32 (m_NativeEnabledCiphers.DataPtr, Settings.EnabledCiphers.Length*4, 0);
+				Mbedtls.mbedtls_ssl_conf_ciphersuites (ref m_SslConfig, m_NativeBuffer.DataPtr);
+			}
 		}
 
 		public override bool HasContext {
@@ -180,10 +196,16 @@ namespace Mono.Mbedtls
 			return result;
 		}
 
-		[MonoTODO ("Implement this")]
 		public override void Close ()
 		{
-//			throw new NotImplementedException();
+			// free native resources
+			Mbedtls.mbedtls_ssl_free (ref m_SslContext);
+			Mbedtls.mbedtls_ssl_config_free (ref m_SslConfig);
+			Mbedtls.mbedtls_ctr_drbg_free (ref m_RandomGeneratorContext);
+			Mbedtls.mbedtls_entropy_free (ref m_EntropyContext);
+			Mbedtls.mbedtls_x509_crt_free (ref m_RootCertificateChain);
+			Mbedtls.mbedtls_x509_crt_free (ref m_OwnCertificateChain);
+			Mbedtls.mbedtls_pk_free (ref m_OwnPrivateKeyContext);
 		}
 
 		protected override void Dispose (bool disposing)
@@ -216,6 +238,7 @@ namespace Mono.Mbedtls
 					m_NativeBuffer.Dispose();
 					m_NativeIOWriteBuffer.Dispose();
 					m_NativeIOReadBuffer.Dispose();
+					m_NativeEnabledCiphers.Dispose();
 					m_ManagedBuffer = null;
 				}
 
@@ -247,8 +270,6 @@ namespace Mono.Mbedtls
 			return 0;
 		}
 
-		[MonoTODO ("Honor explicit protocol selection")]
-		[MonoTODO ("Honor explicit cipher selection")]
 		public override void StartHandshake ()
 		{
 			if (m_SslContext.state > 0)
@@ -322,6 +343,19 @@ namespace Mono.Mbedtls
 			}
 		}
 
+		static int GetProtocol (TlsProtocolCode protocol)
+		{
+			switch (protocol) {
+			case TlsProtocolCode.Tls10:
+				return 1;
+			case TlsProtocolCode.Tls11:
+				return 2;
+			case TlsProtocolCode.Tls12:
+				return 3;
+			default:
+				throw new NotSupportedException ();
+			}
+		}
 
 		int BIOWrite (IntPtr stream, IntPtr buffer, size_t len)
 		{
