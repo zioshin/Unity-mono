@@ -180,7 +180,7 @@ namespace Mono.Net.Security
 
 				// no default implementation for now
 				{
-					var mbedtlsProvider = "Mono.Mbed.MbedtlsProvider";
+					var mbedtlsProvider = "Mono.Mbedtls.MbedtlsProvider";
 					providerRegistration.Add ("mbedtls", mbedtlsProvider);
 				}
 

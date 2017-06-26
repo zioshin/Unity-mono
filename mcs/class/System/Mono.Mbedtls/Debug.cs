@@ -16,7 +16,7 @@ using MonoSecurity::Mono.Security.Interface;
 using Mono.Security.Interface;
 #endif
 
-namespace Mono.Mbed
+namespace Mono.Mbedtls
 {
 	class Debug
 	{

@@ -16,7 +16,7 @@ using Mono.Security.Interface;
 
 using MNS = Mono.Net.Security;
 
-namespace Mono.Mbed
+namespace Mono.Mbedtls
 {
 	public class MbedtlsProvider : MonoTlsProvider
 	{

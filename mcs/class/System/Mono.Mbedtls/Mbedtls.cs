@@ -6,7 +6,7 @@ extern alias MonoSecurity;
 using System;
 using System.Runtime.InteropServices;
 
-namespace Mono.Mbed
+namespace Mono.Mbedtls
 {
 	[StructLayout (LayoutKind.Sequential)]
 	struct size_t

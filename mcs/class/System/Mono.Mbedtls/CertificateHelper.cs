@@ -14,7 +14,7 @@ using MonoSecurity::Mono.Security.Cryptography;
 using Mono.Security.Cryptography;
 #endif
 
-namespace Mono.Mbed
+namespace Mono.Mbedtls
 {
 	class CertificateHelper
 	{

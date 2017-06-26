@@ -3,7 +3,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Mono.Mbed
+namespace Mono.Mbedtls
 {
 	class NativeBuffer : IDisposable
 	{

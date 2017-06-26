@@ -18,7 +18,7 @@ using Mono.Security.Interface;
 
 using Mono.Net.Security;
 
-namespace Mono.Mbed
+namespace Mono.Mbedtls
 {
 	class MbedtlsContext : MobileTlsContext
 	{
@@ -78,29 +78,29 @@ namespace Mono.Mbed
 			Mbedtls.mbedtls_x509_crt_init (out m_OwnCertificateChain);
 			Mbedtls.mbedtls_pk_init (out m_OwnPrivateKeyContext);
 
-			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_config_defaults (ref m_SslConfig,
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_config_defaults (ref m_SslConfig,
 			    IsServer ? Mbedtls.MBEDTLS_SSL_IS_SERVER : Mbedtls.MBEDTLS_SSL_IS_CLIENT,
 			    Mbedtls.MBEDTLS_SSL_TRANSPORT_STREAM,
 			    Mbedtls.MBEDTLS_SSL_PRESET_DEFAULT),
 				"SSL default configuration failed");
 
 			int seedStringLength = m_NativeBuffer.ToNative (SSL_SEED_STR);
-			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ctr_drbg_seed (ref m_RandomGeneratorContext,
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ctr_drbg_seed (ref m_RandomGeneratorContext,
 			    m_EntropyCallback = Mbedtls.mbedtls_entropy_func,
 			    ref m_EntropyContext, m_NativeBuffer.DataPtr, seedStringLength),
 			    "Unable to create random generator");
-			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_conf_rng (ref m_SslConfig,
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_conf_rng (ref m_SslConfig,
 			    m_RandomCallback = Mbedtls.mbedtls_ctr_drbg_random,
 			    ref m_RandomGeneratorContext),
 			    "Unable to configure random generator");
 
-			Mbedtls.mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallback = Mono.Mbed.Debug.Callback, IntPtr.Zero);
+			Mbedtls.mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallback = Mono.Mbedtls.Debug.Callback, IntPtr.Zero);
 			Mbedtls.mbedtls_ssl_conf_ca_chain (ref m_SslConfig, ref m_RootCertificateChain, IntPtr.Zero);
 			Mbedtls.mbedtls_ssl_conf_own_cert (ref m_SslConfig, ref m_OwnCertificateChain, ref m_OwnPrivateKeyContext);
 			Mbedtls.mbedtls_ssl_set_bio (ref m_SslContext, IntPtr.Zero, m_BIOWriteCallback = BIOWrite, m_BIOReadCallback = BIORead, null);
 			Mbedtls.mbedtls_ssl_conf_verify (ref m_SslConfig, m_VerifyCallback = Verify, IntPtr.Zero);
 
-			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
 			    "SSL context setup failed");
 		}
 
@@ -159,7 +159,7 @@ namespace Mono.Mbed
 				wouldBlock = true;
 				return 0;
 			}
-			Mono.Mbed.Debug.CheckAndThrow (result, "Read error");
+			Mono.Mbedtls.Debug.CheckAndThrow (result, "Read error");
 			m_NativeIOReadBuffer.ToManaged(buffer, offset, result);
 			return result;
 		}
@@ -176,7 +176,7 @@ namespace Mono.Mbed
 				wouldBlock = true;
 				return 0;
 			}
-			Mono.Mbed.Debug.CheckAndThrow (result, "Write error");
+			Mono.Mbedtls.Debug.CheckAndThrow (result, "Write error");
 			return result;
 		}
 
@@ -252,14 +252,14 @@ namespace Mono.Mbed
 		public override void StartHandshake ()
 		{
 			if (m_SslContext.state > 0)
-				Mono.Mbed.Debug.Throw (AlertDescription.InternalError, "Handshake started already");
+				Mono.Mbedtls.Debug.Throw (AlertDescription.InternalError, "Handshake started already");
 
 			if (IsServer) {
 				SetPrivateCertificate (LocalServerCertificate);
 			}
 			if (!IsServer) {
 				m_NativeBuffer.ToNative (ServerName);
-				Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_set_hostname (ref m_SslContext, m_NativeBuffer.DataPtr), "Unable to set hostname");
+				Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_set_hostname (ref m_SslContext, m_NativeBuffer.DataPtr), "Unable to set hostname");
 			}
 			if (!IsServer || AskForClientCertificate) {
 				Mbedtls.mbedtls_ssl_conf_authmode (ref m_SslConfig, Mbedtls.MBEDTLS_SSL_VERIFY_REQUIRED);
@@ -270,15 +270,15 @@ namespace Mono.Mbed
 		public override bool ProcessHandshake ()
 		{
 			if (m_SslContext.state == Mbedtls.MBEDTLS_SSL_HANDSHAKE_OVER)
-				Mono.Mbed.Debug.Throw (AlertDescription.InternalError, "Handshake is over");
+				Mono.Mbedtls.Debug.Throw (AlertDescription.InternalError, "Handshake is over");
 
 			Int32 result = Mbedtls.mbedtls_ssl_handshake_step (ref m_SslContext);
 			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_READ ||
 			    result == Mbedtls.MBEDTLS_ERR_SSL_WANT_WRITE)
 				return false;
 
-			Mono.Mbed.Debug.CheckAndThrow (result, "Handshake failed");
-			Mono.Mbed.Debug.WriteLine (1, "State {0}", m_SslContext.state);
+			Mono.Mbedtls.Debug.CheckAndThrow (result, "Handshake failed");
+			Mono.Mbedtls.Debug.WriteLine (1, "State {0}", m_SslContext.state);
 			switch (m_SslContext.state) {
 			case Mbedtls.MBEDTLS_SSL_CERTIFICATE_REQUEST:
 					m_RemoteCertificate = CertificateHelper.AsX509 (Mbedtls.mbedtls_ssl_get_peer_cert (ref m_SslContext));
@@ -296,7 +296,7 @@ namespace Mono.Mbed
 		{
 			if (IsServer && AskForClientCertificate) {
 				if (!ValidateCertificate (null, null))
-					Mono.Mbed.Debug.Throw (AlertDescription.CertificateUnknown, "unknown certificate");
+					Mono.Mbedtls.Debug.Throw (AlertDescription.CertificateUnknown, "unknown certificate");
 			}
 
 			IntPtr cipher = Mbedtls.mbedtls_ssl_get_ciphersuite (ref m_SslContext);
