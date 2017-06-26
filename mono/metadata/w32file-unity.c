@@ -270,7 +270,7 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 
 	MONO_ENTER_GC_SAFE;
 	*error = 0;
-	result = UnityPalCopyFile( u16to8(path), u16to8(dest), overwrite, &error);
+	result = UnityPalCopyFile( u16to8(path), u16to8(dest), overwrite, error);
 	MONO_EXIT_GC_SAFE;
 
 	return result;
