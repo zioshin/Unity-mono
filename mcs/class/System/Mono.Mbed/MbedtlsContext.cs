@@ -20,28 +20,28 @@ using Mono.Net.Security;
 
 namespace Mono.Mbed
 {
-	class MonoMbedTlsContext : MobileTlsContext
+	class MbedtlsContext : MobileTlsContext
 	{
 		private const int MaxIOBufferSize = 16384;
 
 		readonly static string SSL_SEED_STR = "MonoMbedTls";
 
 		// Native structs
-		MonoMbedTlsAPI.mbedtls_ssl_context       m_SslContext;
-		MonoMbedTlsAPI.mbedtls_entropy_context   m_EntropyContext;
-		MonoMbedTlsAPI.mbedtls_ctr_drbg_context  m_RandomGeneratorContext;
-		MonoMbedTlsAPI.mbedtls_ssl_config        m_SslConfig;
-		MonoMbedTlsAPI.mbedtls_x509_crt          m_RootCertificateChain;
-		MonoMbedTlsAPI.mbedtls_x509_crt          m_OwnCertificateChain;
-		MonoMbedTlsAPI.mbedtls_pk_context        m_OwnPrivateKeyContext;
+		Mbedtls.mbedtls_ssl_context       m_SslContext;
+		Mbedtls.mbedtls_entropy_context   m_EntropyContext;
+		Mbedtls.mbedtls_ctr_drbg_context  m_RandomGeneratorContext;
+		Mbedtls.mbedtls_ssl_config        m_SslConfig;
+		Mbedtls.mbedtls_x509_crt          m_RootCertificateChain;
+		Mbedtls.mbedtls_x509_crt          m_OwnCertificateChain;
+		Mbedtls.mbedtls_pk_context        m_OwnPrivateKeyContext;
 
 		// Delegate references to guard against garbage collection
-		MonoMbedTlsAPI.mbedtls_entropy_t         m_EntropyCallback;
-		MonoMbedTlsAPI.mbedtls_ctr_drbg_random_t m_RandomCallback;
-		MonoMbedTlsAPI.mbedtls_ssl_send_t        m_BIOWriteCallback;
-		MonoMbedTlsAPI.mbedtls_ssl_recv_t        m_BIOReadCallback;
-		MonoMbedTlsAPI.mbedtls_ssl_dbg_t         m_DebugCallback;
-		MonoMbedTlsAPI.mbedtls_verify_t          m_VerifyCallback;
+		Mbedtls.mbedtls_entropy_t         m_EntropyCallback;
+		Mbedtls.mbedtls_ctr_drbg_random_t m_RandomCallback;
+		Mbedtls.mbedtls_ssl_send_t        m_BIOWriteCallback;
+		Mbedtls.mbedtls_ssl_recv_t        m_BIOReadCallback;
+		Mbedtls.mbedtls_ssl_dbg_t         m_DebugCallback;
+		Mbedtls.mbedtls_verify_t          m_VerifyCallback;
 
 		// States and certificates
 		X509Certificate       m_LocalClientCertificate;
@@ -56,7 +56,7 @@ namespace Mono.Mbed
 
 		byte [] m_ManagedBuffer = new byte[0];
 
-		internal MonoMbedTlsContext (
+		internal MbedtlsContext (
 		    MobileAuthenticatedStream parent,
 		    bool serverMode, string targetHost,
 		    SslProtocols enabledProtocols, X509Certificate serverCertificate,
@@ -70,37 +70,37 @@ namespace Mono.Mbed
 			m_NativeIOWriteBuffer = new NativeBuffer();
 
 			// Initialize native structs
-			MonoMbedTlsAPI.mbedtls_ssl_init (out m_SslContext);
-			MonoMbedTlsAPI.mbedtls_ssl_config_init (out m_SslConfig);
-			MonoMbedTlsAPI.mbedtls_ctr_drbg_init (out m_RandomGeneratorContext);
-			MonoMbedTlsAPI.mbedtls_entropy_init (out m_EntropyContext);
-			MonoMbedTlsAPI.mbedtls_x509_crt_init (out m_RootCertificateChain);
-			MonoMbedTlsAPI.mbedtls_x509_crt_init (out m_OwnCertificateChain);
-			MonoMbedTlsAPI.mbedtls_pk_init (out m_OwnPrivateKeyContext);
+			Mbedtls.mbedtls_ssl_init (out m_SslContext);
+			Mbedtls.mbedtls_ssl_config_init (out m_SslConfig);
+			Mbedtls.mbedtls_ctr_drbg_init (out m_RandomGeneratorContext);
+			Mbedtls.mbedtls_entropy_init (out m_EntropyContext);
+			Mbedtls.mbedtls_x509_crt_init (out m_RootCertificateChain);
+			Mbedtls.mbedtls_x509_crt_init (out m_OwnCertificateChain);
+			Mbedtls.mbedtls_pk_init (out m_OwnPrivateKeyContext);
 
-			Mono.Mbed.Debug.CheckAndThrow (MonoMbedTlsAPI.mbedtls_ssl_config_defaults (ref m_SslConfig,
-			    IsServer ? MonoMbedTlsAPI.MBEDTLS_SSL_IS_SERVER : MonoMbedTlsAPI.MBEDTLS_SSL_IS_CLIENT,
-			    MonoMbedTlsAPI.MBEDTLS_SSL_TRANSPORT_STREAM,
-			    MonoMbedTlsAPI.MBEDTLS_SSL_PRESET_DEFAULT),
+			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_config_defaults (ref m_SslConfig,
+			    IsServer ? Mbedtls.MBEDTLS_SSL_IS_SERVER : Mbedtls.MBEDTLS_SSL_IS_CLIENT,
+			    Mbedtls.MBEDTLS_SSL_TRANSPORT_STREAM,
+			    Mbedtls.MBEDTLS_SSL_PRESET_DEFAULT),
 				"SSL default configuration failed");
 
 			int seedStringLength = m_NativeBuffer.ToNative (SSL_SEED_STR);
-			Mono.Mbed.Debug.CheckAndThrow (MonoMbedTlsAPI.mbedtls_ctr_drbg_seed (ref m_RandomGeneratorContext,
-			    m_EntropyCallback = MonoMbedTlsAPI.mbedtls_entropy_func,
+			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ctr_drbg_seed (ref m_RandomGeneratorContext,
+			    m_EntropyCallback = Mbedtls.mbedtls_entropy_func,
 			    ref m_EntropyContext, m_NativeBuffer.DataPtr, seedStringLength),
 			    "Unable to create random generator");
-			Mono.Mbed.Debug.CheckAndThrow (MonoMbedTlsAPI.mbedtls_ssl_conf_rng (ref m_SslConfig,
-			    m_RandomCallback = MonoMbedTlsAPI.mbedtls_ctr_drbg_random,
+			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_conf_rng (ref m_SslConfig,
+			    m_RandomCallback = Mbedtls.mbedtls_ctr_drbg_random,
 			    ref m_RandomGeneratorContext),
 			    "Unable to configure random generator");
 
-			MonoMbedTlsAPI.mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallback = Mono.Mbed.Debug.Callback, IntPtr.Zero);
-			MonoMbedTlsAPI.mbedtls_ssl_conf_ca_chain (ref m_SslConfig, ref m_RootCertificateChain, IntPtr.Zero);
-			MonoMbedTlsAPI.mbedtls_ssl_conf_own_cert (ref m_SslConfig, ref m_OwnCertificateChain, ref m_OwnPrivateKeyContext);
-			MonoMbedTlsAPI.mbedtls_ssl_set_bio (ref m_SslContext, IntPtr.Zero, m_BIOWriteCallback = BIOWrite, m_BIOReadCallback = BIORead, null);
-			MonoMbedTlsAPI.mbedtls_ssl_conf_verify (ref m_SslConfig, m_VerifyCallback = Verify, IntPtr.Zero);
+			Mbedtls.mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallback = Mono.Mbed.Debug.Callback, IntPtr.Zero);
+			Mbedtls.mbedtls_ssl_conf_ca_chain (ref m_SslConfig, ref m_RootCertificateChain, IntPtr.Zero);
+			Mbedtls.mbedtls_ssl_conf_own_cert (ref m_SslConfig, ref m_OwnCertificateChain, ref m_OwnPrivateKeyContext);
+			Mbedtls.mbedtls_ssl_set_bio (ref m_SslContext, IntPtr.Zero, m_BIOWriteCallback = BIOWrite, m_BIOReadCallback = BIORead, null);
+			Mbedtls.mbedtls_ssl_conf_verify (ref m_SslConfig, m_VerifyCallback = Verify, IntPtr.Zero);
 
-			Mono.Mbed.Debug.CheckAndThrow (MonoMbedTlsAPI.mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
+			Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
 			    "SSL context setup failed");
 		}
 
@@ -154,8 +154,8 @@ namespace Mono.Mbed
 
 			int bufferSize = System.Math.Min(MaxIOBufferSize, count);
 			m_NativeIOReadBuffer.EnsureSize (bufferSize);
-			int result = MonoMbedTlsAPI.mbedtls_ssl_read (ref m_SslContext, m_NativeIOReadBuffer.DataPtr, bufferSize);
-			if (result == MonoMbedTlsAPI.MBEDTLS_ERR_SSL_WANT_READ) {
+			int result = Mbedtls.mbedtls_ssl_read (ref m_SslContext, m_NativeIOReadBuffer.DataPtr, bufferSize);
+			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_READ) {
 				wouldBlock = true;
 				return 0;
 			}
@@ -171,8 +171,8 @@ namespace Mono.Mbed
 			int bufferSize = System.Math.Min(MaxIOBufferSize, count);
 			m_NativeIOWriteBuffer.EnsureSize (bufferSize);
 			Marshal.Copy (buffer, offset, m_NativeIOWriteBuffer.DataPtr, bufferSize);
-			int result = MonoMbedTlsAPI.mbedtls_ssl_write (ref m_SslContext, m_NativeIOWriteBuffer.DataPtr, bufferSize);
-			if (result == MonoMbedTlsAPI.MBEDTLS_ERR_SSL_WANT_WRITE) {
+			int result = Mbedtls.mbedtls_ssl_write (ref m_SslContext, m_NativeIOWriteBuffer.DataPtr, bufferSize);
+			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_WRITE) {
 				wouldBlock = true;
 				return 0;
 			}
@@ -192,13 +192,13 @@ namespace Mono.Mbed
 				if (disposing) {
 
 					// free native resources
-					MonoMbedTlsAPI.mbedtls_ssl_free (ref m_SslContext);
-					MonoMbedTlsAPI.mbedtls_ssl_config_free (ref m_SslConfig);
-					MonoMbedTlsAPI.mbedtls_ctr_drbg_free (ref m_RandomGeneratorContext);
-					MonoMbedTlsAPI.mbedtls_entropy_free (ref m_EntropyContext);
-					MonoMbedTlsAPI.mbedtls_x509_crt_free (ref m_RootCertificateChain);
-					MonoMbedTlsAPI.mbedtls_x509_crt_free (ref m_OwnCertificateChain);
-					MonoMbedTlsAPI.mbedtls_pk_free (ref m_OwnPrivateKeyContext);
+					Mbedtls.mbedtls_ssl_free (ref m_SslContext);
+					Mbedtls.mbedtls_ssl_config_free (ref m_SslConfig);
+					Mbedtls.mbedtls_ctr_drbg_free (ref m_RandomGeneratorContext);
+					Mbedtls.mbedtls_entropy_free (ref m_EntropyContext);
+					Mbedtls.mbedtls_x509_crt_free (ref m_RootCertificateChain);
+					Mbedtls.mbedtls_x509_crt_free (ref m_OwnCertificateChain);
+					Mbedtls.mbedtls_pk_free (ref m_OwnPrivateKeyContext);
 
 					// reset callbacks
 		            m_EntropyCallback = null;
@@ -224,7 +224,7 @@ namespace Mono.Mbed
 			}
 		}
 
-		private int Verify (IntPtr p_vrfy, ref MonoMbedTlsAPI.mbedtls_x509_crt _crt, int depth, ref uint flags)
+		private int Verify (IntPtr p_vrfy, ref Mbedtls.mbedtls_x509_crt _crt, int depth, ref uint flags)
 		{
 			// Skip intermediate and root certificates
 			if (depth != 0)
@@ -232,18 +232,18 @@ namespace Mono.Mbed
 
 			// Assemble a collection of the entire trust chain
 			X509CertificateCollection certificates = new X509CertificateCollection ();
-			MonoMbedTlsAPI.mbedtls_x509_crt crt    = _crt;
+			Mbedtls.mbedtls_x509_crt crt    = _crt;
 			while (true)
 			{
 				certificates.Add(CertificateHelper.AsX509(ref crt));
 				if (crt.next == IntPtr.Zero)
 					break;
-				crt = Marshal.PtrToStructure<MonoMbedTlsAPI.mbedtls_x509_crt> (crt.next);
+				crt = Marshal.PtrToStructure<Mbedtls.mbedtls_x509_crt> (crt.next);
 			}
 			if (ValidateCertificate (certificates))
 				flags = 0;
 			else
-				flags |= MonoMbedTlsAPI.MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+				flags |= Mbedtls.MBEDTLS_X509_BADCERT_NOT_TRUSTED;
 			return 0;
 		}
 
@@ -259,34 +259,34 @@ namespace Mono.Mbed
 			}
 			if (!IsServer) {
 				m_NativeBuffer.ToNative (ServerName);
-				Mono.Mbed.Debug.CheckAndThrow (MonoMbedTlsAPI.mbedtls_ssl_set_hostname (ref m_SslContext, m_NativeBuffer.DataPtr), "Unable to set hostname");
+				Mono.Mbed.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_set_hostname (ref m_SslContext, m_NativeBuffer.DataPtr), "Unable to set hostname");
 			}
 			if (!IsServer || AskForClientCertificate) {
-				MonoMbedTlsAPI.mbedtls_ssl_conf_authmode (ref m_SslConfig, MonoMbedTlsAPI.MBEDTLS_SSL_VERIFY_REQUIRED);
+				Mbedtls.mbedtls_ssl_conf_authmode (ref m_SslConfig, Mbedtls.MBEDTLS_SSL_VERIFY_REQUIRED);
 			}
 			CertificateHelper.AddSystemCertificates(ref m_RootCertificateChain);
 		}
 
 		public override bool ProcessHandshake ()
 		{
-			if (m_SslContext.state == MonoMbedTlsAPI.MBEDTLS_SSL_HANDSHAKE_OVER)
+			if (m_SslContext.state == Mbedtls.MBEDTLS_SSL_HANDSHAKE_OVER)
 				Mono.Mbed.Debug.Throw (AlertDescription.InternalError, "Handshake is over");
 
-			Int32 result = MonoMbedTlsAPI.mbedtls_ssl_handshake_step (ref m_SslContext);
-			if (result == MonoMbedTlsAPI.MBEDTLS_ERR_SSL_WANT_READ ||
-			    result == MonoMbedTlsAPI.MBEDTLS_ERR_SSL_WANT_WRITE)
+			Int32 result = Mbedtls.mbedtls_ssl_handshake_step (ref m_SslContext);
+			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_READ ||
+			    result == Mbedtls.MBEDTLS_ERR_SSL_WANT_WRITE)
 				return false;
 
 			Mono.Mbed.Debug.CheckAndThrow (result, "Handshake failed");
 			Mono.Mbed.Debug.WriteLine (1, "State {0}", m_SslContext.state);
 			switch (m_SslContext.state) {
-			case MonoMbedTlsAPI.MBEDTLS_SSL_CERTIFICATE_REQUEST:
-					m_RemoteCertificate = CertificateHelper.AsX509 (MonoMbedTlsAPI.mbedtls_ssl_get_peer_cert (ref m_SslContext));
+			case Mbedtls.MBEDTLS_SSL_CERTIFICATE_REQUEST:
+					m_RemoteCertificate = CertificateHelper.AsX509 (Mbedtls.mbedtls_ssl_get_peer_cert (ref m_SslContext));
 					m_LocalClientCertificate = SelectClientCertificate (m_RemoteCertificate, null);
 					SetPrivateCertificate (m_LocalClientCertificate);
 					break;
 
-			case MonoMbedTlsAPI.MBEDTLS_SSL_HANDSHAKE_OVER:
+			case Mbedtls.MBEDTLS_SSL_HANDSHAKE_OVER:
 				return true;
 			}
 			return false;
@@ -299,9 +299,9 @@ namespace Mono.Mbed
 					Mono.Mbed.Debug.Throw (AlertDescription.CertificateUnknown, "unknown certificate");
 			}
 
-			IntPtr cipher = MonoMbedTlsAPI.mbedtls_ssl_get_ciphersuite (ref m_SslContext);
+			IntPtr cipher = Mbedtls.mbedtls_ssl_get_ciphersuite (ref m_SslContext);
 			m_Connectioninfo = new MonoTlsConnectionInfo () {
-				CipherSuiteCode = (CipherSuiteCode)MonoMbedTlsAPI.mbedtls_ssl_get_ciphersuite_id (cipher),
+				CipherSuiteCode = (CipherSuiteCode)Mbedtls.mbedtls_ssl_get_ciphersuite_id (cipher),
 				ProtocolVersion = GetProtocol (m_SslContext.minor_ver),
 				PeerDomainName = ServerName
 			};
@@ -334,9 +334,9 @@ namespace Mono.Mbed
 				return -1;
 			int result = len;
 			if (result < 0)
-				return MonoMbedTlsAPI.MBEDTLS_ERR_NET_SEND_FAILED;
+				return Mbedtls.MBEDTLS_ERR_NET_SEND_FAILED;
 			if (wouldBlock)
-				return MonoMbedTlsAPI.MBEDTLS_ERR_SSL_WANT_WRITE;
+				return Mbedtls.MBEDTLS_ERR_SSL_WANT_WRITE;
 			return result;
 		}
 
@@ -347,9 +347,9 @@ namespace Mono.Mbed
 
 			int result = Parent.InternalRead (m_ManagedBuffer, 0, len, out wouldBlock);
 			if (result < 0)
-				return MonoMbedTlsAPI.MBEDTLS_ERR_NET_RECV_FAILED;
+				return Mbedtls.MBEDTLS_ERR_NET_RECV_FAILED;
 			if (wouldBlock)
-				return MonoMbedTlsAPI.MBEDTLS_ERR_SSL_WANT_READ;
+				return Mbedtls.MBEDTLS_ERR_SSL_WANT_READ;
 
 			Marshal.Copy (m_ManagedBuffer, 0, buffer, result);
 			return result;

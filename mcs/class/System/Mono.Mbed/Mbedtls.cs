@@ -25,7 +25,7 @@ namespace Mono.Mbed
 		}
 	}
 
-	class MonoMbedTlsAPI
+	class Mbedtls
 	{
 		internal const int MBEDTLS_SSL_HELLO_REQUEST = 0x00;
 		internal const int MBEDTLS_SSL_CLIENT_HELLO = 0x01;
@@ -176,7 +176,7 @@ namespace Mono.Mbed
 		internal const uint MBEDTLS_X509_BADCRL_BAD_PK         = 0x040000;  /**< The CRL is signed with an unacceptable PK alg (eg RSA vs ECDSA). */
 		internal const uint MBEDTLS_X509_BADCRL_BAD_KEY        = 0x080000;  /**< The CRL is signed with an unacceptable key (eg bad curve, RSA too short). */
 
-		// [TODO] Fix sizes
+		// 
 		[StructLayout (LayoutKind.Sequential)]
 		unsafe internal struct mbedtls_entropy_context
 		{

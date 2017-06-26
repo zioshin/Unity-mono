@@ -18,7 +18,7 @@ using MNS = Mono.Net.Security;
 
 namespace Mono.Mbed
 {
-	public class MonoMbedTlsProvider : MonoTlsProvider
+	public class MbedtlsProvider : MonoTlsProvider
 	{
 		static readonly Guid id = new Guid ("d7ad9d8d-5df9-4455-a34a-70fae79471fb");
 
@@ -50,7 +50,7 @@ namespace Mono.Mbed
 			Stream innerStream, bool leaveInnerStreamOpen,
 			MonoTlsSettings settings = null)
 		{
-			return new MonoMbedTlsStream (innerStream, leaveInnerStreamOpen, settings, this);
+			return new MbedtlsStream (innerStream, leaveInnerStreamOpen, settings, this);
 		}
 
 		internal override bool ValidateCertificate (
@@ -75,9 +75,9 @@ namespace Mono.Mbed
 			}
 
 			// convert (back) to native
-			MonoMbedTlsAPI.mbedtls_x509_crt crt_ca, trust_ca;
-			MonoMbedTlsAPI.mbedtls_x509_crt_init (out crt_ca);
-			MonoMbedTlsAPI.mbedtls_x509_crt_init (out trust_ca);
+			Mbedtls.mbedtls_x509_crt crt_ca, trust_ca;
+			Mbedtls.mbedtls_x509_crt_init (out crt_ca);
+			Mbedtls.mbedtls_x509_crt_init (out trust_ca);
 
 			foreach (X509Certificate certificate in certificates)
 				CertificateHelper.AddToChain(ref crt_ca, certificate);
@@ -85,12 +85,12 @@ namespace Mono.Mbed
 			CertificateHelper.AddSystemCertificates(ref trust_ca);
 
 			uint flags = 0;
-			int result = MonoMbedTlsAPI.mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHost, ref flags, IntPtr.Zero, IntPtr.Zero);
+			int result = Mbedtls.mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHost, ref flags, IntPtr.Zero, IntPtr.Zero);
 			Console.Error.WriteLine("result {0:X4}", -result);
 			Console.Error.WriteLine("flags {0:X4}", flags);
 
-			MonoMbedTlsAPI.mbedtls_x509_crt_free (ref crt_ca);
-			MonoMbedTlsAPI.mbedtls_x509_crt_free (ref trust_ca);
+			Mbedtls.mbedtls_x509_crt_free (ref crt_ca);
+			Mbedtls.mbedtls_x509_crt_free (ref trust_ca);
 
 			return result == 0 && flags == 0;
 		}

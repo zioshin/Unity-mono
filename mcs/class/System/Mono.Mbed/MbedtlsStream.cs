@@ -17,9 +17,9 @@ using MNS = Mono.Net.Security;
 
 namespace Mono.Mbed
 {
-	class MonoMbedTlsStream : MNS.MobileAuthenticatedStream
+	class MbedtlsStream : MNS.MobileAuthenticatedStream
 	{
-		public MonoMbedTlsStream (Stream innerStream, bool leaveInnerStreamOpen,
+		public MbedtlsStream (Stream innerStream, bool leaveInnerStreamOpen,
 			MonoTlsSettings settings, MonoTlsProvider provider)
 			: base (innerStream, leaveInnerStreamOpen, settings, provider)
 		{
@@ -30,7 +30,7 @@ namespace Mono.Mbed
 			SslProtocols enabledProtocols, X509Certificate serverCertificate,
 			X509CertificateCollection clientCertificates, bool askForClientCert)
 		{
-			return new MonoMbedTlsContext (parent, serverMode, targetHost,
+			return new MbedtlsContext (parent, serverMode, targetHost,
 				enabledProtocols, serverCertificate, clientCertificates,
 				askForClientCert);
 		}

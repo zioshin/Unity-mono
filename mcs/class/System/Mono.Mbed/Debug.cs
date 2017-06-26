@@ -30,7 +30,7 @@ namespace Mono.Mbed
 		{
 			int debugLevel;
 			Int32.TryParse (Environment.GetEnvironmentVariable ("MONO_TLS_DEBUG"), out debugLevel);
-			MonoMbedTlsAPI.mbedtls_debug_set_threshold (debugLevel);
+			Mbedtls.mbedtls_debug_set_threshold (debugLevel);
 			Level = debugLevel;
 		}
 
@@ -96,7 +96,7 @@ namespace Mono.Mbed
 		{
 			using (NativeBuffer nativeBuffer = new NativeBuffer(1024))
 			{
-				MonoMbedTlsAPI.mbedtls_strerror (result, nativeBuffer.DataPtr, nativeBuffer.Size);
+				Mbedtls.mbedtls_strerror (result, nativeBuffer.DataPtr, nativeBuffer.Size);
 				string error = String.Format ("{0} [{1}]", message, Marshal.PtrToStringAuto (nativeBuffer.DataPtr));
 				Throw (AlertDescription.InternalError, error);
 			}
