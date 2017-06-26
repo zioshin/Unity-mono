@@ -4,5 +4,8 @@
         <ClCompile Include="$(MonoSourceLocation)\mono\metadata\file-mmap-unity.c" >
             <Filter>Source Files</Filter>
         </ClCompile>
+        <ClCompile Include="$(MonoSourceLocation)\mono\metadata\w32file-unity.c" >
+            <Filter>Source Files</Filter>
+        </ClCompile>
     </ItemGroup>
 </Project>
