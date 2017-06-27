@@ -246,6 +246,9 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 	return result;
 }
 
+
+/* DOUG BROKEN ON WINDOWS */
+
 gboolean
 mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName, gunichar2 *destinationBackupFileName, guint32 flags, gint32 *error)
 {
@@ -278,13 +281,11 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 gboolean
 mono_w32file_lock (gpointer handle, gint64 position, gint64 length, gint32 *error)
 {
-	gboolean result;
+	gboolean result = TRUE;
 
 	MONO_ENTER_GC_SAFE;
 
-	result = LockFile (handle, position & 0xFFFFFFFF, position >> 32, length & 0xFFFFFFFF, length >> 32);
-	if (!result)
-		*error = GetLastError ();
+	UnityPalLock(handle, position, length, error);
 
 	MONO_EXIT_GC_SAFE;
 
