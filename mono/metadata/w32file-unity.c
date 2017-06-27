@@ -306,37 +306,33 @@ mono_w32file_unlock (gpointer handle, gint64 position, gint64 length, gint32 *er
 HANDLE
 mono_w32file_get_console_input (void)
 {
-	return GetStdHandle (STD_INPUT_HANDLE);
+	return UnityPalGetStdInput();
 }
 
 HANDLE
 mono_w32file_get_console_output (void)
 {
-	return GetStdHandle (STD_OUTPUT_HANDLE);
+	return UnityPalGetStdOutput();
 }
 
 HANDLE
 mono_w32file_get_console_error (void)
 {
-	return GetStdHandle (STD_ERROR_HANDLE);
+	return UnityPalGetStdError();
 }
 
 gint64
 mono_w32file_get_file_size (gpointer handle, gint32 *error)
 {
 	gint64 length;
-	guint32 length_hi;
 
 	MONO_ENTER_GC_SAFE;
 
-	length = GetFileSize (handle, &length_hi);
-	if(length==INVALID_FILE_SIZE) {
-		*error=GetLastError ();
-	}
+	length = UnityPalGetLength(handle, error);
 
 	MONO_EXIT_GC_SAFE;
 
-	return length | ((gint64)length_hi << 32);
+	return length;
 }
 
 guint32
