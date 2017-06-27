@@ -183,50 +183,35 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 guint32
 mono_w32file_get_cwd (guint32 length, gunichar2 *buffer)
 {
-	return GetCurrentDirectory (length, buffer);
+	g_assert_not_reached();
+	return FALSE;
 }
 
 gboolean
 mono_w32file_set_cwd (const gunichar2 *path)
 {
-	return SetCurrentDirectory (path);
+	g_assert_not_reached();
+	return FALSE;
 }
 
 gboolean
 mono_w32file_create_pipe (gpointer *readpipe, gpointer *writepipe, guint32 size)
 {
-	SECURITY_ATTRIBUTES attr;
-	attr.nLength = sizeof(SECURITY_ATTRIBUTES);
-	attr.bInheritHandle = TRUE;
-	attr.lpSecurityDescriptor = NULL;
-	return CreatePipe (readpipe, writepipe, &attr, size);
+	return UnityPalCreatePipe(*readpipe, *writepipe);
 }
 
 gboolean
 mono_w32file_get_disk_free_space (const gunichar2 *path_name, guint64 *free_bytes_avail, guint64 *total_number_of_bytes, guint64 *total_number_of_free_bytes)
 {
-	gboolean result;
-	ULARGE_INTEGER *wapi_free_bytes_avail;
-	ULARGE_INTEGER *wapi_total_number_of_bytes;
-	ULARGE_INTEGER *wapi_total_number_of_free_bytes;
-
-	result = GetDiskFreeSpaceEx (path_name, wapi_free_bytes_avail, wapi_total_number_of_bytes, wapi_total_number_of_free_bytes);
-	if (result) {
-		if (free_bytes_avail)
-			*free_bytes_avail = wapi_free_bytes_avail->QuadPart;
-		if (total_number_of_bytes)
-			*total_number_of_bytes = wapi_total_number_of_bytes->QuadPart;
-		if (total_number_of_free_bytes)
-			*total_number_of_free_bytes = wapi_total_number_of_free_bytes->QuadPart;
-	}
-
-	return result;
+	g_assert_not_reached();
+	return FALSE;
 }
 
 gboolean
 mono_w32file_get_volume_information (const gunichar2 *path, gunichar2 *volumename, gint volumesize, gint *outserial, gint *maxcomp, gint *fsflags, gunichar2 *fsbuffer, gint fsbuffersize)
 {
-	return GetVolumeInformation (path, volumename, volumesize, outserial, maxcomp, fsflags, fsbuffer, fsbuffersize);
+	g_assert_not_reached();
+	return FALSE;
 }
 
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT)
@@ -338,13 +323,17 @@ mono_w32file_get_file_size (gpointer handle, gint32 *error)
 guint32
 mono_w32file_get_drive_type (const gunichar2 *root_path_name)
 {
-	return GetDriveType (root_path_name);
+	/* Not Supported in UnityPAL */
+	g_assert_not_reached();
+//	return GetDriveType (root_path_name);
 }
 
 gint32
 mono_w32file_get_logical_drive (guint32 len, gunichar2 *buf)
 {
-	return GetLogicalDriveStrings (len, buf);
+	/* Not Supported in UnityPAL */
+	g_assert_not_reached();
+//	return GetLogicalDriveStrings (len, buf);
 }
 
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT) */
