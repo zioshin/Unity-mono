@@ -281,7 +281,6 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 gboolean
 mono_w32file_lock (gpointer handle, gint64 position, gint64 length, gint32 *error)
 {
-	gboolean result = TRUE;
 
 	MONO_ENTER_GC_SAFE;
 
@@ -289,23 +288,19 @@ mono_w32file_lock (gpointer handle, gint64 position, gint64 length, gint32 *erro
 
 	MONO_EXIT_GC_SAFE;
 
-	return result;
+	return (error == 0);
 }
 
 gboolean
 mono_w32file_unlock (gpointer handle, gint64 position, gint64 length, gint32 *error)
 {
-	gboolean result;
-
 	MONO_ENTER_GC_SAFE;
 
-	result = UnlockFile (handle, position & 0xFFFFFFFF, position >> 32, length & 0xFFFFFFFF, length >> 32);
-	if (!result)
-		*error = GetLastError ();
+	UnityPalUnlock(handle, position, length, error);
 
 	MONO_EXIT_GC_SAFE;
 
-	return result;
+	return (error == 0);
 }
 
 HANDLE
