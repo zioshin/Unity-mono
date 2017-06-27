@@ -238,9 +238,8 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 
 	MONO_ENTER_GC_SAFE;
 
-	result = MoveFile (path, dest);
-	if (!result)
-		*error = GetLastError ();
+	*error = 0;
+    result =  UnityPalMoveFile(u16to8(path), u16to8(dest), error);
 
 	MONO_EXIT_GC_SAFE;
 
@@ -254,9 +253,9 @@ mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName,
 
 	MONO_ENTER_GC_SAFE;
 
-	result = ReplaceFile (destinationFileName, sourceFileName, destinationBackupFileName, flags, NULL, NULL);
+	result = ReplaceFile(destinationFileName, sourceFileName, destinationBackupFileName, flags, NULL, NULL);
 	if (!result)
-		*error = GetLastError ();
+		*error = GetLastError();
 
 	MONO_EXIT_GC_SAFE;
 
