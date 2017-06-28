@@ -85,7 +85,9 @@ mono_w32file_read(gpointer handle, gpointer buffer, guint32 numbytes, guint32 *b
 gboolean
 mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, guint32 *byteswritten)
 {
-	return WriteFile (handle, buffer, numbytes, byteswritten, NULL);
+	int error = 0;
+	*byteswritten = UnityPalWrite(handle, buffer, numbytes, &error);
+	return (error == 0);
 }
 
 gboolean
@@ -95,6 +97,8 @@ mono_w32file_flush (gpointer handle)
 	return UnityPalFlush(handle, &error);
 }
 
+
+//  Doug Broken in Windows
 gboolean
 mono_w32file_truncate (gpointer handle)
 {
@@ -143,6 +147,7 @@ mono_w32file_find_next (gpointer handle, WIN32_FIND_DATA *find_data)
 	return FindNextFile (handle, find_data);
 }
 
+//  DOUG broken on windows
 gboolean
 mono_w32file_find_close (gpointer handle)
 {
@@ -203,7 +208,8 @@ mono_w32file_get_cwd(guint32 length, gunichar2 *buffer)
 gboolean
 mono_w32file_set_cwd (const gunichar2 *path)
 {
-	return SetCurrentDirectory (path);
+	int error = 0;
+	return UnityPalDirectorySetCurrent(u16to8(path), &error);
 }
 
 gboolean
