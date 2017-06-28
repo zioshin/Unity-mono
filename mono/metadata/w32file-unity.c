@@ -1,6 +1,7 @@
 #include <config.h>
 #include <glib.h>
 
+#include "Directory-c-api.h"
 #include "File-c-api.h"
 #include "w32file.h"
 
@@ -181,17 +182,15 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 }
 
 guint32
-mono_w32file_get_cwd (guint32 length, gunichar2 *buffer)
+mono_w32file_get_cwd(guint32 length, gunichar2 *buffer)
 {
-	g_assert_not_reached();
-	return FALSE;
+	return GetCurrentDirectory (length, buffer);
 }
 
 gboolean
 mono_w32file_set_cwd (const gunichar2 *path)
 {
-	g_assert_not_reached();
-	return FALSE;
+	return SetCurrentDirectory (path);
 }
 
 gboolean
@@ -256,8 +255,10 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 	gboolean result;
 
 	MONO_ENTER_GC_SAFE;
+	
 	*error = 0;
 	result = UnityPalCopyFile( u16to8(path), u16to8(dest), overwrite, error);
+
 	MONO_EXIT_GC_SAFE;
 
 	return result;
@@ -325,7 +326,6 @@ mono_w32file_get_drive_type (const gunichar2 *root_path_name)
 {
 	/* Not Supported in UnityPAL */
 	g_assert_not_reached();
-//	return GetDriveType (root_path_name);
 }
 
 gint32
@@ -333,7 +333,6 @@ mono_w32file_get_logical_drive (guint32 len, gunichar2 *buf)
 {
 	/* Not Supported in UnityPAL */
 	g_assert_not_reached();
-//	return GetLogicalDriveStrings (len, buf);
 }
 
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT) */
