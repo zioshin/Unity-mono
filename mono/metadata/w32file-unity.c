@@ -49,28 +49,37 @@ void ves_icall_System_IO_MonoIO_DumpHandles (void)
 	return;
 }
 
+
+//***************  DOUG FAILS ON WINDOWS 
 gpointer
 mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode, guint32 createmode, guint32 attrs)
 {
+//	int error = 0;
+//	return UnityPalOpen(u16to8(name), createmode, fileaccess, sharemode, attrs, &error);
+
 	return CreateFile (name, fileaccess, sharemode, NULL, createmode, attrs, NULL);
 }
 
 gboolean
 mono_w32file_close (gpointer handle)
 {
-	return CloseHandle (handle);
+	int error = 0;
+	return UnityPalClose(handle, &error);
 }
 
 gboolean
 mono_w32file_delete (const gunichar2 *name)
 {
-	return DeleteFile (name);
+	int error = 0;
+	return UnityPalDeleteFile(u16to8(name), &error);
 }
 
 gboolean
 mono_w32file_read(gpointer handle, gpointer buffer, guint32 numbytes, guint32 *bytesread)
 {
-	 return ReadFile (handle, buffer, numbytes, bytesread, NULL);
+	int error = 0;
+	*bytesread =  UnityPalRead(handle, buffer, numbytes, &error);
+	return (error == 0);
 }
 
 gboolean
@@ -82,7 +91,8 @@ mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, gui
 gboolean
 mono_w32file_flush (gpointer handle)
 {
-	return FlushFileBuffers (handle);
+	int error = 0;
+	return UnityPalFlush(handle, &error);
 }
 
 gboolean
@@ -137,18 +147,21 @@ gboolean
 mono_w32file_find_close (gpointer handle)
 {
 	return FindClose (handle);
+//	return UnityPalDirectoryCloseOSHandle(handle);
 }
 
 gboolean
 mono_w32file_create_directory (const gunichar2 *name)
 {
-	return CreateDirectory (name, NULL);
+	int error = 0;
+    return UnityPalDirectoryCreate(u16to8(name), &error);
 }
 
 gboolean
 mono_w32file_remove_directory (const gunichar2 *name)
 {
-	return RemoveDirectory (name);
+	int error = 0;
+	return UnityPalDirectoryRemove(u16to8(name), &error);
 }
 
 guint32
