@@ -108,13 +108,14 @@ mono_w32file_truncate (gpointer handle)
 guint32
 mono_w32file_seek (gpointer handle, gint32 movedistance, gint32 *highmovedistance, guint32 method)
 {
-	return SetFilePointer (handle, movedistance, highmovedistance, method);
+	int error = 0;
+	return UnityPalSeek(handle, movedistance, 0, &error);
 }
 
 gint
 mono_w32file_get_type (gpointer handle)
 {
-	return GetFileType (handle);
+	return UnityPalGetFileType(handle);
 }
 
 gboolean
@@ -123,9 +124,18 @@ mono_w32file_get_times (gpointer handle, FILETIME *create_time, FILETIME *access
 	return GetFileTime (handle, create_time, access_time, write_time);
 }
 
+
+// DOUG Broken on Windows
 gboolean
 mono_w32file_set_times (gpointer handle, const FILETIME *create_time, const FILETIME *access_time, const FILETIME *write_time)
 {
+//	gint64 creation_time = (gint64)((((guint64)create_time->dwHighDateTime) << 32) + create_time->dwLowDateTime);
+//	gint64 last_access_time = (gint64)((((guint64)access_time->dwHighDateTime) << 32) + access_time->dwLowDateTime);
+//	gint64 last_write_time = (gint64)((((guint64)write_time->dwHighDateTime) << 32) + write_time->dwLowDateTime);
+
+//	int error = 0;
+	//return UnityPalSetFileTime(handle, creation_time, last_access_time, last_write_time, &error);
+//	return TRUE;
 	return SetFileTime (handle, create_time, access_time, write_time);
 }
 
