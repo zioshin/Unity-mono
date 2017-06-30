@@ -1104,8 +1104,9 @@ mono_unity_gc_unregister_temp_root (uint32_t handle)
 {
 #if HAVE_SGEN_GC
 	MonoObject* obj = mono_gchandle_get_target (handle);
+	mono_gc_wbarrier_generic_nostore (&obj);
 	mono_gc_deregister_root (obj);
 #else
-	assert (handle == 0);
+	g_assert (handle == 0);
 #endif
 }
