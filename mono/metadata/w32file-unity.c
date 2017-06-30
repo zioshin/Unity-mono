@@ -320,6 +320,40 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 gboolean
 mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName, gunichar2 *destinationBackupFileName, guint32 flags, gint32 *error)
 {
+/*	gboolean result;
+	gchar* destPath = "";
+	gchar* sourcePath = "";
+	gchar* destBackupPath = "";
+
+	if (destinationFileName != NULL)
+	{
+		destPath = u16to8(destinationFileName);
+	}
+
+	if (sourceFileName != NULL)
+	{
+		sourcePath = u16to8(sourceFileName);
+	}
+
+	if (destinationBackupFileName != NULL)
+	{
+		destBackupPath = u16to8(destinationBackupFileName);
+	}
+
+	MONO_ENTER_GC_SAFE;
+
+	result =  UnityPalReplaceFile(sourcePath, destPath, destBackupPath, 0, error);
+	*error = 0;
+
+	MONO_EXIT_GC_SAFE;
+
+	g_free(destPath);
+	g_free(sourcePath);
+	g_free(destBackupPath);
+
+	return result;*/
+
+
 	gboolean result;
 
 	MONO_ENTER_GC_SAFE;
@@ -331,6 +365,7 @@ mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName,
 	MONO_EXIT_GC_SAFE;
 
 	return result;
+
 }
 
 gboolean
@@ -414,6 +449,7 @@ mono_w32file_get_drive_type (const gunichar2 *root_path_name)
 {
 	/* Not Supported in UnityPAL */
 	g_assert_not_reached();
+	return 0;
 }
 
 gint32
@@ -421,6 +457,7 @@ mono_w32file_get_logical_drive (guint32 len, gunichar2 *buf)
 {
 	/* Not Supported in UnityPAL */
 	g_assert_not_reached();
+	return -1;
 }
 
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT) */
