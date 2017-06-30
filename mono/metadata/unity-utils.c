@@ -1087,3 +1087,25 @@ mono_unity_alloc(gsize size)
 	return g_malloc(size);
 }
 
+MONO_API uint32_t
+mono_unity_gc_register_temp_root (MonoObject* obj)
+{
+#if HAVE_SGEN_GC
+	uint32_t handle = mono_gchandle_new (obj, TRUE);
+	mono_gc_register_root (obj, mono_object_get_size (obj), MONO_GC_DESCRIPTOR_NULL, MONO_ROOT_SOURCE_EXTERNAL, "Temp Root");
+	return handle;
+#else
+	return 0;
+#endif
+}
+
+MONO_API void
+mono_unity_gc_unregister_temp_root (uint32_t handle)
+{
+#if HAVE_SGEN_GC
+	MonoObject* obj = mono_gchandle_get_target (handle);
+	mono_gc_deregister_root (obj);
+#else
+	assert (handle == 0);
+#endif
+}
