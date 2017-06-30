@@ -296,7 +296,7 @@ mono_w32file_get_volume_information (const gunichar2 *path, gunichar2 *volumenam
 	return FALSE;
 }
 
-#if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT)
+
 
 gboolean
 mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
@@ -460,6 +460,6 @@ mono_w32file_get_logical_drive (guint32 len, gunichar2 *buf)
 	return -1;
 }
 
-#endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT) */
+
 
 
