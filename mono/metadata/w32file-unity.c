@@ -50,8 +50,6 @@ void ves_icall_System_IO_MonoIO_DumpHandles (void)
 	return;
 }
 
-
-//***************  DOUG FAILS ON WINDOWS 
 gpointer
 mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode, guint32 createmode, guint32 attrs)
 {
@@ -101,8 +99,6 @@ mono_w32file_flush (gpointer handle)
 	return UnityPalFlush(handle, &error);
 }
 
-
-//  Doug Broken in Windows
 gboolean
 mono_w32file_truncate (gpointer handle)
 {
@@ -125,15 +121,37 @@ mono_w32file_get_type (gpointer handle)
 gboolean
 mono_w32file_get_times (gpointer handle, FILETIME *create_time, FILETIME *access_time, FILETIME *write_time)
 {
-	return GetFileTime (handle, create_time, access_time, write_time);
+	/* Not Supported in UnityPAL */
+	g_assert_not_reached();
 }
 
-
-// DOUG Broken on Windows
 gboolean
 mono_w32file_set_times (gpointer handle, const FILETIME *create_time, const FILETIME *access_time, const FILETIME *write_time)
 {
-	return SetFileTime (handle, create_time, access_time, write_time);
+	int64_t creation_time = 0;
+	int64_t last_access_time = 0;
+	int64_t last_write_time = 0;
+	int error = 0;
+
+	/* It is possible that any one of the time values passed in could be null, need to check
+	 * each one.
+	 */
+	if (create_time != NULL)
+	{
+		creation_time = (gint64)((((guint64) create_time->dwHighDateTime) << 32) + create_time->dwLowDateTime);
+	}
+	
+	if (access_time != NULL)
+	{
+		last_access_time = (gint64)((((guint64)access_time->dwHighDateTime) << 32) + access_time->dwLowDateTime);
+	}
+
+	if (write_time != NULL)
+	{
+		last_write_time = (gint64)((((guint64) write_time->dwHighDateTime) << 32) + write_time->dwLowDateTime);
+	}
+
+	return  UnityPalSetFileTime(handle, creation_time, last_access_time, last_write_time, &error);
 }
 
 gboolean
@@ -154,7 +172,6 @@ mono_w32file_find_next (gpointer handle, WIN32_FIND_DATA *find_data)
 	return FindNextFile (handle, find_data);
 }
 
-//  DOUG broken on windows
 gboolean
 mono_w32file_find_close (gpointer handle)
 {
@@ -299,9 +316,6 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 
 	return result;
 }
-
-
-/* DOUG BROKEN ON WINDOWS */
 
 gboolean
 mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName, gunichar2 *destinationBackupFileName, guint32 flags, gint32 *error)
