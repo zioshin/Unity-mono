@@ -1,10 +1,11 @@
 #include <config.h>
 #include <glib.h>
 
+
 #include "Directory-c-api.h"
 #include "File-c-api.h"
 #include "w32file.h"
-
+#include "utils/strenc.h"
 
 #include <winsock2.h>
 #include <windows.h>
@@ -230,16 +231,20 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 guint32
 mono_w32file_get_cwd(guint32 length, gunichar2 *buffer)
 {
-	//int error = 0;
-//	const gchar *path = UnityPalDirectoryGetCurrent(&error);
-	//if (length < strlen(path) + 1 || path == NULL)
-	//	return FALSE;
-//	memcpy((gchar*)buffer, path, strlen(path) + 1);
-//
-//	buffer[0] = '\0';
+	gunichar2 *utf16_path;
+	glong count;
+	uintptr_t bytes;
+	int error = 0;
 
-//	return TRUE;
-return GetCurrentDirectory (length, buffer);
+	const char* palPath = UnityPalDirectoryGetCurrent(&error);
+	utf16_path = mono_unicode_from_external(palPath, &bytes);
+	count = (bytes / 2) + 1;
+
+	memcpy(buffer, utf16_path, length);
+
+	g_free(utf16_path);
+	g_free((void *)palPath);
+	return count;
 }
 
 gboolean
