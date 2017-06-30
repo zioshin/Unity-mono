@@ -11,6 +11,7 @@
 #include <mono/metadata/metadata.h>
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/class-internals.h>
+#include <mono/metadata/gc-internals.h>
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/marshal.h>
 #include <mono/metadata/metadata-internals.h>
