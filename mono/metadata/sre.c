@@ -38,7 +38,7 @@
 void
 mono_sre_generic_param_table_entry_free (GenericParamTableEntry *entry)
 {
-	mono_gc_deregister_root ((char*) &entry->gparam);
+	MONO_GC_UNREGISTER_ROOT_IF_MOVING (entry->gparam);
 	g_free (entry);
 }
 
