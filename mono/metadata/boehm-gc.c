@@ -200,6 +200,24 @@ mono_gc_enable (void)
 #endif
 }
 
+MonoBoolean
+mono_gc_try_expand_heap (gint64 bytes)
+{
+	return GC_expand_hp (bytes) ? TRUE : FALSE;
+}
+
+void
+mono_gc_use_entire_heap (MonoBoolean val)
+{
+	GC_use_entire_heap = val ? 1 : 0;
+}
+
+void
+mono_gc_set_max_heap_size (gint64 bytes)
+{
+	GC_set_max_heap_size (bytes);
+}
+
 gboolean
 mono_gc_is_gc_thread (void)
 {

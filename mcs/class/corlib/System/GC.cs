@@ -125,6 +125,23 @@ namespace System
 		public static void RemoveMemoryPressure (long bytesAllocated) {
 			RecordPressure (-bytesAllocated);
 		}
+
+		// Unity
+		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		extern static bool TryExpandHeap (long bytes);
+
+		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		extern static void SetUseEntireHeap (bool value);
+
+		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		extern static void SetMaxHeapSize (long bytes);
+
+		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		extern static void Enable ();
+
+		[MethodImplAttribute (MethodImplOptions.InternalCall)]
+		extern static void Disable ();
+
 #endif
 	}
 }

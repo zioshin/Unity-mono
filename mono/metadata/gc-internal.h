@@ -39,6 +39,12 @@ extern void mono_gc_cleanup (void) MONO_INTERNAL;
 extern void mono_gc_enable (void) MONO_INTERNAL;
 extern void mono_gc_disable (void) MONO_INTERNAL;
 
+/* Unity GC API*/
+extern MonoBoolean mono_gc_try_expand_heap (gint64 bytes) MONO_INTERNAL;
+extern void mono_gc_set_max_heap_size (gint64 bytes) MONO_INTERNAL;
+extern void mono_gc_use_entire_heap (MonoBoolean val) MONO_INTERNAL;
+
+
 /*
  * Return whenever the current thread is registered with the GC (i.e. started
  * by the GC pthread wrappers on unix.
