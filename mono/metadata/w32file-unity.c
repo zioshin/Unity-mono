@@ -320,10 +320,10 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 gboolean
 mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName, gunichar2 *destinationBackupFileName, guint32 flags, gint32 *error)
 {
-/*	gboolean result;
-	gchar* destPath = "";
-	gchar* sourcePath = "";
-	gchar* destBackupPath = "";
+	gboolean result;
+	gchar* destPath = NULL;
+	gchar* sourcePath = NULL;
+	gchar* destBackupPath = NULL;
 
 	if (destinationFileName != NULL)
 	{
@@ -351,21 +351,7 @@ mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName,
 	g_free(sourcePath);
 	g_free(destBackupPath);
 
-	return result;*/
-
-
-	gboolean result;
-
-	MONO_ENTER_GC_SAFE;
-
-	result = ReplaceFile(destinationFileName, sourceFileName, destinationBackupFileName, flags, NULL, NULL);
-	if (!result)
-		*error = GetLastError();
-
-	MONO_EXIT_GC_SAFE;
-
 	return result;
-
 }
 
 gboolean
