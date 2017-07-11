@@ -1397,10 +1397,19 @@ namespace System.Diagnostics {
 			Process process;
 			Stream stream;
 			StringBuilder sb = new StringBuilder ();
+			Encoding outputEncoding;
 			public AsyncReadHandler ReadHandler;
 
 			public ProcessAsyncReader (Process process, IntPtr handle, bool err_out)
 			{
+				if (err_out)
+				{
+					this.outputEncoding = process.StartInfo.StandardOutputEncoding ?? Console.Out.Encoding;
+				}
+				else
+				{
+					this.outputEncoding = process.StartInfo.StandardErrorEncoding ?? Console.Out.Encoding;
+				}
 				this.process = process;
 				this.handle = handle;
 				stream = new FileStream (handle, FileAccess.Read, false);
@@ -1421,7 +1430,7 @@ namespace System.Diagnostics {
 					}
 
 					try {
-						sb.Append (Encoding.Default.GetString (buffer, 0, nread));
+						sb.Append (outputEncoding.GetString (buffer, 0, nread));
 					} catch {
 						// Just in case the encoding fails...
 						for (int i = 0; i < nread; i++) {
