@@ -1196,7 +1196,7 @@ void mono_gc_strong_handle_foreach(GFunc func, gpointer user_data)
 
 	lock_handles (handles);
 
-	for (gcHandleTypeIndex = 0; gcHandleTypeIndex < 2; gcHandleTypeIndex++)
+	for (gcHandleTypeIndex = 0; sizeof(types)/sizeof(HandleType); gcHandleTypeIndex++)
 	{
 		HandleData* handles = &gc_handles[types[gcHandleTypeIndex]];
 
