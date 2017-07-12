@@ -193,7 +193,7 @@ typedef struct {
 	MonoContext handler_ctx;
 	/* Whenever thread_stop () was called for this thread */
 	gboolean terminated;
-	/* Whenever thread_stop () was called for this thread */
+	/* If thread should be suspended and processed. FALSE is fast detach has been called */
 	gboolean attached;
 
 	/* Number of thread interruptions not yet processed */
