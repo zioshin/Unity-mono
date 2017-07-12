@@ -227,7 +227,7 @@ static gboolean do_concurrent_checks = FALSE;
    each collection */
 static gboolean do_scan_starts_check = FALSE;
 
-static gboolean disable_minor_collections = FALSE;
+gboolean disable_minor_collections = FALSE;
 static gboolean disable_major_collections = FALSE;
 static gboolean do_verify_nursery = FALSE;
 static gboolean do_dump_nursery_content = FALSE;
