@@ -1086,7 +1086,9 @@ mono_unity_alloc(gsize size)
 {
 	return g_malloc(size);
 }
- 
+
+#ifdef HAVE_SGEN_GC
+
 extern gboolean disable_minor_collections;
 static gint32 raw_refcount;
 
@@ -1110,3 +1112,18 @@ mono_unity_handle_stack_pop_raw (uint32_t handle)
 		disable_minor_collections = FALSE;
 	//mono_handle_pop_raw (arg);
 }
+
+#else
+
+MONO_API uint32_t
+mono_unity_handle_stack_push_raw (MonoObject* obj)
+{
+	return 0;
+}
+
+MONO_API void
+mono_unity_handle_stack_pop_raw (uint32_t handle)
+{
+}
+
+#endif
