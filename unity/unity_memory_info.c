@@ -377,9 +377,7 @@ static void CaptureManagedHeap(MonoManagedHeap* heap)
 	iterationContext.currentSection = heap->sections;
 	GC_foreach_heap_section(&iterationContext, CopyHeapSection);
 
-	mono_domain_lock (domain);
 	mono_mempool_foreach_chunk(domain->mp, CopyMemPoolChunk, &iterationContext);
-	mono_domain_unlock (domain);
 
 	GC_start_world_external();
 }
