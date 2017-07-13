@@ -53,10 +53,13 @@ void ves_icall_System_IO_MonoIO_DumpHandles (void)
 gpointer
 mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode, guint32 createmode, guint32 attrs)
 {
-//	int error = 0;
-//	return UnityPalOpen(u16to8(name), createmode, fileaccess, sharemode, attrs, &error);
-
-	return CreateFile (name, fileaccess, sharemode, NULL, createmode, attrs, NULL);
+	int error = 0;
+	gpointer handle;
+	gchar* palPath = u16to8(name);
+	handle =  UnityPalOpen(palPath, (int) createmode, (int) fileaccess, (int) sharemode, attrs, &error);
+	g_free(palPath);
+	
+	return handle;
 }
 
 gboolean
