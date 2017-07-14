@@ -57,8 +57,11 @@ mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode
 	gpointer handle;
 	gchar* palPath = u16to8(name);
 	handle =  UnityPalOpen(palPath, (int) createmode, (int) fileaccess, (int) sharemode, attrs, &error);
+	if (handle == NULL && error != 0)
+		handle = INVALID_HANDLE_VALUE;
+
 	g_free(palPath);
-	
+
 	return handle;
 }
 
