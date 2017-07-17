@@ -108,7 +108,8 @@ mono_w32file_flush (gpointer handle)
 gboolean
 mono_w32file_truncate (gpointer handle)
 {
-	return SetEndOfFile (handle);
+	int error = 0;
+	return UnityPalTruncate(handle, &error);
 }
 
 guint32
