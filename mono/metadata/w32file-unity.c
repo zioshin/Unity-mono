@@ -182,7 +182,6 @@ gboolean
 mono_w32file_find_close (gpointer handle)
 {
 	return FindClose (handle);
-//	return UnityPalDirectoryCloseOSHandle(handle);
 }
 
 gboolean
