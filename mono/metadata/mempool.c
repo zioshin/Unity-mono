@@ -466,3 +466,18 @@ g_slist_append_mempool (MonoMemPool *mp, GSList *list, gpointer data)
 	} else
 		return new_list;
 }
+
+void mono_mempool_foreach_chunk(MonoMemPool* pool, mono_mempool_chunk_proc callback, void* user_data)
+{
+	MonoMemPool *current = pool;
+
+	while (current)
+	{
+		gpointer start = (guint8*)current + sizeof(MonoMemPool);
+		gpointer end = (guint8*)start + current->size;
+
+		callback(start, end, user_data);
+		current = current->next;
+	}
+}
+

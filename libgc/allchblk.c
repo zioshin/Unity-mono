@@ -32,17 +32,7 @@ GC_bool GC_use_entire_heap = 0;
 		/* listed block.  Must be >= HBLKSIZE.			*/
 
 
-# define UNIQUE_THRESHOLD 32
-	/* Sizes up to this many HBLKs each have their own free list    */
-# define HUGE_THRESHOLD 256
-	/* Sizes of at least this many heap blocks are mapped to a	*/
-	/* single free list.						*/
-# define FL_COMPRESSION 8
-	/* In between sizes map this many distinct sizes to a single	*/
-	/* bin.								*/
 
-# define N_HBLK_FLS (HUGE_THRESHOLD - UNIQUE_THRESHOLD)/FL_COMPRESSION \
-				 + UNIQUE_THRESHOLD
 
 struct hblk * GC_hblkfreelist[N_HBLK_FLS+1] = { 0 };
 

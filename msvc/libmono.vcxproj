@@ -656,6 +656,7 @@
     <ClInclude Include="..\mono\mini\regalloc.h" />
     <ClInclude Include="..\mono\mini\ssapre.h" />
     <ClInclude Include="..\mono\mini\trace.h" />
+    <ClInclude Include="..\unity\unity_memory_info.h" />
     <CustomBuildStep Include="..\mono\mini\mini-x86.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_eglib|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -4274,6 +4275,7 @@
     <ClCompile Include="..\mono\xamarin-android\xamarin_getifaddrs.c" />
     <ClCompile Include="..\unity\unity_cross_utils.c" />
     <ClCompile Include="..\unity\unity_liveness.c" />
+    <ClCompile Include="..\unity\unity_memory_info.c" />
     <ClCompile Include="..\unity\unity_utils.c" />
   </ItemGroup>
   <ItemGroup>
