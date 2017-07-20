@@ -174,8 +174,10 @@ mono_w32file_find_first (const gunichar2 *pattern, WIN32_FIND_DATA *find_data)
 	UnityPalFindHandle* findHandle = UnityPalDirectoryFindHandleNew(palPath);
 	int32_t resultAttributes = 0;
 
-	gboolean result = 0;
- 	const char* filename = UnityPalDirectoryFindFirstFileEX(findHandle, palPath, &resultAttributes, &result);
+	int32_t result = 0;
+ 	const char* filename;
+
+ 	result = UnityPalDirectoryFindFirstFile(findHandle, palPath, &filename, &resultAttributes);
 
  	if (result != 0)
  		return INVALID_HANDLE_VALUE;
@@ -207,7 +209,10 @@ mono_w32file_find_next (gpointer handle, WIN32_FIND_DATA *find_data)
 
 	int32_t resultAttributes = 0;
 	int32_t result;
- 	const char* filename = UnityPalDirectoryFindNextFileEX(handle, &resultAttributes, &result);
+ 	const char* filename;
+
+	result = UnityPalDirectoryFindNextFile(handle, &filename, &resultAttributes);
+
 	find_data->dwFileAttributes = resultAttributes;
 	gunichar2 *utf16_basename;
 	glong bytes;
