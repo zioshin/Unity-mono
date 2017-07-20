@@ -170,64 +170,68 @@ mono_w32file_filetime_to_systemtime (const FILETIME *file_time, SYSTEMTIME *syst
 gpointer
 mono_w32file_find_first (const gunichar2 *pattern, WIN32_FIND_DATA *find_data)
 {
-	return FindFirstFile(pattern, find_data);
-
-	/*
 	gchar* palPath = u16to8(pattern);
 	UnityPalFindHandle* findHandle = UnityPalDirectoryFindHandleNew(palPath);
 	int32_t resultAttributes = 0;
 
-typedef struct {
-	guint32 dwFileAttributes;
-	FILETIME ftCreationTime;
-	FILETIME ftLastAccessTime;
-	FILETIME ftLastWriteTime;
-	guint32 nFileSizeHigh;
-	guint32 nFileSizeLow;
-	guint32 dwReserved0;
-	guint32 dwReserved1;
-	gunichar2 cFileName [MAX_PATH];
-	gunichar2 cAlternateFileName [14];
-} WIN32_FIND_DATA; 
+	gboolean result = 0;
+ 	const char* filename = UnityPalDirectoryFindFirstFileEX(findHandle, palPath, &resultAttributes, &result);
 
-	char* filename[MAX_PATH];
-	UnityPalDirectoryFindFirstFile(findHandle, palPath, &filename, &resultAttributes);
+ 	if (result != 0)
+ 		return INVALID_HANDLE_VALUE;
+
 	find_data->dwFileAttributes = resultAttributes;
 
 	gunichar2 *utf16_basename;
 	glong bytes;
-	utf16_basename = g_utf8_to_utf16 (filename, -1, NULL, &bytes,
-					  NULL);
+	utf16_basename = g_utf8_to_utf16 (filename, -1, NULL, &bytes, NULL);
 	bytes *= 2;
 
-	memset (find_data->cFileName, '\0', (MAX_PATH*2));
+	memset (find_data->cFileName, '\0', (MAX_PATH * 2));
+	memcpy (find_data->cFileName, utf16_basename, bytes < (MAX_PATH * 2) - 2 ? bytes : (MAX_PATH * 2) - 2);
 
-
-	memcpy (find_data->cFileName, utf16_basename,
-		bytes<(MAX_PATH*2)-2?bytes:(MAX_PATH*2)-2);
+	g_free(filename);
+	g_free(palPath);
 
 	find_data->dwReserved0 = 0;
 	find_data->dwReserved1 = 0;
 
 	find_data->cAlternateFileName [0] = 0;	
 
-	return UnityPalDirectoryGetOSHandle(findHandle); */
+	return findHandle;
 }
 
 gboolean
 mono_w32file_find_next (gpointer handle, WIN32_FIND_DATA *find_data)
 {
-	//UnityPalErrorCode UnityPalDirectoryFindNextFile(UnityPalFindHandle*  findHandle, char** resultFileName, int32_t* resultAttributes);
-	return FindNextFile (handle, find_data);
+
+	int32_t resultAttributes = 0;
+	int32_t result;
+ 	const char* filename = UnityPalDirectoryFindNextFileEX(handle, &resultAttributes, &result);
+	find_data->dwFileAttributes = resultAttributes;
+	gunichar2 *utf16_basename;
+	glong bytes;
+	utf16_basename = g_utf8_to_utf16 (filename, -1, NULL, &bytes, NULL);
+	bytes *= 2;
+
+	memset (find_data->cFileName, '\0', (MAX_PATH * 2));
+	memcpy (find_data->cFileName, utf16_basename, bytes < (MAX_PATH * 2) - 2 ? bytes : (MAX_PATH * 2) - 2);
+
+	g_free(filename);
+
+	find_data->dwReserved0 = 0;
+	find_data->dwReserved1 = 0;
+
+	find_data->cAlternateFileName [0] = 0;	
+
+	return (result == 0);
 }
 
 gboolean
 mono_w32file_find_close (gpointer handle)
 {
-	UnityPalFindHandle* findHandle = UnityPalDirectoryFindHandleNew("");
-    UnityPalDirectorySetOSHandle(findHandle, handle);
-    gboolean result = UnityPalDirectoryCloseOSHandle(findHandle);
-    UnityPalDirectoryFindHandleDelete(findHandle);
+    gboolean result = UnityPalDirectoryCloseOSHandle(handle);
+    UnityPalDirectoryFindHandleDelete(handle);
     return result;
 }
 
