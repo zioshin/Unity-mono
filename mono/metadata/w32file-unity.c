@@ -55,13 +55,13 @@ typedef struct {
 	guint32 access;
 	guint32 handle_refs;
 	guint32 timestamp;
-} FileShareDOUG;
+} FileSharePAL;
 
 /* Currently used for both FILE, CONSOLE and PIPE handle types.
  * This may have to change in future. */
 typedef struct {
 	gchar *filename;
-	FileShareDOUG *share_info;	/* Pointer into shared mem */
+	FileSharePAL *share_info;	/* Pointer into shared mem */
 	gint fd;
 	guint32 security_attributes;
 	guint32 fileaccess;
@@ -592,8 +592,8 @@ WINDOWS
 #else
 
 /*
- * If SHM is disabled, this will point to a hash of FileShareDOUG structures, otherwise
- * it will be NULL. We use this instead of _wapi_FileShareDOUG_layout to avoid allocating a
+ * If SHM is disabled, this will point to a hash of FileSharePAL structures, otherwise
+ * it will be NULL. We use this instead of _wapi_FileSharePAL_layout to avoid allocating a
  * 4MB array.
  */
 static GHashTable *file_share_table;
@@ -610,7 +610,7 @@ time_t_to_filetime (time_t timeval, FILETIME *filetime)
 }
 
 static void
-file_share_release (FileShareDOUG *share_info)
+file_share_release (FileSharePAL *share_info)
 {
 	/* Prevent new entries racing with us */
 	mono_os_mutex_lock (&file_share_mutex);
@@ -627,8 +627,8 @@ file_share_release (FileShareDOUG *share_info)
 static gint
 file_share_equal (gconstpointer ka, gconstpointer kb)
 {
-	const FileShareDOUG *s1 = (const FileShareDOUG *)ka;
-	const FileShareDOUG *s2 = (const FileShareDOUG *)kb;
+	const FileSharePAL *s1 = (const FileSharePAL *)ka;
+	const FileSharePAL *s2 = (const FileSharePAL *)kb;
 
 	return (s1->device == s2->device && s1->inode == s2->inode) ? 1 : 0;
 }
@@ -636,22 +636,22 @@ file_share_equal (gconstpointer ka, gconstpointer kb)
 static guint
 file_share_hash (gconstpointer data)
 {
-	const FileShareDOUG *s = (const FileShareDOUG *)data;
+	const FileSharePAL *s = (const FileSharePAL *)data;
 
 	return s->inode;
 }
 
 static gboolean
 file_share_get (guint64 device, guint64 inode, guint32 new_sharemode, guint32 new_access,
-	guint32 *old_sharemode, guint32 *old_access, FileShareDOUG **share_info)
+	guint32 *old_sharemode, guint32 *old_access, FileSharePAL **share_info)
 {
-	FileShareDOUG *file_share;
+	FileSharePAL *file_share;
 	gboolean exists = FALSE;
 
 	/* Prevent new entries racing with us */
 	mono_os_mutex_lock (&file_share_mutex);
 
-	FileShareDOUG tmp;
+	FileSharePAL tmp;
 
 	/*
 	 * Instead of allocating a 4MB array, we use a hash table to keep track of this
@@ -664,7 +664,7 @@ file_share_get (guint64 device, guint64 inode, guint32 new_sharemode, guint32 ne
 	tmp.device = device;
 	tmp.inode = inode;
 
-	file_share = (FileShareDOUG *)g_hash_table_lookup (file_share_table, &tmp);
+	file_share = (FileSharePAL *)g_hash_table_lookup (file_share_table, &tmp);
 	if (file_share) {
 		*old_sharemode = file_share->sharemode;
 		*old_access = file_share->access;
@@ -675,7 +675,7 @@ file_share_get (guint64 device, guint64 inode, guint32 new_sharemode, guint32 ne
 
 		exists = TRUE;
 	} else {
-		file_share = g_new0 (FileShareDOUG, 1);
+		file_share = g_new0 (FileSharePAL, 1);
 
 		file_share->device = device;
 		file_share->inode = inode;
@@ -2627,7 +2627,7 @@ static mode_t convert_perms(guint32 sharemode)
 
 static gboolean share_allows_open (struct stat *statbuf, guint32 sharemode,
 				   guint32 fileaccess,
-				   FileShareDOUG **share_info)
+				   FileSharePAL **share_info)
 {
 	gboolean file_already_shared;
 	guint32 file_existing_share, file_existing_access;
@@ -2680,7 +2680,7 @@ static gboolean share_allows_open (struct stat *statbuf, guint32 sharemode,
 
 
 static gboolean
-share_allows_delete (struct stat *statbuf, FileShareDOUG **share_info)
+share_allows_delete (struct stat *statbuf, FileSharePAL **share_info)
 {
 	gboolean file_already_shared;
 	guint32 file_existing_share, file_existing_access;
@@ -2888,76 +2888,6 @@ mono_w32file_close (gpointer handle)
 	return mono_w32handle_close (handle);
 }
 
-gboolean mono_w32file_delete(const gunichar2 *name)
-{
-	gchar *filename;
-	gint retval;
-	gboolean ret = FALSE;
-	guint32 attrs;
-#if 0
-	struct stat statbuf;
-	FileShareDOUG *shareinfo;
-#endif
-	
-	if(name==NULL) {
-		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s: name is NULL", __func__);
-
-		mono_w32error_set_last (ERROR_INVALID_NAME);
-		return(FALSE);
-	}
-
-	filename=mono_unicode_to_external(name);
-	if(filename==NULL) {
-		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s: unicode conversion returned NULL", __func__);
-
-		mono_w32error_set_last (ERROR_INVALID_NAME);
-		return(FALSE);
-	}
-
-	attrs = mono_w32file_get_attributes (name);
-	if (attrs == INVALID_FILE_ATTRIBUTES) {
-		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s: file attributes error", __func__);
-		/* Error set by mono_w32file_get_attributes() */
-		g_free (filename);
-		return(FALSE);
-	}
-
-#if 0
-	/* Check to make sure sharing allows us to open the file for
-	 * writing.  See bug 323389.
-	 *
-	 * Do the checks that don't need an open file descriptor, for
-	 * simplicity's sake.  If we really have to do the full checks
-	 * then we can implement that later.
-	 */
-	if (_wapi_stat (filename, &statbuf) < 0) {
-		_wapi_set_last_path_error_from_errno (NULL, filename);
-		g_free (filename);
-		return(FALSE);
-	}
-	
-	if (share_allows_open (&statbuf, 0, GENERIC_WRITE,
-			       &shareinfo) == FALSE) {
-		mono_w32error_set_last (ERROR_SHARING_VIOLATION);
-		g_free (filename);
-		return FALSE;
-	}
-	if (shareinfo)
-		file_share_release (shareinfo);
-#endif
-
-	retval = _wapi_unlink (filename);
-	
-	if (retval == -1) {
-		_wapi_set_last_path_error_from_errno (NULL, filename);
-	} else {
-		ret = TRUE;
-	}
-
-	g_free(filename);
-
-	return(ret);
-}
 
 static gboolean
 MoveFile (gunichar2 *name, gunichar2 *dest_name)
@@ -2966,7 +2896,7 @@ MoveFile (gunichar2 *name, gunichar2 *dest_name)
 	gint result, errno_copy;
 	struct stat stat_src, stat_dest;
 	gboolean ret = FALSE;
-	FileShareDOUG *shareinfo;
+	FileSharePAL *shareinfo;
 	
 	if(name==NULL) {
 		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER, "%s: name is NULL", __func__);
@@ -4014,6 +3944,14 @@ mono_w32file_find_close (gpointer handle)
 gboolean
 mono_w32file_create_directory (const gunichar2 *name)
 {
+
+	//int error = 0;
+	//gchar* palPath = mono_unicode_to_external (name);
+	//gboolean result = UnityPalDirectoryCreate(palPath, &error);
+	//g_free(palPath);
+	//return result;
+	//return (error == 0);
+	
 	gchar *utf8_name;
 	gint result;
 	
@@ -5330,6 +5268,22 @@ mono_w32file_cleanup (void)
 gboolean
 mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 {
+
+//	gboolean result;
+
+//	MONO_ENTER_GC_SAFE;
+	
+//	gchar* palPath = mono_unicode_to_external(path);
+//	gchar* palDest = mono_unicode_to_external(dest);
+//	*error = 0;
+//    result =  UnityPalMoveFile(palPath, palDest, error);
+//	g_free(palPath);
+//	g_free(palDest);
+
+//	MONO_EXIT_GC_SAFE;
+
+//	return result;
+
 	gboolean result;
 
 	MONO_ENTER_GC_SAFE;
@@ -5363,21 +5317,23 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 
 	
 //	*error = 0;
-//	gchar* palPath = u16to8(path);
-//	gchar* palDest = u16to8(dest);
+//	gchar* palPath = mono_unicode_to_external(path);
+//	gchar* palDest = mono_unicode_to_external(dest);
+
+//	int32_t error_tmp = 0;
 
 //	MONO_ENTER_GC_SAFE;
 
-  // result = UnityPalCopyFile( palPath, palDest, (int32_t) !overwrite, error);
-  // if (result != 0)
-//		*error = mono_w32error_get_last ();
+  //  result = UnityPalCopyFile( palPath, palDest, !overwrite, &error_tmp);
+    //if (result != 0)
+	//	*error = mono_w32error_get_last ();
 	
 //	MONO_EXIT_GC_SAFE;
 
 //	g_free(palPath);
 //	g_free(palDest);
 
-//	return (result == 0);
+//	return (error_tmp == 0);
 }
 
 gboolean
@@ -5468,9 +5424,6 @@ mono_w32file_get_console_output (void)
 	MONO_EXIT_GC_SAFE;
 
 	return handle;
-
-
-	return UnityPalGetStdOutput();
 }
 
 gpointer
@@ -5486,9 +5439,7 @@ mono_w32file_get_console_error (void)
 }
 
 
-
 #endif
-
 
 gboolean
 mono_w32file_remove_directory (const gunichar2 *name)
@@ -5498,5 +5449,15 @@ mono_w32file_remove_directory (const gunichar2 *name)
 	gboolean result =  UnityPalDirectoryRemove(palPath, &error);
 	g_free(palPath);
 	return (error == 0);
+}
+
+gboolean mono_w32file_delete(const gunichar2 *name)
+{
+
+	int error = 0;
+	gchar* palPath = mono_unicode_to_external (name);
+	gboolean result = UnityPalDeleteFile(palPath, &error);
+	g_free(palPath);
+	return result;
 }
 
