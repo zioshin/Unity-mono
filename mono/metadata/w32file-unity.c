@@ -352,18 +352,6 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 }
 
 gboolean
-mono_w32file_set_cwd (const gunichar2 *path)
-{
-	int error = 0;
-	gchar* palPath = u16to8(path);
-	
-	gboolean result = UnityPalDirectorySetCurrent(palPath, &error);
-	
-	g_free(palPath);
-	return result;
-}
-
-gboolean
 mono_w32file_create_pipe (gpointer *readpipe, gpointer *writepipe, guint32 size)
 {
 	return UnityPalCreatePipe(*readpipe, *writepipe);
@@ -4128,29 +4116,6 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 }
 
 gboolean
-mono_w32file_set_cwd (const gunichar2 *path)
-{
-	gchar *utf8_path;
-	gboolean result;
-
-	if (path == NULL) {
-		mono_w32error_set_last (ERROR_INVALID_PARAMETER);
-		return(FALSE);
-	}
-	
-	utf8_path = mono_unicode_to_external (path);
-	if (_wapi_chdir (utf8_path) != 0) {
-		_wapi_set_last_error_from_errno ();
-		result = FALSE;
-	}
-	else
-		result = TRUE;
-
-	g_free (utf8_path);
-	return result;
-}
-
-gboolean
 mono_w32file_create_pipe (gpointer *readpipe, gpointer *writepipe, guint32 size)
 {
 	MonoW32HandleFile pipe_read_handle = {0};
@@ -5368,6 +5333,19 @@ mono_w32file_get_cwd (guint32 length, gunichar2 *buffer)
 	g_free(utf16_path);
 	g_free((void *)palPath);
 	return count;
+}
+
+gboolean
+mono_w32file_set_cwd (const gunichar2 *path)
+{
+
+	int error = 0;
+	gchar* palPath = u16to8(path);
+	
+	gboolean result = UnityPalDirectorySetCurrent(palPath, &error);
+	
+	g_free(palPath);
+	return result;
 }
 
 void
