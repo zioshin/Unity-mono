@@ -86,11 +86,6 @@ typedef struct {
 #include <windows.h>
 #include "mono/metadata/w32file-win32-internals.h"
 
-void
-mono_w32file_init (void)
-{
-}
-
 gunichar2
 ves_icall_System_IO_MonoIO_get_VolumeSeparatorChar ()
 {
@@ -5161,26 +5156,6 @@ UnlockFile (gpointer handle, guint32 offset_low, guint32 offset_high, guint32 le
 	return _wapi_unlock_file_region (GPOINTER_TO_UINT(handle), offset, length);
 }
 
-void
-mono_w32file_init (void)
-{
-	mono_os_mutex_init (&stdhandle_mutex);
-	mono_os_mutex_init (&file_share_mutex);
-
-	mono_w32handle_register_ops (MONO_W32HANDLE_FILE,    &_wapi_file_ops);
-	mono_w32handle_register_ops (MONO_W32HANDLE_CONSOLE, &_wapi_console_ops);
-	mono_w32handle_register_ops (MONO_W32HANDLE_FIND,    &_wapi_find_ops);
-	mono_w32handle_register_ops (MONO_W32HANDLE_PIPE,    &_wapi_pipe_ops);
-
-/* 	mono_w32handle_register_capabilities (MONO_W32HANDLE_FILE, */
-/* 					    MONO_W32HANDLE_CAP_WAIT); */
-/* 	mono_w32handle_register_capabilities (MONO_W32HANDLE_CONSOLE, */
-/* 					    MONO_W32HANDLE_CAP_WAIT); */
-
-	if (g_hasenv ("MONO_STRICT_IO_EMULATION"))
-		lock_while_writing = TRUE;
-}
-
 gboolean
 mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 {
@@ -5403,5 +5378,22 @@ mono_w32file_cleanup (void)
 
 	if (file_share_table)
 		g_hash_table_destroy (file_share_table);
+#endif
+}
+
+void
+mono_w32file_init (void)
+{
+#ifndef HOST_WIN32
+	mono_os_mutex_init (&stdhandle_mutex);
+	mono_os_mutex_init (&file_share_mutex);
+
+	mono_w32handle_register_ops (MONO_W32HANDLE_FILE,    &_wapi_file_ops);
+	mono_w32handle_register_ops (MONO_W32HANDLE_CONSOLE, &_wapi_console_ops);
+	mono_w32handle_register_ops (MONO_W32HANDLE_FIND,    &_wapi_find_ops);
+	mono_w32handle_register_ops (MONO_W32HANDLE_PIPE,    &_wapi_pipe_ops);
+
+	if (g_hasenv ("MONO_STRICT_IO_EMULATION"))
+		lock_while_writing = TRUE;
 #endif
 }
