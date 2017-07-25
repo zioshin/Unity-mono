@@ -91,11 +91,6 @@ mono_w32file_init (void)
 {
 }
 
-void
-mono_w32file_cleanup (void)
-{
-}
-
 gunichar2
 ves_icall_System_IO_MonoIO_get_VolumeSeparatorChar ()
 {
@@ -145,16 +140,6 @@ mono_w32file_close (gpointer handle)
 {
 	int error = 0;
 	return UnityPalClose(handle, &error);
-}
-
-gboolean
-mono_w32file_delete (const gunichar2 *name)
-{
-	int error = 0;
-	gchar* palPath = u16to8(name);
-	gboolean result = UnityPalDeleteFile(palPath, &error);
-	g_free(palPath);
-	return result;
 }
 
 gboolean
@@ -369,25 +354,6 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 	g_free(palPath);
 	return result;
 
-}
-
-guint32
-mono_w32file_get_cwd(guint32 length, gunichar2 *buffer)
-{
-	gunichar2 *utf16_path;
-	glong count;
-	uintptr_t bytes;
-	int error = 0;
-
-	const char* palPath = UnityPalDirectoryGetCurrent(&error);
-	utf16_path = mono_unicode_from_external(palPath, &bytes);
-	count = (bytes / 2) + 1;
-
-	memcpy(buffer, utf16_path, length);
-
-	g_free(utf16_path);
-	g_free((void *)palPath);
-	return count;
 }
 
 gboolean
@@ -4166,47 +4132,6 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 	return(TRUE);
 }
 
-guint32
-mono_w32file_get_cwd (guint32 length, gunichar2 *buffer)
-{
-	gunichar2 *utf16_path;
-	glong count;
-	gsize bytes;
-
-#ifdef __native_client__
-	gchar *path = g_get_current_dir ();
-	if (length < strlen(path) + 1 || path == NULL)
-		return 0;
-	memcpy (buffer, path, strlen(path) + 1);
-#else
-	if (getcwd ((gchar*)buffer, length) == NULL) {
-		if (errno == ERANGE) { /*buffer length is not big enough */ 
-			gchar *path = g_get_current_dir (); /*FIXME g_get_current_dir doesn't work with broken paths and calling it just to know the path length is silly*/
-			if (path == NULL)
-				return 0;
-			utf16_path = mono_unicode_from_external (path, &bytes);
-			g_free (utf16_path);
-			g_free (path);
-			return (bytes/2)+1;
-		}
-		_wapi_set_last_error_from_errno ();
-		return 0;
-	}
-#endif
-
-	utf16_path = mono_unicode_from_external ((gchar*)buffer, &bytes);
-	count = (bytes/2)+1;
-	g_assert (count <= length); /*getcwd must have failed before with ERANGE*/
-
-	/* Add the terminator */
-	memset (buffer, '\0', bytes+2);
-	memcpy (buffer, utf16_path, bytes);
-	
-	g_free (utf16_path);
-
-	return count;
-}
-
 gboolean
 mono_w32file_set_cwd (const gunichar2 *path)
 {
@@ -5256,15 +5181,6 @@ mono_w32file_init (void)
 		lock_while_writing = TRUE;
 }
 
-void
-mono_w32file_cleanup (void)
-{
-	mono_os_mutex_destroy (&file_share_mutex);
-
-	if (file_share_table)
-		g_hash_table_destroy (file_share_table);
-}
-
 gboolean
 mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 {
@@ -5453,11 +5369,39 @@ mono_w32file_remove_directory (const gunichar2 *name)
 
 gboolean mono_w32file_delete(const gunichar2 *name)
 {
-
-	int error = 0;
+    int error = 0;
 	gchar* palPath = mono_unicode_to_external (name);
 	gboolean result = UnityPalDeleteFile(palPath, &error);
 	g_free(palPath);
 	return result;
 }
 
+guint32
+mono_w32file_get_cwd (guint32 length, gunichar2 *buffer)
+{
+	gunichar2 *utf16_path;
+	glong count;
+	uintptr_t bytes;
+	int error = 0;
+
+	const char* palPath = UnityPalDirectoryGetCurrent(&error);
+	utf16_path = mono_unicode_from_external(palPath, &bytes);
+	count = (bytes / 2) + 1;
+
+	memcpy(buffer, utf16_path, length);
+
+	g_free(utf16_path);
+	g_free((void *)palPath);
+	return count;
+}
+
+void
+mono_w32file_cleanup (void)
+{
+#ifndef HOST_WIN32
+	mono_os_mutex_destroy (&file_share_mutex);
+
+	if (file_share_table)
+		g_hash_table_destroy (file_share_table);
+#endif
+}
