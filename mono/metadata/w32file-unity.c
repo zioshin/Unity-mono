@@ -2,10 +2,13 @@
 #include <glib.h>
 
 
+
 #include "Directory-c-api.h"
 #include "File-c-api.h"
 #include "w32file.h"
 #include "utils/strenc.h"
+
+#ifndef HOST_WIN32
 
 #include <stdlib.h>
 #include <fcntl.h>
@@ -77,7 +80,7 @@ typedef struct {
 } MonoW32HandleFind;
 
 
-
+#endif
 
 
 #ifdef HOST_WIN32
