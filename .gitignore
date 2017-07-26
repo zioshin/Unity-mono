@@ -56,3 +56,5 @@ libeglib_la-*.o
 /mono/tests/tests-config
 /scripts/lc
 /scripts/pdb2mdb
+msvc/mono.VC.VC.opendb
+msvc/mono.VC.db
