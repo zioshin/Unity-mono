@@ -46,7 +46,7 @@ mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode
 {
 	int error = 0;
 	gpointer handle;
-	gchar* palPath = u16to8(name);
+	gchar* palPath = mono_unicode_to_external(name);
 	handle =  UnityPalOpen(palPath, (int) createmode, (int) fileaccess, (int) sharemode, attrs, &error);
 	if (handle == NULL && error != 0)
 		handle = NULL;
@@ -103,6 +103,8 @@ mono_w32file_seek (gpointer handle, gint32 movedistance, gint32 *highmovedistanc
 gint
 mono_w32file_get_type (gpointer handle)
 {
+	if (handle == NULL)
+		return 0;
 	return UnityPalGetFileType(handle);
 }
 
@@ -151,7 +153,7 @@ mono_w32file_set_times (gpointer handle, const FILETIME *create_time, const FILE
 gpointer
 mono_w32file_find_first (const gunichar2 *pattern, WIN32_FIND_DATA *find_data)
 {
-	gchar* palPath = u16to8(pattern);
+	gchar* palPath = mono_unicode_to_external(pattern);
 	UnityPalFindHandle* findHandle = UnityPalDirectoryFindHandleNew(palPath);
 	int32_t resultAttributes = 0;
 
@@ -225,8 +227,9 @@ gboolean
 mono_w32file_create_directory (const gunichar2 *name)
 {
 	int error = 0;
-	gchar* palPath = u16to8(name);
+	gchar* palPath = mono_unicode_to_external(name);
 	gboolean result = UnityPalDirectoryCreate(palPath, &error);
+	mono_w32error_set_last(error);
 	g_free(palPath);
 	return result;
 }
@@ -235,8 +238,9 @@ guint32
 mono_w32file_get_attributes (const gunichar2 *name)
 {
 	int error = 0;
-	gchar* palPath = u16to8(name);
-	gboolean result =  UnityPalGetFileAttributes(palPath, &error);
+	gchar* palPath = mono_unicode_to_external(name);
+	guint32 result =  UnityPalGetFileAttributes(palPath, &error);
+	mono_w32error_set_last(error);
 	g_free(palPath);
 	return result;
 }
@@ -247,7 +251,7 @@ mono_w32file_get_attributes_ex (const gunichar2 *name, MonoIOStat *stat)
 	gboolean result;
 	UnityPalFileStat palStat;
 	int error = 0;
-	gchar* palPath = u16to8(name);
+	gchar* palPath = mono_unicode_to_external(name);
 
 	result = UnityPalGetFileStat(palPath, &palStat, &error);
 
@@ -268,7 +272,7 @@ gboolean
 mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 {
 	int error = 0;
-	gchar* palPath = u16to8(name);
+	gchar* palPath = mono_unicode_to_external(name);
 	
 	gboolean result =  UnityPalSetFileAttributes(palPath, attrs, &error);
 
@@ -306,8 +310,8 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 
 	MONO_ENTER_GC_SAFE;
 	
-	gchar* palPath = u16to8(path);
-	gchar* palDest = u16to8(dest);
+	gchar* palPath = mono_unicode_to_external(path);
+	gchar* palDest = mono_unicode_to_external(dest);
 	*error = 0;
     result =  UnityPalMoveFile(palPath, palDest, error);
 	g_free(palPath);
@@ -328,17 +332,17 @@ mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName,
 
 	if (destinationFileName != NULL)
 	{
-		destPath = u16to8(destinationFileName);
+		destPath = mono_unicode_to_external(destinationFileName);
 	}
 
 	if (sourceFileName != NULL)
 	{
-		sourcePath = u16to8(sourceFileName);
+		sourcePath = mono_unicode_to_external(sourceFileName);
 	}
 
 	if (destinationBackupFileName != NULL)
 	{
-		destBackupPath = u16to8(destinationBackupFileName);
+		destBackupPath = mono_unicode_to_external(destinationBackupFileName);
 	}
 
 	MONO_ENTER_GC_SAFE;
@@ -363,8 +367,8 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 	MONO_ENTER_GC_SAFE;
 	
 	*error = 0;
-	gchar* palPath = u16to8(path);
-	gchar* palDest = u16to8(dest);
+	gchar* palPath = mono_unicode_to_external(path);
+	gchar* palDest = mono_unicode_to_external(dest);
 	result = UnityPalCopyFile( palPath, palDest, overwrite, error);
 	g_free(palPath);
 	g_free(palDest);
@@ -462,6 +466,7 @@ gboolean mono_w32file_delete(const gunichar2 *name)
     int error = 0;
 	gchar* palPath = mono_unicode_to_external (name);
 	gboolean result = UnityPalDeleteFile(palPath, &error);
+	mono_w32error_set_last (error);
 	g_free(palPath);
 	return result;
 }
@@ -490,7 +495,7 @@ mono_w32file_set_cwd (const gunichar2 *path)
 {
 
 	int error = 0;
-	gchar* palPath = u16to8(path);
+	gchar* palPath = mono_unicode_to_external(path);
 	
 	gboolean result = UnityPalDirectorySetCurrent(palPath, &error);
 	
