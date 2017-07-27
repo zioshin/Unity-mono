@@ -83,7 +83,9 @@ gboolean
 mono_w32file_flush (gpointer handle)
 {
 	int error = 0;
-	return UnityPalFlush(handle, &error);
+	gboolean result = UnityPalFlush(handle, &error);
+	mono_w32error_set_last(error);
+	return result;
 }
 
 gboolean
@@ -254,6 +256,7 @@ mono_w32file_get_attributes_ex (const gunichar2 *name, MonoIOStat *stat)
 	gchar* palPath = mono_unicode_to_external(name);
 
 	result = UnityPalGetFileStat(palPath, &palStat, &error);
+	mono_w32error_set_last(error);
 
 	if (result) {
 		stat->attributes = palStat.attributes;
@@ -312,8 +315,10 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 	
 	gchar* palPath = mono_unicode_to_external(path);
 	gchar* palDest = mono_unicode_to_external(dest);
-	*error = 0;
-    result =  UnityPalMoveFile(palPath, palDest, error);
+	int32_t myError = 0;
+    result =  UnityPalMoveFile(palPath, palDest, &myError);
+    mono_w32error_set_last(myError);
+    *error = myError;
 	g_free(palPath);
 	g_free(palDest);
 
@@ -370,6 +375,8 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 	gchar* palPath = mono_unicode_to_external(path);
 	gchar* palDest = mono_unicode_to_external(dest);
 	result = UnityPalCopyFile( palPath, palDest, overwrite, error);
+	mono_w32error_set_last(*error);
+
 	g_free(palPath);
 	g_free(palDest);
 
@@ -429,6 +436,7 @@ mono_w32file_get_file_size (gpointer handle, gint32 *error)
 	MONO_ENTER_GC_SAFE;
 
 	length = UnityPalGetLength(handle, error);
+	mono_w32error_set_last(*error);
 
 	MONO_EXIT_GC_SAFE;
 
