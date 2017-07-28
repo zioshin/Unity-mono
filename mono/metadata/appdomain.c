@@ -2020,6 +2020,9 @@ ves_icall_System_AppDomain_LoadAssemblyRaw (MonoAppDomain *ad,
 		return NULL; 
 	}
 
+	/* Clear the reference added by mono_image_open_from_data_full */
+	mono_image_close (image);
+
 	refass = mono_assembly_get_object_checked (domain, ass, &error);
 	if (!refass)
 		mono_error_set_pending_exception (&error);
