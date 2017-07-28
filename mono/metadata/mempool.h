@@ -42,6 +42,9 @@ mono_mempool_strdup        (MonoMemPool *pool,
 guint32
 mono_mempool_get_allocated (MonoMemPool *pool);
 
+typedef void (*mono_mempool_chunk_proc)(void* start, void* end, void* user_data);
+void mono_mempool_foreach_chunk(MonoMemPool* pool, mono_mempool_chunk_proc callback, void* user_data);
+
 G_END_DECLS
 
 #endif

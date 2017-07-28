@@ -200,5 +200,8 @@ void *mono_gc_scan_object (void *obj) MONO_INTERNAL;
 /* Return the bitmap encoded by a descriptor */
 gsize* mono_gc_get_bitmap_for_descr (void *descr, int *numbits) MONO_INTERNAL;
 
+void mono_gc_strong_handle_foreach(GFunc func, gpointer user_data);
+
+
 #endif /* __MONO_METADATA_GC_INTERNAL_H__ */
 
