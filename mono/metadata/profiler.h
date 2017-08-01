@@ -27,7 +27,8 @@ typedef enum {
 	MONO_PROFILE_METHOD_EVENTS    = 1 << 16,
 	MONO_PROFILE_MONITOR_EVENTS   = 1 << 17,
 	MONO_PROFILE_IOMAP_EVENTS = 1 << 18, /* this should likely be removed, too */
-	MONO_PROFILE_GC_MOVES = 1 << 19
+	MONO_PROFILE_GC_MOVES = 1 << 19,
+    MONO_PROFILE_FILEIO = 1 << 20
 } MonoProfileFlags;
 
 typedef enum {
@@ -108,6 +109,7 @@ typedef void (*MonoProfileMethodInline)   (MonoProfiler *prof, MonoMethod   *par
 
 typedef void (*MonoProfileThreadFunc)     (MonoProfiler *prof, gsize tid);
 typedef void (*MonoProfileAllocFunc)      (MonoProfiler *prof, MonoObject *obj, MonoClass *klass);
+typedef void (*MonoProfileFileIOFunc)     (MonoProfiler *prof, MonoObject *obj, MonoClass *klass, int count, int kind);
 typedef void (*MonoProfileStatFunc)       (MonoProfiler *prof, guchar *ip, void *context);
 typedef void (*MonoProfileStatCallChainFunc) (MonoProfiler *prof, int call_chain_depth, guchar **ip, void *context);
 typedef void (*MonoProfileGCFunc)         (MonoProfiler *prof, MonoGCEvent event, int generation);
@@ -151,6 +153,7 @@ void mono_profiler_install_thread      (MonoProfileThreadFunc start, MonoProfile
 void mono_profiler_install_thread_fast_attach_detach (MonoProfileThreadFunc fast_attach, MonoProfileThreadFunc fast_detach);
 void mono_profiler_install_transition  (MonoProfileMethodResult callback);
 void mono_profiler_install_allocation  (MonoProfileAllocFunc callback);
+void mono_profiler_install_fileio      (MonoProfileFileIOFunc callback);
 void mono_profiler_install_monitor     (MonoProfileMonitorFunc callback);
 void mono_profiler_install_statistical (MonoProfileStatFunc callback);
 void mono_profiler_install_statistical_call_chain (MonoProfileStatCallChainFunc callback, int call_chain_depth, MonoProfilerCallChainStrategy call_chain_strategy);
