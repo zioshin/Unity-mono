@@ -34,6 +34,13 @@
 #include <signal.h>
 #endif
 
+typedef struct {
+	int a;
+	double b;
+} Jon;
+
+#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND)?1:-1]
+
 /* The current fatal levels, error is always fatal */
 static GLogLevelFlags fatal = G_LOG_LEVEL_ERROR;
 
@@ -41,6 +48,7 @@ static vprintf_func our_vprintf = vprintf;
 
 void set_vprintf_func(vprintf_func func)
 {
+	STATIC_ASSERT(offsetof(Jon, b) == 4, Not_3); 
 	our_vprintf = func;
 }
 
