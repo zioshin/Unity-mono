@@ -101,7 +101,7 @@ typedef enum {
 	MONO_PROFILER_EVENT_CLASS_EXCEPTION = 2,
 	MONO_PROFILER_EVENT_CLASS_MONITOR = 3,
 	MONO_PROFILER_EVENT_CLASS_ALLOCATION = 4,
-    MONO_PROFILER_EVENT_CLASS_FILEIO = 5
+	MONO_PROFILER_EVENT_CLASS_FILEIO = 5
 } MonoProfilerClassEvents;
 typedef enum {
 	MONO_PROFILER_EVENT_RESULT_SUCCESS = 0,
@@ -922,7 +922,7 @@ struct _MonoProfiler {
 		gboolean save_allocation_caller;
 		gboolean save_allocation_stack;
 		gboolean allocations_carry_id;
-        gboolean track_fileio;
+		gboolean track_fileio;
 	} action_flags;
 };
 static MonoProfiler *profiler;
@@ -5644,9 +5644,9 @@ failure_handling:
 	if (profiler->action_flags.track_stack) {
 		profiler->flags |= MONO_PROFILE_ENTER_LEAVE;
 	}
-    if (profiler->action_flags.track_fileio) {
-        profiler->flags |= MONO_PROFILE_FILEIO;
-    }
+	if (profiler->action_flags.track_fileio) {
+		profiler->flags |= MONO_PROFILE_FILEIO;
+	}
 
 	/* Tracking call stacks is useless if we already emit all enter-exit events... */
 	if (profiler->action_flags.track_calls) {
