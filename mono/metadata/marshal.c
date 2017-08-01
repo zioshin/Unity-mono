@@ -10464,7 +10464,7 @@ mono_class_native_size (MonoClass *klass, guint32 *align)
    the compiler so is wrong e.g. for Linux where doubles are aligned on a 4 byte boundary
    but __alignof__ returns 8 - using G_STRUCT_OFFSET works better */
 #define ALIGNMENT(type) G_STRUCT_OFFSET(struct { char c; type x; }, x)
-
+#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND)?1:-1]
 /*
  * mono_type_native_stack_size:
  * @t: the type to return the size it uses on the stack
@@ -10477,6 +10477,7 @@ mono_type_native_stack_size (MonoType *t, guint32 *align)
 {
 	guint32 tmp;
 
+	STATIC_ASSERT(ALIGNMENT(double) == 4, align_4);
 	g_assert (t != NULL);
 
 	if (!align)

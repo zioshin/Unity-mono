@@ -48,7 +48,6 @@ static vprintf_func our_vprintf = vprintf;
 
 void set_vprintf_func(vprintf_func func)
 {
-	STATIC_ASSERT(offsetof(Jon, b) == 4, Not_3); 
 	our_vprintf = func;
 }
 
