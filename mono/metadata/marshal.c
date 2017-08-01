@@ -10477,7 +10477,7 @@ mono_type_native_stack_size (MonoType *t, guint32 *align)
 {
 	guint32 tmp;
 
-	STATIC_ASSERT(ALIGNMENT(double) == 4, align_4);
+	STATIC_ASSERT(ALIGNMENT(double) == 8, align_8);
 	g_assert (t != NULL);
 
 	if (!align)
