@@ -7,6 +7,7 @@
 #include "File-c-api.h"
 #include "w32file.h"
 #include "utils/strenc.h"
+#include <mono/metadata/w32handle.h>
 
 
 
@@ -50,6 +51,9 @@ mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode
 	handle =  UnityPalOpen(palPath, (int) createmode, (int) fileaccess, (int) sharemode, attrs, &error);
 	mono_w32error_set_last(error);
 	g_free(palPath);
+
+	if (handle == NULL)
+		return INVALID_HANDLE_VALUE;
 
 	return handle;
 }
