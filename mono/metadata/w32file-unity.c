@@ -48,9 +48,7 @@ mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode
 	gpointer handle;
 	gchar* palPath = mono_unicode_to_external(name);
 	handle =  UnityPalOpen(palPath, (int) createmode, (int) fileaccess, (int) sharemode, attrs, &error);
-	if (handle == NULL && error != 0)
-		handle = NULL;
-
+	mono_w32error_set_last(error);
 	g_free(palPath);
 
 	return handle;
@@ -59,8 +57,12 @@ mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode
 gboolean
 mono_w32file_close (gpointer handle)
 {
+	if (handle == NULL)
+		return FALSE;
 	int error = 0;
-	return UnityPalClose(handle, &error);
+	gboolean result = UnityPalClose(handle, &error);
+	mono_w32error_set_last(error);
+	return result;
 }
 
 gboolean
@@ -68,7 +70,8 @@ mono_w32file_read(gpointer handle, gpointer buffer, guint32 numbytes, guint32 *b
 {
 	int error = 0;
 	*bytesread =  UnityPalRead(handle, buffer, numbytes, &error);
-	return (error == 0);
+	mono_w32error_set_last(error);
+	return TRUE;
 }
 
 gboolean
@@ -76,7 +79,11 @@ mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, gui
 {
 	int error = 0;
 	*byteswritten = UnityPalWrite(handle, buffer, numbytes, &error);
-	return (error == 0);
+	mono_w32error_set_last(error);
+	if (*byteswritten <= 0)
+		return FALSE;
+	else
+		return TRUE;
 }
 
 gboolean
@@ -92,14 +99,18 @@ gboolean
 mono_w32file_truncate (gpointer handle)
 {
 	int error = 0;
-	return UnityPalTruncate(handle, &error);
+	gboolean result = UnityPalTruncate(handle, &error);
+	mono_w32error_set_last(error);
+	return result;
 }
 
 guint32
 mono_w32file_seek (gpointer handle, gint32 movedistance, gint32 *highmovedistance, guint32 method)
 {
 	int error = 0;
-	return UnityPalSeek(handle, movedistance, 0, &error);
+	int32_t ret = UnityPalSeek(handle, movedistance, 0, &error);
+	mono_w32error_set_last(error);
+	return ret;
 }
 
 gint
@@ -118,32 +129,12 @@ mono_w32file_get_times (gpointer handle, FILETIME *create_time, FILETIME *access
 }
 
 gboolean
-mono_w32file_set_times (gpointer handle, const FILETIME *create_time, const FILETIME *access_time, const FILETIME *write_time)
+mono_w32file_set_times (gpointer handle, gint64 create_time, gint64 access_time, gint64 write_time)
 {
-	int64_t creation_time = 0;
-	int64_t last_access_time = 0;
-	int64_t last_write_time = 0;
 	int error = 0;
-
-	/* It is possible that any one of the time values passed in could be null, need to check
-	 * each one.
-	 */
-	if (create_time != NULL)
-	{
-		creation_time = (gint64)((((guint64) create_time->dwHighDateTime) << 32) + create_time->dwLowDateTime);
-	}
-	
-	if (access_time != NULL)
-	{
-		last_access_time = (gint64)((((guint64)access_time->dwHighDateTime) << 32) + access_time->dwLowDateTime);
-	}
-
-	if (write_time != NULL)
-	{
-		last_write_time = (gint64)((((guint64) write_time->dwHighDateTime) << 32) + write_time->dwLowDateTime);
-	}
-
-	return  UnityPalSetFileTime(handle, creation_time, last_access_time, last_write_time, &error);
+	gboolean result = UnityPalSetFileTime(handle, create_time, access_time, write_time, &error);
+	mono_w32error_set_last(error);
+	return  result;
 }
 
 //gboolean
@@ -278,6 +269,7 @@ mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 	gchar* palPath = mono_unicode_to_external(name);
 	
 	gboolean result =  UnityPalSetFileAttributes(palPath, attrs, &error);
+	mono_w32error_set_last(error);
 
 	g_free(palPath);
 	return result;
@@ -353,7 +345,7 @@ mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName,
 	MONO_ENTER_GC_SAFE;
 
 	result =  UnityPalReplaceFile(sourcePath, destPath, destBackupPath, 0, error);
-	*error = 0;
+	mono_w32error_set_last(*error);
 
 	MONO_EXIT_GC_SAFE;
 
@@ -392,6 +384,7 @@ mono_w32file_lock (gpointer handle, gint64 position, gint64 length, gint32 *erro
 	MONO_ENTER_GC_SAFE;
 
 	UnityPalLock(handle, position, length, error);
+	mono_w32error_set_last(*error);
 
 	MONO_EXIT_GC_SAFE;
 
@@ -404,6 +397,7 @@ mono_w32file_unlock (gpointer handle, gint64 position, gint64 length, gint32 *er
 	MONO_ENTER_GC_SAFE;
 
 	UnityPalUnlock(handle, position, length, error);
+	mono_w32error_set_last(*error);
 
 	MONO_EXIT_GC_SAFE;
 
@@ -465,8 +459,9 @@ mono_w32file_remove_directory (const gunichar2 *name)
 	int error = 0;
 	gchar* palPath = mono_unicode_to_external (name);
 	gboolean result =  UnityPalDirectoryRemove(palPath, &error);
+	mono_w32error_set_last(error);
 	g_free(palPath);
-	return (error == 0);
+	return result;
 }
 
 gboolean mono_w32file_delete(const gunichar2 *name)
@@ -488,10 +483,15 @@ mono_w32file_get_cwd (guint32 length, gunichar2 *buffer)
 	int error = 0;
 
 	const char* palPath = UnityPalDirectoryGetCurrent(&error);
+
+    mono_w32error_set_last (error);
 	utf16_path = mono_unicode_from_external(palPath, &bytes);
+
+
 	count = (bytes / 2) + 1;
 
 	memcpy(buffer, utf16_path, length);
+
 
 	g_free(utf16_path);
 	g_free((void *)palPath);
