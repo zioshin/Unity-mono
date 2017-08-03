@@ -4577,7 +4577,7 @@ object_fileio (MonoProfiler *profiler, int kind, int count) {
 	event_slot_count = 1;
 	RESERVE_EVENTS (data, events, event_slot_count);
 
-    STORE_EVENT_ITEM_VALUE (events, profiler, caller, MONO_PROFILER_EVENT_DATA_TYPE_OTHER, MONO_PROFILER_EVENT_FILEIO, kind, count);
+	STORE_EVENT_ITEM_VALUE (events, profiler, caller, MONO_PROFILER_EVENT_DATA_TYPE_OTHER, MONO_PROFILER_EVENT_FILEIO, kind, count);
 
 	COMMIT_RESERVED_EVENTS (data);
 }
