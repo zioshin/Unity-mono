@@ -494,12 +494,12 @@ mono_profiler_monitor_event      (MonoObject *obj, MonoProfilerMonitorEvent even
 }
 
 void
-mono_profiler_fileio (MonoObject *obj, MonoClass *klass, int kind, int count)
+mono_profiler_fileio (int kind, int count)
 {
 	ProfilerDesc *prof;
 	for (prof = prof_list; prof; prof = prof->next) {
 		if ((prof->events & MONO_PROFILE_FILEIO) && prof->fileio_cb)
-			prof->fileio_cb (prof->profiler, obj, klass, kind, count);
+			prof->fileio_cb (prof->profiler, kind, count);
     }
 }
 
@@ -1180,8 +1180,6 @@ struct _MethodCallProfile {
 };
 
 struct _FileIOInfo {
-	AllocInfo *next;
-	MonoClass *klass;
 	guint64 count;
 	guint64 bytes;
 	gboolean is_read;
@@ -1611,40 +1609,6 @@ simple_allocation (MonoProfiler *prof, MonoObject *obj, MonoClass *klass)
 }
 
 static void
-simple_fileio (MonoProfiler *prof, MonoObject *obj, MonoClass *klass, int count, int kind)
-{
-	MethodProfile *profile_info;
-	FileIOInfo *tmp;
-
-	GET_THREAD_PROF (prof);
-	if (prof->callers) {
-		MonoMethod *caller = prof->callers->method;
-
-		/* Otherwise all allocations are attributed to icall_wrapper_mono_object_new */
-		if (caller->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE && prof->callers->next)
-			caller = prof->callers->next->method;
-
-		if (!(profile_info = g_hash_table_lookup (prof->methods, caller)))
-			g_assert_not_reached ();
-	} else {
-		return; /* fine for now */
-	}
-
-	for (tmp = profile_info->fileio_info; tmp; tmp = tmp->next) {
-		if (tmp->klass == klass)
-			break;
-	}
-	if (!tmp) {
-		tmp = mono_mempool_alloc0 (prof->mempool, sizeof (FileIOInfo));
-		tmp->klass = klass;
-		tmp->next = profile_info->fileio_info;
-		profile_info->fileio_info = tmp;
-	}
-	tmp->is_read = kind;
-	tmp->bytes += count;
-}
-
-static void
 simple_method_jit (MonoProfiler *prof, MonoMethod *method)
 {
 	GET_THREAD_PROF (prof);
@@ -1968,7 +1932,6 @@ mono_profiler_install_simple (const char *desc)
 	mono_profiler_install_exception (NULL, simple_method_leave, NULL);
 	mono_profiler_install_jit_compile (simple_method_jit, simple_method_end_jit);
 	mono_profiler_install_allocation (simple_allocation);
-	mono_profiler_install_fileio (simple_fileio);
 	mono_profiler_install_appdomain (NULL, simple_appdomain_load, simple_appdomain_unload, NULL);
 	mono_profiler_install_statistical (simple_stat_hit);
 	mono_profiler_set_events (flags);

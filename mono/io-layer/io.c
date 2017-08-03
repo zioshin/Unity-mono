@@ -400,7 +400,7 @@ static gboolean file_read(gpointer handle, gpointer buffer,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (NULL, NULL, 1, ret);
+		mono_profiler_fileio (1, ret);
 
 	return(TRUE);
 }
@@ -488,7 +488,7 @@ static gboolean file_write(gpointer handle, gconstpointer buffer,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (NULL, NULL, 0, ret);
+		mono_profiler_fileio (0, ret);
 
 	return(TRUE);
 }
@@ -2276,7 +2276,7 @@ gboolean ReadFile(gpointer handle, gpointer buffer, guint32 numbytes,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (NULL, NULL, 1, numbytes);
+		mono_profiler_fileio (1, numbytes);
 
 	return(io_ops[type].readfile (handle, buffer, numbytes, bytesread,
 				      overlapped));
@@ -2320,7 +2320,7 @@ gboolean WriteFile(gpointer handle, gconstpointer buffer, guint32 numbytes,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (NULL, NULL, 0, numbytes);
+		mono_profiler_fileio (0, numbytes);
 
 	return(io_ops[type].writefile (handle, buffer, numbytes, byteswritten,
 				       overlapped));
