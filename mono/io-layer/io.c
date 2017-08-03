@@ -400,7 +400,7 @@ static gboolean file_read(gpointer handle, gpointer buffer,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (NULL, NULL, 1, *bytesread);
+		mono_profiler_fileio (NULL, NULL, 1, ret);
 
 	return(TRUE);
 }
@@ -488,7 +488,7 @@ static gboolean file_write(gpointer handle, gconstpointer buffer,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (NULL, NULL, 0, *byteswritten);
+		mono_profiler_fileio (NULL, NULL, 0, ret);
 
 	return(TRUE);
 }
