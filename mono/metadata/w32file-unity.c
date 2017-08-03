@@ -160,7 +160,10 @@ mono_w32file_find_first (const gunichar2 *pattern, WIN32_FIND_DATA *find_data)
  	result = UnityPalDirectoryFindFirstFile(findHandle, palPath, &filename, &resultAttributes);
 
  	if (result != 0)
- 		return NULL;
+ 	{
+ 		mono_w32error_set_last(result);
+ 		return INVALID_HANDLE_VALUE;
+ 	}
 
 	find_data->dwFileAttributes = resultAttributes;
 
