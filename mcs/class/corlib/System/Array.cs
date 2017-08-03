@@ -1909,7 +1909,7 @@ namespace System
 			SortImpl<T> (array, array.Length, comparison);
 		}
 
-		public static void Sort<T> (T [] array, int length, Comparison<T> comparison)
+		internal static void Sort<T> (T [] array, int length, Comparison<T> comparison)
 		{
 			if (array == null)
 				throw new ArgumentNullException ("array");
