@@ -4568,6 +4568,21 @@ object_allocated (MonoProfiler *profiler, MonoObject *obj, MonoClass *klass) {
 }
 
 static void
+object_fileio (MonoProfiler *profiler, int kind, int count) {
+	ProfilerPerThreadData *data;
+	ProfilerEventData *events;
+	int event_slot_count;
+	
+	GET_PROFILER_THREAD_DATA (data);
+	event_slot_count = 1;
+	RESERVE_EVENTS (data, events, event_slot_count);
+
+    STORE_EVENT_ITEM_VALUE (events, profiler, caller, MONO_PROFILER_EVENT_DATA_TYPE_OTHER, MONO_PROFILER_EVENT_FILEIO, kind, count);
+
+	COMMIT_RESERVED_EVENTS (data);
+}
+
+static void
 monitor_event (MonoProfiler *profiler, MonoObject *obj, MonoProfilerMonitorEvent event) {
 	ProfilerPerThreadData *data;
 	ProfilerEventData *events;
