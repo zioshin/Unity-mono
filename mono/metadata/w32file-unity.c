@@ -63,9 +63,11 @@ mono_w32file_close (gpointer handle)
 {
 	if (handle == NULL)
 		return FALSE;
+	
 	int error = 0;
 	gboolean result = UnityPalClose(handle, &error);
 	mono_w32error_set_last(error);
+	
 	return result;
 }
 
@@ -73,8 +75,10 @@ gboolean
 mono_w32file_read(gpointer handle, gpointer buffer, guint32 numbytes, guint32 *bytesread)
 {
 	int error = 0;
+	
 	*bytesread =  UnityPalRead(handle, buffer, numbytes, &error);
 	mono_w32error_set_last(error);
+	
 	return TRUE;
 }
 
@@ -82,20 +86,21 @@ gboolean
 mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, guint32 *byteswritten)
 {
 	int error = 0;
+
 	*byteswritten = UnityPalWrite(handle, buffer, numbytes, &error);
 	mono_w32error_set_last(error);
-	if (*byteswritten <= 0)
-		return FALSE;
-	else
-		return TRUE;
+
+	return (*byteswritten > 0);
 }
 
 gboolean
 mono_w32file_flush (gpointer handle)
 {
 	int error = 0;
+	
 	gboolean result = UnityPalFlush(handle, &error);
 	mono_w32error_set_last(error);
+	
 	return result;
 }
 
@@ -103,8 +108,10 @@ gboolean
 mono_w32file_truncate (gpointer handle)
 {
 	int error = 0;
+
 	gboolean result = UnityPalTruncate(handle, &error);
 	mono_w32error_set_last(error);
+
 	return result;
 }
 
@@ -112,9 +119,11 @@ guint32
 mono_w32file_seek (gpointer handle, gint32 movedistance, gint32 *highmovedistance, guint32 method)
 {
 	int error = 0;
-	int32_t ret = UnityPalSeek(handle, movedistance, 0, &error);
+	
+	int32_t result = UnityPalSeek(handle, movedistance, 0, &error);
 	mono_w32error_set_last(error);
-	return ret;
+
+	return result;
 }
 
 gint
@@ -122,6 +131,7 @@ mono_w32file_get_type (gpointer handle)
 {
 	if (handle == NULL)
 		return 0;
+
 	return UnityPalGetFileType(handle);
 }
 
@@ -136,8 +146,10 @@ gboolean
 mono_w32file_set_times (gpointer handle, gint64 create_time, gint64 access_time, gint64 write_time)
 {
 	int error = 0;
+
 	gboolean result = UnityPalSetFileTime(handle, create_time, access_time, write_time, &error);
 	mono_w32error_set_last(error);
+
 	return  result;
 }
 
@@ -220,6 +232,7 @@ mono_w32file_find_close (gpointer handle)
 {
     gboolean result = UnityPalDirectoryCloseOSHandle(handle);
     UnityPalDirectoryFindHandleDelete(handle);
+  
     return result;
 }
 
@@ -227,10 +240,12 @@ gboolean
 mono_w32file_create_directory (const gunichar2 *name)
 {
 	int error = 0;
+
 	gchar* palPath = mono_unicode_to_external(name);
 	gboolean result = UnityPalDirectoryCreate(palPath, &error);
 	mono_w32error_set_last(error);
 	g_free(palPath);
+
 	return result;
 }
 
@@ -238,10 +253,12 @@ guint32
 mono_w32file_get_attributes (const gunichar2 *name)
 {
 	int error = 0;
+	
 	gchar* palPath = mono_unicode_to_external(name);
 	guint32 result =  UnityPalGetFileAttributes(palPath, &error);
 	mono_w32error_set_last(error);
 	g_free(palPath);
+	
 	return result;
 }
 
@@ -251,8 +268,8 @@ mono_w32file_get_attributes_ex (const gunichar2 *name, MonoIOStat *stat)
 	gboolean result;
 	UnityPalFileStat palStat;
 	int error = 0;
-	gchar* palPath = mono_unicode_to_external(name);
 
+	gchar* palPath = mono_unicode_to_external(name);
 	result = UnityPalGetFileStat(palPath, &palStat, &error);
 	mono_w32error_set_last(error);
 
@@ -263,7 +280,6 @@ mono_w32file_get_attributes_ex (const gunichar2 *name, MonoIOStat *stat)
 		stat->last_write_time = palStat.last_write_time;
 		stat->length = palStat.length;
 	}
-
 	g_free(palPath);
 
 	return result;
@@ -273,14 +289,13 @@ gboolean
 mono_w32file_set_attributes (const gunichar2 *name, guint32 attrs)
 {
 	int error = 0;
+
 	gchar* palPath = mono_unicode_to_external(name);
-	
 	gboolean result =  UnityPalSetFileAttributes(palPath, attrs, &error);
 	mono_w32error_set_last(error);
-
 	g_free(palPath);
-	return result;
 
+	return result;
 }
 
 gboolean
@@ -303,21 +318,17 @@ mono_w32file_get_volume_information (const gunichar2 *path, gunichar2 *volumenam
 	return FALSE;
 }
 
-
-
 gboolean
 mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 {
 	gboolean result;
-
+	*error = 0;
 	MONO_ENTER_GC_SAFE;
 	
 	gchar* palPath = mono_unicode_to_external(path);
 	gchar* palDest = mono_unicode_to_external(dest);
-	int32_t myError = 0;
-    result =  UnityPalMoveFile(palPath, palDest, &myError);
-    mono_w32error_set_last(myError);
-    *error = myError;
+    result =  UnityPalMoveFile(palPath, palDest, error);
+    mono_w32error_set_last(*error);
 	g_free(palPath);
 	g_free(palDest);
 
@@ -367,15 +378,14 @@ gboolean
 mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 *error)
 {
 	gboolean result;
+	*error = 0;
 
 	MONO_ENTER_GC_SAFE;
 	
-	*error = 0;
 	gchar* palPath = mono_unicode_to_external(path);
 	gchar* palDest = mono_unicode_to_external(dest);
 	result = UnityPalCopyFile( palPath, palDest, overwrite, error);
 	mono_w32error_set_last(*error);
-
 	g_free(palPath);
 	g_free(palDest);
 
@@ -387,7 +397,6 @@ mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 
 gboolean
 mono_w32file_lock (gpointer handle, gint64 position, gint64 length, gint32 *error)
 {
-
 	MONO_ENTER_GC_SAFE;
 
 	UnityPalLock(handle, position, length, error);
@@ -395,7 +404,7 @@ mono_w32file_lock (gpointer handle, gint64 position, gint64 length, gint32 *erro
 
 	MONO_EXIT_GC_SAFE;
 
-	return (error == 0);
+	return (*error == 0);
 }
 
 gboolean
@@ -408,7 +417,7 @@ mono_w32file_unlock (gpointer handle, gint64 position, gint64 length, gint32 *er
 
 	MONO_EXIT_GC_SAFE;
 
-	return (error == 0);
+	return (*error == 0);
 }
 
 gpointer
@@ -447,16 +456,12 @@ mono_w32file_get_file_size (gpointer handle, gint32 *error)
 guint32
 mono_w32file_get_drive_type (const gunichar2 *root_path_name)
 {
-	/* Not Supported in UnityPAL */
-//	g_assert_not_reached();
 	return 0;
 }
 
 gint32
 mono_w32file_get_logical_drive (guint32 len, gunichar2 *buf)
 {
-	/* Not Supported in UnityPAL */
-//	g_assert_not_reached();
 	return -1;
 }
 
@@ -464,20 +469,24 @@ gboolean
 mono_w32file_remove_directory (const gunichar2 *name)
 {
 	int error = 0;
+
 	gchar* palPath = mono_unicode_to_external (name);
 	gboolean result =  UnityPalDirectoryRemove(palPath, &error);
 	mono_w32error_set_last(error);
 	g_free(palPath);
+
 	return result;
 }
 
 gboolean mono_w32file_delete(const gunichar2 *name)
 {
     int error = 0;
+
 	gchar* palPath = mono_unicode_to_external (name);
 	gboolean result = UnityPalDeleteFile(palPath, &error);
 	mono_w32error_set_last (error);
 	g_free(palPath);
+
 	return result;
 }
 
@@ -490,42 +499,35 @@ mono_w32file_get_cwd (guint32 length, gunichar2 *buffer)
 	int error = 0;
 
 	const char* palPath = UnityPalDirectoryGetCurrent(&error);
-
     mono_w32error_set_last (error);
 	utf16_path = mono_unicode_from_external(palPath, &bytes);
-
-
 	count = (bytes / 2) + 1;
-
 	memcpy(buffer, utf16_path, length);
-
-
 	g_free(utf16_path);
 	g_free((void *)palPath);
+
 	return count;
 }
 
 gboolean
 mono_w32file_set_cwd (const gunichar2 *path)
 {
-
 	int error = 0;
+
 	gchar* palPath = mono_unicode_to_external(path);
-	
 	gboolean result = UnityPalDirectorySetCurrent(palPath, &error);
-	
+	mono_w32error_set_last (error);
 	g_free(palPath);
+
 	return result;
 }
 
 void
 mono_w32file_cleanup (void)
 {
-
 }
 
 void
 mono_w32file_init (void)
 {
-
 }
