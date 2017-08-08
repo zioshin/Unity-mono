@@ -100,7 +100,8 @@ typedef enum {
 	MONO_PROFILER_EVENT_CLASS_UNLOAD = 1,
 	MONO_PROFILER_EVENT_CLASS_EXCEPTION = 2,
 	MONO_PROFILER_EVENT_CLASS_MONITOR = 3,
-	MONO_PROFILER_EVENT_CLASS_ALLOCATION = 4
+	MONO_PROFILER_EVENT_CLASS_ALLOCATION = 4,
+	MONO_PROFILER_EVENT_CLASS_FILEIO = 5
 } MonoProfilerClassEvents;
 typedef enum {
 	MONO_PROFILER_EVENT_RESULT_SUCCESS = 0,
@@ -118,7 +119,8 @@ typedef enum {
 	MONO_PROFILER_EVENT_JIT_TIME_ALLOCATION = 8,
 	MONO_PROFILER_EVENT_STACK_SECTION = 9,
 	MONO_PROFILER_EVENT_ALLOCATION_OBJECT_ID = 10,
-	MONO_PROFILER_EVENT_OBJECT_MONITOR = 11
+	MONO_PROFILER_EVENT_OBJECT_MONITOR = 11,
+	MONO_PROFILER_EVENT_FILEIO = 12
 } MonoProfilerEvents;
 typedef enum {
 	MONO_PROFILER_EVENT_KIND_START = 0,
@@ -921,6 +923,7 @@ struct _MonoProfiler {
 		gboolean save_allocation_caller;
 		gboolean save_allocation_stack;
 		gboolean allocations_carry_id;
+		gboolean track_fileio;
 	} action_flags;
 };
 static MonoProfiler *profiler;
@@ -4566,6 +4569,21 @@ object_allocated (MonoProfiler *profiler, MonoObject *obj, MonoClass *klass) {
 }
 
 static void
+object_fileio (MonoProfiler *profiler, int kind, int count) {
+	ProfilerPerThreadData *data;
+	ProfilerEventData *events;
+	int event_slot_count;
+	
+	GET_PROFILER_THREAD_DATA (data);
+	event_slot_count = 1;
+	RESERVE_EVENTS (data, events, event_slot_count);
+
+	STORE_EVENT_ITEM_VALUE (events, profiler, NULL, MONO_PROFILER_EVENT_DATA_TYPE_OTHER, MONO_PROFILER_EVENT_FILEIO, kind, count);
+
+	COMMIT_RESERVED_EVENTS (data);
+}
+
+static void
 monitor_event (MonoProfiler *profiler, MonoObject *obj, MonoProfilerMonitorEvent event) {
 	ProfilerPerThreadData *data;
 	ProfilerEventData *events;
@@ -5599,6 +5617,15 @@ setup_user_options (const char *arguments) {
 #endif
 			} else if (strcmp (argument, "logging")) {
 				FAIL_PARSING_FLAG_ARGUMENT;
+			} else if (!strcmp (argument, "fileio")) {
+				if (! has_plus) {
+					profiler->action_flags.track_fileio = TRUE;
+				}
+				if (! has_minus) {
+					profiler->flags |= MONO_PROFILE_FILEIO;
+				} else {
+					profiler->flags &= ~MONO_PROFILE_FILEIO;
+				}
 			}
 		}
 		
@@ -5633,7 +5660,10 @@ failure_handling:
 	if (profiler->action_flags.track_stack) {
 		profiler->flags |= MONO_PROFILE_ENTER_LEAVE;
 	}
-	
+	if (profiler->action_flags.track_fileio) {
+		profiler->flags |= MONO_PROFILE_FILEIO;
+	}
+
 	/* Tracking call stacks is useless if we already emit all enter-exit events... */
 	if (profiler->action_flags.track_calls) {
 		profiler->action_flags.track_stack = FALSE;
@@ -5850,6 +5880,7 @@ mono_profiler_startup (const char *desc)
 	mono_profiler_install_method_free (method_free);
 	mono_profiler_install_thread (thread_start, thread_end);
 	mono_profiler_install_allocation (object_allocated);
+	mono_profiler_install_fileio (object_fileio);
 	mono_profiler_install_monitor (monitor_event);
 	mono_profiler_install_statistical (statistical_hit);
 	mono_profiler_install_statistical_call_chain (statistical_call_chain, profiler->statistical_call_chain_depth, MONO_PROFILER_CALL_CHAIN_MANAGED);
