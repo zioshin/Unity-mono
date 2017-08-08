@@ -10,37 +10,37 @@
 #include <mono/metadata/w32handle.h>
 
 
+#ifdef HOST_WIN32
+Unity.IL2CPP.Common35\MonoInstallationNew.cs
+gunichar2
+ves_icall_System_IO_MonoIO_get_VolumeSeparatorChar ()
+{
+	return (gunichar2) ':';	/* colon */
+}
 
+gunichar2
+ves_icall_System_IO_MonoIO_get_DirectorySeparatorChar ()
+{
+	return (gunichar2) '\\';	/* backslash */
+}
 
-//gunichar2
-//ves_icall_System_IO_MonoIO_get_VolumeSeparatorChar ()
-//{
-//	return (gunichar2) ':';	/* colon */
-//}
+gunichar2
+ves_icall_System_IO_MonoIO_get_AltDirectorySeparatorChar ()
+{
+	return (gunichar2) '/';	/* forward slash */
+}
 
-//gunichar2
-//ves_icall_System_IO_MonoIO_get_DirectorySeparatorChar ()
-//{
-//	return (gunichar2) '\\';	/* backslash */
-//}
+gunichar2
+ves_icall_System_IO_MonoIO_get_PathSeparator ()
+{
+	return (gunichar2) ';';	/* semicolon */
+}
 
-//gunichar2
-//ves_icall_System_IO_MonoIO_get_AltDirectorySeparatorChar ()
-//{
-//	return (gunichar2) '/';	/* forward slash */
-//}
-
-//gunichar2
-//ves_icall_System_IO_MonoIO_get_PathSeparator ()
-//{
-//	return (gunichar2) ';';	/* semicolon */
-//}
-
-//void ves_icall_System_IO_MonoIO_DumpHandles (void)
-//{
-//	return;
-//}
-
+void ves_icall_System_IO_MonoIO_DumpHandles (void)
+{
+	return;
+}
+#endif /* HOST_WIN32 */
 
 gpointer
 mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode, guint32 createmode, guint32 attrs)
@@ -152,12 +152,6 @@ mono_w32file_set_times (gpointer handle, gint64 create_time, gint64 access_time,
 
 	return  result;
 }
-
-//gboolean
-//mono_w32file_filetime_to_systemtime (const FILETIME *file_time, SYSTEMTIME *system_time)
-//{
-//	return FileTimeToSystemTime (file_time, system_time);
-//}
 
 gpointer
 mono_w32file_find_first (const gunichar2 *pattern, WIN32_FIND_DATA *find_data)
