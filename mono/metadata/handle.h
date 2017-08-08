@@ -225,6 +225,15 @@ mono_thread_info_push_stack_mark (MonoThreadInfo *info, void *mark)
 		return __ret;	\
 	} while (0); } while (0)
 
+#define ICALL_RETURN_OBJ_TYPED(HANDLE,TYPE)    \
+	do {	\
+		CLEAR_STACK_WATERMARK	\
+		CLEAR_ICALL_COMMON	\
+		void* __ret = (HANDLE == NULL_HANDLE) ? NULL : MONO_HANDLE_RAW (HANDLE);	\
+		CLEAR_ICALL_FRAME	\
+		return (TYPE)__ret;	\
+	} while (0); } while (0)
+
 /*
 Handle macros/functions
 */
@@ -388,7 +397,7 @@ uintptr_t mono_array_handle_length (MonoArrayHandle arr);
 static inline void
 mono_handle_array_getref (MonoObjectHandleOut dest, MonoArrayHandle array, uintptr_t index)
 {
-	mono_gc_wbarrier_generic_store (&dest->__obj, mono_array_get (MONO_HANDLE_RAW (array),gpointer, index));
+	mono_gc_wbarrier_generic_store (&dest->__obj, (MonoObject *)mono_array_get (MONO_HANDLE_RAW (array),gpointer, index));
 }
 
 #define mono_handle_class(o) mono_object_class (MONO_HANDLE_RAW (o))
