@@ -37,6 +37,7 @@
 #include <mono/io-layer/thread-private.h>
 #include <mono/io-layer/io-portability.h>
 #include <mono/utils/strenc.h>
+#include <mono/metadata/profiler-private.h>
 
 #undef DEBUG
 
@@ -397,7 +398,10 @@ static gboolean file_read(gpointer handle, gpointer buffer,
 	if (bytesread != NULL) {
 		*bytesread = ret;
 	}
-		
+
+	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
+		mono_profiler_fileio (1, ret);
+
 	return(TRUE);
 }
 
@@ -482,6 +486,10 @@ static gboolean file_write(gpointer handle, gconstpointer buffer,
 	if (byteswritten != NULL) {
 		*byteswritten = ret;
 	}
+
+	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
+		mono_profiler_fileio (0, ret);
+
 	return(TRUE);
 }
 
@@ -2266,7 +2274,10 @@ gboolean ReadFile(gpointer handle, gpointer buffer, guint32 numbytes,
 		SetLastError (ERROR_INVALID_HANDLE);
 		return(FALSE);
 	}
-	
+
+	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
+		mono_profiler_fileio (1, numbytes);
+
 	return(io_ops[type].readfile (handle, buffer, numbytes, bytesread,
 				      overlapped));
 }
@@ -2307,7 +2318,10 @@ gboolean WriteFile(gpointer handle, gconstpointer buffer, guint32 numbytes,
 		SetLastError (ERROR_INVALID_HANDLE);
 		return(FALSE);
 	}
-	
+
+	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
+		mono_profiler_fileio (0, numbytes);
+
 	return(io_ops[type].writefile (handle, buffer, numbytes, byteswritten,
 				       overlapped));
 }
