@@ -94,7 +94,6 @@ mono/utils/mono-threads-mach.c
 mono/utils/mono-threads-mach-helper.c
 mono/utils/mono-threads-posix.c
 mono/utils/mono-threads-posix-signals.c
-mono/utils/mono-threads-windows.c
 mono/utils/mono-threads.c
 mono/utils/mono-threads-coop.c
 mono/utils/mono-threads-unity.c

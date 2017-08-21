@@ -383,8 +383,10 @@ register_thread (MonoThreadInfo *info, gpointer baseptr)
 	}
 
 	mono_thread_info_get_stack_bounds (&staddr, &stsize);
+#ifdef HAVE_SGEN_GC
 	g_assert (staddr);
 	g_assert (stsize);
+#endif
 	info->stack_start_limit = staddr;
 	info->stack_end = staddr + stsize;
 
