@@ -1309,7 +1309,7 @@ socket_transport_accept (int socket_fd)
 	MONO_EXIT_GC_SAFE;
 
 	if (conn_fd == -1) {
-		if (WSAGetLastError () != WSAEINTR)
+		if (get_last_sock_error () != MONO_EINTR)
 			fprintf (stderr, "debugger-agent: Unable to listen on %d\n", socket_fd);
 		else
 			DEBUG_PRINTF (1, "debugger-agent: Accept call interrupted on %d\n", socket_fd);
