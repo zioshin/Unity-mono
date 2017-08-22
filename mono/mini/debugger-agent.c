@@ -1178,15 +1178,141 @@ set_keepalive (void)
 	g_assert (result >= 0);
 }
 
+#ifdef HOST_WIN32
+
+/* Taken from unity-2017-02 branch at https://github.com/Unity-Technologies/mono/commit/e9f2e76e07ad251057706bc8e330f6a5df4186e2
+ * to ease backporting. This allows the debugger accept call to be broken with a a QueueUserAPC in mono_threads_suspend_abort_syscall
+ * since normal Winsock calls cannot be interrupted */
+
+#define LOGDEBUG(...)
+
+static gboolean set_blocking (SOCKET sock, gboolean block)
+{
+	u_long non_block = block ? 0 : 1;
+	return ioctlsocket (sock, FIONBIO, &non_block) != SOCKET_ERROR;
+}
+
+static DWORD get_socket_timeout (SOCKET sock, int optname)
+{
+	DWORD timeout = 0;
+	int optlen = sizeof (DWORD);
+	if (getsockopt (sock, SOL_SOCKET, optname, (char *)&timeout, &optlen) == SOCKET_ERROR) {
+		WSASetLastError (0);
+		return WSA_INFINITE;
+	}
+	if (timeout == 0)
+		timeout = WSA_INFINITE; // 0 means infinite
+	return timeout;
+}
+
+/*
+* Performs an alertable wait for the specified event (FD_ACCEPT_BIT,
+* FD_CONNECT_BIT, FD_READ_BIT, FD_WRITE_BIT) on the specified socket.
+* Returns TRUE if the event is fired without errors. Calls WSASetLastError()
+* with WSAEINTR and returns FALSE if the thread is alerted. If the event is
+* fired but with an error WSASetLastError() is called to set the error and the
+* function returns FALSE.
+*/
+static gboolean alertable_socket_wait (SOCKET sock, int event_bit)
+{
+	static char *EVENT_NAMES[] = { "FD_READ", "FD_WRITE", NULL /*FD_OOB*/, "FD_ACCEPT", "FD_CONNECT", "FD_CLOSE" };
+	gboolean success = FALSE;
+	int error = -1;
+	DWORD timeout = WSA_INFINITE;
+	if (event_bit == FD_READ_BIT || event_bit == FD_WRITE_BIT) {
+		timeout = get_socket_timeout (sock, event_bit == FD_READ_BIT ? SO_RCVTIMEO : SO_SNDTIMEO);
+	}
+	WSASetLastError (0);
+	WSAEVENT event = WSACreateEvent ();
+	if (event != WSA_INVALID_EVENT) {
+		if (WSAEventSelect (sock, event, (1 << event_bit) | FD_CLOSE) != SOCKET_ERROR) {
+			LOGDEBUG (g_message ("%06d - Calling WSAWaitForMultipleEvents () on socket %d", GetCurrentThreadId (), sock));
+			DWORD ret = WSAWaitForMultipleEvents (1, &event, TRUE, timeout, TRUE);
+			if (ret == WSA_WAIT_IO_COMPLETION) {
+				LOGDEBUG (g_message ("%06d - WSAWaitForMultipleEvents () returned WSA_WAIT_IO_COMPLETION for socket %d", GetCurrentThreadId (), sock));
+				error = WSAEINTR;
+			}
+			else if (ret == WSA_WAIT_TIMEOUT) {
+				error = WSAETIMEDOUT;
+			}
+			else {
+				g_assert (ret == WSA_WAIT_EVENT_0);
+				WSANETWORKEVENTS ne = { 0 };
+				if (WSAEnumNetworkEvents (sock, event, &ne) != SOCKET_ERROR) {
+					if (ne.lNetworkEvents & (1 << event_bit) && ne.iErrorCode[event_bit]) {
+						LOGDEBUG (g_message ("%06d - %s error %d on socket %d", GetCurrentThreadId (), EVENT_NAMES[event_bit], ne.iErrorCode[event_bit], sock));
+						error = ne.iErrorCode[event_bit];
+					}
+					else if (ne.lNetworkEvents & FD_CLOSE_BIT && ne.iErrorCode[FD_CLOSE_BIT]) {
+						LOGDEBUG (g_message ("%06d - FD_CLOSE error %d on socket %d", GetCurrentThreadId (), ne.iErrorCode[FD_CLOSE_BIT], sock));
+						error = ne.iErrorCode[FD_CLOSE_BIT];
+					}
+					else {
+						LOGDEBUG (g_message ("%06d - WSAEnumNetworkEvents () finished successfully on socket %d", GetCurrentThreadId (), sock));
+						success = TRUE;
+						error = 0;
+					}
+				}
+			}
+			WSAEventSelect (sock, NULL, 0);
+		}
+		WSACloseEvent (event);
+	}
+	if (error != -1) {
+		WSASetLastError (error);
+	}
+	return success;
+}
+
+#define ALERTABLE_SOCKET_CALL(event_bit, blocking, repeat, ret, op, sock, ...) \
+	LOGDEBUG (g_message ("%06d - Performing %s " #op " () on socket %d", GetCurrentThreadId (), blocking ? "blocking" : "non-blocking", sock)); \
+	if (blocking) { \
+		if (set_blocking(sock, FALSE)) { \
+			while (-1 == (int) (ret = op (sock, __VA_ARGS__))) { \
+				int _error = WSAGetLastError ();\
+				if (_error != WSAEWOULDBLOCK && _error != WSA_IO_PENDING) \
+					break; \
+				if (!alertable_socket_wait (sock, event_bit) || !repeat) \
+					break; \
+			} \
+			int _saved_error = WSAGetLastError (); \
+			set_blocking (sock, TRUE); \
+			WSASetLastError (_saved_error); \
+		} \
+	} else { \
+		ret = op (sock, __VA_ARGS__); \
+	} \
+	int _saved_error = WSAGetLastError (); \
+	LOGDEBUG (g_message ("%06d - Finished %s " #op " () on socket %d (ret = %d, WSAGetLastError() = %d)", GetCurrentThreadId (), \
+		blocking ? "blocking" : "non-blocking", sock, ret, _saved_error)); \
+	WSASetLastError (_saved_error);
+
+SOCKET mono_w32socket_accept_internal (SOCKET s, struct sockaddr *addr, socklen_t *addrlen, gboolean blocking)
+{
+	SOCKET newsock = INVALID_SOCKET;
+	ALERTABLE_SOCKET_CALL (FD_ACCEPT_BIT, blocking, TRUE, newsock, accept, s, addr, addrlen);
+	return newsock;
+}
+#endif
+
 static int
 socket_transport_accept (int socket_fd)
 {
 	MONO_ENTER_GC_SAFE;
+#ifdef HOST_WIN32
+	conn_fd = mono_w32socket_accept_internal (socket_fd, NULL, NULL, TRUE);
+	if (conn_fd != -1)
+		set_blocking (conn_fd, TRUE);
+#else
 	conn_fd = accept (socket_fd, NULL, NULL);
+#endif
 	MONO_EXIT_GC_SAFE;
 
 	if (conn_fd == -1) {
-		fprintf (stderr, "debugger-agent: Unable to listen on %d\n", socket_fd);
+		if (WSAGetLastError () != WSAEINTR)
+			fprintf (stderr, "debugger-agent: Unable to listen on %d\n", socket_fd);
+		else
+			DEBUG_PRINTF (1, "debugger-agent: Accept call interrupted on %d\n", socket_fd);
 	} else {
 		DEBUG_PRINTF (1, "Accepted connection from client, connection fd=%d.\n", conn_fd);
 	}
@@ -1386,6 +1512,9 @@ socket_transport_close1 (void)
 	/* Close the read part only so it can still send back replies */
 	/* Also shut down the connection listener so that we can exit normally */
 #ifdef HOST_WIN32
+	MonoThreadInfo* info = mono_thread_info_lookup (debugger_thread_id);
+	if (info)
+		mono_threads_suspend_abort_syscall (info);
 	/* SD_RECEIVE doesn't break the recv in the debugger thread */
 	shutdown (conn_fd, SD_BOTH);
 	shutdown (listen_fd, SD_BOTH);
