@@ -2411,6 +2411,8 @@ mono_jit_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObjec
 	gboolean callee_gsharedvt = FALSE;
 
 	mono_error_init (error);
+	if (exc)
+		*exc = NULL;
 
 	if (obj == NULL && !(method->flags & METHOD_ATTRIBUTE_STATIC) && !method->string_ctor && (method->wrapper_type == 0)) {
 		g_warning ("Ignoring invocation of an instance method on a NULL instance.\n");
