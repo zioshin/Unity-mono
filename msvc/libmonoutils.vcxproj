@@ -29,8 +29,9 @@
   <ItemGroup>
     <ClCompile Include="..\mono\utils\mono-rand.c" />
     <ClCompile Include="..\mono\utils\mono-rand-windows.c" />
+    <ClCompile Include="..\mono\utils\mono-systemcerts-win.c" />
     <ClCompile Include="..\mono\utils\mono-time.c" />
-     <ClCompile Include="..\mono\utils\mono-threads-posix.c">
+    <ClCompile Include="..\mono\utils\mono-threads-posix.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -127,8 +128,9 @@
     <ClCompile Include="..\mono\utils\parse.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\mono\utils\mono-systemcerts.h" />
     <ClInclude Include="..\mono\utils\mono-threads-posix-signals.h" />
-     <ClInclude Include="..\mono\utils\dlmalloc.h" />
+    <ClInclude Include="..\mono\utils\dlmalloc.h" />
     <ClInclude Include="..\mono\utils\dtrace.h" />
     <ClInclude Include="..\mono\utils\freebsd-dwarf.h" />
     <ClInclude Include="..\mono\utils\freebsd-elf32.h" />
