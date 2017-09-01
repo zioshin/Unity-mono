@@ -70,10 +70,17 @@ static void CollectAssemblyMetaData (MonoAssembly *assembly, void *user_data)
 		ContextInsertClass(context, klass);
 	}
 
-	g_hash_table_foreach(image->array_cache, CollectHashMapListClasses, user_data);
-	g_hash_table_foreach(image->szarray_cache, CollectHashMapClass, user_data);
-	g_hash_table_foreach(image->ptr_cache, CollectHashMapClass, user_data);
-	g_hash_table_foreach(image->generic_class_cache, CollectHashMapGenericClass, user_data);
+    if(image->array_cache)
+        g_hash_table_foreach(image->array_cache, CollectHashMapListClasses, user_data);
+
+    if(image->szarray_cache)
+        g_hash_table_foreach(image->szarray_cache, CollectHashMapClass, user_data);
+
+    if(image->ptr_cache)
+        g_hash_table_foreach(image->ptr_cache, CollectHashMapClass, user_data);
+
+    if(image->generic_class_cache)
+        g_hash_table_foreach(image->generic_class_cache, CollectHashMapGenericClass, user_data);
 }
 
 static int FindClassIndex(GHashTable* hashTable, MonoClass* klass)
