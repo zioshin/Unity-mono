@@ -65,4 +65,5 @@
 [submodule "external/mbedtls"]
 	path = external/mbedtls
 	url = git@github.com:Unity-Technologies/mbedtls.git
+	branch = unity-development
 
