@@ -7542,7 +7542,7 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 
 		tls->abort_requested = TRUE;
 
-		mono_thread_internal_abort (THREAD_TO_INTERNAL (thread));
+		mono_thread_internal_abort (THREAD_TO_INTERNAL (thread), FALSE);
 		mono_loader_unlock ();
 		break;
 	}
