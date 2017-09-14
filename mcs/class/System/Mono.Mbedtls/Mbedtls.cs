@@ -312,13 +312,13 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_ssl_config_defaults (ref mbedtls_ssl_config conf, uint endpoint, uint transport, uint preset);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_ssl_conf_rng (ref mbedtls_ssl_config conf, mbedtls_ctr_drbg_random_t f_rng, ref mbedtls_ctr_drbg_context p_rng);
+		extern internal static int unity_mbedtls_ssl_conf_rng (ref mbedtls_ssl_config conf, IntPtr f_rng, ref mbedtls_ctr_drbg_context p_rng);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_ctr_drbg_seed (ref mbedtls_ctr_drbg_context ctx, mbedtls_entropy_t f_entropy, ref mbedtls_entropy_context p_entropy, IntPtr input, size_t len);
+		extern internal static int unity_mbedtls_ctr_drbg_seed (ref mbedtls_ctr_drbg_context ctx, IntPtr f_entropy, ref mbedtls_entropy_context p_entropy, IntPtr input, size_t len);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_set_bio (ref mbedtls_ssl_context ssl, IntPtr bio, mbedtls_ssl_send_t f_send, mbedtls_ssl_recv_t f_recv, mbedtls_ssl_recv_timeout_t f_recv_timeout);
+		extern internal static void unity_mbedtls_ssl_set_bio (ref mbedtls_ssl_context ssl, IntPtr bio, IntPtr f_send, IntPtr f_recv, IntPtr f_recv_timeout);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static int unity_mbedtls_entropy_func (IntPtr data, IntPtr output, size_t len);
@@ -336,7 +336,7 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_ssl_set_hostname (ref mbedtls_ssl_context ssl, IntPtr hostname);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_dbg (ref mbedtls_ssl_config conf, mbedtls_ssl_dbg_t f_dbg, IntPtr p_dbg);
+		extern internal static void unity_mbedtls_ssl_conf_dbg (ref mbedtls_ssl_config conf, IntPtr f_dbg, IntPtr p_dbg);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static void unity_mbedtls_debug_set_threshold (int level);
@@ -369,7 +369,7 @@ namespace Mono.Mbedtls
 		extern internal static void unity_mbedtls_ssl_conf_ca_chain (ref mbedtls_ssl_config conf, ref mbedtls_x509_crt ca_chain, IntPtr ca_crl);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_verify (ref mbedtls_ssl_config conf, mbedtls_verify_t f_vrfy, IntPtr p_vrfy);
+		extern internal static void unity_mbedtls_ssl_conf_verify (ref mbedtls_ssl_config conf, IntPtr f_vrfy, IntPtr p_vrfy);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static void unity_mbedtls_ssl_conf_min_version (ref mbedtls_ssl_config conf, int major, int minor);

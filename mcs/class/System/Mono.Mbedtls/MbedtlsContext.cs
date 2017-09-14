@@ -37,11 +37,17 @@ namespace Mono.Mbedtls
 
 		// Delegate references to guard against garbage collection
 		Mbedtls.mbedtls_entropy_t         m_EntropyCallback;
+		IntPtr                            m_EntropyCallbackPtr;
 		Mbedtls.mbedtls_ctr_drbg_random_t m_RandomCallback;
+		IntPtr                            m_RandomCallbackPtr;
 		Mbedtls.mbedtls_ssl_send_t        m_BIOWriteCallback;
+		IntPtr                            m_BIOWriteCallbackPtr;
 		Mbedtls.mbedtls_ssl_recv_t        m_BIOReadCallback;
+		IntPtr                            m_BIOReadCallbackPtr;
 		Mbedtls.mbedtls_ssl_dbg_t         m_DebugCallback;
+		IntPtr                            m_DebugCallbackPtr;
 		Mbedtls.mbedtls_verify_t          m_VerifyCallback;
+		IntPtr                            m_VerifyCallbackPtr;
 
 		// States and certificates
 		X509Certificate       m_LocalClientCertificate;
@@ -89,19 +95,19 @@ namespace Mono.Mbedtls
 
 			int seedStringLength = m_NativeBuffer.ToNative (SSL_SEED_STR);
 			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ctr_drbg_seed (ref m_RandomGeneratorContext,
-			    m_EntropyCallback = Mbedtls.unity_mbedtls_entropy_func,
+			    m_EntropyCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_EntropyCallback = Mbedtls.unity_mbedtls_entropy_func),
 			    ref m_EntropyContext, m_NativeBuffer.DataPtr, seedStringLength),
 			    "Unable to create random generator");
 			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_conf_rng (ref m_SslConfig,
-			    m_RandomCallback = Mbedtls.unity_mbedtls_ctr_drbg_random,
+			    m_RandomCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_RandomCallback = Mbedtls.unity_mbedtls_ctr_drbg_random),
 			    ref m_RandomGeneratorContext),
 			    "Unable to configure random generator");
 
-			Mbedtls.unity_mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallback = Mono.Mbedtls.Debug.Callback, IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_DebugCallback = Mono.Mbedtls.Debug.Callback), IntPtr.Zero);
 			Mbedtls.unity_mbedtls_ssl_conf_ca_chain (ref m_SslConfig, ref m_RootCertificateChain, IntPtr.Zero);
 			Mbedtls.unity_mbedtls_ssl_conf_own_cert (ref m_SslConfig, ref m_OwnCertificateChain, ref m_OwnPrivateKeyContext);
-			Mbedtls.unity_mbedtls_ssl_set_bio (ref m_SslContext, IntPtr.Zero, m_BIOWriteCallback = BIOWrite, m_BIOReadCallback = BIORead, null);
-			Mbedtls.unity_mbedtls_ssl_conf_verify (ref m_SslConfig, m_VerifyCallback = Verify, IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_set_bio (ref m_SslContext, IntPtr.Zero, m_BIOWriteCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_BIOWriteCallback = BIOWrite), m_BIOReadCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_BIOReadCallback = BIORead), IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_conf_verify (ref m_SslConfig, m_VerifyCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_VerifyCallback = Verify), IntPtr.Zero);
 
 			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
 			    "SSL context setup failed");
