@@ -5,6 +5,7 @@ extern alias MonoSecurity;
 
 using System;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -30,11 +31,11 @@ namespace Mono.Mbedtls
 			DATATYPE_INTPTR = 1
 		}
 
-		[DllImport("__Internal")]
+		[MethodImpl (MethodImplOptions.InternalCall)]
 		static extern bool EnumSystemCertificates(IntPtr certStore, ref IntPtr iter, out CertDataFormat format, out int size, out IntPtr data);
-		[DllImport("__Internal")]
+		[MethodImpl (MethodImplOptions.InternalCall)]
 		static extern IntPtr OpenSystemRootStore();
-		[DllImport("__Internal")]
+		[MethodImpl (MethodImplOptions.InternalCall)]
 		static extern void CloseSystemRootStore(IntPtr cStore);
 
 		public static void AddSystemCertificates(ref Mbedtls.mbedtls_x509_crt chain)
@@ -78,7 +79,7 @@ namespace Mono.Mbedtls
 		{
 			if (crt == IntPtr.Zero)
 				return;
-			Mbedtls.mbedtls_x509_crt_parse (ref chain, crt, crtLength);
+			Mbedtls.unity_mbedtls_x509_crt_parse (ref chain, crt, crtLength);
 		}
 
 		public static void SetPrivateKey (ref Mbedtls.mbedtls_pk_context ctx, X509Certificate crt)
@@ -99,7 +100,7 @@ namespace Mono.Mbedtls
 			lock (nativeBuffer)
 			{
 				keyLength = nativeBuffer.ToNative (PKCS8.PrivateKeyInfo.Encode (key));
-				result = Mbedtls.mbedtls_pk_parse_key (ref ctx, nativeBuffer.DataPtr, keyLength, IntPtr.Zero, 0);
+				result = Mbedtls.unity_mbedtls_pk_parse_key (ref ctx, nativeBuffer.DataPtr, keyLength, IntPtr.Zero, 0);
 			}
 			Debug.CheckAndThrow (result, "Unable to parse private key");
 		}

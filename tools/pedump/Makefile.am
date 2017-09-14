@@ -25,6 +25,7 @@ pedump_LDADD = 			\
 	$(GLIB_LIBS)			\
 	$(LIBICONV)
 
+pedump_LDFLAGS = -Wl,-L$(top_builddir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
 if PLATFORM_DARWIN
-pedump_LDFLAGS=-framework CoreFoundation -framework Foundation
+pedump_LDFLAGS += -framework CoreFoundation -framework Foundation -framework Security
 endif

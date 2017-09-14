@@ -73,50 +73,50 @@ namespace Mono.Mbedtls
 			m_NativeEnabledCiphers      = new NativeBuffer();
 
 			// Initialize native structs
-			Mbedtls.mbedtls_ssl_init (out m_SslContext);
-			Mbedtls.mbedtls_ssl_config_init (out m_SslConfig);
-			Mbedtls.mbedtls_ctr_drbg_init (out m_RandomGeneratorContext);
-			Mbedtls.mbedtls_entropy_init (out m_EntropyContext);
-			Mbedtls.mbedtls_x509_crt_init (out m_RootCertificateChain);
-			Mbedtls.mbedtls_x509_crt_init (out m_OwnCertificateChain);
-			Mbedtls.mbedtls_pk_init (out m_OwnPrivateKeyContext);
+			Mbedtls.unity_mbedtls_ssl_init (out m_SslContext);
+			Mbedtls.unity_mbedtls_ssl_config_init (out m_SslConfig);
+			Mbedtls.unity_mbedtls_ctr_drbg_init (out m_RandomGeneratorContext);
+			Mbedtls.unity_mbedtls_entropy_init (out m_EntropyContext);
+			Mbedtls.unity_mbedtls_x509_crt_init (out m_RootCertificateChain);
+			Mbedtls.unity_mbedtls_x509_crt_init (out m_OwnCertificateChain);
+			Mbedtls.unity_mbedtls_pk_init (out m_OwnPrivateKeyContext);
 
-			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_config_defaults (ref m_SslConfig,
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_config_defaults (ref m_SslConfig,
 			    IsServer ? Mbedtls.MBEDTLS_SSL_IS_SERVER : Mbedtls.MBEDTLS_SSL_IS_CLIENT,
 			    Mbedtls.MBEDTLS_SSL_TRANSPORT_STREAM,
 			    Mbedtls.MBEDTLS_SSL_PRESET_DEFAULT),
 				"SSL default configuration failed");
 
 			int seedStringLength = m_NativeBuffer.ToNative (SSL_SEED_STR);
-			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ctr_drbg_seed (ref m_RandomGeneratorContext,
-			    m_EntropyCallback = Mbedtls.mbedtls_entropy_func,
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ctr_drbg_seed (ref m_RandomGeneratorContext,
+			    m_EntropyCallback = Mbedtls.unity_mbedtls_entropy_func,
 			    ref m_EntropyContext, m_NativeBuffer.DataPtr, seedStringLength),
 			    "Unable to create random generator");
-			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_conf_rng (ref m_SslConfig,
-			    m_RandomCallback = Mbedtls.mbedtls_ctr_drbg_random,
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_conf_rng (ref m_SslConfig,
+			    m_RandomCallback = Mbedtls.unity_mbedtls_ctr_drbg_random,
 			    ref m_RandomGeneratorContext),
 			    "Unable to configure random generator");
 
-			Mbedtls.mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallback = Mono.Mbedtls.Debug.Callback, IntPtr.Zero);
-			Mbedtls.mbedtls_ssl_conf_ca_chain (ref m_SslConfig, ref m_RootCertificateChain, IntPtr.Zero);
-			Mbedtls.mbedtls_ssl_conf_own_cert (ref m_SslConfig, ref m_OwnCertificateChain, ref m_OwnPrivateKeyContext);
-			Mbedtls.mbedtls_ssl_set_bio (ref m_SslContext, IntPtr.Zero, m_BIOWriteCallback = BIOWrite, m_BIOReadCallback = BIORead, null);
-			Mbedtls.mbedtls_ssl_conf_verify (ref m_SslConfig, m_VerifyCallback = Verify, IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallback = Mono.Mbedtls.Debug.Callback, IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_conf_ca_chain (ref m_SslConfig, ref m_RootCertificateChain, IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_conf_own_cert (ref m_SslConfig, ref m_OwnCertificateChain, ref m_OwnPrivateKeyContext);
+			Mbedtls.unity_mbedtls_ssl_set_bio (ref m_SslContext, IntPtr.Zero, m_BIOWriteCallback = BIOWrite, m_BIOReadCallback = BIORead, null);
+			Mbedtls.unity_mbedtls_ssl_conf_verify (ref m_SslConfig, m_VerifyCallback = Verify, IntPtr.Zero);
 
-			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
+			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_setup (ref m_SslContext, ref m_SslConfig),
 			    "SSL context setup failed");
 
 			TlsProtocolCode min, max;
 			GetProtocolVersions (out min, out max);
-			Mbedtls.mbedtls_ssl_conf_min_version (ref m_SslConfig, 3, GetProtocol(min));
-			Mbedtls.mbedtls_ssl_conf_max_version (ref m_SslConfig, 3, GetProtocol(max));
+			Mbedtls.unity_mbedtls_ssl_conf_min_version (ref m_SslConfig, 3, GetProtocol(min));
+			Mbedtls.unity_mbedtls_ssl_conf_max_version (ref m_SslConfig, 3, GetProtocol(max));
 
 			if (Settings != null && Settings.EnabledCiphers != null) {
 				m_NativeEnabledCiphers.EnsureSize((Settings.EnabledCiphers.Length + 1) * sizeof(uint));
 				for (int i = 0; i < Settings.EnabledCiphers.Length; ++i)
 					Marshal.WriteInt32 (m_NativeEnabledCiphers.DataPtr, i*4, (int)Settings.EnabledCiphers[i]);
 				Marshal.WriteInt32 (m_NativeEnabledCiphers.DataPtr, Settings.EnabledCiphers.Length*4, 0);
-				Mbedtls.mbedtls_ssl_conf_ciphersuites (ref m_SslConfig, m_NativeBuffer.DataPtr);
+				Mbedtls.unity_mbedtls_ssl_conf_ciphersuites (ref m_SslConfig, m_NativeBuffer.DataPtr);
 			}
 		}
 
@@ -170,7 +170,7 @@ namespace Mono.Mbedtls
 
 			int bufferSize = System.Math.Min(MaxIOBufferSize, count);
 			m_NativeIOReadBuffer.EnsureSize (bufferSize);
-			int result = Mbedtls.mbedtls_ssl_read (ref m_SslContext, m_NativeIOReadBuffer.DataPtr, bufferSize);
+			int result = Mbedtls.unity_mbedtls_ssl_read (ref m_SslContext, m_NativeIOReadBuffer.DataPtr, bufferSize);
 			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_READ) {
 				wouldBlock = true;
 				return 0;
@@ -187,7 +187,7 @@ namespace Mono.Mbedtls
 			int bufferSize = System.Math.Min(MaxIOBufferSize, count);
 			m_NativeIOWriteBuffer.EnsureSize (bufferSize);
 			Marshal.Copy (buffer, offset, m_NativeIOWriteBuffer.DataPtr, bufferSize);
-			int result = Mbedtls.mbedtls_ssl_write (ref m_SslContext, m_NativeIOWriteBuffer.DataPtr, bufferSize);
+			int result = Mbedtls.unity_mbedtls_ssl_write (ref m_SslContext, m_NativeIOWriteBuffer.DataPtr, bufferSize);
 			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_WRITE) {
 				wouldBlock = true;
 				return 0;
@@ -199,13 +199,13 @@ namespace Mono.Mbedtls
 		public override void Close ()
 		{
 			// free native resources
-			Mbedtls.mbedtls_ssl_free (ref m_SslContext);
-			Mbedtls.mbedtls_ssl_config_free (ref m_SslConfig);
-			Mbedtls.mbedtls_ctr_drbg_free (ref m_RandomGeneratorContext);
-			Mbedtls.mbedtls_entropy_free (ref m_EntropyContext);
-			Mbedtls.mbedtls_x509_crt_free (ref m_RootCertificateChain);
-			Mbedtls.mbedtls_x509_crt_free (ref m_OwnCertificateChain);
-			Mbedtls.mbedtls_pk_free (ref m_OwnPrivateKeyContext);
+			Mbedtls.unity_mbedtls_ssl_free (ref m_SslContext);
+			Mbedtls.unity_mbedtls_ssl_config_free (ref m_SslConfig);
+			Mbedtls.unity_mbedtls_ctr_drbg_free (ref m_RandomGeneratorContext);
+			Mbedtls.unity_mbedtls_entropy_free (ref m_EntropyContext);
+			Mbedtls.unity_mbedtls_x509_crt_free (ref m_RootCertificateChain);
+			Mbedtls.unity_mbedtls_x509_crt_free (ref m_OwnCertificateChain);
+			Mbedtls.unity_mbedtls_pk_free (ref m_OwnPrivateKeyContext);
 		}
 
 		protected override void Dispose (bool disposing)
@@ -214,13 +214,13 @@ namespace Mono.Mbedtls
 				if (disposing) {
 
 					// free native resources
-					Mbedtls.mbedtls_ssl_free (ref m_SslContext);
-					Mbedtls.mbedtls_ssl_config_free (ref m_SslConfig);
-					Mbedtls.mbedtls_ctr_drbg_free (ref m_RandomGeneratorContext);
-					Mbedtls.mbedtls_entropy_free (ref m_EntropyContext);
-					Mbedtls.mbedtls_x509_crt_free (ref m_RootCertificateChain);
-					Mbedtls.mbedtls_x509_crt_free (ref m_OwnCertificateChain);
-					Mbedtls.mbedtls_pk_free (ref m_OwnPrivateKeyContext);
+					Mbedtls.unity_mbedtls_ssl_free (ref m_SslContext);
+					Mbedtls.unity_mbedtls_ssl_config_free (ref m_SslConfig);
+					Mbedtls.unity_mbedtls_ctr_drbg_free (ref m_RandomGeneratorContext);
+					Mbedtls.unity_mbedtls_entropy_free (ref m_EntropyContext);
+					Mbedtls.unity_mbedtls_x509_crt_free (ref m_RootCertificateChain);
+					Mbedtls.unity_mbedtls_x509_crt_free (ref m_OwnCertificateChain);
+					Mbedtls.unity_mbedtls_pk_free (ref m_OwnPrivateKeyContext);
 
 					// reset callbacks
 		            m_EntropyCallback = null;
@@ -280,10 +280,10 @@ namespace Mono.Mbedtls
 			}
 			if (!IsServer) {
 				m_NativeBuffer.ToNative (ServerName);
-				Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.mbedtls_ssl_set_hostname (ref m_SslContext, m_NativeBuffer.DataPtr), "Unable to set hostname");
+				Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_set_hostname (ref m_SslContext, m_NativeBuffer.DataPtr), "Unable to set hostname");
 			}
 			if (!IsServer || AskForClientCertificate) {
-				Mbedtls.mbedtls_ssl_conf_authmode (ref m_SslConfig, Mbedtls.MBEDTLS_SSL_VERIFY_REQUIRED);
+				Mbedtls.unity_mbedtls_ssl_conf_authmode (ref m_SslConfig, Mbedtls.MBEDTLS_SSL_VERIFY_REQUIRED);
 			}
 			CertificateHelper.AddSystemCertificates(ref m_RootCertificateChain);
 		}
@@ -293,7 +293,7 @@ namespace Mono.Mbedtls
 			if (m_SslContext.state == Mbedtls.MBEDTLS_SSL_HANDSHAKE_OVER)
 				Mono.Mbedtls.Debug.Throw (AlertDescription.InternalError, "Handshake is over");
 
-			Int32 result = Mbedtls.mbedtls_ssl_handshake_step (ref m_SslContext);
+			Int32 result = Mbedtls.unity_mbedtls_ssl_handshake_step (ref m_SslContext);
 			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_READ ||
 			    result == Mbedtls.MBEDTLS_ERR_SSL_WANT_WRITE)
 				return false;
@@ -302,7 +302,7 @@ namespace Mono.Mbedtls
 			Mono.Mbedtls.Debug.WriteLine (1, "State {0}", m_SslContext.state);
 			switch (m_SslContext.state) {
 			case Mbedtls.MBEDTLS_SSL_CERTIFICATE_REQUEST:
-					m_RemoteCertificate = CertificateHelper.AsX509 (Mbedtls.mbedtls_ssl_get_peer_cert (ref m_SslContext));
+					m_RemoteCertificate = CertificateHelper.AsX509 (Mbedtls.unity_mbedtls_ssl_get_peer_cert (ref m_SslContext));
 					m_LocalClientCertificate = SelectClientCertificate (m_RemoteCertificate, null);
 					SetPrivateCertificate (m_LocalClientCertificate);
 					break;
@@ -320,9 +320,9 @@ namespace Mono.Mbedtls
 					Mono.Mbedtls.Debug.Throw (AlertDescription.CertificateUnknown, "unknown certificate");
 			}
 
-			IntPtr cipher = Mbedtls.mbedtls_ssl_get_ciphersuite (ref m_SslContext);
+			IntPtr cipher = Mbedtls.unity_mbedtls_ssl_get_ciphersuite (ref m_SslContext);
 			m_Connectioninfo = new MonoTlsConnectionInfo () {
-				CipherSuiteCode = (CipherSuiteCode)Mbedtls.mbedtls_ssl_get_ciphersuite_id (cipher),
+				CipherSuiteCode = (CipherSuiteCode)Mbedtls.unity_mbedtls_ssl_get_ciphersuite_id (cipher),
 				ProtocolVersion = GetProtocol (m_SslContext.minor_ver),
 				PeerDomainName = ServerName
 			};

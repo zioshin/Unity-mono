@@ -94,6 +94,8 @@ else
 libmonoldflags=$(monoldflags) -version-info 1:0:0
 endif
 endif
+libmonoldflags += -Wl,-L$(monodir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
+monobinldflags += -Wl,-L$(monodir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
 
 if SUPPORT_SGEN
 sgen_binaries = mono-sgen
@@ -663,8 +665,8 @@ endif
 
 if PLATFORM_DARWIN
 os_sources = $(darwin_sources) $(posix_sources)
-#monobin_platform_ldflags=-sectcreate __TEXT __info_plist $(top_srcdir)/mono/mini/Info.plist -framework CoreFoundation -framework Foundation
-monobin_platform_ldflags=-framework CoreFoundation -framework Foundation
+#monobin_platform_ldflags=-sectcreate __TEXT __info_plist $(top_srcdir)/mono/mini/Info.plist -framework CoreFoundation -framework Foundation -framework Security
+monobin_platform_ldflags=-framework CoreFoundation -framework Foundation -framework Security
 endif
 
 libmini_la_SOURCES = $(common_sources) $(llvm_sources) $(llvm_runtime_sources) $(interpreter_sources) $(arch_sources) $(os_sources) $(unity_sources)

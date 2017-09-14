@@ -1,6 +1,6 @@
 noinst_LTLIBRARIES = libmonoutils.la
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(LIBGC_CPPFLAGS) $(GLIB_CFLAGS) $(SHARED_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono -I$(top_srcdir)/external/mbedtls/include $(LIBGC_CPPFLAGS) $(GLIB_CFLAGS) $(SHARED_CFLAGS)
 
 if ENABLE_DTRACE
 
@@ -13,7 +13,8 @@ endif
 
 if HOST_WIN32
 win32_sources = \
-	os-event-win32.c
+	os-event-win32.c \
+	mono-systemcerts-win.c
 
 platform_sources = $(win32_sources)
 else
@@ -21,6 +22,10 @@ unix_sources = \
 	os-event-unix.c
 
 platform_sources = $(unix_sources)
+endif
+
+if TARGET_OSX
+platform_sources += mono-systemcerts-osx.c
 endif
 
 monoutils_sources = \
@@ -173,8 +178,7 @@ monoutils_sources = \
 	os-event.h \
 	refcount.h	\
 	w32api.h	\
-	mono-systemcerts.h	\
-	mono-systemcerts-win.c
+	mono-systemcerts.h
 
 arch_sources = 
 

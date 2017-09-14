@@ -76,8 +76,8 @@ namespace Mono.Mbedtls
 
 			// convert (back) to native
 			Mbedtls.mbedtls_x509_crt crt_ca, trust_ca;
-			Mbedtls.mbedtls_x509_crt_init (out crt_ca);
-			Mbedtls.mbedtls_x509_crt_init (out trust_ca);
+			Mbedtls.unity_mbedtls_x509_crt_init (out crt_ca);
+			Mbedtls.unity_mbedtls_x509_crt_init (out trust_ca);
 
 			foreach (X509Certificate certificate in certificates)
 				CertificateHelper.AddToChain(ref crt_ca, certificate);
@@ -85,10 +85,10 @@ namespace Mono.Mbedtls
 			CertificateHelper.AddSystemCertificates(ref trust_ca);
 
 			uint flags = 0;
-			int result = Mbedtls.mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHost, ref flags, IntPtr.Zero, IntPtr.Zero);
+			int result = Mbedtls.unity_mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHost, ref flags, IntPtr.Zero, IntPtr.Zero);
 
-			Mbedtls.mbedtls_x509_crt_free (ref crt_ca);
-			Mbedtls.mbedtls_x509_crt_free (ref trust_ca);
+			Mbedtls.unity_mbedtls_x509_crt_free (ref crt_ca);
+			Mbedtls.unity_mbedtls_x509_crt_free (ref trust_ca);
 
 			return result == 0 && flags == 0;
 		}
