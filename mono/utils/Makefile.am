@@ -13,8 +13,7 @@ endif
 
 if HOST_WIN32
 win32_sources = \
-	os-event-win32.c \
-	mono-systemcerts-win.c
+	os-event-win32.c
 
 platform_sources = $(win32_sources)
 else
@@ -24,9 +23,20 @@ unix_sources = \
 platform_sources = $(unix_sources)
 endif
 
+if HOST_WIN32
+platform_sources += mono-systemcerts-win.c
+else
+
 if TARGET_OSX
 platform_sources += mono-systemcerts-osx.c
+else
+
+platform_sources += mono-systemcerts-default.c
+
 endif
+
+endif
+
 
 monoutils_sources = \
 	$(platform_sources)	\

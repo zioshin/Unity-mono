@@ -1,3 +1,4 @@
+#include <config.h>
 #include "mono-systemcerts.h"
 
 #include <stdio.h>

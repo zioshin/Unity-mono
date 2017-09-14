@@ -1,3 +1,4 @@
+#include <config.h>
 #include "mono-systemcerts.h"
 #include <Security/SecTrust.h>
 #include <Security/SecCertificate.h>
