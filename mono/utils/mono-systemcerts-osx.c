@@ -10,23 +10,28 @@ int EnumSystemCertificates(void* certStore, void** iter, int *format, int* size,
 	OSStatus s;
 	CFDataRef certData;
 	int numCerts = (int)CFArrayGetCount((CFDataRef)certStore);
-	int nextCert = ((int)*iter) + 1;
 	*format = DATATYPE_STRING;
-
-	if (nextCert < numCerts)
+	// Order matters when it comes to certificates need to read in reverse
+	int currentCert = numCerts;
+	if (*iter != NULL)
 	{
-		SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex((CFDataRef)certStore, nextCert);
+		currentCert = (int)*iter;
+	}
 
-		s = SecItemExport(cert, kSecFormatPEMSequence, kSecItemPemArmour, NULL, &certData);
-		if (s != errSecSuccess)
-		{
-			printf("CertFetch cert export failed %i\n", s);
-			return FALSE;
-		}
-		char* certPEMStr = (char*)CFDataGetBytePtr(certData);
-		iter = &nextCert;
-		*data = certPEMStr;
-		*size = sizeof(certPEMStr);
+	SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex((CFDataRef)certStore, (currentCert - 1));
+
+	s = SecItemExport(cert, kSecFormatPEMSequence, kSecItemPemArmour, NULL, &certData);
+	if (s != errSecSuccess)
+	{
+		printf("CertFetch cert export failed %i\n", s);
+		return FALSE;
+	}
+	char* certPEMStr = (char*)CFDataGetBytePtr(certData);
+	*iter = currentCert - 1;
+	*data = certPEMStr;
+	*size = sizeof(certPEMStr);
+	if ((currentCert - 1) > 0)
+	{
 		return TRUE;
 	}
 
@@ -35,7 +40,6 @@ int EnumSystemCertificates(void* certStore, void** iter, int *format, int* size,
 
 void* OpenSystemRootStore()
 {
-	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_SECURITY,"In OpenSystemRootStore");
 	CFDataRef anchors;
 	OSStatus s;
 
@@ -48,12 +52,10 @@ void* OpenSystemRootStore()
 
 	printf("Returning pointer to anchors\n");
 
-	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_SECURITY,"Attempting to return anchors");
-
 	return anchors;
 }
 
 void CloseSystemRootStore(void* cStore)
 {
-	CFRelease(&cStore);
+	CFRelease(cStore);
 }
