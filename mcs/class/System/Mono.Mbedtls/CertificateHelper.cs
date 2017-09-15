@@ -46,7 +46,6 @@ namespace Mono.Mbedtls
 			IntPtr data;
 			IntPtr iter = IntPtr.Zero;
 			while (EnumSystemCertificates(store, ref iter, out format, out size, out data)) {
-				// TODO: assert format == DATATYPE_INTPTR
 				if (format == CertDataFormat.DATATYPE_INTPTR)
 				{
 					AddToChain(ref chain, data, size);
@@ -56,7 +55,7 @@ namespace Mono.Mbedtls
 					string cert = Marshal.PtrToStringAuto(data);
 					if (!String.IsNullOrEmpty(cert))
 					{
-						AddToChain(ref chain, Marshal.PtrToStringAuto(data));
+						AddToChain(ref chain, cert.Trim());
 					}
 				}
 			}

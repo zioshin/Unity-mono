@@ -405,7 +405,7 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_pk_parse_key (ref mbedtls_pk_context ctx, IntPtr key, size_t keylen, IntPtr pwd, size_t pwdlen);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_x509_crt_verify(ref mbedtls_x509_crt crt, ref mbedtls_x509_crt trust_ca, IntPtr ca_crl, [MarshalAs(UnmanagedType.LPStr)]string cn, ref uint flags, IntPtr ignore, IntPtr ignore2);
+		extern internal static int unity_mbedtls_x509_crt_verify(ref mbedtls_x509_crt crt, ref mbedtls_x509_crt trust_ca, IntPtr ca_crl, IntPtr cn, ref uint flags, IntPtr ignore, IntPtr ignore2);
 
 		// --------------------------------
 		// delegates

@@ -85,7 +85,9 @@ namespace Mono.Mbedtls
 			CertificateHelper.AddSystemCertificates(ref trust_ca);
 
 			uint flags = 0;
-			int result = Mbedtls.unity_mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHost, ref flags, IntPtr.Zero, IntPtr.Zero);
+			int result = 0;
+			using (var targetHostPtr = new Mono.SafeStringMarshal (targetHost))
+				result = Mbedtls.unity_mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHostPtr.Value, ref flags, IntPtr.Zero, IntPtr.Zero);
 
 			Mbedtls.unity_mbedtls_x509_crt_free (ref crt_ca);
 			Mbedtls.unity_mbedtls_x509_crt_free (ref trust_ca);
