@@ -318,6 +318,14 @@ mono_pmip_pretty(void *ip)
 */
 #define JIT_INFO_TABLE_HAZARD_INDEX		0
 #define JIT_INFO_HAZARD_INDEX			1
+
+MONO_API int
+mono_test_function()
+{
+	int i = 0;
+	return i;
+}
+
 MONO_API char *
 mono_dump_pmip_pretty()
 {
@@ -369,6 +377,8 @@ mono_dump_pmip_pretty()
 	if (hp)
 		mono_hazard_pointer_clear(hp, JIT_INFO_TABLE_HAZARD_INDEX);
 	fclose(fd);
+
+	return filePath;
 }
 
 /**
@@ -3921,6 +3931,8 @@ register_icalls (void)
 				mono_runtime_cleanup_handlers);
 	mono_add_internal_call ("Mono.Runtime::pimp_pretty",
 				mono_dump_pmip_pretty);
+	mono_add_internal_call("Mono.Runtime::test_function",
+		mono_test_function);
 
 #if defined(PLATFORM_ANDROID) || defined(TARGET_ANDROID)
 	mono_add_internal_call ("System.Diagnostics.Debugger::Mono_UnhandledException_internal",

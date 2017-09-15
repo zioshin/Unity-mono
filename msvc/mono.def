@@ -998,3 +998,4 @@ mono_unity_oop_get_stack_frame_details
 ; Accessors for FATs in X64
 mono_unity_lock_dynamic_function_access_tables64
 mono_unity_unlock_dynamic_function_access_tables64
+mono_dump_pmip_pretty
