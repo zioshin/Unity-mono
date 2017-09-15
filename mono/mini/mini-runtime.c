@@ -309,6 +309,69 @@ mono_pmip_pretty(void *ip)
 }
 
 /**
+* mono_dump_pmip_pretty:
+*
+* This function is used from a debugger to dump a formatted method for each address
+* Which can be used by a debugger to display formatted stacktraces.
+*
+* Returns: The path the the file that we dumped
+*/
+#define JIT_INFO_TABLE_HAZARD_INDEX		0
+#define JIT_INFO_HAZARD_INDEX			1
+MONO_API char *
+mono_dump_pmip_pretty()
+{
+	MonoJitInfoTable *table;
+	MonoJitInfo *ji;
+	MonoDomain *domain;
+	MonoThreadHazardPointers *hp;
+	char* filePath;
+	char* pmipOutput;
+	FILE* fd;
+
+	domain = mono_domain_get();
+	hp = mono_hazard_pointer_get();
+
+	close(g_file_open_tmp(NULL, &filePath, NULL));
+	fd = fopen(filePath, "w");
+	printf("%s\n", filePath);
+
+	/* First we have to get the domain's jit_info_table.  This is
+	 * complicated by the fact that a writer might substitute a
+	 * new table and free the old one.  What the writer guarantees
+	 * us is that it looks at the hazard pointers after it has
+	 * changed the jit_info_table pointer.  So, if we guard the
+	 * table by a hazard pointer and make sure that the pointer is
+	 * still there after we've made it hazardous, we don't have to
+	 * worry about the writer freeing the table.
+	 */
+	table = (MonoJitInfoTable *)mono_get_hazardous_pointer((gpointer volatile*)&domain->jit_info_table, hp, JIT_INFO_TABLE_HAZARD_INDEX);
+
+	int currentChunk = 0;
+	while (currentChunk < table->num_chunks)
+	{
+		MonoJitInfoTableChunk *chunk = table->chunks[currentChunk];
+		int pos = 0;
+		while (pos < chunk->num_elements)
+		{
+			ji = (MonoJitInfo *)mono_get_hazardous_pointer((gpointer volatile*)&chunk->data[pos], hp, JIT_INFO_HAZARD_INDEX);
+			pmipOutput = mono_pmip_pretty(ji->code_start);
+			fprintf(fd, "%p;%p;%s\n", ji->code_start, ((char*)ji->code_start) + ji->code_size, pmipOutput);
+			g_free(pmipOutput);
+			pmipOutput = NULL;
+			pos++;
+		}
+		currentChunk++;
+
+		if (hp)
+			mono_hazard_pointer_clear(hp, JIT_INFO_HAZARD_INDEX);
+	}
+	if (hp)
+		mono_hazard_pointer_clear(hp, JIT_INFO_TABLE_HAZARD_INDEX);
+	fclose(fd);
+}
+
+/**
  * mono_print_method_from_ip
  * @ip: an instruction pointer address
  *
@@ -3854,6 +3917,8 @@ register_icalls (void)
 				mono_runtime_install_handlers);
 	mono_add_internal_call ("Mono.Runtime::mono_runtime_cleanup_handlers",
 				mono_runtime_cleanup_handlers);
+	mono_add_internal_call ("Mono.Runtime::pimp_pretty",
+				mono_dump_pmip_pretty);
 
 #if defined(PLATFORM_ANDROID) || defined(TARGET_ANDROID)
 	mono_add_internal_call ("System.Diagnostics.Debugger::Mono_UnhandledException_internal",
