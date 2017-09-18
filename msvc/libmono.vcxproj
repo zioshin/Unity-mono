@@ -92,6 +92,7 @@
   <ItemDefinitionGroup>
     <Link>
       <AdditionalDependencies>$(EMBEDTLS_LIBS);eglib.lib;$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(EMBEDTLS_LIB_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -125,7 +126,6 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>$(MONO_DEF)</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -172,7 +172,6 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>$(MONO_DEF)</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
@@ -210,7 +209,6 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>$(MONO_DEF)</ModuleDefinitionFile>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
@@ -253,7 +251,6 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>$(MONO_DEF)</ModuleDefinitionFile>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
       <TargetMachine>MachineX64</TargetMachine>

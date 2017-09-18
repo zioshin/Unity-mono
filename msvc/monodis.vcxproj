@@ -95,7 +95,7 @@
   <ItemDefinitionGroup>
     <Link>
       <AdditionalDependencies>$(EMBEDTLS_LIBS);eglib.lib;$(MONO_RUNTIME_LIBS);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(EMBEDTLS_LIB_DIR);$(MSBuildProjectDirectory)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

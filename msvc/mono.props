@@ -82,6 +82,7 @@
   </PropertyGroup>
   <PropertyGroup Label="Static-Mono-Libraries">
     <EMBEDTLS_LIBS>crypt32.lib;mbedTLS.lib</EMBEDTLS_LIBS>
+    <EMBEDTLS_LIB_DIR>$(MSBuildProjectDirectory)/./build\$(Platform)\lib\$(Configuration)\</EMBEDTLS_LIB_DIR>
     <MONO_RUNTIME_LIBS>libmonoutils.lib;libmonoruntime$(MONO_TARGET_SUFFIX).lib;$(GC_LIB)</MONO_RUNTIME_LIBS>
     <MONO_STATIC_LIBMONO_LIB>libmono-static$(MONO_TARGET_SUFFIX).lib;$(MONO_RUNTIME_LIBS)</MONO_STATIC_LIBMONO_LIB>
     <MONO_DYNAMIC_LIBMONO_LIB>mono-2.0$(MONO_TARGET_SUFFIX).lib</MONO_DYNAMIC_LIBMONO_LIB>
