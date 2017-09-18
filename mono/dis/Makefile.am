@@ -52,11 +52,13 @@ monodis_LDADD = 			\
 	$(LLVM_LIBS)			\
 	$(LLVM_LDFLAGS)			\
 	$(GLIB_LIBS)			\
-	$(LIBICONV)
+	$(LIBICONV)				\
+	$(top_builddir)/external/mbedtls/library/libmbedtls.a \
+	$(top_builddir)/external/mbedtls/library/libmbedx509.a \
+	$(top_builddir)/external/mbedtls/library/libmbedcrypto.a
 
-monodis_LDFLAGS = -Wl,-L$(top_builddir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
 if PLATFORM_DARWIN
-monodis_LDFLAGS += -framework CoreFoundation -framework Foundation -framework Security
+monodis_LDFLAGS = -framework CoreFoundation -framework Foundation -framework Security
 endif
 
 man_MANS = monodis.1

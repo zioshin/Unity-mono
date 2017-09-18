@@ -94,8 +94,6 @@ else
 libmonoldflags=$(monoldflags) -version-info 1:0:0
 endif
 endif
-libmonoldflags += -Wl,-L$(monodir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
-monobinldflags += -Wl,-L$(monodir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
 
 if SUPPORT_SGEN
 sgen_binaries = mono-sgen
@@ -280,7 +278,10 @@ mono_boehm_LDADD = \
 	$(LLVMMONOF)		\
 	$(LIBICONV)		\
 	-lm			\
-	$(MONO_DTRACE_OBJECT)
+	$(MONO_DTRACE_OBJECT) \
+	$(monodir)/external/mbedtls/library/libmbedtls.a \
+	$(monodir)/external/mbedtls/library/libmbedx509.a \
+	$(monodir)/external/mbedtls/library/libmbedcrypto.a
 
 mono_boehm_LDFLAGS = \
 	$(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
@@ -291,7 +292,10 @@ mono_bdwgc_LDADD = \
 	$(LLVMMONOF)		\
 	$(LIBICONV)		\
 	-lm			\
-	$(MONO_DTRACE_OBJECT)
+	$(MONO_DTRACE_OBJECT) \
+	$(monodir)/external/mbedtls/library/libmbedtls.a \
+	$(monodir)/external/mbedtls/library/libmbedx509.a \
+	$(monodir)/external/mbedtls/library/libmbedcrypto.a
 
 mono_bdwgc_LDFLAGS = \
 	$(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
@@ -302,7 +306,10 @@ mono_sgen_LDADD = \
 	$(LLVMMONOF)		\
 	$(LIBICONV)		\
 	-lm			\
-	$(MONO_DTRACE_OBJECT)
+	$(MONO_DTRACE_OBJECT) \
+	$(monodir)/external/mbedtls/library/libmbedtls.a \
+	$(monodir)/external/mbedtls/library/libmbedx509.a \
+	$(monodir)/external/mbedtls/library/libmbedcrypto.a
 
 mono_sgen_LDFLAGS = $(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
 

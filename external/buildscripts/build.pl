@@ -1134,6 +1134,8 @@ if ($build)
 				system("sed 's,^directory=.*,directory=$depsSdkFinal/$schroot,' \"$depsSdkFinal/$schroot.conf\" | sudo tee /etc/schroot/chroot.d/$schroot.conf") eq 0 or die ("failed to deploy Linux SDK\n");
 			}
 
+			$ENV{CC} = 'gcc';
+			$ENV{CXX} = 'g++';
 			@commandPrefix = @linuxToolchain;
 			print(">>> Linux SDK Root = $linuxSdkRoot\n");
 			print(">>> Linux Toolchain Command Prefix = " . join(' ', @commandPrefix) . "\n");
