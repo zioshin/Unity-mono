@@ -89,11 +89,13 @@ if HOST_WIN32
 libmonoldflags=-no-undefined -avoid-version -Wl,--kill-at $(monoldflags)
 else
 if PLATFORM_ANDROID
-libmonoldflags= -avoid-version $(monoldflags) -Wl,-L$(monodir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
+libmonoldflags= -avoid-version $(monoldflags)
 else
 libmonoldflags=$(monoldflags) -version-info 1:0:0
 endif
 endif
+libmonoldflags += -Wl,-L$(monodir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
+monobinldflags += -Wl,-L$(monodir)/external/mbedtls/library -Wl,-lmbedtls -Wl,-lmbedx509 -Wl,-lmbedcrypto
 
 if SUPPORT_SGEN
 sgen_binaries = mono-sgen
