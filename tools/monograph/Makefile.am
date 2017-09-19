@@ -37,9 +37,7 @@ monograph_LDADD = \
 	$(LLVM_LIBS)			\
 	$(LIBICONV)			\
 	-lm					\
-	$(top_builddir)/external/mbedtls/library/libmbedtls.a \
-	$(top_builddir)/external/mbedtls/library/libmbedx509.a \
-	$(top_builddir)/external/mbedtls/library/libmbedcrypto.a
+	$(MBEDTLS_LIBS)
 
 if PLATFORM_DARWIN
 monograph_LDFLAGS=-framework CoreFoundation

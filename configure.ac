@@ -711,9 +711,13 @@ AC_CONFIG_SUBDIRS(eglib)
 
 GLIB_CFLAGS='-I$(top_srcdir)/eglib/src -I$(top_builddir)/eglib/src'
 GLIB_LIBS='-L$(top_builddir)/eglib/src -leglib -lm'
-  
+MBEDTLS_LIBS='$(top_srcdir)/external/mbedtls/library/libmbedtls.a \
+	$(top_srcdir)/external/mbedtls/library/libmbedx509.a \
+	$(top_srcdir)/external/mbedtls/library/libmbedcrypto.a'
+
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
+AC_SUBST(MBEDTLS_LIBS)
 
 # Enable support for fast thread-local storage
 # Some systems have broken support, so we allow to disable it.

@@ -281,9 +281,7 @@ mono_boehm_LDADD = \
 	$(LIBICONV)		\
 	-lm			\
 	$(MONO_DTRACE_OBJECT) \
-	$(monodir)/external/mbedtls/library/libmbedtls.a \
-	$(monodir)/external/mbedtls/library/libmbedx509.a \
-	$(monodir)/external/mbedtls/library/libmbedcrypto.a
+	$(MBEDTLS_LIBS)
 
 mono_boehm_LDFLAGS = \
 	$(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
@@ -295,9 +293,7 @@ mono_bdwgc_LDADD = \
 	$(LIBICONV)		\
 	-lm			\
 	$(MONO_DTRACE_OBJECT) \
-	$(monodir)/external/mbedtls/library/libmbedtls.a \
-	$(monodir)/external/mbedtls/library/libmbedx509.a \
-	$(monodir)/external/mbedtls/library/libmbedcrypto.a
+	$(MBEDTLS_LIBS)
 
 mono_bdwgc_LDFLAGS = \
 	$(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
@@ -309,9 +305,7 @@ mono_sgen_LDADD = \
 	$(LIBICONV)		\
 	-lm			\
 	$(MONO_DTRACE_OBJECT) \
-	$(monodir)/external/mbedtls/library/libmbedtls.a \
-	$(monodir)/external/mbedtls/library/libmbedx509.a \
-	$(monodir)/external/mbedtls/library/libmbedcrypto.a
+	$(MBEDTLS_LIBS)
 
 mono_sgen_LDFLAGS = $(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
 

@@ -3,9 +3,7 @@ AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(LIBGC_CPPFLAGS) $(GLIB_CFLA
 test_cflags = $(AM_CFLAGS) $(SGEN_DEFINES)
 test_ldadd = libtestlib.la \
 	$(LIBGC_LIBS) $(GLIB_LIBS) -lm $(LIBICONV) \
-	$(top_builddir)/external/mbedtls/library/libmbedtls.a \
-	$(top_builddir)/external/mbedtls/library/libmbedx509.a \
-	$(top_builddir)/external/mbedtls/library/libmbedcrypto.a
+	$(MBEDTLS_LIBS)
 
 if PLATFORM_DARWIN
 test_ldflags = -framework CoreFoundation -framework Foundation -framework Security
