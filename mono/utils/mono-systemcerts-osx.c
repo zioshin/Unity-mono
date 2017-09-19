@@ -1,4 +1,7 @@
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
 #include "mono-systemcerts.h"
 #include <Security/SecTrust.h>
 #include <Security/SecCertificate.h>
