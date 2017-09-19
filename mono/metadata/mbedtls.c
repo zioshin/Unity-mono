@@ -1,4 +1,7 @@
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
+
 #include "mbedtls.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/compat-1.3.h"
