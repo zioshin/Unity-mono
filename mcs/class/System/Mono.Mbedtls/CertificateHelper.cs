@@ -17,7 +17,7 @@ using Mono.Security.Cryptography;
 
 namespace Mono.Mbedtls
 {
-	class CertificateHelper
+	unsafe class CertificateHelper
 	{
 		static NativeBuffer nativeBuffer;
 		static CertificateHelper()
@@ -38,7 +38,7 @@ namespace Mono.Mbedtls
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		static extern void CloseSystemRootStore(IntPtr cStore);
 
-		public static void AddSystemCertificates(ref Mbedtls.mbedtls_x509_crt chain)
+		public static void AddSystemCertificates(Mbedtls.mbedtls_x509_crt* chain)
 		{
 			IntPtr store = OpenSystemRootStore();
 			CertDataFormat format;
@@ -48,14 +48,14 @@ namespace Mono.Mbedtls
 			while (EnumSystemCertificates(store, ref iter, out format, out size, out data)) {
 				if (format == CertDataFormat.DATATYPE_INTPTR)
 				{
-					AddToChain(ref chain, data, size);
+					AddToChain(chain, data, size);
 				}
 				else // DATATYPE_STRING
 				{
 					string cert = Marshal.PtrToStringAuto(data);
 					if (!String.IsNullOrEmpty(cert))
 					{
-						AddToChain(ref chain, cert.Trim());
+						AddToChain(chain, cert.Trim());
 					}
 				}
 			}
@@ -63,45 +63,45 @@ namespace Mono.Mbedtls
 			CloseSystemRootStore(store);
 		}
 
-		public static void AddToChain (ref Mbedtls.mbedtls_x509_crt chain, X509Certificate crt)
+		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, X509Certificate crt)
 		{
 			if (crt == null)
 				return;
 			lock (nativeBuffer)
 			{
 				int crtLength = nativeBuffer.ToNative (crt.GetRawCertData ());
-				AddToChain (ref chain, nativeBuffer.DataPtr, crtLength);
+				AddToChain ( chain, nativeBuffer.DataPtr, crtLength);
 			}
 		}
 
-		public static void AddToChain (ref Mbedtls.mbedtls_x509_crt chain, string crt)
+		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, string crt)
 		{
 			if (crt == null)
 				return;
 			lock (nativeBuffer)
 			{
 				int crtLength = nativeBuffer.ToNative (crt);
-				AddToChain (ref chain, nativeBuffer.DataPtr, crtLength);
+				AddToChain (chain, nativeBuffer.DataPtr, crtLength);
 			}
 		}
 
-		public static void AddToChain (ref Mbedtls.mbedtls_x509_crt chain, IntPtr crt, size_t crtLength)
+		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, IntPtr crt, size_t crtLength)
 		{
 			if (crt == IntPtr.Zero)
 				return;
-			Mbedtls.unity_mbedtls_x509_crt_parse (ref chain, crt, crtLength);
+			Mbedtls.unity_mbedtls_x509_crt_parse (chain, crt, crtLength);
 		}
 
-		public static void SetPrivateKey (ref Mbedtls.mbedtls_pk_context ctx, X509Certificate crt)
+		public static void SetPrivateKey (Mbedtls.mbedtls_pk_context* ctx, X509Certificate crt)
 		{
 			X509Certificate2 crt2 = crt as X509Certificate2;
 			if (crt2 == null)
 				return;
 
-			SetPrivateKey (ref ctx, crt2.PrivateKey);
+			SetPrivateKey (ctx, crt2.PrivateKey);
 		}
 
-		public static void SetPrivateKey (ref Mbedtls.mbedtls_pk_context ctx, AsymmetricAlgorithm key)
+		public static void SetPrivateKey (Mbedtls.mbedtls_pk_context* ctx, AsymmetricAlgorithm key)
 		{
 			if (key == null)
 				return;
@@ -110,24 +110,26 @@ namespace Mono.Mbedtls
 			lock (nativeBuffer)
 			{
 				keyLength = nativeBuffer.ToNative (PKCS8.PrivateKeyInfo.Encode (key));
-				result = Mbedtls.unity_mbedtls_pk_parse_key (ref ctx, nativeBuffer.DataPtr, keyLength, IntPtr.Zero, 0);
+				result = Mbedtls.unity_mbedtls_pk_parse_key (ctx, nativeBuffer.DataPtr, keyLength, IntPtr.Zero, 0);
 			}
 			Debug.CheckAndThrow (result, "Unable to parse private key");
 		}
 
-		public static X509Certificate2 AsX509 (IntPtr mbedtls_x509_crt)
+	/*	public static X509Certificate2 AsX509 (IntPtr mbedtls_x509_crt)
 		{
 			if (mbedtls_x509_crt == IntPtr.Zero)
 				return null;
 
 			return AsX509 (Marshal.PtrToStructure<Mbedtls.mbedtls_x509_buf> (mbedtls_x509_crt));
-		}
+		}*/
 
-		public static X509Certificate2 AsX509 (ref Mbedtls.mbedtls_x509_crt crt)
+		public static X509Certificate2 AsX509 (Mbedtls.mbedtls_x509_crt* crt)
 		{
-			return AsX509 (crt.raw);
-		}
+			if ((IntPtr)crt == IntPtr.Zero)
+				return null;
 
+			return AsX509 (new mbedtls_x509_crt_handle(crt).raw);
+		}
 
 		public static X509Certificate2 AsX509 (Mbedtls.mbedtls_x509_buf crt)
 		{

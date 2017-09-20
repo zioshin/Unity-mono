@@ -5,13 +5,13 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 
-void unity_mbedtls_entropy_init (mbedtls_entropy_context *ctx);
+mbedtls_entropy_context* unity_mbedtls_entropy_init ();
 void unity_mbedtls_entropy_free (mbedtls_entropy_context *ctx);
-void unity_mbedtls_ssl_init (mbedtls_ssl_context *ssl);
+mbedtls_ssl_context* unity_mbedtls_ssl_init ();
 void unity_mbedtls_ssl_free (mbedtls_ssl_context *ssl);
-void unity_mbedtls_ssl_config_init (mbedtls_ssl_config *conf);
+mbedtls_ssl_config* unity_mbedtls_ssl_config_init ();
 void unity_mbedtls_ssl_config_free (mbedtls_ssl_config *conf);
-void unity_mbedtls_ctr_drbg_init (mbedtls_ctr_drbg_context *ctx);
+mbedtls_ctr_drbg_context* unity_mbedtls_ctr_drbg_init ();
 void unity_mbedtls_ctr_drbg_free (mbedtls_ctr_drbg_context *ctx);
 int unity_mbedtls_ctr_drbg_random (void *p_rng, unsigned char *output, size_t output_len);
 int unity_mbedtls_ssl_config_defaults (mbedtls_ssl_config *conf, int endpoint, int transport, int preset);
@@ -46,10 +46,10 @@ void unity_mbedtls_ssl_conf_verify (mbedtls_ssl_config *conf, int (*f_vrfy)(void
 void unity_mbedtls_ssl_conf_min_version (mbedtls_ssl_config *conf, int major, int minor);
 void unity_mbedtls_ssl_conf_max_version (mbedtls_ssl_config *conf, int major, int minor);
 void unity_mbedtls_ssl_conf_ciphersuites (mbedtls_ssl_config *conf, const int *ciphersuites);
-void unity_mbedtls_x509_crt_init (mbedtls_x509_crt *crt);
+mbedtls_x509_crt* unity_mbedtls_x509_crt_init ();
 void unity_mbedtls_x509_crt_free (mbedtls_x509_crt *crt);
 int unity_mbedtls_x509_crt_parse (mbedtls_x509_crt *chain, const unsigned char *buf, size_t buflen);
-void unity_mbedtls_pk_init (mbedtls_pk_context *ctx);
+mbedtls_pk_context* unity_mbedtls_pk_init ();
 void unity_mbedtls_pk_free (mbedtls_pk_context *ctx);
 int unity_mbedtls_pk_parse_key (mbedtls_pk_context *ctx, const unsigned char *key, size_t keylen, const unsigned char *pwd, size_t pwdlen);
 int unity_mbedtls_x509_crt_verify (mbedtls_x509_crt *crt,
@@ -58,3 +58,10 @@ int unity_mbedtls_x509_crt_verify (mbedtls_x509_crt *crt,
                      const char *cn, uint32_t *flags,
                      int (*f_vrfy)(void *, mbedtls_x509_crt *, int, uint32_t *),
                      void *p_vrfy);
+
+int unity_mbedtls_ssl_get_state (mbedtls_ssl_context* ssl);
+int unity_mbedtls_ssl_get_minor_ver (mbedtls_ssl_context* ssl);
+
+mbedtls_x509_crt* unity_mbedtls_x509_crt_get_next (mbedtls_x509_crt* crt);
+mbedtls_x509_buf unity_mbedtls_x509_crt_get_raw (mbedtls_x509_crt* crt);
+

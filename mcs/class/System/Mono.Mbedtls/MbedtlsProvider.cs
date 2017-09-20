@@ -18,7 +18,7 @@ using MNS = Mono.Net.Security;
 
 namespace Mono.Mbedtls
 {
-	public class MbedtlsProvider : MonoTlsProvider
+	unsafe class MbedtlsProvider : MonoTlsProvider
 	{
 		static readonly Guid id = new Guid ("d7ad9d8d-5df9-4455-a34a-70fae79471fb");
 
@@ -75,22 +75,22 @@ namespace Mono.Mbedtls
 			}
 
 			// convert (back) to native
-			Mbedtls.mbedtls_x509_crt crt_ca, trust_ca;
-			Mbedtls.unity_mbedtls_x509_crt_init (out crt_ca);
-			Mbedtls.unity_mbedtls_x509_crt_init (out trust_ca);
+			Mbedtls.mbedtls_x509_crt* crt_ca, trust_ca;
+			crt_ca = Mbedtls.unity_mbedtls_x509_crt_init ();
+			trust_ca = Mbedtls.unity_mbedtls_x509_crt_init ();
 
 			foreach (X509Certificate certificate in certificates)
-				CertificateHelper.AddToChain(ref crt_ca, certificate);
+				CertificateHelper.AddToChain(crt_ca, certificate);
 
-			CertificateHelper.AddSystemCertificates(ref trust_ca);
+			CertificateHelper.AddSystemCertificates(trust_ca);
 
 			uint flags = 0;
 			int result = 0;
 			using (var targetHostPtr = new Mono.SafeStringMarshal (targetHost))
-				result = Mbedtls.unity_mbedtls_x509_crt_verify(ref crt_ca, ref trust_ca, IntPtr.Zero, targetHostPtr.Value, ref flags, IntPtr.Zero, IntPtr.Zero);
+				result = Mbedtls.unity_mbedtls_x509_crt_verify(crt_ca, trust_ca, IntPtr.Zero, targetHostPtr.Value, ref flags, IntPtr.Zero, IntPtr.Zero);
 
-			Mbedtls.unity_mbedtls_x509_crt_free (ref crt_ca);
-			Mbedtls.unity_mbedtls_x509_crt_free (ref trust_ca);
+			Mbedtls.unity_mbedtls_x509_crt_free (crt_ca);
+			Mbedtls.unity_mbedtls_x509_crt_free (trust_ca);
 
 			return result == 0 && flags == 0;
 		}

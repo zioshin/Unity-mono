@@ -2,6 +2,7 @@
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include "mbedtls.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/compat-1.3.h"
@@ -10,52 +11,65 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 
-void
-unity_mbedtls_entropy_init (mbedtls_entropy_context *ctx)
+
+mbedtls_entropy_context *
+unity_mbedtls_entropy_init ()
 {
-	 mbedtls_entropy_init (ctx);
+	mbedtls_entropy_context* ctx = malloc (sizeof (mbedtls_entropy_context));
+	mbedtls_entropy_init (ctx);
+	return ctx;
 }
 
 void
 unity_mbedtls_entropy_free (mbedtls_entropy_context *ctx)
 {
 	mbedtls_entropy_free (ctx);
+	free (ctx);
 }
 
-void
-unity_mbedtls_ssl_init (mbedtls_ssl_context *ssl)
+mbedtls_ssl_context*
+unity_mbedtls_ssl_init ()
 {
+	mbedtls_ssl_context* ssl = malloc (sizeof (mbedtls_ssl_context));
 	mbedtls_ssl_init (ssl);
+	return ssl;
 }
 
 void
 unity_mbedtls_ssl_free (mbedtls_ssl_context *ssl)
 {
 	mbedtls_ssl_free (ssl);
+	free (ssl);
 }
 
-void
-unity_mbedtls_ssl_config_init (mbedtls_ssl_config *conf)
+mbedtls_ssl_config*
+unity_mbedtls_ssl_config_init ()
 {
+	mbedtls_ssl_config* conf = malloc (sizeof (mbedtls_ssl_config));
 	mbedtls_ssl_config_init(conf);
+	return conf;
 }
 
 void
 unity_mbedtls_ssl_config_free (mbedtls_ssl_config *conf)
 {
 	mbedtls_ssl_config_free (conf);
+	free (conf);
 }
 
-void
-unity_mbedtls_ctr_drbg_init (mbedtls_ctr_drbg_context *ctx)
+mbedtls_ctr_drbg_context*
+unity_mbedtls_ctr_drbg_init ()
 {
+	mbedtls_ctr_drbg_context* ctx = malloc (sizeof (mbedtls_ctr_drbg_context));
 	mbedtls_ctr_drbg_init (ctx);
+	return ctx;
 }
 
 void
 unity_mbedtls_ctr_drbg_free (mbedtls_ctr_drbg_context *ctx)
 {
 	mbedtls_ctr_drbg_free (ctx);
+	free (ctx);
 }
 
 int
@@ -216,16 +230,19 @@ unity_mbedtls_ssl_conf_ciphersuites (mbedtls_ssl_config *conf, const int *cipher
 	mbedtls_ssl_conf_ciphersuites (conf, ciphersuites);
 }
 
-void
-unity_mbedtls_x509_crt_init (mbedtls_x509_crt *crt)
+mbedtls_x509_crt*
+unity_mbedtls_x509_crt_init ()
 {
+	mbedtls_x509_crt* crt = malloc (sizeof (mbedtls_x509_crt));
 	mbedtls_x509_crt_init (crt);
+	return crt;
 }
 
 void
 unity_mbedtls_x509_crt_free (mbedtls_x509_crt *crt)
 {
 	mbedtls_x509_crt_free (crt);
+	free (crt);
 }
 
 int
@@ -234,16 +251,19 @@ unity_mbedtls_x509_crt_parse (mbedtls_x509_crt *chain, const unsigned char *buf,
 	return mbedtls_x509_crt_parse (chain, buf, buflen);
 }
 
-void
-unity_mbedtls_pk_init (mbedtls_pk_context *ctx)
+mbedtls_pk_context*
+unity_mbedtls_pk_init ()
 {
+	mbedtls_pk_context* ctx = malloc (sizeof (mbedtls_ctr_drbg_context));
 	mbedtls_pk_init (ctx);
+	return ctx;
 }
 
 void
 unity_mbedtls_pk_free (mbedtls_pk_context *ctx)
 {
 	mbedtls_pk_free (ctx);
+	free (ctx);
 }
 
 int
@@ -261,4 +281,24 @@ unity_mbedtls_x509_crt_verify (mbedtls_x509_crt *crt,
                      void *p_vrfy)
 {
 	return mbedtls_x509_crt_verify (crt, trust_ca, ca_crl, cn, flags, f_vrfy, p_vrfy);
+}
+
+int unity_mbedtls_ssl_get_state (mbedtls_ssl_context* ssl)
+{
+	return ssl->state;
+}
+
+int unity_mbedtls_ssl_get_minor_ver (mbedtls_ssl_context* ssl)
+{
+	return ssl->minor_ver;
+}
+
+mbedtls_x509_crt* unity_mbedtls_x509_crt_get_next (mbedtls_x509_crt* crt)
+{
+	return crt->next;
+}
+
+mbedtls_x509_buf unity_mbedtls_x509_crt_get_raw (mbedtls_x509_crt* crt)
+{
+	return crt->raw;
 }
