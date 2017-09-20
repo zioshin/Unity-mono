@@ -98,10 +98,9 @@ namespace Mono.Mbedtls
 			    m_EntropyCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_EntropyCallback = Mbedtls.unity_mbedtls_entropy_func),
 			    ref m_EntropyContext, m_NativeBuffer.DataPtr, seedStringLength),
 			    "Unable to create random generator");
-			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_conf_rng (ref m_SslConfig,
+			Mbedtls.unity_mbedtls_ssl_conf_rng (ref m_SslConfig,
 			    m_RandomCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_RandomCallback = Mbedtls.unity_mbedtls_ctr_drbg_random),
-			    ref m_RandomGeneratorContext),
-			    "Unable to configure random generator");
+			    ref m_RandomGeneratorContext);
 
 			Mbedtls.unity_mbedtls_ssl_conf_dbg (ref m_SslConfig, m_DebugCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_DebugCallback = Mono.Mbedtls.Debug.Callback), IntPtr.Zero);
 			Mbedtls.unity_mbedtls_ssl_conf_ca_chain (ref m_SslConfig, ref m_RootCertificateChain, IntPtr.Zero);

@@ -312,7 +312,7 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_ssl_config_defaults (ref mbedtls_ssl_config conf, uint endpoint, uint transport, uint preset);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_ssl_conf_rng (ref mbedtls_ssl_config conf, IntPtr f_rng, ref mbedtls_ctr_drbg_context p_rng);
+		extern internal static void unity_mbedtls_ssl_conf_rng (ref mbedtls_ssl_config conf, IntPtr f_rng, ref mbedtls_ctr_drbg_context p_rng);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static int unity_mbedtls_ctr_drbg_seed (ref mbedtls_ctr_drbg_context ctx, IntPtr f_entropy, ref mbedtls_entropy_context p_entropy, IntPtr input, size_t len);
