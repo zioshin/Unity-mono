@@ -106,8 +106,8 @@ namespace Mono.Mbedtls
 		// Native structs
 		mbedtls_ssl_context_handle        m_SslContext; // mbedtls_ssl_context
 		Mbedtls.mbedtls_entropy_context*  m_EntropyContext; // mbedtls_entropy_context
-		IntPtr                            m_RandomGeneratorContext; // mbedtls_ctr_drbg_context
-		IntPtr                            m_SslConfig; // mbedtls_ssl_config
+		Mbedtls.mbedtls_ctr_drbg_context* m_RandomGeneratorContext; // mbedtls_ctr_drbg_context
+		Mbedtls.mbedtls_ssl_config*       m_SslConfig; // mbedtls_ssl_config
 		mbedtls_x509_crt_handle           m_RootCertificateChain; // mbedtls_x509_crt
 		mbedtls_x509_crt_handle           m_OwnCertificateChain; // mbedtls_x509_crt
 		mbedtls_pk_context_handle         m_OwnPrivateKeyContext; // mbedtls_pk_context

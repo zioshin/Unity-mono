@@ -193,9 +193,13 @@ namespace Mono.Mbedtls
 
 		internal struct mbedtls_ssl_context {}
 
+		internal struct mbedtls_ssl_config {}
+
 		internal struct mbedtls_pk_context {}
 
-		internal struct mbedtls_entropy_context{}
+		internal struct mbedtls_entropy_context {}
+
+		internal struct mbedtls_ctr_drbg_context {}
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static mbedtls_entropy_context* unity_mbedtls_entropy_init ();
@@ -210,28 +214,28 @@ namespace Mono.Mbedtls
 		extern internal static void unity_mbedtls_ssl_free (mbedtls_ssl_context* ctx);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static IntPtr unity_mbedtls_ssl_config_init ();
+		extern internal static mbedtls_ssl_config* unity_mbedtls_ssl_config_init ();
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_config_free (IntPtr /* mbedtls_ssl_config */ ctx);
+		extern internal static void unity_mbedtls_ssl_config_free (mbedtls_ssl_config* ctx);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static IntPtr unity_mbedtls_ctr_drbg_init ();
+		extern internal static mbedtls_ctr_drbg_context* unity_mbedtls_ctr_drbg_init ();
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ctr_drbg_free (IntPtr /* mbedtls_ctr_drbg_context */ ctx);
+		extern internal static void unity_mbedtls_ctr_drbg_free (mbedtls_ctr_drbg_context* ctx);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static int unity_mbedtls_ctr_drbg_random (IntPtr p_rng, IntPtr output, size_t len);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_ssl_config_defaults (IntPtr /* mbedtls_ssl_config */ conf, uint endpoint, uint transport, uint preset);
+		extern internal static int unity_mbedtls_ssl_config_defaults (mbedtls_ssl_config* conf, uint endpoint, uint transport, uint preset);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_rng (IntPtr /* mbedtls_ssl_config */ conf, IntPtr f_rng, IntPtr /* mbedtls_ctr_drbg_context */ p_rng);
+		extern internal static void unity_mbedtls_ssl_conf_rng (mbedtls_ssl_config* conf, IntPtr f_rng, mbedtls_ctr_drbg_context* p_rng);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_ctr_drbg_seed (IntPtr /* mbedtls_ctr_drbg_context */ ctx, IntPtr f_entropy, mbedtls_entropy_context* p_entropy, IntPtr input, size_t len);
+		extern internal static int unity_mbedtls_ctr_drbg_seed (mbedtls_ctr_drbg_context* ctx, IntPtr f_entropy, mbedtls_entropy_context* p_entropy, IntPtr input, size_t len);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static void unity_mbedtls_ssl_set_bio (mbedtls_ssl_context* ssl, IntPtr bio, IntPtr f_send, IntPtr f_recv, IntPtr f_recv_timeout);
@@ -240,7 +244,7 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_entropy_func (IntPtr data, IntPtr output, size_t len);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_ssl_setup (mbedtls_ssl_context* ssl, IntPtr /* mbedtls_ssl_config */ conf);
+		extern internal static int unity_mbedtls_ssl_setup (mbedtls_ssl_context* ssl, mbedtls_ssl_config* conf);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static int unity_mbedtls_ssl_handshake (mbedtls_ssl_context* ssl);
@@ -252,13 +256,13 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_ssl_set_hostname (mbedtls_ssl_context* ssl, IntPtr hostname);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_dbg (IntPtr /* mbedtls_ssl_config */ conf, IntPtr f_dbg, IntPtr p_dbg);
+		extern internal static void unity_mbedtls_ssl_conf_dbg (mbedtls_ssl_config* conf, IntPtr f_dbg, IntPtr p_dbg);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static void unity_mbedtls_debug_set_threshold (int level);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_authmode (IntPtr /* mbedtls_ssl_config */ conf, uint authmode);
+		extern internal static void unity_mbedtls_ssl_conf_authmode (mbedtls_ssl_config* conf, uint authmode);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static int unity_mbedtls_ssl_read (mbedtls_ssl_context* ssl, IntPtr buf, int len);
@@ -279,22 +283,22 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_ssl_get_ciphersuite_id (IntPtr ciphersuite_name);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static int unity_mbedtls_ssl_conf_own_cert (IntPtr /* mbedtls_ssl_config */ conf, mbedtls_x509_crt* own_cert, mbedtls_pk_context* pk_key);
+		extern internal static int unity_mbedtls_ssl_conf_own_cert (mbedtls_ssl_config* conf, mbedtls_x509_crt* own_cert, mbedtls_pk_context* pk_key);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_ca_chain (IntPtr /* mbedtls_ssl_config */ conf, mbedtls_x509_crt*  ca_chain, IntPtr ca_crl);
+		extern internal static void unity_mbedtls_ssl_conf_ca_chain (mbedtls_ssl_config* conf, mbedtls_x509_crt*  ca_chain, IntPtr ca_crl);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_verify (IntPtr /* mbedtls_ssl_config */ conf, IntPtr f_vrfy, IntPtr p_vrfy);
+		extern internal static void unity_mbedtls_ssl_conf_verify (mbedtls_ssl_config* conf, IntPtr f_vrfy, IntPtr p_vrfy);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_min_version (IntPtr /* mbedtls_ssl_config */ conf, int major, int minor);
+		extern internal static void unity_mbedtls_ssl_conf_min_version (mbedtls_ssl_config* conf, int major, int minor);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_max_version (IntPtr /* mbedtls_ssl_config */  conf, int major, int minor);
+		extern internal static void unity_mbedtls_ssl_conf_max_version (mbedtls_ssl_config*  conf, int major, int minor);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
-		extern internal static void unity_mbedtls_ssl_conf_ciphersuites (IntPtr /* mbedtls_ssl_config */ conf, IntPtr ciphersuites);
+		extern internal static void unity_mbedtls_ssl_conf_ciphersuites (mbedtls_ssl_config* conf, IntPtr ciphersuites);
 
 		//
 
