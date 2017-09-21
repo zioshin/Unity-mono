@@ -404,7 +404,8 @@ region_info_entry_from_lcid (int lcid)
 static gchar*
 get_darwin_locale (void)
 {
-	static gchar *darwin_locale = NULL;
+	static gchar *cached_darwin_locale = NULL;
+	gchar *darwin_locale = NULL;
 	CFLocaleRef locale = NULL;
 	CFStringRef locale_language = NULL;
 	CFStringRef locale_country = NULL;
@@ -415,8 +416,9 @@ get_darwin_locale (void)
 	CFIndex len;
 	int i;
 
-	if (darwin_locale != NULL)
+	if (darwin_locale = InterlockedCompareExchangePointer(&cached_darwin_locale, NULL, NULL)) {
 		return g_strdup (darwin_locale);
+	}
 
 	locale = CFLocaleCopyCurrent ();
 
@@ -471,7 +473,12 @@ get_darwin_locale (void)
 		CFRelease (locale);
 	}
 
-	return g_strdup (darwin_locale);
+	if (InterlockedCompareExchangePointer(&cached_darwin_locale, darwin_locale, NULL)) {
+		/* someone else beat us on another thread */
+		g_free (darwin_locale);
+	}
+
+	return g_strdup (cached_darwin_locale);
 }
 #endif
 
