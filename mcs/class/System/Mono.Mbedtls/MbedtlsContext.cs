@@ -113,10 +113,6 @@ namespace Mono.Mbedtls
 		mbedtls_pk_context_handle         m_OwnPrivateKeyContext; // mbedtls_pk_context
 
 		// Delegate references to guard against garbage collection
-		Mbedtls.mbedtls_entropy_t         m_EntropyCallback;
-		IntPtr                            m_EntropyCallbackPtr;
-		Mbedtls.mbedtls_ctr_drbg_random_t m_RandomCallback;
-		IntPtr                            m_RandomCallbackPtr;
 		Mbedtls.mbedtls_ssl_send_t        m_BIOWriteCallback;
 		IntPtr                            m_BIOWriteCallbackPtr;
 		Mbedtls.mbedtls_ssl_recv_t        m_BIOReadCallback;
@@ -172,11 +168,9 @@ namespace Mono.Mbedtls
 
 			int seedStringLength = m_NativeBuffer.ToNative (SSL_SEED_STR);
 			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ctr_drbg_seed (m_RandomGeneratorContext,
-			    m_EntropyCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_EntropyCallback = Mbedtls.unity_mbedtls_entropy_func),
-			    m_EntropyContext, m_NativeBuffer.DataPtr, seedStringLength),
+			    m_EntropyContext, m_NativeBuffer.DataPtr, new IntPtr(seedStringLength)),
 			    "Unable to create random generator");
 			Mbedtls.unity_mbedtls_ssl_conf_rng (m_SslConfig,
-			    m_RandomCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_RandomCallback = Mbedtls.unity_mbedtls_ctr_drbg_random),
 			    m_RandomGeneratorContext);
 
 			Mbedtls.unity_mbedtls_ssl_conf_dbg (m_SslConfig, m_DebugCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_DebugCallback = Mono.Mbedtls.Debug.Callback), IntPtr.Zero);
@@ -269,7 +263,7 @@ namespace Mono.Mbedtls
 			int bufferSize = System.Math.Min(MaxIOBufferSize, count);
 			m_NativeIOWriteBuffer.EnsureSize (bufferSize);
 			Marshal.Copy (buffer, offset, m_NativeIOWriteBuffer.DataPtr, bufferSize);
-			int result = Mbedtls.unity_mbedtls_ssl_write (m_SslContext, m_NativeIOWriteBuffer.DataPtr, bufferSize);
+			int result = Mbedtls.unity_mbedtls_ssl_write (m_SslContext, m_NativeIOWriteBuffer.DataPtr, new IntPtr(bufferSize));
 			if (result == Mbedtls.MBEDTLS_ERR_SSL_WANT_WRITE) {
 				wouldBlock = true;
 				return 0;
@@ -305,8 +299,6 @@ namespace Mono.Mbedtls
 					Mbedtls.unity_mbedtls_pk_free (m_OwnPrivateKeyContext);
 
 					// reset callbacks
-		            m_EntropyCallback = null;
-		            m_RandomCallback = null;
 		            m_BIOWriteCallback = null;
 		            m_BIOReadCallback = null;
 		            m_DebugCallback = null;
@@ -439,16 +431,17 @@ namespace Mono.Mbedtls
 			}
 		}
 
-		int BIOWrite (IntPtr stream, IntPtr buffer, size_t len)
+		int BIOWrite (IntPtr stream, IntPtr buffer, IntPtr len)
 		{
 			bool wouldBlock = false;
-			ManagedBufferEnsureSize (len);
+			int length = len.ToInt32();
+			ManagedBufferEnsureSize (length);
 
-			Marshal.Copy (buffer, m_ManagedBuffer, 0, len);
+			Marshal.Copy (buffer, m_ManagedBuffer, 0, length);
 
-			if (!Parent.InternalWrite (m_ManagedBuffer, 0, len))
+			if (!Parent.InternalWrite (m_ManagedBuffer, 0, length))
 				return -1;
-			int result = len;
+			int result = length;
 			if (result < 0)
 				return Mbedtls.MBEDTLS_ERR_NET_SEND_FAILED;
 			if (wouldBlock)
@@ -456,12 +449,13 @@ namespace Mono.Mbedtls
 			return result;
 		}
 
-		int BIORead (IntPtr stream, IntPtr buffer, size_t len)
+		int BIORead (IntPtr stream, IntPtr buffer, IntPtr len)
 		{
 			bool wouldBlock;
-			ManagedBufferEnsureSize (len);
+			int length = len.ToInt32();
+			ManagedBufferEnsureSize (length);
 
-			int result = Parent.InternalRead (m_ManagedBuffer, 0, len, out wouldBlock);
+			int result = Parent.InternalRead (m_ManagedBuffer, 0, length, out wouldBlock);
 			if (result < 0)
 				return Mbedtls.MBEDTLS_ERR_NET_RECV_FAILED;
 			if (wouldBlock)

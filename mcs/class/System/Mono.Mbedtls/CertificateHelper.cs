@@ -48,7 +48,7 @@ namespace Mono.Mbedtls
 			while (EnumSystemCertificates(store, ref iter, out format, out size, out data)) {
 				if (format == CertDataFormat.DATATYPE_INTPTR)
 				{
-					AddToChain(chain, data, size);
+					AddToChain(chain, data, new IntPtr(size));
 				}
 				else // DATATYPE_STRING
 				{
@@ -70,7 +70,7 @@ namespace Mono.Mbedtls
 			lock (nativeBuffer)
 			{
 				int crtLength = nativeBuffer.ToNative (crt.GetRawCertData ());
-				AddToChain ( chain, nativeBuffer.DataPtr, crtLength);
+				AddToChain (chain, nativeBuffer.DataPtr, new IntPtr(crtLength));
 			}
 		}
 
@@ -81,11 +81,11 @@ namespace Mono.Mbedtls
 			lock (nativeBuffer)
 			{
 				int crtLength = nativeBuffer.ToNative (crt);
-				AddToChain (chain, nativeBuffer.DataPtr, crtLength);
+				AddToChain (chain, nativeBuffer.DataPtr, new IntPtr(crtLength));
 			}
 		}
 
-		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, IntPtr crt, size_t crtLength)
+		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, IntPtr crt, IntPtr crtLength)
 		{
 			if (crt == IntPtr.Zero)
 				return;
@@ -110,7 +110,7 @@ namespace Mono.Mbedtls
 			lock (nativeBuffer)
 			{
 				keyLength = nativeBuffer.ToNative (PKCS8.PrivateKeyInfo.Encode (key));
-				result = Mbedtls.unity_mbedtls_pk_parse_key (ctx, nativeBuffer.DataPtr, keyLength, IntPtr.Zero, 0);
+				result = Mbedtls.unity_mbedtls_pk_parse_key (ctx, nativeBuffer.DataPtr, new IntPtr(keyLength), IntPtr.Zero, IntPtr.Zero);
 			}
 			Debug.CheckAndThrow (result, "Unable to parse private key");
 		}

@@ -87,7 +87,7 @@ namespace Mono.Mbedtls
 			uint flags = 0;
 			int result = 0;
 			using (var targetHostPtr = new Mono.SafeStringMarshal (targetHost))
-				result = Mbedtls.unity_mbedtls_x509_crt_verify(crt_ca, trust_ca, IntPtr.Zero, targetHostPtr.Value, ref flags, IntPtr.Zero, IntPtr.Zero);
+				result = Mbedtls.unity_mbedtls_x509_crt_verify(crt_ca, trust_ca, IntPtr.Zero, targetHostPtr.Value, ref flags);
 
 			Mbedtls.unity_mbedtls_x509_crt_free (crt_ca);
 			Mbedtls.unity_mbedtls_x509_crt_free (trust_ca);

@@ -13,11 +13,9 @@ mbedtls_ssl_config* unity_mbedtls_ssl_config_init ();
 void unity_mbedtls_ssl_config_free (mbedtls_ssl_config *conf);
 mbedtls_ctr_drbg_context* unity_mbedtls_ctr_drbg_init ();
 void unity_mbedtls_ctr_drbg_free (mbedtls_ctr_drbg_context *ctx);
-int unity_mbedtls_ctr_drbg_random (void *p_rng, unsigned char *output, size_t output_len);
 int unity_mbedtls_ssl_config_defaults (mbedtls_ssl_config *conf, int endpoint, int transport, int preset);
-void unity_mbedtls_ssl_conf_rng (mbedtls_ssl_config *conf, int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
+void unity_mbedtls_ssl_conf_rng (mbedtls_ssl_config *conf, void *p_rng);
 int unity_mbedtls_ctr_drbg_seed (mbedtls_ctr_drbg_context *ctx,
-                   int (*f_entropy)(void *, unsigned char *, size_t),
                    void *p_entropy,
                    const unsigned char *custom,
                    size_t len);
@@ -26,7 +24,6 @@ void unity_mbedtls_ssl_set_bio (mbedtls_ssl_context *ssl,
                           mbedtls_ssl_send_t *f_send,
                           mbedtls_ssl_recv_t *f_recv,
                           mbedtls_ssl_recv_timeout_t *f_recv_timeout);
-int unity_mbedtls_entropy_func (void *data, unsigned char *output, size_t len);
 int unity_mbedtls_ssl_setup (mbedtls_ssl_context *ssl, const mbedtls_ssl_config *conf);
 int unity_mbedtls_ssl_handshake (mbedtls_ssl_context *ssl);
 int unity_mbedtls_ssl_handshake_step (mbedtls_ssl_context *ssl);
@@ -55,9 +52,7 @@ int unity_mbedtls_pk_parse_key (mbedtls_pk_context *ctx, const unsigned char *ke
 int unity_mbedtls_x509_crt_verify (mbedtls_x509_crt *crt,
                      mbedtls_x509_crt *trust_ca,
                      mbedtls_x509_crl *ca_crl,
-                     const char *cn, uint32_t *flags,
-                     int (*f_vrfy)(void *, mbedtls_x509_crt *, int, uint32_t *),
-                     void *p_vrfy);
+                     const char *cn, uint32_t *flags);
 
 int unity_mbedtls_ssl_get_state (mbedtls_ssl_context* ssl);
 int unity_mbedtls_ssl_get_minor_ver (mbedtls_ssl_context* ssl);
