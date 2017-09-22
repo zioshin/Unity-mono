@@ -99,7 +99,7 @@
 #include <mono/metadata/w32error.h>
 #include <mono/utils/w32api.h>
 #include <mono/utils/mono-systemcerts.h>
-#include <metadata/mbedtls.h>
+#include <metadata/mono-mbedtls.h>
 
 #include "decimal-ms.h"
 #include "number-ms.h"

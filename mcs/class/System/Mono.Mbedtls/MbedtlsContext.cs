@@ -30,26 +30,26 @@ namespace Mono.Mbedtls
 		}
 
 		public static implicit operator Mbedtls.mbedtls_ssl_context*(mbedtls_ssl_context_handle h)
-	    {
-	        return h.Ptr;
-	    }
+		{
+			return h.Ptr;
+		}
 
-		public int state 
-		{ 
-			get 
+		public int state
+		{
+			get
 			{
 				return Mbedtls.unity_mbedtls_ssl_get_state(Ptr);
 			}
 		}
 		
 		public int minor_ver
-		{ 
-			get 
+		{
+			get
 			{
 				return Mbedtls.unity_mbedtls_ssl_get_minor_ver(Ptr);
 			}
 		}
-	}	
+	}
 
 	unsafe struct mbedtls_x509_crt_handle
 	{

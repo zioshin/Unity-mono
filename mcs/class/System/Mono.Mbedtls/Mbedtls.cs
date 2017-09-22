@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 
 namespace Mono.Mbedtls
 {
-	[MonoTODO ("To ensure struct consistency we would need to make sure enums are compiled as 32bit ints or change the struct member types")]
 	unsafe class Mbedtls
 	{
 		internal const int MBEDTLS_SSL_HELLO_REQUEST = 0x00;
@@ -160,8 +159,6 @@ namespace Mono.Mbedtls
 		internal const uint MBEDTLS_X509_BADCRL_BAD_MD         = 0x020000;  /**< The CRL is signed with an unacceptable hash. */
 		internal const uint MBEDTLS_X509_BADCRL_BAD_PK         = 0x040000;  /**< The CRL is signed with an unacceptable PK alg (eg RSA vs ECDSA). */
 		internal const uint MBEDTLS_X509_BADCRL_BAD_KEY        = 0x080000;  /**< The CRL is signed with an unacceptable key (eg bad curve, RSA too short). */
-
-		// Make sure structs can hold enough data needed by mbedtls
 
 		[StructLayout (LayoutKind.Sequential)]
 		internal struct mbedtls_x509_buf /*mbedtls_asn1_buf*/

@@ -48,7 +48,7 @@ namespace Mono.Mbedtls
 			while (EnumSystemCertificates(store, ref iter, out format, out size, out data)) {
 				if (format == CertDataFormat.DATATYPE_INTPTR)
 				{
-					AddToChain(chain, data, new IntPtr(size));
+					AddToChain(chain, data, size);
 				}
 				else // DATATYPE_STRING
 				{
@@ -70,7 +70,7 @@ namespace Mono.Mbedtls
 			lock (nativeBuffer)
 			{
 				int crtLength = nativeBuffer.ToNative (crt.GetRawCertData ());
-				AddToChain (chain, nativeBuffer.DataPtr, new IntPtr(crtLength));
+				AddToChain (chain, nativeBuffer.DataPtr, crtLength);
 			}
 		}
 
@@ -81,15 +81,15 @@ namespace Mono.Mbedtls
 			lock (nativeBuffer)
 			{
 				int crtLength = nativeBuffer.ToNative (crt);
-				AddToChain (chain, nativeBuffer.DataPtr, new IntPtr(crtLength));
+				AddToChain (chain, nativeBuffer.DataPtr, crtLength);
 			}
 		}
 
-		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, IntPtr crt, IntPtr crtLength)
+		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, IntPtr crt, int crtLength)
 		{
 			if (crt == IntPtr.Zero)
 				return;
-			Mbedtls.unity_mbedtls_x509_crt_parse (chain, crt, crtLength);
+			Mbedtls.unity_mbedtls_x509_crt_parse (chain, crt, (IntPtr)crtLength);
 		}
 
 		public static void SetPrivateKey (Mbedtls.mbedtls_pk_context* ctx, X509Certificate crt)
@@ -114,14 +114,6 @@ namespace Mono.Mbedtls
 			}
 			Debug.CheckAndThrow (result, "Unable to parse private key");
 		}
-
-	/*	public static X509Certificate2 AsX509 (IntPtr mbedtls_x509_crt)
-		{
-			if (mbedtls_x509_crt == IntPtr.Zero)
-				return null;
-
-			return AsX509 (Marshal.PtrToStructure<Mbedtls.mbedtls_x509_buf> (mbedtls_x509_crt));
-		}*/
 
 		public static X509Certificate2 AsX509 (Mbedtls.mbedtls_x509_crt* crt)
 		{

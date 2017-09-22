@@ -106,7 +106,7 @@ else
 noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(bdwgc_libraries) $(sgen_libraries)
 endif
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono -I$(top_srcdir)/external/mbedtls/include $(GLIB_CFLAGS) $(SHARED_CFLAGS) $(IL2CPP_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(MBEDTLS_CFLAGS) $(GLIB_CFLAGS) $(SHARED_CFLAGS) $(IL2CPP_CFLAGS)
 
 #
 # Make sure any prefix changes are updated in the binaries too.
@@ -187,7 +187,7 @@ common_sources = \
 	marshal.c		\
 	marshal.h		\
 	marshal-internals.h \
-	mbedtls.c		\
+	mono-mbedtls.c		\
 	mempool.c		\
 	mempool.h		\
 	mempool-internals.h	\
