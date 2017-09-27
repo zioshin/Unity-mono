@@ -5,13 +5,13 @@ use File::Basename;
 use File::Path;
 use lib ('external/buildscripts', "../../Tools/perl_lib","perl_lib", 'external/buildscripts/perl_lib');
 use Tools qw(InstallNameTool);
+require "./common_functions.pl"
 
 print ">>> PATH in Build All = $ENV{PATH}\n\n";
 
 my $currentdir = getcwd();
 
-my $monoroot = File::Spec->rel2abs(dirname(__FILE__) . "/../..");
-my $monoroot = abs_path($monoroot);
+my $monoroot = get_mono_root();
 
 my $buildscriptsdir = "$monoroot/external/buildscripts";
 my $addtoresultsdistdir = "$buildscriptsdir/add_to_build_results/monodistribution";
@@ -165,21 +165,8 @@ if ($android || $iphone || $iphoneCross || $iphoneSimulator || $tizen || $tizenE
 }
 
 # Do any settings agnostic per-platform stuff
-my $externalBuildDeps = "";
-my $externalBuildDepsIl2Cpp = "$monoroot/../../il2cpp/build";
-
-if ($buildDeps ne "" && not $forceDefaultBuildDeps)
-{
-	$externalBuildDeps = $buildDeps;
-}
-else
-{
-	$externalBuildDeps = "$monoroot/../../mono-build-deps/build";
-}
-
-# Only clean up the path if the directory exists, if it doesn't exist,
-# abs_path ends up returning an empty string
-$externalBuildDeps = abs_path($externalBuildDeps) if (-d $externalBuildDeps);
+my $externalBuildDeps = get_external_build_deps();
+my $externalBuildDepsIl2Cpp = get_external_build_deps_il2cpp;
 
 my $existingExternalMonoRoot = "$externalBuildDeps/mono";
 my $existingExternalMono = "";
@@ -268,66 +255,33 @@ if ($build)
 
 	if ($existingMonoRootPath eq "")
 	{
-		print(">>> No existing mono supplied.  Checking for external...\n");
+	    print(">>> No existing mono supplied.  Checking for external...\n");
+	    checkout_build_deps_if_needed($externalBuildDeps, $externalBuildDepsIl2Cpp, $checkoutonthefly);
 
-		if (!(-d "$externalBuildDeps"))
+	    if (-d "$existingExternalMono")
+	    {
+		print(">>> External mono found at : $existingExternalMono\n");
+		
+		if (-d "$existingExternalMono/builds")
 		{
-			if (not $checkoutonthefly)
-			{
-				print(">>> No external build deps found.  Might as well try to check them out.  If it fails, we'll continue and trust mono is in your PATH\n");
-			}
-
-			# Check out on the fly
-			print(">>> Checking out mono build dependencies to : $externalBuildDeps\n");
-			my $repo = "https://ono.unity3d.com/unity-extra/mono-build-deps";
-			print(">>> Cloning $repo at $externalBuildDeps\n");
-			my $checkoutResult = system("hg", "clone", $repo, "$externalBuildDeps");
-
-			if ($checkoutOnTheFly && $checkoutResult ne 0)
-			{
-				die("failed to checkout mono build dependencies\n");
-			}
-
-			# Only clean up if the dir exists.   Otherwise abs_path will return empty string
-			$externalBuildDeps = abs_path($externalBuildDeps) if (-d $externalBuildDeps);
+		    print(">>> Mono already extracted at : $existingExternalMono/builds\n");
 		}
-
-		if (!(-d "$externalBuildDepsIl2Cpp"))
+		
+		if (!(-d "$existingExternalMono/builds"))
 		{
-			my $il2cpp_repo = "https://bitbucket.org/Unity-Technologies/il2cpp";
-            print(">>> Cloning $il2cpp_repo at $externalBuildDepsIl2Cpp\n");
-            $checkoutResult = system("hg", "clone", $il2cpp_repo, "$externalBuildDepsIl2Cpp");
-
-            if ($checkoutOnTheFly && $checkoutResult ne 0)
-            {
-                die("failed to checkout IL2CPP for the mono build dependencies\n");
-            }
+		    # We need to extract builds.zip
+		    print(">>> Extracting mono builds.zip...\n");
+		    system("unzip", "$existingExternalMono/builds.zip", "-d", "$existingExternalMono") eq 0 or die("failed to extract mono builds.zip\n");
 		}
-
-		if (-d "$existingExternalMono")
-		{
-			print(">>> External mono found at : $existingExternalMono\n");
-
-			if (-d "$existingExternalMono/builds")
-			{
-				print(">>> Mono already extracted at : $existingExternalMono/builds\n");
-			}
-
-			if (!(-d "$existingExternalMono/builds"))
-			{
-				# We need to extract builds.zip
-				print(">>> Extracting mono builds.zip...\n");
-				system("unzip", "$existingExternalMono/builds.zip", "-d", "$existingExternalMono") eq 0 or die("failed to extract mono builds.zip\n");
-			}
-
-			$existingMonoRootPath = "$existingExternalMono/builds";
-		}
-		else
-		{
-			print(">>> No external mono found.  Trusting a new enough mono is in your PATH.\n");
-		}
+		
+		$existingMonoRootPath = "$existingExternalMono/builds";
+	    }
+	    else
+	    {
+		print(">>> No external mono found.  Trusting a new enough mono is in your PATH.\n");
+	    }
 	}
-
+	
 	if ($existingMonoRootPath ne "" && !(-d $existingMonoRootPath))
 	{
 		die("Existing mono not found at : $existingMonoRootPath\n");
