@@ -40,6 +40,7 @@ namespace Mono.Mbedtls
 
 		public static void AddSystemCertificates(Mbedtls.mbedtls_x509_crt* chain)
 		{
+			string certBegin = "-----BEGIN CERTIFICATE-----";
 			IntPtr store = OpenSystemRootStore();
 			CertDataFormat format;
 			int size;
@@ -55,7 +56,22 @@ namespace Mono.Mbedtls
 					string cert = Marshal.PtrToStringAuto(data);
 					if (!String.IsNullOrEmpty(cert))
 					{
-						AddToChain(chain, cert.Trim());
+						string[] certs = cert.Split(new string[]{certBegin}, StringSplitOptions.None);
+						if (certs.Length > 1)
+						{
+							for (int x = certs.Length -1; x >= 0; x--)
+							{
+								if (!String.IsNullOrEmpty(certs[x].Trim()))
+								{
+									string aCert = certBegin + "\n" + certs[x].Trim();
+									AddToChain(chain, aCert);
+								}
+							}
+						}
+						else
+						{
+							AddToChain(chain, cert.Trim());
+						}
 					}
 				}
 			}

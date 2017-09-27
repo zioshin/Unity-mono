@@ -31,7 +31,13 @@ if TARGET_OSX
 platform_sources += mono-systemcerts-osx.c
 else
 
+if PLATFORM_LINUX
+platform_sources += mono-systemcerts-linux.c
+else
+
 platform_sources += mono-systemcerts-default.c
+
+endif
 
 endif
 
