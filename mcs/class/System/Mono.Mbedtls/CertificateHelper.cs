@@ -28,7 +28,8 @@ namespace Mono.Mbedtls
 		enum CertDataFormat
 		{
 			DATATYPE_STRING = 0,
-			DATATYPE_INTPTR = 1
+			DATATYPE_INTPTR = 1,
+			DATATYPE_FILE = 2
 		}
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
@@ -40,7 +41,6 @@ namespace Mono.Mbedtls
 
 		public static void AddSystemCertificates(Mbedtls.mbedtls_x509_crt* chain)
 		{
-			string certBegin = "-----BEGIN CERTIFICATE-----";
 			IntPtr store = OpenSystemRootStore();
 			CertDataFormat format;
 			int size;
@@ -51,27 +51,20 @@ namespace Mono.Mbedtls
 				{
 					AddToChain(chain, data, size);
 				}
+				else if (format == CertDataFormat.DATATYPE_FILE)
+				{
+					string path = Marshal.PtrToStringAuto(data);
+					if (!String.IsNullOrEmpty(path))
+					{
+						AddFileToChain(chain, path.Trim());
+					}
+				}
 				else // DATATYPE_STRING
 				{
 					string cert = Marshal.PtrToStringAuto(data);
 					if (!String.IsNullOrEmpty(cert))
 					{
-						string[] certs = cert.Split(new string[]{certBegin}, StringSplitOptions.None);
-						if (certs.Length > 1)
-						{
-							for (int x = certs.Length -1; x >= 0; x--)
-							{
-								if (!String.IsNullOrEmpty(certs[x].Trim()))
-								{
-									string aCert = certBegin + "\n" + certs[x].Trim();
-									AddToChain(chain, aCert);
-								}
-							}
-						}
-						else
-						{
-							AddToChain(chain, cert.Trim());
-						}
+						AddToChain(chain, cert.Trim());
 					}
 				}
 			}
@@ -92,7 +85,7 @@ namespace Mono.Mbedtls
 
 		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, string crt)
 		{
-			if (crt == null)
+			if (String.IsNullOrEmpty(crt))
 				return;
 			lock (nativeBuffer)
 			{
@@ -106,6 +99,19 @@ namespace Mono.Mbedtls
 			if (crt == IntPtr.Zero)
 				return;
 			Mbedtls.unity_mbedtls_x509_crt_parse (chain, crt, (IntPtr)crtLength);
+		}
+
+		public static void AddFileToChain (Mbedtls.mbedtls_x509_crt* chain, string path)
+		{
+			if (String.IsNullOrEmpty(path))
+			{
+				return;
+			}
+			lock (nativeBuffer)
+			{
+				nativeBuffer.ToNative(path);
+				Mbedtls.unity_mbedtls_x509_crt_parse_file(chain, nativeBuffer.DataPtr);
+			}
 		}
 
 		public static void SetPrivateKey (Mbedtls.mbedtls_pk_context* ctx, X509Certificate crt)
