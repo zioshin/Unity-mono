@@ -4,6 +4,7 @@ extern alias MonoSecurity;
 #endif
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -103,10 +104,9 @@ namespace Mono.Mbedtls
 
 		public static void AddFileToChain (Mbedtls.mbedtls_x509_crt* chain, string path)
 		{
-			if (String.IsNullOrEmpty(path))
-			{
+			if (String.IsNullOrEmpty(path) || !File.Exists(path))
 				return;
-			}
+
 			lock (nativeBuffer)
 			{
 				nativeBuffer.ToNative(path);
