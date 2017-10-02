@@ -135,6 +135,8 @@ void mono_profiler_set_events    (MonoProfileFlags events);
 
 MonoProfileFlags mono_profiler_get_events (void);
 
+void mono_profiler_install_appdomain_start_finish_unload (MonoProfileAppDomainFunc start_unload, MonoProfileAppDomainFunc finish_unload);
+
 void mono_profiler_install_appdomain   (MonoProfileAppDomainFunc start_load, MonoProfileAppDomainResult end_load,
                                         MonoProfileAppDomainFunc start_unload, MonoProfileAppDomainFunc end_unload);
 void mono_profiler_install_assembly    (MonoProfileAssemblyFunc start_load, MonoProfileAssemblyResult end_load,

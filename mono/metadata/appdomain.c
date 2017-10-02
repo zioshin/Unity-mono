@@ -2238,6 +2238,8 @@ unload_thread_main (void *arg)
 		return 1;
 	}
 
+	mono_profiler_domain_unload_finish_event (domain);
+
 	/* Clear references to our vtables in class->runtime_info.
 	 * We also hold the loader lock because we're going to change
 	 * class->runtime_info.
@@ -2337,6 +2339,7 @@ mono_domain_try_unload (MonoDomain *domain, MonoObject **exc)
 		}
 	}
 
+	mono_profiler_domain_unload_start_event (domain);
 	mono_debugger_event_unload_appdomain (domain);
 
 	mono_domain_set (domain, FALSE);
@@ -2398,5 +2401,6 @@ mono_domain_try_unload (MonoDomain *domain, MonoObject **exc)
 
 		g_free (thread_data.failure_reason);
 		thread_data.failure_reason = NULL;
+		mono_profiler_domain_unload_finish_event (domain);
 	}
 }

@@ -57,6 +57,9 @@ void mono_profiler_module_loaded (MonoImage *image, int result) MONO_INTERNAL;
 void mono_profiler_class_event  (MonoClass *klass, int code) MONO_INTERNAL;
 void mono_profiler_class_loaded (MonoClass *klass, int result) MONO_INTERNAL;
 
+void mono_profiler_domain_unload_start_event (MonoDomain *domain) MONO_INTERNAL;
+void mono_profiler_domain_unload_finish_event (MonoDomain *domain) MONO_INTERNAL;
+
 void mono_profiler_appdomain_event  (MonoDomain *domain, int code) MONO_INTERNAL;
 void mono_profiler_appdomain_loaded (MonoDomain *domain, int result) MONO_INTERNAL;
 

@@ -36,6 +36,9 @@ struct _ProfilerDesc {
 	MonoProfiler *profiler;
 	MonoProfileFlags events;
 
+    MonoProfileAppDomainFunc   domain_unload_start;
+    MonoProfileAppDomainFunc   domain_unload_finish;
+
 	MonoProfileAppDomainFunc   domain_start_load;
 	MonoProfileAppDomainResult domain_end_load;
 	MonoProfileAppDomainFunc   domain_start_unload;
@@ -352,6 +355,17 @@ mono_profiler_install_appdomain   (MonoProfileAppDomainFunc start_load, MonoProf
 	prof_list->domain_end_load = end_load;
 	prof_list->domain_start_unload = start_unload;
 	prof_list->domain_end_unload = end_unload;
+}
+
+void 
+mono_profiler_install_appdomain_start_finish_unload (MonoProfileAppDomainFunc start_unload, 
+                                                     MonoProfileAppDomainFunc finish_unload)
+{
+    if (!prof_list)
+        return;
+
+    prof_list->domain_unload_start = start_unload;
+    prof_list->domain_unload_finish = finish_unload;
 }
 
 void 
@@ -702,6 +716,30 @@ mono_profiler_class_event  (MonoClass *klass, int code)
 			g_assert_not_reached ();
 		}
 	}
+}
+
+void 
+mono_profiler_domain_unload_start_event (MonoDomain *domain)
+{
+    ProfilerDesc *prof;
+    
+    for (prof = prof_list; prof; prof = prof->next) 
+    {
+        if (prof->domain_unload_start)
+            prof->domain_unload_start (prof->profiler, domain);
+    }
+}
+
+void 
+mono_profiler_domain_unload_finish_event (MonoDomain *domain)
+{
+    ProfilerDesc *prof;
+    
+    for (prof = prof_list; prof; prof = prof->next) 
+    {
+        if (prof->domain_unload_finish)
+            prof->domain_unload_finish (prof->profiler, domain);
+    }
 }
 
 void 
