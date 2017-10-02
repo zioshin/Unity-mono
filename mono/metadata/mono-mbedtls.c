@@ -238,6 +238,12 @@ unity_mbedtls_x509_crt_parse (mbedtls_x509_crt *chain, const unsigned char *buf,
 	return mbedtls_x509_crt_parse (chain, buf, buflen);
 }
 
+int
+unity_mbedtls_x509_crt_parse_file (mbedtls_x509_crt *chain, const char *path)
+{
+	return mbedtls_x509_crt_parse_file (chain, path);
+}
+
 mbedtls_pk_context*
 unity_mbedtls_pk_init ()
 {

@@ -292,6 +292,9 @@ namespace Mono.Mbedtls
 		extern internal static int unity_mbedtls_x509_crt_parse (mbedtls_x509_crt* chain, IntPtr cert, IntPtr len);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
+		extern internal static int unity_mbedtls_x509_crt_parse_file (mbedtls_x509_crt* chain, IntPtr path);
+
+		[MethodImpl (MethodImplOptions.InternalCall)]
 		extern internal static mbedtls_x509_crt* unity_mbedtls_x509_crt_get_next (mbedtls_x509_crt* ctx);
 
 		[MethodImpl (MethodImplOptions.InternalCall)]

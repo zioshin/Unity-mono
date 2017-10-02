@@ -28,7 +28,8 @@ namespace Mono.Mbedtls
 		enum CertDataFormat
 		{
 			DATATYPE_STRING = 0,
-			DATATYPE_INTPTR = 1
+			DATATYPE_INTPTR = 1,
+			DATATYPE_FILE = 2
 		}
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
@@ -49,6 +50,14 @@ namespace Mono.Mbedtls
 				if (format == CertDataFormat.DATATYPE_INTPTR)
 				{
 					AddToChain(chain, data, size);
+				}
+				else if (format == CertDataFormat.DATATYPE_FILE)
+				{
+					string path = Marshal.PtrToStringAuto(data);
+					if (!String.IsNullOrEmpty(path))
+					{
+						AddFileToChain(chain, path.Trim());
+					}
 				}
 				else // DATATYPE_STRING
 				{
@@ -76,7 +85,7 @@ namespace Mono.Mbedtls
 
 		public static void AddToChain (Mbedtls.mbedtls_x509_crt* chain, string crt)
 		{
-			if (crt == null)
+			if (String.IsNullOrEmpty(crt))
 				return;
 			lock (nativeBuffer)
 			{
@@ -90,6 +99,19 @@ namespace Mono.Mbedtls
 			if (crt == IntPtr.Zero)
 				return;
 			Mbedtls.unity_mbedtls_x509_crt_parse (chain, crt, (IntPtr)crtLength);
+		}
+
+		public static void AddFileToChain (Mbedtls.mbedtls_x509_crt* chain, string path)
+		{
+			if (String.IsNullOrEmpty(path))
+			{
+				return;
+			}
+			lock (nativeBuffer)
+			{
+				nativeBuffer.ToNative(path);
+				Mbedtls.unity_mbedtls_x509_crt_parse_file(chain, nativeBuffer.DataPtr);
+			}
 		}
 
 		public static void SetPrivateKey (Mbedtls.mbedtls_pk_context* ctx, X509Certificate crt)

@@ -46,6 +46,7 @@ void unity_mbedtls_ssl_conf_ciphersuites (mbedtls_ssl_config *conf, const int *c
 mbedtls_x509_crt* unity_mbedtls_x509_crt_init ();
 void unity_mbedtls_x509_crt_free (mbedtls_x509_crt *crt);
 int unity_mbedtls_x509_crt_parse (mbedtls_x509_crt *chain, const unsigned char *buf, size_t buflen);
+int unity_mbedtls_x509_crt_parse_file (mbedtls_x509_crt *chain, const char *path);
 mbedtls_pk_context* unity_mbedtls_pk_init ();
 void unity_mbedtls_pk_free (mbedtls_pk_context *ctx);
 int unity_mbedtls_pk_parse_key (mbedtls_pk_context *ctx, const unsigned char *key, size_t keylen, const unsigned char *pwd, size_t pwdlen);
