@@ -37,7 +37,7 @@ struct _ProfilerDesc {
 	MonoProfileFlags events;
 
     MonoProfileAppDomainFunc   domain_unload_start;
-    MonoProfileAppDomainFunc   domain_unload_finish;
+    MonoProfileAppDomainUnloadFunc   domain_unload_finish;
 
 	MonoProfileAppDomainFunc   domain_start_load;
 	MonoProfileAppDomainResult domain_end_load;
@@ -359,7 +359,7 @@ mono_profiler_install_appdomain   (MonoProfileAppDomainFunc start_load, MonoProf
 
 void 
 mono_profiler_install_appdomain_start_finish_unload (MonoProfileAppDomainFunc start_unload, 
-                                                     MonoProfileAppDomainFunc finish_unload)
+                                                     MonoProfileAppDomainUnloadFunc finish_unload)
 {
     if (!prof_list)
         return;
@@ -731,14 +731,14 @@ mono_profiler_domain_unload_start_event (MonoDomain *domain)
 }
 
 void 
-mono_profiler_domain_unload_finish_event (MonoDomain *domain)
+mono_profiler_domain_unload_finish_event ()
 {
     ProfilerDesc *prof;
     
     for (prof = prof_list; prof; prof = prof->next) 
     {
         if (prof->domain_unload_finish)
-            prof->domain_unload_finish (prof->profiler, domain);
+            prof->domain_unload_finish (prof->profiler);
     }
 }
 
