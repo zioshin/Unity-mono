@@ -36,8 +36,10 @@ struct _ProfilerDesc {
 	MonoProfiler *profiler;
 	MonoProfileFlags events;
 
-    MonoProfileAppDomainFunc   domain_unload_start;
-    MonoProfileAppDomainUnloadFunc   domain_unload_finish;
+	MonoProfileFinalizerThreadFunc finalizer_thread_start;
+
+	MonoProfileAppDomainFunc       domain_unload_start;
+ 	MonoProfileAppDomainUnloadFunc domain_unload_finish;
 
 	MonoProfileAppDomainFunc   domain_start_load;
 	MonoProfileAppDomainResult domain_end_load;
@@ -161,6 +163,23 @@ mono_profiler_set_events (MonoProfileFlags events)
 		prof_list->events = events;
 	for (prof = prof_list; prof; prof = prof->next)
 		value |= prof->events;
+	mono_profiler_events = value;
+}
+
+void
+mono_profiler_set_profiler_events (MonoProfiler *profiler, MonoProfileFlags events)
+{
+	ProfilerDesc *prof;
+	MonoProfileFlags value = 0;
+
+	for (prof = prof_list; prof; prof = prof->next)
+	{
+		if(prof->profiler == profiler)
+			prof->events = events;
+
+		value |= prof->events;
+	}
+
 	mono_profiler_events = value;
 }
 
@@ -355,6 +374,15 @@ mono_profiler_install_appdomain   (MonoProfileAppDomainFunc start_load, MonoProf
 	prof_list->domain_end_load = end_load;
 	prof_list->domain_start_unload = start_unload;
 	prof_list->domain_end_unload = end_unload;
+}
+
+void 
+mono_profiler_install_finalizer_thread(MonoProfileFinalizerThreadFunc start)
+{
+    if (!prof_list)
+        return;
+
+    prof_list->finalizer_thread_start = start;
 }
 
 void 
@@ -716,6 +744,18 @@ mono_profiler_class_event  (MonoClass *klass, int code)
 			g_assert_not_reached ();
 		}
 	}
+}
+
+void
+mono_profiler_finalizer_thread_start_event()
+{
+    ProfilerDesc *prof;
+    
+    for (prof = prof_list; prof; prof = prof->next) 
+    {
+        if (prof->finalizer_thread_start)
+            prof->finalizer_thread_start (prof->profiler);
+    }	
 }
 
 void 
@@ -1252,6 +1292,13 @@ create_profiler (void)
 	prof->mempool = mono_mempool_new ();
 	return prof;
 }
+
+MonoProfiler*
+mono_profiler_create()
+{
+	return create_profiler();
+}
+
 #if 1
 
 #ifdef HAVE_KW_THREAD

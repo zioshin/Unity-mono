@@ -88,6 +88,7 @@ typedef enum {
 
 typedef void (*MonoProfileFunc) (MonoProfiler *prof);
 
+typedef void (*MonoProfileFinalizerThreadFunc)     (MonoProfiler *prof);
 typedef void (*MonoProfileAppDomainFunc) (MonoProfiler *prof, MonoDomain   *domain);
 typedef void (*MonoProfileAppDomainUnloadFunc) (MonoProfiler *prof);
 typedef void (*MonoProfileMethodFunc)   (MonoProfiler *prof, MonoMethod   *method);
@@ -131,10 +132,17 @@ typedef void (*MonoProfilerCodeBufferNew) (MonoProfiler *prof, gpointer buffer, 
 /*
  * Function the profiler may call.
  */
+
+MonoProfiler* mono_profiler_create();
+
 void mono_profiler_install       (MonoProfiler *prof, MonoProfileFunc shutdown_callback);
 void mono_profiler_set_events    (MonoProfileFlags events);
+void mono_profiler_set_profiler_events (MonoProfiler *profiler, MonoProfileFlags events);
+
 
 MonoProfileFlags mono_profiler_get_events (void);
+
+void mono_profiler_install_finalizer_thread(MonoProfileFinalizerThreadFunc start);
 
 void mono_profiler_install_appdomain_start_finish_unload (MonoProfileAppDomainFunc start_unload, MonoProfileAppDomainUnloadFunc finish_unload);
 
