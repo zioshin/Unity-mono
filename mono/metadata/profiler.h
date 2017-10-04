@@ -82,6 +82,17 @@ typedef enum {
 	MONO_PROFILER_CALL_CHAIN_INVALID = 4
 } MonoProfilerCallChainStrategy;
 
+typedef enum {
+	MONO_PROFILER_UNLOAD_THREAD_START = 0,
+	MONO_PROFILER_UNLOAD_THREAD_FINISH = 1,
+	MONO_PROFILER_UNLOAD_THREAD_START_THREADS_SHUTDOWN = 2,
+	MONO_PROFILER_UNLOAD_THREAD_FINISH_THREADS_SHUTDOWN = 3,
+	MONO_PROFILER_UNLOAD_THREAD_START_THREADPOOL_SHUTDOWN = 4,
+	MONO_PROFILER_UNLOAD_THREAD_FINISH_THREADPOOL_SHUTDOWN = 5,
+	MONO_PROFILER_UNLOAD_THREAD_START_FINALIZER = 6,
+	MONO_PROFILER_UNLOAD_THREAD_FINISH_FINALIZER = 7,
+} MonoProfilerDomainUnloadThreadEvent;
+
 /*
  * Functions that the runtime will call on the profiler.
  */
@@ -91,6 +102,7 @@ typedef void (*MonoProfileFunc) (MonoProfiler *prof);
 typedef void (*MonoProfileFinalizerThreadFunc)     (MonoProfiler *prof);
 typedef void (*MonoProfileAppDomainFunc) (MonoProfiler *prof, MonoDomain   *domain);
 typedef void (*MonoProfileAppDomainUnloadFunc) (MonoProfiler *prof);
+typedef void (*MonoProfileAppDomainUnloadThreadFunc) (MonoProfiler *prof, MonoProfilerDomainUnloadThreadEvent event);
 typedef void (*MonoProfileMethodFunc)   (MonoProfiler *prof, MonoMethod   *method);
 typedef void (*MonoProfileClassFunc)    (MonoProfiler *prof, MonoClass    *klass);
 typedef void (*MonoProfileModuleFunc)   (MonoProfiler *prof, MonoImage    *module);
@@ -144,6 +156,7 @@ MonoProfileFlags mono_profiler_get_events (void);
 
 void mono_profiler_install_finalizer_thread(MonoProfileFinalizerThreadFunc start);
 
+void mono_profiler_install_appdomain_unload_thread(MonoProfileAppDomainUnloadThreadFunc func);
 void mono_profiler_install_appdomain_start_finish_unload (MonoProfileAppDomainFunc start_unload, MonoProfileAppDomainUnloadFunc finish_unload);
 
 void mono_profiler_install_appdomain   (MonoProfileAppDomainFunc start_load, MonoProfileAppDomainResult end_load,

@@ -58,6 +58,7 @@ void mono_profiler_class_event  (MonoClass *klass, int code) MONO_INTERNAL;
 void mono_profiler_class_loaded (MonoClass *klass, int result) MONO_INTERNAL;
 
 void mono_profiler_finalizer_thread_start_event() MONO_INTERNAL;
+void mono_profiler_domain_unload_thread_event (MonoProfilerDomainUnloadThreadEvent event) MONO_INTERNAL;
 void mono_profiler_domain_unload_start_event (MonoDomain *domain) MONO_INTERNAL;
 void mono_profiler_domain_unload_finish_event () MONO_INTERNAL;
 
