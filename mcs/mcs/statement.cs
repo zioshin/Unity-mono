@@ -783,6 +783,8 @@ namespace Mono.CSharp {
 
 			ec.Emit (OpCodes.Br, test);
 			ec.MarkLabel (loop);
+
+			Condition?.EmitPrepare (ec);
 			Statement.Emit (ec);
 
 			ec.MarkLabel (ec.LoopBegin);
