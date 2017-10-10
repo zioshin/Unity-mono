@@ -2210,7 +2210,7 @@ deregister_reflection_info_roots (MonoDomain *domain)
 }
 #endif
 
-static guint32 WINAPI
+static guint32
 unload_thread_main_inner (void *arg)
 {
 	gboolean ret;
