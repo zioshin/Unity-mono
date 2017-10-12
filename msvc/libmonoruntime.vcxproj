@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\mono\metadata\console-win32.c" />
-    <ClCompile Include="..\mono\metadata\mbedtls.c" />
+    <ClCompile Include="..\mono\metadata\mono-mbedtls.c" />
     <ClCompile Include="..\mono\metadata\w32error-win32.c" />
     <ClCompile Include="..\mono\metadata\w32event-win32.c" />
     <ClCompile Include="..\mono\metadata\w32file-win32.c" />
@@ -117,7 +117,7 @@
     <ClCompile Include="..\mono\metadata\w32socket.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\mono\metadata\mbedtls.h" />
+    <ClInclude Include="..\mono\metadata\mono-mbedtls.h" />
     <ClInclude Include="..\mono\metadata\w32file-win32-internals.h" />
     <ClInclude Include="..\mono\metadata\w32process-win32-internals.h" />
     <ClInclude Include="..\mono\metadata\appdomain.h" />

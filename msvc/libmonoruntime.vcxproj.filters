@@ -289,7 +289,7 @@
     <ClCompile Include="..\mono\metadata\unity-memory-info.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\mono\metadata\mbedtls.c">
+    <ClCompile Include="..\mono\metadata\mono-mbedtls.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -594,7 +594,7 @@
     <ClInclude Include="..\mono\metadata\unity-memory-info.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\mono\metadata\mbedtls.h">
+    <ClInclude Include="..\mono\metadata\mono-mbedtls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
