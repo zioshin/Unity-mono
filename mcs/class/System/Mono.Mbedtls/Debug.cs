@@ -15,6 +15,7 @@ using MonoSecurity::Mono.Security.Interface;
 #else
 using Mono.Security.Interface;
 #endif
+using Mono.Util;
 
 namespace Mono.Mbedtls
 {
@@ -34,6 +35,7 @@ namespace Mono.Mbedtls
 			Level = debugLevel;
 		}
 
+		[MonoPInvokeCallback (typeof (Mbedtls.mbedtls_ssl_dbg_t))]
 		public static void Callback (IntPtr p_dbg, int level, IntPtr filePtr, int line, IntPtr messagePtr)
 		{
 			string file = filePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi (filePtr) : "<unknown>";

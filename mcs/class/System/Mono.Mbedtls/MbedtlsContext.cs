@@ -17,6 +17,7 @@ using Mono.Security.Interface;
 #endif
 
 using Mono.Net.Security;
+using Mono.Util;
 
 namespace Mono.Mbedtls
 {
@@ -136,6 +137,8 @@ namespace Mono.Mbedtls
 
 		byte [] m_ManagedBuffer = new byte[0];
 
+		GCHandle m_handle;
+
 		[MonoTODO ("Move stuff to StartHandshake")]
 		internal MbedtlsContext (
 		    MobileAuthenticatedStream parent,
@@ -145,6 +148,8 @@ namespace Mono.Mbedtls
 		    : base (parent, serverMode, targetHost, enabledProtocols,
 			    serverCertificate, clientCertificates, askForClientCert)
 		{
+			m_handle = GCHandle.Alloc(this);
+
 			// Setup native buffers
 			m_NativeBuffer        = new NativeBuffer();
 			m_NativeIOReadBuffer  = new NativeBuffer();
@@ -176,8 +181,8 @@ namespace Mono.Mbedtls
 			Mbedtls.unity_mbedtls_ssl_conf_dbg (m_SslConfig, m_DebugCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_DebugCallback = Mono.Mbedtls.Debug.Callback), IntPtr.Zero);
 			Mbedtls.unity_mbedtls_ssl_conf_ca_chain (m_SslConfig, m_RootCertificateChain, IntPtr.Zero);
 			Mbedtls.unity_mbedtls_ssl_conf_own_cert (m_SslConfig, m_OwnCertificateChain, m_OwnPrivateKeyContext);
-			Mbedtls.unity_mbedtls_ssl_set_bio (m_SslContext, IntPtr.Zero, m_BIOWriteCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_BIOWriteCallback = BIOWrite), m_BIOReadCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_BIOReadCallback = BIORead), IntPtr.Zero);
-			Mbedtls.unity_mbedtls_ssl_conf_verify (m_SslConfig, m_VerifyCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_VerifyCallback = Verify), IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_set_bio (m_SslContext, (IntPtr)m_handle, m_BIOWriteCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_BIOWriteCallback = BIOWriteCallback), m_BIOReadCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_BIOReadCallback = BIOReadCallback), IntPtr.Zero);
+			Mbedtls.unity_mbedtls_ssl_conf_verify (m_SslConfig, m_VerifyCallbackPtr = Marshal.GetFunctionPointerForDelegate (m_VerifyCallback = VerifyCallback), (IntPtr)m_handle);
 
 			Mono.Mbedtls.Debug.CheckAndThrow (Mbedtls.unity_mbedtls_ssl_setup (m_SslContext, m_SslConfig),
 			    "SSL context setup failed");
@@ -316,12 +321,23 @@ namespace Mono.Mbedtls
 					m_ManagedBuffer = null;
 				}
 
+				m_handle.Free();
+
 			} finally {
 				base.Dispose (disposing);
 			}
 		}
 
-		private int Verify (IntPtr p_vrfy, Mbedtls.mbedtls_x509_crt* _crt, int depth, ref uint flags)
+		[MonoPInvokeCallback (typeof (Mbedtls.mbedtls_ssl_send_t))]
+		static int VerifyCallback (IntPtr p_vrfy, IntPtr _crt, int depth, ref uint flags)
+		{
+			var handle = (GCHandle)p_vrfy;
+			var context = (MbedtlsContext)handle.Target;
+
+			return context.Verify((Mbedtls.mbedtls_x509_crt*)_crt, depth, ref flags);
+		}
+
+		int Verify (Mbedtls.mbedtls_x509_crt* _crt, int depth, ref uint flags)
 		{
 			// Skip intermediate and root certificates
 			if (depth != 0)
@@ -431,7 +447,16 @@ namespace Mono.Mbedtls
 			}
 		}
 
-		int BIOWrite (IntPtr stream, IntPtr buffer, IntPtr len)
+		[MonoPInvokeCallback (typeof (Mbedtls.mbedtls_ssl_send_t))]
+		static int BIOWriteCallback (IntPtr stream, IntPtr buffer, IntPtr len)
+		{
+			var handle = (GCHandle)stream;
+			var context = (MbedtlsContext)handle.Target;
+
+			return context.BIOWrite(buffer, len);
+		}
+
+		int BIOWrite (IntPtr buffer, IntPtr len)
 		{
 			bool wouldBlock = false;
 			int length = len.ToInt32();
@@ -449,7 +474,16 @@ namespace Mono.Mbedtls
 			return result;
 		}
 
-		int BIORead (IntPtr stream, IntPtr buffer, IntPtr len)
+		[MonoPInvokeCallback (typeof (Mbedtls.mbedtls_ssl_send_t))]
+		static int BIOReadCallback (IntPtr stream, IntPtr buffer, IntPtr len)
+		{
+			var handle = (GCHandle)stream;
+			var context = (MbedtlsContext)handle.Target;
+
+			return context.BIORead(buffer, len);
+		}
+
+		int BIORead (IntPtr buffer, IntPtr len)
 		{
 			bool wouldBlock;
 			int length = len.ToInt32();

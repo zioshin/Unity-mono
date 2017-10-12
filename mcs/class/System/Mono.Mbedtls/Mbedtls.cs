@@ -325,7 +325,7 @@ namespace Mono.Mbedtls
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)] 
 		internal delegate int mbedtls_ssl_recv_timeout_t (IntPtr stream, IntPtr buffer, IntPtr len, uint timeout);
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)] 
-		internal delegate int mbedtls_verify_t (IntPtr p_vrfy, mbedtls_x509_crt* crt, int depth, ref uint flags);
+		internal delegate int mbedtls_verify_t (IntPtr p_vrfy, IntPtr crt, int depth, ref uint flags);
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)] 
 		internal delegate void mbedtls_ssl_dbg_t (IntPtr p_debug, int level, IntPtr file, int line, IntPtr message);
 	}

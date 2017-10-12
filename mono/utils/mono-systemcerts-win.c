@@ -15,15 +15,15 @@ int EnumSystemCertificates(void* certStore, void** iter, int *format, int* size,
 	*format = DATATYPE_INTPTR;
 
 	// Build list of system certificates
-	PCCERT_CONTEXT pContext = *iter;
+	PCCERT_CONTEXT pContext = (PCCERT_CONTEXT)*iter;
 	if (pContext = CertEnumCertificatesInStore(hStore, pContext))
 	{
-		*iter = pContext;
+		*iter = (void*)pContext;
 		*data = pContext->pbCertEncoded;
 		*size = pContext->cbCertEncoded;
 		return TRUE;
 	} else if (*iter) {
-		CertFreeCertificateContext(*iter);
+		CertFreeCertificateContext((PCCERT_CONTEXT)*iter);
 	}
 
 	return FALSE;
