@@ -114,6 +114,9 @@ namespace Mono.Net.Security
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		internal extern static bool IsBtlsSupported ();
 
+		[MethodImpl (MethodImplOptions.InternalCall)]
+		internal extern static string GetDefaultProviderForPlatform ();
+
 		static object locker = new object ();
 		static bool initialized;
 
@@ -166,6 +169,18 @@ namespace Mono.Net.Security
 				providerRegistration.Add ("legacy", legacyProvider);
 
 				string defaultProvider = null;
+#if UNITY
+				var appleProvider = "Mono.AppleTls.AppleTlsProvider";
+				providerRegistration.Add ("apple", appleProvider);
+
+				var mbedtlsProvider = "Mono.Mbedtls.MbedtlsProvider";
+				providerRegistration.Add ("mbedtls", mbedtlsProvider);
+
+				string platformProvideType;
+				var defaultPlatformProvider = GetDefaultProviderForPlatform ();
+				if (!string.IsNullOrEmpty (defaultPlatformProvider) && providerRegistration.TryGetValue(defaultPlatformProvider, out platformProvideType))
+					defaultProvider = platformProvideType;
+#else
 				if (IsBtlsSupported ()) {
 					var btlsProvider = "Mono.Btls.MonoBtlsProvider";
 					providerRegistration.Add ("btls", btlsProvider);
@@ -177,12 +192,7 @@ namespace Mono.Net.Security
 					providerRegistration.Add ("apple", appleProvider);
 					defaultProvider = appleProvider;
 				}
-
-				// no default implementation for now
-				{
-					var mbedtlsProvider = "Mono.Mbedtls.MbedtlsProvider";
-					providerRegistration.Add ("mbedtls", mbedtlsProvider);
-				}
+#endif
 
 				if (defaultProvider == null)
 					defaultProvider = legacyProvider;

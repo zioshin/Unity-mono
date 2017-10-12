@@ -7836,6 +7836,16 @@ ves_icall_Mono_TlsProviderFactory_IsBtlsSupported (void)
 #endif
 }
 
+ICALL_EXPORT MonoString*
+ves_icall_Mono_TlsProviderFactory_GetDefaultProviderForPlatform (void)
+{
+#ifdef TIZEN
+	return NULL;
+#else
+	return mono_string_new(mono_domain_get (), "mbedtls");
+#endif
+}
+
 #ifndef DISABLE_COM
 
 ICALL_EXPORT int

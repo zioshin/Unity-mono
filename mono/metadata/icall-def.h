@@ -135,7 +135,8 @@ ICALL(UNITY_MBEDTLS_42 , "unity_mbedtls_x509_crt_parse_file", unity_mbedtls_x509
 ICALL(UNITY_MBEDTLS_43 , "unity_mbedtls_x509_crt_verify", unity_mbedtls_x509_crt_verify)
 
 ICALL_TYPE(TLS_PROVIDER_FACTORY, "Mono.Net.Security.MonoTlsProviderFactory", TLS_PROVIDER_FACTORY_1)
-ICALL(TLS_PROVIDER_FACTORY_1, "IsBtlsSupported", ves_icall_Mono_TlsProviderFactory_IsBtlsSupported)
+ICALL(TLS_PROVIDER_FACTORY_1, "GetDefaultProviderForPlatform", ves_icall_Mono_TlsProviderFactory_GetDefaultProviderForPlatform)
+ICALL(TLS_PROVIDER_FACTORY_2, "IsBtlsSupported", ves_icall_Mono_TlsProviderFactory_IsBtlsSupported)
 
 ICALL_TYPE(RUNTIME, "Mono.Runtime", RUNTIME_1)
 HANDLES(ICALL(RUNTIME_1, "GetDisplayName", ves_icall_Mono_Runtime_GetDisplayName))
