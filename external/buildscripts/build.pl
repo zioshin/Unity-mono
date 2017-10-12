@@ -166,6 +166,7 @@ if ($android || $iphone || $iphoneCross || $iphoneSimulator || $tizen || $tizenE
 
 # Do any settings agnostic per-platform stuff
 my $externalBuildDeps = "";
+my $externalBuildDepsIl2Cpp = "$monoroot/../../il2cpp/build";
 
 if ($buildDeps ne "" && not $forceDefaultBuildDeps)
 {
@@ -289,6 +290,18 @@ if ($build)
 
 			# Only clean up if the dir exists.   Otherwise abs_path will return empty string
 			$externalBuildDeps = abs_path($externalBuildDeps) if (-d $externalBuildDeps);
+		}
+
+		if (!(-d "$externalBuildDepsIl2Cpp"))
+		{
+			my $il2cpp_repo = "https://bitbucket.org/Unity-Technologies/il2cpp";
+            print(">>> Cloning $il2cpp_repo at $externalBuildDepsIl2Cpp\n");
+            $checkoutResult = system("hg", "clone", $il2cpp_repo, "$externalBuildDepsIl2Cpp");
+
+            if ($checkoutOnTheFly && $checkoutResult ne 0)
+            {
+                die("failed to checkout IL2CPP for the mono build dependencies\n");
+            }
 		}
 
 		if (-d "$existingExternalMono")
@@ -1432,8 +1445,10 @@ if ($buildUsAndBoo)
 	system(@commandPrefix, ("perl", "$buildscriptsdir/build_us_and_boo.pl", "--monoprefix=$monoprefix")) eq 0 or die ("Failed building Unity Script and Boo\n");
 
 	print(">>> Copying Unity Script and Boo *.Lang.dll's from 4.5 profile to unityjit profile...\n");
-	system("cp $monoprefix/lib/mono/4.5/Boo.Lang.dll $monoprefix/lib/mono/unityjit/.") eq 0 or die("Failed copying Boo.Lang.dll\n");
-	system("cp $monoprefix/lib/mono/4.5/UnityScript.Lang.dll $monoprefix/lib/mono/unityjit/.") eq 0 or die("Failed copying Boo.Lang.dll\n");
+	system("cp $monoprefix/lib/mono/4.5/Boo*.dll $monoprefix/lib/mono/unityjit/.") eq 0 or die("Failed copying Boo*.dll\n");
+	system("cp $monoprefix/lib/mono/4.5/UnityScript*.dll $monoprefix/lib/mono/unityjit/.") eq 0 or die("Failed copying UnityScript*.dll\n");
+	system("cp $monoprefix/lib/mono/4.5/booc.exe $monoprefix/lib/mono/unityjit/.") eq 0 or die("Failed copying booc.exe\n");
+	system("cp $monoprefix/lib/mono/4.5/us.exe $monoprefix/lib/mono/unityjit/.") eq 0 or die("Failed copying us.exe\n");
 }
 else
 {
@@ -1460,6 +1475,7 @@ if ($artifact)
 
 		print(">>> Cleaning $distdir/lib\n");
 		system("rm -rf $distdir/lib");
+		system("mkdir -p $distdir/lib");
 
 		print(">>> Creating normal profile artifacts...\n");
 		system("cp -R $addtoresultsdistdir/. $distdir/") eq 0 or die ("Failed copying $addtoresultsdistdir to $distdir\n");
