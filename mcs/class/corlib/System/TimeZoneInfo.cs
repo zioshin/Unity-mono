@@ -27,12 +27,14 @@
 namespace System {
 	using IO;
 	using Microsoft.Win32;
+	using Mono;
 	using Security.Permissions;
 	using System.Collections.Generic;
 	using System.Collections.ObjectModel;
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Runtime.Serialization;
 	using System.Security;
 	using System.Text;
@@ -2139,6 +2141,38 @@ namespace System {
 			}
 		}
 
+		private static TimeZoneInfoResult TryGetTimeZoneByUnityPal (string id, out TimeZoneInfo value, out Exception e)
+		{
+			value = null;
+			e = null;
+
+			byte[] rawData;
+
+			IntPtr nativeRawData;
+			int size = 0;
+			bool foundTimeZone = false;
+			using (SafeStringMarshal marshalledID = new SafeStringMarshal(id))
+				foundTimeZone = UnityPalGetTimeZoneDataForID(marshalledID.Value, out nativeRawData, out size);
+
+			if (foundTimeZone) {
+				rawData = new byte[size];
+				Marshal.Copy(nativeRawData, rawData, 0, size);
+				SafeStringMarshal.GFree(nativeRawData);//Fixme DeRoy
+			} else {
+				e = new InvalidTimeZoneException($"The time zone ID '{id}' could not be found on the local computer");
+				return TimeZoneInfoResult.TimeZoneNotFoundException;
+			}
+
+			value = GetTimeZoneFromTzData (rawData, id);
+			
+			if (value == null) {
+				e = new InvalidTimeZoneException ($"The time zone ID '{id}' was found on the local computer, but the data was corrupt.");
+				return TimeZoneInfoResult.InvalidTimeZoneException;
+			}
+
+			return TimeZoneInfoResult.Success;
+		}
+
 		private static TimeZoneInfoResult TryGetTimeZoneByFile (string id, out TimeZoneInfo value, out Exception e)
 		{
 			value = null;
@@ -2198,34 +2232,44 @@ namespace System {
 		/// </remarks>
 		private static IEnumerable<string> GetTimeZoneIds ()
 		{
-			var timeZoneDirectory = GetTimeZoneDirectory ();
-			string[] zoneTabFileLines = null;
-			try {
-				zoneTabFileLines = File.ReadAllLines (Path.Combine (timeZoneDirectory, c_zoneTabFileName));
-			} catch (IOException) { } catch (UnauthorizedAccessException) { }
-
 			List<string> timeZoneIds = new List<string> ();
-			if (zoneTabFileLines != null) {
-				foreach (string zoneTabFileLine in zoneTabFileLines) {
-					if (!string.IsNullOrEmpty (zoneTabFileLine) && !zoneTabFileLine.StartsWith ("#")) {
-						// the format of the line is "country-code \t coordinates \t TimeZone Id \t comments"
 
-						int firstTabIndex = zoneTabFileLine.IndexOf ('\t');
-						if (firstTabIndex != -1) {
-							int secondTabIndex = zoneTabFileLine.IndexOf ('\t', firstTabIndex + 1);
-							if (secondTabIndex != -1) {
-								string timeZoneId;
-								int startIndex = secondTabIndex + 1;
-								int thirdTabIndex = zoneTabFileLine.IndexOf ('\t', startIndex);
-								if (thirdTabIndex != -1) {
-									int length = thirdTabIndex - startIndex;
-									timeZoneId = zoneTabFileLine.Substring (startIndex, length);
-								} else {
-									timeZoneId = zoneTabFileLine.Substring (startIndex);
-								}
+			if(UseUnityPalForTimeZoneInformation ()) {
+			using (SafeGPtrArrayHandle hdl = new SafeGPtrArrayHandle(UnityPalTimeZoneInfoGetTimeZoneIDs())){
+					for (int i = 0; i < hdl.Length; i++) {
+						timeZoneIds.Add (RuntimeMarshal.PtrToUtf8String(hdl[i]));
+						SafeStringMarshal.GFree(hdl[i]);
+					}
+				}
+			} else {
+				var timeZoneDirectory = GetTimeZoneDirectory ();
+				string[] zoneTabFileLines = null;
+				try {
+					zoneTabFileLines = File.ReadAllLines (Path.Combine (timeZoneDirectory, c_zoneTabFileName));
+				} catch (IOException) { } catch (UnauthorizedAccessException) { }
 
-								if (!string.IsNullOrEmpty (timeZoneId)) {
-									timeZoneIds.Add (timeZoneId);
+				if (zoneTabFileLines != null) {
+					foreach (string zoneTabFileLine in zoneTabFileLines) {
+						if (!string.IsNullOrEmpty (zoneTabFileLine) && !zoneTabFileLine.StartsWith ("#")) {
+							// the format of the line is "country-code \t coordinates \t TimeZone Id \t comments"
+
+							int firstTabIndex = zoneTabFileLine.IndexOf ('\t');
+							if (firstTabIndex != -1) {
+								int secondTabIndex = zoneTabFileLine.IndexOf ('\t', firstTabIndex + 1);
+								if (secondTabIndex != -1) {
+									string timeZoneId;
+									int startIndex = secondTabIndex + 1;
+									int thirdTabIndex = zoneTabFileLine.IndexOf ('\t', startIndex);
+									if (thirdTabIndex != -1) {
+										int length = thirdTabIndex - startIndex;
+										timeZoneId = zoneTabFileLine.Substring (startIndex, length);
+									} else {
+										timeZoneId = zoneTabFileLine.Substring (startIndex);
+									}
+
+									if (!string.IsNullOrEmpty (timeZoneId)) {
+										timeZoneIds.Add (timeZoneId);
+									}
 								}
 							}
 						}
@@ -2236,6 +2280,29 @@ namespace System {
 			return timeZoneIds;
 		}
 #endif // !MONOTOUCH && !XAMMAC && !MONODROID
+
+		private static bool TryGetLocalTzDataFromUnityPal(out byte[] rawData, out string id)
+		{
+			rawData = null;
+			id = null;
+
+			IntPtr nativeRawData;
+			IntPtr nativeID;
+			int size = 0;
+			bool foundTimeZone = UnityPalGetLocalTimeZoneData(out nativeRawData, out nativeID, out size);
+			if (foundTimeZone) {
+				id = RuntimeMarshal.PtrToUtf8String(nativeID);
+				SafeStringMarshal.GFree(nativeID);
+
+				rawData = new byte[size];
+				Marshal.Copy(nativeRawData, rawData, 0, size);
+				SafeStringMarshal.GFree(nativeRawData);//Fixme DeRoy
+				
+				return true;
+			}
+			//If we don't implement this for a platform then UTC time is local time
+			return false;
+		}
 
 		/// <summary>
 		/// Gets the tzfile raw data for the current 'local' time zone using the following rules.
@@ -2249,6 +2316,7 @@ namespace System {
 		{
 			rawData = null;
 			id = null;
+
 			string tzVariable = GetTzEnvironmentVariable ();
 
 			// If the env var is null, use the localtime file
@@ -2381,7 +2449,7 @@ namespace System {
 		{
 			byte[] rawData;
 			string id;
-			if (TryGetLocalTzFile (out rawData, out id)) {
+			if (UseUnityPalForTimeZoneInformation() ? TryGetLocalTzDataFromUnityPal(out rawData, out id) : TryGetLocalTzFile (out rawData, out id)) {
 				TimeZoneInfo result = GetTimeZoneFromTzData (rawData, id);
 				if (result != null) {
 					return result;
@@ -2604,7 +2672,7 @@ namespace System {
 
 				// As we get the associated rule using the adjusted targetTime, we should use the adjusted year (targetTime.Year) too as after adding the baseOffset, 
 				// sometimes the year value can change if the input datetime was very close to the beginning or the end of the year. Examples of such cases:
-				//      “Libya Standard Time” when used with the date 2011-12-31T23:59:59.9999999Z
+				//      ï¿½Libya Standard Timeï¿½ when used with the date 2011-12-31T23:59:59.9999999Z
 				//      "W. Australia Standard Time" used with date 2005-12-31T23:59:00.0000000Z
 				DateTime targetTime = time + baseOffset;
 				year = targetTime.Year;
@@ -3477,7 +3545,11 @@ namespace System {
 					result = TryGetTimeZoneByWinAPI (id, out match, out e);
 				}
 			} else {
+				if (UseUnityPalForTimeZoneInformation ()) {
+					result = TryGetTimeZoneByUnityPal(id, out match, out e);
+				} else {
 				result = TryGetTimeZoneByFile (id, out match, out e);
+				}
 			}
 #else
             result = TryGetTimeZoneCore(id, out match, out e);
@@ -5879,6 +5951,14 @@ namespace System {
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		private static extern bool UseRegistryForTimeZoneInformation ();
+		[MethodImpl (MethodImplOptions.InternalCall)]
+		private static extern bool UseUnityPalForTimeZoneInformation ();
+		[MethodImpl (MethodImplOptions.InternalCall)]
+		private static extern IntPtr UnityPalTimeZoneInfoGetTimeZoneIDs ();
+		[MethodImpl (MethodImplOptions.InternalCall)]
+		private static extern bool UnityPalGetLocalTimeZoneData (out IntPtr nativeRawData, out IntPtr nativeID, out int size);
+		[MethodImpl (MethodImplOptions.InternalCall)]
+		private static extern bool UnityPalGetTimeZoneDataForID (IntPtr id, out IntPtr nativeRawData, out int size);
 
 		internal class TimeZoneInformation {
 			public string StandardName;
