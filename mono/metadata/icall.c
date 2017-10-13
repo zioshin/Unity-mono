@@ -8126,6 +8126,50 @@ mono_icall_init (void)
 	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesEnumSystemCertificates);
 	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesCloseSystemRootStore);
 
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ctr_drbg_free);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ctr_drbg_init);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ctr_drbg_seed);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_debug_set_threshold);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_entropy_free);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_entropy_init);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_pk_free);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_pk_init);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_pk_parse_key);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_authmode);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_ca_chain);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_ciphersuites);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_dbg);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_max_version);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_min_version);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_own_cert);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_rng);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_conf_verify);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_config_defaults);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_config_free);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_config_init);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_free);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_get_ciphersuite);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_get_ciphersuite_id);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_get_minor_ver);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_get_peer_cert);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_get_state);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_handshake);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_handshake_step);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_init);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_read);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_set_bio);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_set_hostname);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_setup);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ssl_write);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_strerror);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_x509_crt_free);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_x509_crt_get_next);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_x509_crt_get_raw);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_x509_crt_init);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_x509_crt_parse);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_x509_crt_parse_file);
+	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_x509_crt_verify);
+
 #undef MONO_REGISTER_INTERNAL_PINVOKE
 
 	icall_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
