@@ -36,6 +36,12 @@ struct _ProfilerDesc {
 	MonoProfiler *profiler;
 	MonoProfileFlags events;
 
+	MonoProfileFinalizerThreadFunc finalizer_thread_start;
+
+	MonoProfileAppDomainFunc       domain_unload_start;
+ 	MonoProfileAppDomainUnloadFunc domain_unload_finish;
+	MonoProfileAppDomainUnloadThreadFunc domain_unload_thread;
+
 	MonoProfileAppDomainFunc   domain_start_load;
 	MonoProfileAppDomainResult domain_end_load;
 	MonoProfileAppDomainFunc   domain_start_unload;
@@ -158,6 +164,23 @@ mono_profiler_set_events (MonoProfileFlags events)
 		prof_list->events = events;
 	for (prof = prof_list; prof; prof = prof->next)
 		value |= prof->events;
+	mono_profiler_events = value;
+}
+
+void
+mono_profiler_set_profiler_events (MonoProfiler *profiler, MonoProfileFlags events)
+{
+	ProfilerDesc *prof;
+	MonoProfileFlags value = 0;
+
+	for (prof = prof_list; prof; prof = prof->next)
+	{
+		if(prof->profiler == profiler)
+			prof->events = events;
+
+		value |= prof->events;
+	}
+
 	mono_profiler_events = value;
 }
 
@@ -352,6 +375,36 @@ mono_profiler_install_appdomain   (MonoProfileAppDomainFunc start_load, MonoProf
 	prof_list->domain_end_load = end_load;
 	prof_list->domain_start_unload = start_unload;
 	prof_list->domain_end_unload = end_unload;
+}
+
+void 
+mono_profiler_install_finalizer_thread(MonoProfileFinalizerThreadFunc start)
+{
+    if (!prof_list)
+        return;
+
+    prof_list->finalizer_thread_start = start;
+}
+
+void
+mono_profiler_install_appdomain_unload_thread(MonoProfileAppDomainUnloadThreadFunc func)
+{
+    if (!prof_list)
+        return;
+
+    prof_list->domain_unload_thread = func;
+}
+
+
+void 
+mono_profiler_install_appdomain_start_finish_unload (MonoProfileAppDomainFunc start_unload, 
+                                                     MonoProfileAppDomainUnloadFunc finish_unload)
+{
+    if (!prof_list)
+        return;
+
+    prof_list->domain_unload_start = start_unload;
+    prof_list->domain_unload_finish = finish_unload;
 }
 
 void 
@@ -702,6 +755,54 @@ mono_profiler_class_event  (MonoClass *klass, int code)
 			g_assert_not_reached ();
 		}
 	}
+}
+
+void
+mono_profiler_finalizer_thread_start_event()
+{
+    ProfilerDesc *prof;
+    
+    for (prof = prof_list; prof; prof = prof->next) 
+    {
+        if (prof->finalizer_thread_start)
+            prof->finalizer_thread_start (prof->profiler);
+    }	
+}
+
+void 
+mono_profiler_domain_unload_thread_event (MonoProfilerDomainUnloadThreadEvent event)
+{
+    ProfilerDesc *prof;
+    
+    for (prof = prof_list; prof; prof = prof->next) 
+    {
+        if (prof->domain_unload_thread)
+            prof->domain_unload_thread (prof->profiler, event);
+    }
+}
+
+void 
+mono_profiler_domain_unload_start_event (MonoDomain *domain)
+{
+    ProfilerDesc *prof;
+    
+    for (prof = prof_list; prof; prof = prof->next) 
+    {
+        if (prof->domain_unload_start)
+            prof->domain_unload_start (prof->profiler, domain);
+    }
+}
+
+void 
+mono_profiler_domain_unload_finish_event ()
+{
+    ProfilerDesc *prof;
+    
+    for (prof = prof_list; prof; prof = prof->next) 
+    {
+        if (prof->domain_unload_finish)
+            prof->domain_unload_finish (prof->profiler);
+    }
 }
 
 void 
@@ -1214,6 +1315,13 @@ create_profiler (void)
 	prof->mempool = mono_mempool_new ();
 	return prof;
 }
+
+MonoProfiler*
+mono_profiler_create()
+{
+	return create_profiler();
+}
+
 #if 1
 
 #ifdef HAVE_KW_THREAD

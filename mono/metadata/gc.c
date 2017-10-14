@@ -1019,6 +1019,8 @@ finalize_domain_objects (DomainFinalizationReq *req)
 static guint32
 finalizer_thread (gpointer unused)
 {
+	mono_profiler_finalizer_thread_start_event();
+
 #if defined(PLATFORM_ANDROID)	
 	prctl(PR_SET_NAME, (unsigned long)"__MONO__",0,0,0);
 #endif

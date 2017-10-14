@@ -52,6 +52,7 @@
 #include <mono/metadata/console-io.h>
 #include <mono/metadata/threads-types.h>
 #include <mono/metadata/tokentype.h>
+#include <mono/metadata/profiler.h>
 #include <mono/utils/mono-uri.h>
 #include <mono/utils/mono-logger.h>
 #include <mono/utils/mono-path.h>
@@ -2209,9 +2210,10 @@ deregister_reflection_info_roots (MonoDomain *domain)
 }
 #endif
 
-static guint32 WINAPI
-unload_thread_main (void *arg)
+static guint32
+unload_thread_main_inner (void *arg)
 {
+	gboolean ret;
 	unload_data *data = (unload_data*)arg;
 	MonoDomain *domain = data->domain;
 
@@ -2222,18 +2224,37 @@ unload_thread_main (void *arg)
 	 * FIXME: Abort our parent thread last, so we can return a failure 
 	 * indication if aborting times out.
 	 */
-	if (!mono_threads_abort_appdomain_threads (domain, -1)) {
+
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_START_THREADS_SHUTDOWN);
+
+	ret = mono_threads_abort_appdomain_threads (domain, -1);
+
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_FINISH_THREADS_SHUTDOWN);
+
+	if (!ret) {
 		data->failure_reason = g_strdup_printf ("Aborting of threads in domain %s timed out.", domain->friendly_name);
 		return 1;
 	}
 
-	if (!mono_thread_pool_remove_domain_jobs (domain, -1)) {
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_START_THREADPOOL_SHUTDOWN);
+
+	ret = mono_thread_pool_remove_domain_jobs (domain, -1);
+
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_FINISH_THREADPOOL_SHUTDOWN);
+
+	if (!ret) {
 		data->failure_reason = g_strdup_printf ("Cleanup of threadpool jobs of domain %s timed out.", domain->friendly_name);
 		return 1;
 	}
 
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_START_FINALIZER);
+
+	ret = mono_domain_finalize (domain, -1);
+
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_FINISH_FINALIZER);
+
 	/* Finalize all finalizable objects in the doomed appdomain */
-	if (!mono_domain_finalize (domain, -1)) {
+	if (!ret) {
 		data->failure_reason = g_strdup_printf ("Finalization of domain %s timed out.", domain->friendly_name);
 		return 1;
 	}
@@ -2269,6 +2290,17 @@ unload_thread_main (void *arg)
 
 	return 0;
 }
+
+static guint32 WINAPI
+unload_thread_main (void *arg)
+{
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_START);
+
+	unload_thread_main_inner(arg);
+
+	mono_profiler_domain_unload_thread_event(MONO_PROFILER_UNLOAD_THREAD_FINISH);
+}
+
 
 /*
  * mono_domain_unload:
@@ -2337,6 +2369,7 @@ mono_domain_try_unload (MonoDomain *domain, MonoObject **exc)
 		}
 	}
 
+	mono_profiler_domain_unload_start_event (domain);
 	mono_debugger_event_unload_appdomain (domain);
 
 	mono_domain_set (domain, FALSE);
@@ -2399,4 +2432,6 @@ mono_domain_try_unload (MonoDomain *domain, MonoObject **exc)
 		g_free (thread_data.failure_reason);
 		thread_data.failure_reason = NULL;
 	}
+	
+	mono_profiler_domain_unload_finish_event (domain);
 }

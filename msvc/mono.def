@@ -240,6 +240,7 @@ mono_custom_attrs_from_method
 mono_custom_attrs_from_param
 mono_custom_attrs_from_property
 mono_custom_attrs_get_attr
+mono_custom_attrs_get_attrs
 mono_custom_attrs_has_attr
 mono_debug_add_method
 mono_debug_cleanup
@@ -652,6 +653,9 @@ mono_print_unhandled_exception
 mono_profiler_coverage_get
 mono_profiler_get_events
 mono_profiler_install
+mono_profiler_install_finalizer_thread
+mono_profiler_install_appdomain_unload_thread
+mono_profiler_install_appdomain_start_finish_unload
 mono_profiler_install_allocation
 mono_profiler_install_appdomain
 mono_profiler_install_assembly
@@ -839,3 +843,5 @@ mono_unity_get_data_dir
 mono_unity_class_get
 mono_unity_thread_fast_attach
 mono_unity_thread_fast_detach
+mono_profiler_set_profiler_events
+mono_profiler_create
