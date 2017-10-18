@@ -2151,8 +2151,7 @@ namespace System {
 			IntPtr nativeRawData;
 			int size = 0;
 			bool foundTimeZone = false;
-			using (SafeStringMarshal marshalledID = new SafeStringMarshal(id))
-				foundTimeZone = UnityPalGetTimeZoneDataForID(marshalledID.Value, out nativeRawData, out size);
+			foundTimeZone = UnityPalGetTimeZoneDataForID(id, out nativeRawData, out size);
 
 			if (foundTimeZone) {
 				rawData = new byte[size];
@@ -5951,14 +5950,14 @@ namespace System {
 
 		[MethodImpl (MethodImplOptions.InternalCall)]
 		private static extern bool UseRegistryForTimeZoneInformation ();
-		[MethodImpl (MethodImplOptions.InternalCall)]
+		[DllImport ("__Internal", CallingConvention=CallingConvention.Cdecl)]
 		private static extern bool UseUnityPalForTimeZoneInformation ();
-		[MethodImpl (MethodImplOptions.InternalCall)]
+		[DllImport ("__Internal", CallingConvention=CallingConvention.Cdecl)]
 		private static extern IntPtr UnityPalTimeZoneInfoGetTimeZoneIDs ();
-		[MethodImpl (MethodImplOptions.InternalCall)]
+		[DllImport ("__Internal", CallingConvention=CallingConvention.Cdecl)]
 		private static extern bool UnityPalGetLocalTimeZoneData (out IntPtr nativeRawData, out IntPtr nativeID, out int size);
-		[MethodImpl (MethodImplOptions.InternalCall)]
-		private static extern bool UnityPalGetTimeZoneDataForID (IntPtr id, out IntPtr nativeRawData, out int size);
+		[DllImport ("__Internal", CallingConvention=CallingConvention.Cdecl)]
+		private static extern bool UnityPalGetTimeZoneDataForID (string id, out IntPtr nativeRawData, out int size);
 
 		internal class TimeZoneInformation {
 			public string StandardName;

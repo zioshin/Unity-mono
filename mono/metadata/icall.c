@@ -101,7 +101,7 @@
 #include <mono/metadata/w32error.h>
 #include <mono/utils/w32api.h>
 #include <metadata/mono-mbedtls.h>
-#include <os/c-api/SystemCertificates-c-api.h>
+//#include <os/c-api/SystemCertificates-c-api.h>
 
 #include "decimal-ms.h"
 #include "number-ms.h"
@@ -8122,9 +8122,9 @@ mono_icall_init (void)
 		mono_dl_register_symbol(#name, name);	\
 	} while(0)
 
-	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesOpenSystemRootStore);
-	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesEnumSystemCertificates);
-	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesCloseSystemRootStore);
+	//MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesOpenSystemRootStore);
+	//MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesEnumSystemCertificates);
+	//MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesCloseSystemRootStore);
 
 	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ctr_drbg_free);
 	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ctr_drbg_init);
