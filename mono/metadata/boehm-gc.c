@@ -437,6 +437,10 @@ boehm_thread_detach (MonoThreadInfo *info)
 	 * does not hold any locks while unregister does.
 	 */
 	mono_handle_stack_free (info->handle_stack);
+
+#if HAVE_BDWGC_GC
+	GC_unregister_my_thread ();
+#endif
 }
 
 static void
@@ -448,10 +452,6 @@ boehm_thread_unregister (MonoThreadInfo *p)
 
 	if (p->runtime_thread)
 		mono_threads_add_joinable_thread ((gpointer)tid);
-
-#if HAVE_BDWGC_GC
-	GC_unregister_my_thread ();
-#endif
 }
 
 gboolean
