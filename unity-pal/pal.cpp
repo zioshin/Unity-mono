@@ -4,6 +4,8 @@
 
 //#include <os/c-api/SystemCertificates.cpp>
 #include <os/c-api/TimeZoneInfo.cpp>
+#include <os/Generic/TimeZoneInfo.cpp>
+//#include <os/OSX/TimeZoneInfo.cpp>
 #include <os/Android/TimeZoneInfo.cpp>
 
 #if IL2CPP_TARGET_WINDOWS_DESKTOP

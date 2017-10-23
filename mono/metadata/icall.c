@@ -102,6 +102,7 @@
 #include <mono/utils/w32api.h>
 #include <metadata/mono-mbedtls.h>
 //#include <os/c-api/SystemCertificates-c-api.h>
+#include <os/c-api/TimeZoneInfo-c-api.h>
 
 #include "decimal-ms.h"
 #include "number-ms.h"
@@ -8125,6 +8126,11 @@ mono_icall_init (void)
 	//MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesOpenSystemRootStore);
 	//MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesEnumSystemCertificates);
 	//MONO_REGISTER_INTERNAL_PINVOKE (UnityPalSystemCertificatesCloseSystemRootStore);
+
+	MONO_REGISTER_INTERNAL_PINVOKE (UseUnityPalForTimeZoneInformation);
+	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalTimeZoneInfoGetTimeZoneIDs);
+	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalGetLocalTimeZoneData);
+	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalGetTimeZoneDataForID);
 
 	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ctr_drbg_free);
 	MONO_REGISTER_INTERNAL_PINVOKE (unity_mbedtls_ctr_drbg_init);
