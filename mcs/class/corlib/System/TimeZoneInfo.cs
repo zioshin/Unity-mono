@@ -2137,7 +2137,18 @@ namespace System {
 				return GetLocalTimeZoneFromWin32Data (id, ref dynamicTimeZoneInformation, dstDisabled);
 			} else {
 				// On non-Windows platforms support, create the TimeZoneInfo from a TZ file
-				return GetLocalTimeZoneFromTzFile ();
+				var localTimeZone = GetLocalTimeZoneFromTzFile ();
+
+				// If we can't get a TZ file either via Unity Pal layer or managed code, setup a simple local timezone with info from native code
+				//Fixme DeRoy Not Yet Working
+				//if(localTimeZone == null)
+				//	localTimeZone = GetLocalTimeZoneFromNativeCode ();
+
+				// As a last resort, the local time will be treated as UTC
+				if(localTimeZone == null)
+					localTimeZone = Utc;
+
+				return localTimeZone;
 			}
 		}
 
@@ -2298,8 +2309,7 @@ namespace System {
 				SafeStringMarshal.GFree(nativeRawData);//Fixme DeRoy
 				
 				return true;
-			}
-			//If we don't implement this for a platform then UTC time is local time
+			} 
 			return false;
 		}
 
@@ -2435,6 +2445,83 @@ namespace System {
 			return false;
 		}
 
+		internal enum NativeTimeZoneDataIndexes
+		{
+			DaylightSavingStartIdx,
+			DaylightSavingEndIdx,
+			UtcOffsetIdx,
+			AdditionalDaylightOffsetIdx
+		};
+
+		internal enum NativeTimeZoneNameIndexes
+		{
+			StandardNameIdx,
+			DaylightNameIdx
+		};
+
+		//
+		// GetLocalTimeZoneFromNativeCode -
+		//
+		// Helper function used by 'GetLocalTimeZone()' - This function calls into native
+		// C code that returns local timezone information
+		//
+		[System.Security.SecurityCritical]
+		static private TimeZoneInfo GetLocalTimeZoneFromNativeCode ()
+		{
+
+			//The platform does not have way to return a tzdata file, but we can at least create a local timezone
+			//Using our old .NET 2.0 timezone icall implementation. We're going to create adjustment rules for every
+			//year because we can only query one year at a time. mktime is only guaranteed to suport 1970 -> 2037
+			int currentYear = DateTime.Now.Year;
+			Int64[] data = new Int64[4];
+			IntPtr[] names = new IntPtr[2];
+			UnityPalGetTimeZoneData(DateTime.Now.Year, out data, out names);
+
+			TimeSpan utcOffset = new TimeSpan(data[(int)NativeTimeZoneDataIndexes.UtcOffsetIdx]);
+			bool hasDaylightSavings = data[(int)NativeTimeZoneDataIndexes.AdditionalDaylightOffsetIdx] != 0;
+			string standardName = RuntimeMarshal.PtrToUtf8String(names[(int)NativeTimeZoneNameIndexes.StandardNameIdx]);
+			string daylightName = RuntimeMarshal.PtrToUtf8String(names[(int)NativeTimeZoneNameIndexes.DaylightNameIdx]);
+
+			if(hasDaylightSavings)
+			{
+				//If the local timezone has daylight savings, we need to collect the adjustment rules
+				var adjustmentList = new List<AdjustmentRule>();
+				for(int year = 1970; year <= 2037; year++)
+				{
+					UnityPalGetTimeZoneData(year, out data, out names);
+					DateTime daylightStart = new DateTime(data[(int)NativeTimeZoneDataIndexes.DaylightSavingStartIdx]);
+					DateTime daylightEnd = new DateTime(data[(int)NativeTimeZoneDataIndexes.DaylightSavingEndIdx]);
+					TimeSpan daylightOffset = new TimeSpan(data[(int)NativeTimeZoneDataIndexes.AdditionalDaylightOffsetIdx]);
+
+					TransitionTime transitionRuleStart = TransitionTime.CreateFixedDateRule(daylightStart, daylightStart.Month, daylightStart.Day);
+					TransitionTime transitionRuleEnd = TransitionTime.CreateFixedDateRule(daylightEnd, daylightEnd.Month, daylightEnd.Day);
+
+					AdjustmentRule currentRule = AdjustmentRule.CreateAdjustmentRule(new DateTime(year, 1, 1),
+																						new DateTime(year, 12, 31),
+																						daylightOffset,
+																						transitionRuleStart,
+																						transitionRuleEnd,
+																						true);
+					adjustmentList.Add(currentRule);
+				}
+				return CreateCustomTimeZone (
+					c_localId,
+					utcOffset,
+					standardName,
+					standardName,
+					daylightName,
+					adjustmentList.ToArray());
+			}
+
+			//If daylight savings is disabled, create a timezone with no adjustment rules
+			return CreateCustomTimeZone (
+				c_localId,
+				utcOffset,
+				standardName,
+				standardName
+			);
+		}
+
 		//
 		// GetLocalTimeZoneFromTzFile -
 		//
@@ -2454,9 +2541,8 @@ namespace System {
 					return result;
 				}
 			}
-
-			// if we can't find a local time zone, return UTC
-			return Utc;
+			// if we can't find a local time zone, return null
+			return null;
 		}
 
 		private static TimeZoneInfo GetTimeZoneFromTzData (byte[] rawData, string id)
@@ -5958,6 +6044,8 @@ namespace System {
 		private static extern bool UnityPalGetLocalTimeZoneData (out IntPtr nativeRawData, out IntPtr nativeID, out int size);
 		[DllImport ("__Internal", CallingConvention=CallingConvention.Cdecl)]
 		private static extern bool UnityPalGetTimeZoneDataForID (string id, out IntPtr nativeRawData, out int size);
+		[DllImport ("__Internal", CallingConvention=CallingConvention.Cdecl)]
+		private static extern bool UnityPalGetTimeZoneData (int year, out Int64[] data, out IntPtr[] names);
 
 		internal class TimeZoneInformation {
 			public string StandardName;
