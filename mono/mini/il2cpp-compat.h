@@ -21,20 +21,40 @@
 #define VM_ASSEMBLY_FREE_NAME(name) g_free(name)
 #define VM_ASSEMBLY_IS_DYNAMIC(assembly) FALSE
 #define VM_ASSEMBLY_GET_IMAGE(assembly) il2cpp_mono_assembly_get_image(assembly)
+#define VM_ASSEMBLY_NAME_GET_NAME(assembly) il2cpp_assembly_name_name(assembly)
+#define VM_ASSEMBLY_NAME_GET_MAJOR(assembly) il2cpp_assembly_name_major(assembly)
+#define VM_ASSEMBLY_NAME_GET_MINOR(assembly) il2cpp_assembly_name_minor(assembly)
+#define VM_ASSEMBLY_NAME_GET_BUILD(assembly) il2cpp_assembly_name_build(assembly)
+#define VM_ASSEMBLY_NAME_GET_REVISION(assembly) il2cpp_assembly_name_revision(assembly)
+#define VM_ASSEMBLY_NAME_GET_CULTURE(assembly) il2cpp_assembly_name_culture(assembly)
+#define VM_ASSEMBLY_NAME_GET_PUBLIC_KEY_TOKEN(assembly, i) il2cpp_assembly_name_public_key_token(assembly, i)
+#define VM_ASSEMBLY_NAME_GET_PUBLIC_KEY_TOKEN_STRING(assembly) il2cpp_assembly_name_public_key_token_string(assembly)
+#define VM_ASSEMBLY_NAME_GET_FLAGS(assembly) il2cpp_assembly_name_flags(assembly)
 #define VM_CLASS_GET_TYPE(klass) il2cpp_class_get_type(klass)
 #define VM_CLASS_GET_THIS_ARG(klass) il2cpp_class_this_arg(klass)
 #define VM_CLASS_GET_ELEMENT_CLASS(klass) il2cpp_class_get_element_class(klass)
 #define VM_CLASS_GET_PARENT(klass) il2cpp_class_get_parent(klass)
 #define VM_CLASS_GET_IMAGE(klass) il2cpp_class_get_image(klass)
+#define VM_CLASS_IS_VALUETYPE(klass) il2cpp_class_is_valuetype(klass)
+#define VM_CLASS_IS_INTERFACE(klass) il2cpp_class_is_interface(klass)
+#define VM_CLASS_GET_NAME(klass) il2cpp_class_get_name(klass)
+#define VM_CLASS_GET_INTERFACES(klass, iter) il2cpp_class_get_interfaces(klass, iter)
 #define VM_METHOD_GET_WRAPPER_TYPE(method) FALSE
 #define VM_METHOD_GET_DECLARING_TYPE(method) il2cpp_method_get_declaring_type(method)
+#define VM_METHOD_GET_FLAGS(method) il2cpp_method_get_flags_no_iflags(method)
+#define VM_METHOD_GET_NAME(method) il2cpp_method_get_name(method)
 #define VM_METHOD_IS_GENERIC(method) il2cpp_method_is_generic(method)
 #define VM_METHOD_IS_INFLATED(method) il2cpp_method_is_inflated(method)
 #define VM_FIELD_GET_NAME(field) il2cpp_mono_field_get_name(field)
 #define VM_FIELD_GET_PARENT(field) il2cpp_field_get_parent(field)
 #define VM_FIELD_GET_TYPE(field) il2cpp_field_get_type(field)
 #define VM_FIELD_GET_ADDRESS(obj, field) il2cpp_field_get_address(obj, field)
+#define VM_FIELD_IS_DELETED(field) il2cpp_field_is_deleted(field)
+#define VM_FIELD_GET_OFFSET(field) il2cpp_field_get_offset(field)
 #define VM_TYPE_GET_ATTRS(type) il2cpp_mono_type_get_attrs(type)
+#define VM_TYPE_GET_TYPE(type) il2cpp_type_get_type(type)
+#define VM_TYPE_IS_BYREF(type) il2cpp_type_is_byref(type)
+#define VM_TYPE_GET_GENERIC_CLASS(type) il2cpp_type_get_generic_class(type)
 #define VM_OBJECT_GET_DOMAIN(object) il2cpp_mono_domain_get()
 #define VM_OBJECT_GET_CLASS(object) il2cpp_object_get_class(object)
 #define VM_OBJECT_GET_TYPE(object) il2cpp_mono_object_get_type(object)
@@ -45,6 +65,7 @@
 #define VM_DEFAULTS_OBJECT_CLASS il2cpp_defaults_object_class()
 #define VM_DEFAULTS_EXCEPTION_CLASS il2cpp_defaults_exception_class()
 #define VM_DEFAULTS_CORLIB_IMAGE il2cpp_defaults_corlib_image()
+#define VM_DEFAULTS_VOID_CLASS il2cpp_defaults_void_class()
 #define VM_ARRAY_GET_RANK(arr) il2cpp_array_rank(arr)
 #define VM_ARRAY_BOUND_LENGTH(arr, i) il2cpp_array_bound_length(arr, i)
 #define VM_ARRAY_BOUND_LOWER_BOUND(arr, i) il2cpp_array_bound_lower_bound(arr, i)
@@ -64,19 +85,39 @@
 #define VM_ASSEMBLY_FREE_NAME(name)
 #define VM_ASSEMBLY_IS_DYNAMIC(assembly) assembly->image->dynamic
 #define VM_ASSEMBLY_GET_IMAGE(assembly) assembly->image
+#define VM_ASSEMBLY_NAME_GET_NAME(assembly) (assembly)->aname.name
+#define VM_ASSEMBLY_NAME_GET_MAJOR(assembly) (assembly)->aname.major
+#define VM_ASSEMBLY_NAME_GET_MINOR(assembly) (assembly)->aname.minor
+#define VM_ASSEMBLY_NAME_GET_BUILD(assembly) (assembly)->aname.build
+#define VM_ASSEMBLY_NAME_GET_REVISION(assembly) (assembly)->aname.revision
+#define VM_ASSEMBLY_NAME_GET_CULTURE(assembly) (assembly)->aname.culture
+#define VM_ASSEMBLY_NAME_GET_PUBLIC_KEY_TOKEN(assembly, i) (assembly)->aname.public_key_token[i]
+#define VM_ASSEMBLY_NAME_GET_PUBLIC_KEY_TOKEN_STRING(assembly) (char*)(assembly)->aname.public_key_token
+#define VM_ASSEMBLY_NAME_GET_FLAGS(assembly) (assembly)->aname.flags
 #define VM_CLASS_GET_TYPE(klass) &(klass)->byval_arg
 #define VM_CLASS_GET_THIS_ARG(klass) &(klass)->this_arg
 #define VM_CLASS_GET_PARENT(klass) (klass)->parent
 #define VM_CLASS_GET_IMAGE(klass) (klass)->image
+#define VM_CLASS_IS_VALUETYPE(klass) klass->valuetype
+#define VM_CLASS_IS_INTERFACE(klass) MONO_CLASS_IS_INTERFACE(klass)
+#define VM_CLASS_GET_NAME(klass) (klass)->name
+#define VM_CLASS_GET_INTERFACES(klass, iter) mono_class_get_interfaces(klass, iter)
 #define VM_METHOD_GET_WRAPPER_TYPE(method) method->wrapper_type
 #define VM_METHOD_GET_DECLARING_TYPE(method) (method)->klass
+#define VM_METHOD_GET_FLAGS(method) (method)->flags
+#define VM_METHOD_GET_NAME(method) (method)->name
 #define VM_METHOD_IS_GENERIC(method) method->is_generic
 #define VM_METHOD_IS_INFLATED(method) method->is_inflated
 #define VM_FIELD_GET_NAME(field) field->name
 #define VM_FIELD_GET_PARENT(field) (field)->parent
 #define VM_FIELD_GET_TYPE(field) (field)->type
 #define VM_FIELD_GET_ADDRESS(obj, field) (guint8*)(obj) + (f)->offset
+#define VM_FIELD_IS_DELETED(field) mono_field_is_deleted(field)
+#define VM_FIELD_GET_OFFSET(field) (field)->offset
 #define VM_TYPE_GET_ATTRS(type) type->attrs
+#define VM_TYPE_GET_TYPE(type) (type)->type
+#define VM_TYPE_IS_BYREF(type) (type)->byref
+#define VM_TYPE_GET_GENERIC_CLASS(type) (type)->data.generic_class
 #define VM_OBJECT_GET_DOMAIN(object) ((MonoObject*)object)->vtable->domain
 #define VM_OBJECT_GET_CLASS(object) ((MonoObject*)object)->vtable->klass
 #define VM_OBJECT_GET_TYPE(object) ((MonoReflectionType*)object->vtable->type)->type
@@ -87,6 +128,7 @@
 #define VM_DEFAULTS_OBJECT_CLASS mono_defaults.object_class
 #define VM_DEFAULTS_EXCEPTION_CLASS mono_defaults.exception_class
 #define VM_DEFAULTS_CORLIB_IMAGE mono_defaults.corlib
+#define VM_DEFAULTS_VOID_CLASS mono_defaults.void_class
 #define VM_ARRAY_GET_RANK(arr) (arr)->obj.vtable->klass->rank
 #define VM_CLASS_GET_ELEMENT_CLASS(klass) (klass)->element_class
 #define VM_ARRAY_BOUND_LENGTH(arr, i) arr->bounds[i].length
@@ -169,7 +211,7 @@
 #define mono_field_get_name il2cpp_mono_field_get_name
 #define mono_class_get_method_from_name il2cpp_class_get_method_from_name
 #define mono_string_chars il2cpp_mono_string_chars
-#define mono_class_is_abstract il2cpp_mono_class_is_abstract
+#define mono_class_is_abstract il2cpp_class_is_abstract
 #define mono_string_length il2cpp_mono_string_length
 #define mono_array_addr_with_size il2cpp_mono_array_addr_with_size
 #define mono_array_length il2cpp_mono_array_length
@@ -177,7 +219,7 @@
 #define mono_string_to_utf8_checked il2cpp_mono_string_to_utf8_checked
 #define mono_object_hash il2cpp_mono_object_hash
 #define mono_object_unbox il2cpp_mono_object_unbox
-#define mono_object_get_virtual_method il2cpp_mono_object_get_virtual_method
+#define mono_object_get_virtual_method il2cpp_object_get_virtual_method
 #define mono_field_set_value il2cpp_mono_field_set_value
 #define mono_field_static_set_value il2cpp_mono_field_static_set_value
 #define mono_gchandle_new_weakref il2cpp_mono_gchandle_new_weakref
@@ -385,7 +427,6 @@ Il2CppMonoMethod* il2cpp_mono_class_get_methods (Il2CppMonoClass* klass, gpointe
 Il2CppMonoProperty* il2cpp_mono_class_get_properties (Il2CppMonoClass* klass, gpointer *iter);
 const char* il2cpp_mono_field_get_name (Il2CppMonoClassField *field);
 mono_unichar2* il2cpp_mono_string_chars (Il2CppMonoString *s);
-gboolean il2cpp_mono_class_is_abstract (Il2CppMonoClass *klass);
 int il2cpp_mono_string_length (Il2CppMonoString *s);
 char* il2cpp_mono_array_addr_with_size (Il2CppMonoArray *array, int size, uintptr_t idx);
 uintptr_t il2cpp_mono_array_length (Il2CppMonoArray *array);
@@ -393,7 +434,6 @@ Il2CppMonoString* il2cpp_mono_string_new (Il2CppMonoDomain *domain, const char *
 char* il2cpp_mono_string_to_utf8_checked (Il2CppMonoString *string_obj, MonoError *error);
 int il2cpp_mono_object_hash (Il2CppMonoObject* obj);
 void* il2cpp_mono_object_unbox (Il2CppMonoObject *obj);
-Il2CppMonoMethod* il2cpp_mono_object_get_virtual_method (Il2CppMonoObject *obj_raw, Il2CppMonoMethod *method);
 void il2cpp_mono_field_set_value (Il2CppMonoObject *obj, Il2CppMonoClassField *field, void *value);
 void il2cpp_mono_field_static_set_value (Il2CppMonoVTable *vt, Il2CppMonoClassField *field, void *value);
 uint32_t il2cpp_mono_gchandle_new_weakref (Il2CppMonoObject *obj, mono_bool track_resurrection);
@@ -558,6 +598,15 @@ Il2CppMonoClass* il2cpp_defaults_object_class();
 guint8 il2cpp_array_rank(Il2CppMonoArray *monoArr);
 mono_array_size_t il2cpp_array_bound_length(Il2CppMonoArray *monoArr, int i);
 mono_array_lower_bound_t il2cpp_array_bound_lower_bound(Il2CppMonoArray *monoArr, int i);
+const char* il2cpp_assembly_name_name(Il2CppMonoAssembly *monoAssembly);
+uint16_t il2cpp_assembly_name_major(Il2CppMonoAssembly *monoAssembly);
+uint16_t il2cpp_assembly_name_minor(Il2CppMonoAssembly *monoAssembly);
+uint16_t il2cpp_assembly_name_build(Il2CppMonoAssembly *monoAssembly);
+uint16_t il2cpp_assembly_name_revision(Il2CppMonoAssembly *monoAssembly);
+const char* il2cpp_assembly_name_culture(Il2CppMonoAssembly *monoAssembly);
+mono_byte il2cpp_assembly_name_public_key_token(Il2CppMonoAssembly *monoAssembly, int i);
+const char* il2cpp_assembly_name_public_key_token_string(Il2CppMonoAssembly *monoAssembly);
+uint32_t il2cpp_assembly_name_flags(Il2CppMonoAssembly *monoAssembly);
 const char* il2cpp_image_name(Il2CppMonoImage *monoImage);
 Il2CppMonoAssembly* il2cpp_image_assembly(Il2CppMonoImage *monoImage);
 guint8* il2cpp_field_get_address(Il2CppMonoObject *obj, Il2CppMonoClassField *monoField);
@@ -565,5 +614,11 @@ Il2CppMonoType* il2cpp_mono_object_get_type(Il2CppMonoObject* object);
 Il2CppMonoClass* il2cpp_defaults_exception_class();
 Il2CppMonoImage* il2cpp_defaults_corlib_image();
 int il2cpp_generic_container_get_type_argc(Il2CppMonoGenericClass* container);
+uint32_t il2cpp_method_get_flags_no_iflags (const Il2CppMonoMethod * method);
+Il2CppMonoClass* il2cpp_defaults_void_class();
+void il2cpp_set_local_value(guint8* newValue, void *value, Il2CppMonoType *localVariableTypeMono, MethodVariableKindC localVariableValue);
+Il2CppMonoMethod* il2cpp_get_interface_method(Il2CppMonoClass* klass, Il2CppMonoClass* itf, int slot);
+gboolean il2cpp_field_is_deleted(Il2CppMonoClassField *field);
+Il2CppMonoGenericClass* il2cpp_type_get_generic_class(Il2CppMonoType *type);
 
 #endif // RUNTIME_IL2CPP
