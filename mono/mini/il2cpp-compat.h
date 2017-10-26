@@ -115,7 +115,7 @@
 #define VM_FIELD_IS_DELETED(field) mono_field_is_deleted(field)
 #define VM_FIELD_GET_OFFSET(field) (field)->offset
 #define VM_TYPE_GET_ATTRS(type) type->attrs
-#define VM_TYPE_GET_TYPE(type) (type)->type
+#define VM_TYPE_GET_TYPE(typeparam) (typeparam)->type
 #define VM_TYPE_IS_BYREF(type) (type)->byref
 #define VM_TYPE_GET_GENERIC_CLASS(type) (type)->data.generic_class
 #define VM_OBJECT_GET_DOMAIN(object) ((MonoObject*)object)->vtable->domain
