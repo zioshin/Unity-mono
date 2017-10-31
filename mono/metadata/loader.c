@@ -410,7 +410,17 @@ find_method_in_class (MonoClass *klass, const char *name, const char *qname, con
 	See mono/tests/generic-type-load-exception.2.il
 	FIXME we should better report this error to the caller
 	 */
-	if (!klass->methods || mono_class_has_failure (klass)) {
+	if (mono_class_has_failure (klass)) {
+		MonoError class_failure_error;
+		error_init (&class_failure_error);
+		mono_error_set_for_class_failure (&class_failure_error, klass);
+		mono_error_set_type_load_class (error, klass, "%s", mono_error_get_message (&class_failure_error));
+		mono_error_cleanup (&class_failure_error);
+
+		return NULL;
+	}
+
+	if (!klass->methods) {
 		mono_error_set_type_load_class (error, klass, "Could not find method due to a type load error"); //FIXME get the error from the class 
 
 		return NULL;
