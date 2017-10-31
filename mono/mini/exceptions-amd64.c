@@ -133,12 +133,17 @@ LONG CALLBACK seh_vectored_exception_handler(EXCEPTION_POINTERS* ep)
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_STACK_OVERFLOW:
-		if (mono_arch_handle_exception (ctx, domain->stack_overflow_ex)) {
-			/* need to restore stack protection once stack is unwound
-			* restore_stack will restore stack protection and then
-			* resume control to the saved stack_restore_ctx */
-			mono_sigctx_to_monoctx (ctx, &jit_tls->stack_restore_ctx);
-			ctx->Rip = (guint64)restore_stack;
+		/* only handle stack overflow occuring in managed code */
+		if (mini_jit_info_table_find (mono_domain_get (), (char*)ctx->Rip, NULL)) {
+			if (mono_arch_handle_exception (ctx, domain->stack_overflow_ex)) {
+				/* need to restore stack protection once stack is unwound
+				* restore_stack will restore stack protection and then
+				* resume control to the saved stack_restore_ctx */
+				mono_sigctx_to_monoctx (ctx, &jit_tls->stack_restore_ctx);
+				ctx->Rip = (guint64)restore_stack;
+			}
+		} else {
+			jit_tls->mono_win_chained_exception_needs_run = TRUE;
 		}
 		break;
 	case EXCEPTION_ACCESS_VIOLATION:
