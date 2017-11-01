@@ -9538,7 +9538,11 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 
 			if (!(VM_TYPE_GET_ATTRS(VM_FIELD_GET_TYPE(f)) & FIELD_ATTRIBUTE_STATIC))
 				return ERR_INVALID_FIELDID;
-#ifndef IL2CPP_MONO_DEBUGGER
+
+#ifdef IL2CPP_MONO_DEBUGGER
+			if (!thread && VM_FIELD_GET_OFFSET(f) == THREAD_STATIC_FIELD_OFFSET)
+				return ERR_INVALID_FIELDID;
+#else
 			special_static_type = mono_class_field_get_special_static_type (f);
 			if (special_static_type != SPECIAL_STATIC_NONE) {
 				if (!(thread && special_static_type == SPECIAL_STATIC_THREAD))
