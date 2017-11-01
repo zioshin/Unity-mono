@@ -700,7 +700,7 @@ void il2cpp_mono_field_static_get_value_checked(Il2CppMonoVTable* vt, Il2CppMono
 void il2cpp_mono_field_static_get_value_for_thread(Il2CppMonoInternalThread* thread, Il2CppMonoVTable* vt, Il2CppMonoClassField* field, void* value, MonoError* error)
 {
 	mono_error_init(error);
-	il2cpp::vm::Field::StaticGetValue((FieldInfo*)field, value);
+	il2cpp::vm::Field::StaticGetValueForThread((FieldInfo*)field, value, (Il2CppThread*)thread);
 }
 
 Il2CppMonoObject* il2cpp_mono_field_get_value_object_checked(Il2CppMonoDomain* domain, Il2CppMonoClassField* field, Il2CppMonoObject* obj, MonoError* error)

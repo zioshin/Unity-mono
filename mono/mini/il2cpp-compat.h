@@ -9,6 +9,9 @@
 #include <mono/sgen/sgen-conf.h>
 
 #ifdef IL2CPP_MONO_DEBUGGER
+
+#define THREAD_STATIC_FIELD_OFFSET -1
+
 #define VM_THREAD_GET(thread) thread
 #define VM_THREAD_SET_STATE_BACKGROUND(thread) il2cpp_set_thread_state_background(thread)
 #define VM_THREAD_SET_FLAG_DONT_MANAGE(thread)
