@@ -567,6 +567,8 @@ namespace Mono.CSharp {
 				ec.Emit (OpCodes.Br, ec.LoopBegin);
 				ec.MarkLabel (while_loop);
 
+				expr.EmitPrepare (ec);
+
 				Statement.Emit (ec);
 			
 				ec.MarkLabel (ec.LoopBegin);
@@ -781,6 +783,8 @@ namespace Mono.CSharp {
 
 			ec.Emit (OpCodes.Br, test);
 			ec.MarkLabel (loop);
+
+			Condition?.EmitPrepare (ec);
 			Statement.Emit (ec);
 
 			ec.MarkLabel (ec.LoopBegin);
@@ -1124,6 +1128,7 @@ namespace Mono.CSharp {
 	public class Return : ExitStatement
 	{
 		Expression expr;
+		bool expr_returns;
 
 		public Return (Expression expr, Location l)
 		{
@@ -1278,16 +1283,38 @@ namespace Mono.CSharp {
 			if (expr == null)
 				return false;
 
-			if (expr.Type != block_return_type && expr.Type != InternalType.ErrorType) {
-				expr = Convert.ImplicitConversionRequired (ec, expr, block_return_type, loc);
+			if (expr is ReferenceExpression && block_return_type.Kind != MemberKind.ByRef) {
+				ec.Report.Error (8149, loc, "By-reference returns can only be used in methods that return by reference");
+				return false;
+			}
 
-				if (expr == null) {
-					if (am != null && block_return_type == ec.ReturnType) {
-						ec.Report.Error (1662, loc,
-							"Cannot convert `{0}' to delegate type `{1}' because some of the return types in the block are not implicitly convertible to the delegate return type",
-							am.ContainerType, am.GetSignatureForError ());
+			if (expr.Type != block_return_type && expr.Type != InternalType.ErrorType) {
+				if (block_return_type.Kind == MemberKind.ByRef) {
+					var ref_expr = Expr as ReferenceExpression;
+					if (ref_expr == null) {
+						ec.Report.Error (8150, loc, "By-reference return is required when method returns by reference");
+						return false;
 					}
-					return false;
+
+					var byref_return = (ReferenceContainer)block_return_type;
+
+					if (expr.Type != byref_return.Element) {
+						ec.Report.Error (8151, loc, "The return by reference expression must be of type `{0}' because this method returns by reference",
+										 byref_return.GetSignatureForError ());
+						return false;
+					}
+				} else {
+
+					expr = Convert.ImplicitConversionRequired (ec, expr, block_return_type, loc);
+
+					if (expr == null) {
+						if (am != null && block_return_type == ec.ReturnType) {
+							ec.Report.Error (1662, loc,
+								"Cannot convert `{0}' to delegate type `{1}' because some of the return types in the block are not implicitly convertible to the delegate return type",
+								am.ContainerType, am.GetSignatureForError ());
+						}
+						return false;
+					}
 				}
 			}
 
@@ -1311,7 +1338,7 @@ namespace Mono.CSharp {
 						// Special case hoisted return value (happens in try/finally scenario)
 						//
 						if (ec.TryFinallyUnwind != null) {
-							exit_label = TryFinally.EmitRedirectedReturn (ec, async_body);
+							exit_label = TryFinally.EmitRedirectedReturn (ec, async_body, unwind_protect);
 						}
 
 						var async_return = (IAssignMethod)storey.HoistedReturnValue;
@@ -1321,7 +1348,7 @@ namespace Mono.CSharp {
 						expr.Emit (ec);
 
 						if (ec.TryFinallyUnwind != null)
-							exit_label = TryFinally.EmitRedirectedReturn (ec, async_body);
+							exit_label = TryFinally.EmitRedirectedReturn (ec, async_body, unwind_protect);
 					}
 
 					ec.Emit (OpCodes.Leave, exit_label);
@@ -1349,7 +1376,9 @@ namespace Mono.CSharp {
 			if (expr != null)
 				expr.FlowAnalysis (fc);
 
-			base.DoFlowAnalysis (fc);
+			if (!expr_returns)
+				base.DoFlowAnalysis (fc);
+			
 			return true;
 		}
 
@@ -1362,6 +1391,12 @@ namespace Mono.CSharp {
 		public override Reachability MarkReachable (Reachability rc)
 		{
 			base.MarkReachable (rc);
+
+			if (Expr != null) {
+				rc = Expr.MarkReachable (rc);
+				expr_returns = rc.IsUnreachable;
+			}
+
 			return Reachability.CreateUnreachable ();
 		}
 
@@ -1470,7 +1505,7 @@ namespace Mono.CSharp {
 
 			if (ec.TryFinallyUnwind != null && IsLeavingFinally (label.Block)) {
 				var async_body = (AsyncInitializer) ec.CurrentAnonymousMethod;
-				l = TryFinally.EmitRedirectedJump (ec, async_body, l, label.Block);
+				l = TryFinally.EmitRedirectedJump (ec, async_body, l, label.Block, unwind_protect);
 			}
 
 			ec.Emit (unwind_protect ? OpCodes.Leave : OpCodes.Br, l);
@@ -1779,6 +1814,19 @@ namespace Mono.CSharp {
 			}
 		}
 
+		public static Expression ConvertType (ResolveContext rc, Expression expr)
+		{
+			var et = rc.BuiltinTypes.Exception;
+			if (Convert.ImplicitConversionExists (rc, expr, et))
+				expr = Convert.ImplicitConversion (rc, expr, et, expr.Location);
+			else {
+				rc.Report.Error (155, expr.Location, "The type caught or thrown must be derived from System.Exception");
+				expr = EmptyCast.Create (expr, et);
+			}
+
+			return expr;
+		}
+
 		public override bool Resolve (BlockContext ec)
 		{
 			if (expr == null) {
@@ -1802,11 +1850,7 @@ namespace Mono.CSharp {
 			if (expr == null)
 				return false;
 
-			var et = ec.BuiltinTypes.Exception;
-			if (Convert.ImplicitConversionExists (ec, expr, et))
-				expr = Convert.ImplicitConversion (ec, expr, et, loc);
-			else
-				ec.Report.Error (155, expr.Location, "The type caught or thrown must be derived from System.Exception");
+			expr = ConvertType (ec, expr);
 
 			return true;
 		}
@@ -1879,7 +1923,7 @@ namespace Mono.CSharp {
 
 			if (ec.TryFinallyUnwind != null) {
 				var async_body = (AsyncInitializer) ec.CurrentAnonymousMethod;
-				l = TryFinally.EmitRedirectedJump (ec, async_body, l, enclosing_loop.Statement as Block);
+				l = TryFinally.EmitRedirectedJump (ec, async_body, l, enclosing_loop.Statement as Block, unwind_protect);
 			}
 
 			ec.Emit (unwind_protect ? OpCodes.Leave : OpCodes.Br, l);
@@ -1927,7 +1971,7 @@ namespace Mono.CSharp {
 
 			if (ec.TryFinallyUnwind != null) {
 				var async_body = (AsyncInitializer) ec.CurrentAnonymousMethod;
-				l = TryFinally.EmitRedirectedJump (ec, async_body, l, enclosing_loop.Statement as Block);
+				l = TryFinally.EmitRedirectedJump (ec, async_body, l, enclosing_loop.Statement as Block, unwind_protect);
 			}
 
 			ec.Emit (unwind_protect ? OpCodes.Leave : OpCodes.Br, l);
@@ -2176,7 +2220,7 @@ namespace Mono.CSharp {
 				}
 
 				if (type == null) {
-					type = type_expr.ResolveAsType (bc);
+					type = ResolveTypeExpression (bc);
 					if (type == null)
 						return false;
 
@@ -2199,6 +2243,25 @@ namespace Mono.CSharp {
 			}
 
 			if (initializer != null) {
+				if (li.IsByRef) {
+					if (!(initializer is ReferenceExpression)) {
+						bc.Report.Error (8172, loc, "Cannot initialize a by-reference variable `{0}' with a value", li.Name);
+						return false;
+					}
+
+					if (bc.CurrentAnonymousMethod is AsyncInitializer) {
+						bc.Report.Error (8177, loc, "Async methods cannot use by-reference variables");
+					} else if (bc.CurrentIterator != null) {
+						bc.Report.Error (8176, loc, "Iterators cannot use by-reference variables");
+					}
+
+				} else {
+					if (initializer is ReferenceExpression) {
+						bc.Report.Error (8171, loc, "Cannot initialize a by-value variable `{0}' with a reference expression", li.Name);
+						return false;
+					}
+				}
+
 				initializer = ResolveInitializer (bc, li, initializer);
 				// li.Variable.DefinitelyAssigned 
 			}
@@ -2226,6 +2289,11 @@ namespace Mono.CSharp {
 		{
 			var a = new SimpleAssign (li.CreateReferenceExpression (bc, li.Location), initializer, li.Location);
 			return a.ResolveStatement (bc);
+		}
+
+		protected virtual TypeSpec ResolveTypeExpression (BlockContext bc)
+		{
+			return type_expr.ResolveAsType (bc);
 		}
 
 		protected override void DoEmit (EmitContext ec)
@@ -2263,11 +2331,8 @@ namespace Mono.CSharp {
 
 		public override Reachability MarkReachable (Reachability rc)
 		{
-			var init = initializer as ExpressionStatement;
-			if (init != null)
-				init.MarkReachable (rc);
-
-			return base.MarkReachable (rc);
+			base.MarkReachable (rc);
+			return initializer == null ? rc : initializer.MarkReachable (rc);
 		}
 
 		protected override void CloneTo (CloneContext clonectx, Statement target)
@@ -2358,6 +2423,7 @@ namespace Mono.CSharp {
 			UsingVariable = 1 << 7,
 			IsLocked = 1 << 8,
 			SymbolFileHidden = 1 << 9,
+			ByRef = 1 << 10,
 
 			ReadonlyMask = ForeachVariable | FixedVariable | UsingVariable
 		}
@@ -2430,11 +2496,19 @@ namespace Mono.CSharp {
 			}
 		}
 
+		public bool Created {
+			get {
+				return builder != null;
+			}
+		}
+
 		public bool IsDeclared {
 			get {
 				return type != null;
 			}
 		}
+
+		public bool IsByRef => (flags & Flags.ByRef) != 0;
 
 		public bool IsCompilerGenerated {
 			get {
@@ -2538,10 +2612,15 @@ namespace Mono.CSharp {
 				throw new InternalErrorException ("Already created variable `{0}'", name);
 			}
 
-			//
-			// All fixed variabled are pinned, a slot has to be alocated
-			//
-			builder = ec.DeclareLocal (Type, IsFixed);
+			if (IsByRef) {
+				builder = ec.DeclareLocal (ReferenceContainer.MakeType (ec.Module, Type), IsFixed);
+			} else {
+				//
+				// All fixed variabled are pinned, a slot has to be alocated
+				//
+				builder = ec.DeclareLocal(Type, IsFixed);
+			}
+
 			if ((flags & Flags.SymbolFileHidden) == 0)
 				ec.DefineLocalVariable (name, builder);
 		}
@@ -2590,7 +2669,10 @@ namespace Mono.CSharp {
 			if ((flags & Flags.CompilerGenerated) != 0)
 				CreateBuilder (ec);
 
-			ec.Emit (OpCodes.Ldloca, builder);
+			if (IsByRef)
+				ec.Emit (OpCodes.Ldloc, builder);
+			else
+				ec.Emit (OpCodes.Ldloca, builder);
 		}
 
 		public static string GetCompilerGeneratedName (Block block)
@@ -2809,9 +2891,9 @@ namespace Mono.CSharp {
 			AddLocalName (li.Name, li);
 		}
 
-		public void AddLocalName (string name, INamedBlockVariable li)
+		public virtual void AddLocalName (string name, INamedBlockVariable li, bool canShadowChildrenBlockName = false)
 		{
-			ParametersBlock.TopBlock.AddLocalName (name, li, false);
+			ParametersBlock.TopBlock.AddLocalName (name, li, canShadowChildrenBlockName);
 		}
 
 		public virtual void Error_AlreadyDeclared (string name, INamedBlockVariable variable, string reason)
@@ -4188,7 +4270,7 @@ namespace Mono.CSharp {
 			}
 		}
 
-		public void AddLocalName (string name, INamedBlockVariable li, bool ignoreChildrenBlocks)
+		public override void AddLocalName (string name, INamedBlockVariable li, bool ignoreChildrenBlocks)
 		{
 			if (names == null)
 				names = new Dictionary<string, object> ();
@@ -6369,7 +6451,7 @@ namespace Mono.CSharp {
 		public override bool Resolve (BlockContext ec)
 		{
 			if (ec.CurrentIterator != null)
-				ec.Report.Error (1629, loc, "Unsafe code may not appear in iterators");
+				Expression.UnsafeInsideIteratorError (ec, loc);
 
 			using (ec.Set (ResolveContext.Options.UnsafeScope))
 				return Block.Resolve (ec);
@@ -7009,7 +7091,7 @@ namespace Mono.CSharp {
 	{
 		ExplicitBlock fini;
 		List<DefiniteAssignmentBitSet> try_exit_dat;
-		List<Label> redirected_jumps;
+		List<Tuple<Label, bool>> redirected_jumps;
 		Label? start_fin_label;
 
 		public TryFinally (Statement stmt, ExplicitBlock fini, Location loc)
@@ -7135,7 +7217,7 @@ namespace Mono.CSharp {
 			return false;
 		}
 
-		public static Label EmitRedirectedJump (EmitContext ec, AsyncInitializer initializer, Label label, Block labelBlock)
+		public static Label EmitRedirectedJump (EmitContext ec, AsyncInitializer initializer, Label label, Block labelBlock, bool unwindProtect)
 		{
 			int idx;
 			if (labelBlock != null) {
@@ -7155,7 +7237,7 @@ namespace Mono.CSharp {
 				if (labelBlock != null && !fin.IsParentBlock (labelBlock))
 					break;
 
-				fin.EmitRedirectedExit (ec, label, initializer, set_return_state);
+				fin.EmitRedirectedExit (ec, label, initializer, set_return_state, unwindProtect);
 				set_return_state = false;
 
 				if (fin.start_fin_label == null) {
@@ -7168,26 +7250,26 @@ namespace Mono.CSharp {
 			return label;
 		}
 
-		public static Label EmitRedirectedReturn (EmitContext ec, AsyncInitializer initializer)
+		public static Label EmitRedirectedReturn (EmitContext ec, AsyncInitializer initializer, bool unwindProtect)
 		{
-			return EmitRedirectedJump (ec, initializer, initializer.BodyEnd, null);
+			return EmitRedirectedJump (ec, initializer, initializer.BodyEnd, null, unwindProtect);
 		}
 
-		void EmitRedirectedExit (EmitContext ec, Label label, AsyncInitializer initializer, bool setReturnState)
+		void EmitRedirectedExit (EmitContext ec, Label label, AsyncInitializer initializer, bool setReturnState, bool unwindProtect)
 		{
 			if (redirected_jumps == null) {
-				redirected_jumps = new List<Label> ();
+				redirected_jumps = new List<Tuple<Label, bool>> ();
 
 				// Add fallthrough label
-				redirected_jumps.Add (ec.DefineLabel ());
+				redirected_jumps.Add (Tuple.Create (ec.DefineLabel (), false));
 
 				if (setReturnState)
 					initializer.HoistedReturnState = ec.GetTemporaryField (ec.Module.Compiler.BuiltinTypes.Int, true);
 			}
 
-			int index = redirected_jumps.IndexOf (label);
+			int index = redirected_jumps.FindIndex (l => l.Item1 == label);
 			if (index < 0) {
-				redirected_jumps.Add (label);
+				redirected_jumps.Add (Tuple.Create (label, unwindProtect));
 				index = redirected_jumps.Count - 1;
 			}
 
@@ -7211,10 +7293,34 @@ namespace Mono.CSharp {
 
 			var initializer = (AsyncInitializer)ec.CurrentAnonymousMethod;
 			initializer.HoistedReturnState.EmitLoad (ec);
-			ec.Emit (OpCodes.Switch, redirected_jumps.ToArray ());
+
+			var jumps_table = new Label [redirected_jumps.Count];
+			List<Tuple<Label, Label>> leave_redirect = null;
+			for (int i = 0; i < jumps_table.Length; ++i) {
+				var val = redirected_jumps [i];
+
+				if (val.Item2) {
+					if (leave_redirect == null)
+						leave_redirect = new List<Tuple<Label, Label>> ();
+					var label = ec.DefineLabel ();
+					leave_redirect.Add (Tuple.Create (label, val.Item1));
+					jumps_table [i] = label;
+				} else {
+					jumps_table [i] = val.Item1;
+				}
+			}
+
+			ec.Emit (OpCodes.Switch, jumps_table);
+
+			if (leave_redirect != null) {
+				foreach (var entry in leave_redirect) {
+					ec.MarkLabel (entry.Item1);
+					ec.Emit (OpCodes.Leave, entry.Item2);
+				}
+			}
 
 			// Mark fallthrough label
-			ec.MarkLabel (redirected_jumps [0]);
+			ec.MarkLabel (jumps_table [0]);
 		}
 
 		protected override bool DoFlowAnalysis (FlowAnalysisContext fc)
@@ -7447,6 +7553,10 @@ namespace Mono.CSharp {
 						ec.Emit (OpCodes.Br, end);
 
 					ec.MarkLabel (labels [i + 1]);
+
+					ec.EmitInt (0);
+					ec.Emit (OpCodes.Stloc, state_variable);
+
 					c = catch_sm [i];
 					ec.AsyncThrowVariable = c.Variable;
 					c.Block.Emit (ec);

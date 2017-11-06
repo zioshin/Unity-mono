@@ -894,6 +894,16 @@ namespace Mono.CSharp
 					res = -1;
 
 				break;
+			case Token.THROW:
+				switch (current_token) {
+				case Token.ARROW:
+				case Token.OP_COALESCING:
+				case Token.INTERR:
+					res = Token.THROW_EXPR;
+					break;
+				}
+
+				break;
 			}
 
 
@@ -1017,7 +1027,7 @@ namespace Mono.CSharp
 		}
 
 		//
-		// Open parens micro parser. Detects both lambda and cast ambiguity.
+		// Open parens micro parser
 		//	
 		int TokenizeOpenParens ()
 		{
@@ -1027,6 +1037,7 @@ namespace Mono.CSharp
 			int bracket_level = 0;
 			bool is_type = false;
 			bool can_be_type = false;
+			bool at_least_one_comma = false;
 			
 			while (true) {
 				ptoken = current_token;
@@ -1041,6 +1052,12 @@ namespace Mono.CSharp
 					//
 					if (current_token == Token.ARROW)
 						return Token.OPEN_PARENS_LAMBDA;
+
+					//
+					// Expression inside parens is deconstruct expression, (a, x.y) = ...
+					//
+					if (current_token == Token.ASSIGN && at_least_one_comma)
+						return Token.OPEN_PARENS_DECONSTRUCT;
 
 					//
 					// Expression inside parens is single type, (int[])
@@ -1154,6 +1171,7 @@ namespace Mono.CSharp
 					if (bracket_level == 0) {
 						bracket_level = 100;
 						can_be_type = is_type = false;
+						at_least_one_comma = true;
 					}
 					continue;
 
@@ -1254,6 +1272,28 @@ namespace Mono.CSharp
 				}
 
 				return false;
+			case Token.OPEN_PARENS:
+				int parens_count = 1;
+				while (true) {
+					switch (token ()) {
+					case Token.COMMA:
+						// tuple declaration after <
+						if (parens_count == 1)
+							return true;
+						continue;
+					case Token.OPEN_PARENS:
+						++parens_count;
+						continue;
+					case Token.CLOSE_PARENS:
+						if (--parens_count <= 0)
+							return false;
+						continue;
+					case Token.OP_GENERICS_GT:
+					case Token.EOF:
+						return false;
+					}
+				}
+
 			default:
 				return false;
 			}
@@ -1267,7 +1307,8 @@ namespace Mono.CSharp
 			else if (the_token == Token.INTERR_NULLABLE || the_token == Token.STAR)
 				goto again;
 			else if (the_token == Token.OP_GENERICS_LT) {
-				if (!parse_less_than (ref genericDimension))
+				int unused = 0;
+				if (!parse_less_than (ref unused))
 					return false;
 				goto again;
 			} else if (the_token == Token.OPEN_BRACKET) {
@@ -1345,6 +1386,7 @@ namespace Mono.CSharp
 			case Token.THIS:
 			case Token.NEW:
 			case Token.INTERPOLATED_STRING:
+			case Token.THROW:
 				next_token = Token.INTERR;
 				break;
 				
@@ -3469,6 +3511,7 @@ namespace Mono.CSharp
 						case Token.DEFAULT:
 						case Token.DELEGATE:
 						case Token.OP_GENERICS_GT:
+						case Token.REFVALUE:
 							return Token.OPEN_PARENS;
 						}
 
@@ -3927,26 +3970,29 @@ namespace Mono.CSharp
 		{
 			int d;
 
-			// Save current position and parse next token.
-			PushPosition ();
-			int generic_dimension = 0;
-			if (parse_less_than (ref generic_dimension)) {
-				if (parsing_generic_declaration && (parsing_generic_declaration_doc || token () != Token.DOT)) {
-					d = Token.OP_GENERICS_LT_DECL;
-				} else {
-					if (generic_dimension > 0) {
-						val = generic_dimension;
-						DiscardPosition ();
-						return Token.GENERIC_DIMENSION;
-					}
+			if (current_token != Token.OPERATOR) {
+				// Save current position and parse next token.
+				PushPosition ();
+				int generic_dimension = 0;
+				if (parse_less_than (ref generic_dimension)) {
+					if (parsing_generic_declaration && (parsing_generic_declaration_doc || token () != Token.DOT)) {
+						d = Token.OP_GENERICS_LT_DECL;
+					} else {
+						if (generic_dimension > 0) {
+							val = generic_dimension;
+							DiscardPosition ();
+							return Token.GENERIC_DIMENSION;
+						}
 
-					d = Token.OP_GENERICS_LT;
+						d = Token.OP_GENERICS_LT;
+					}
+					PopPosition ();
+					return d;
 				}
+
 				PopPosition ();
-				return d;
 			}
 
-			PopPosition ();
 			parsing_generic_less_than = 0;
 
 			d = peek_char ();

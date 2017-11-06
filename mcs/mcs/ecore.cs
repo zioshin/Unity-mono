@@ -45,7 +45,7 @@ namespace Mono.CSharp {
 		PropertyAccess,
 		EventAccess,
 		IndexerAccess,
-		Nothing, 
+		Nothing,
 	}
 
 	/// <remarks>
@@ -239,6 +239,15 @@ namespace Mono.CSharp {
 			return null;
 		}
 
+		protected void CheckExpressionVariable (ResolveContext rc)
+		{
+			if (rc.HasAny (ResolveContext.Options.BaseInitializer | ResolveContext.Options.FieldInitializerScope)) {
+				rc.Report.Error (8200, loc, "Out variable and pattern variable declarations are not allowed within constructor initializers, field initializers, or property initializers");
+			} else if (rc.HasSet (ResolveContext.Options.QueryClauseScope)) {
+				rc.Report.Error (8201, loc, "Out variable and pattern variable declarations are not allowed within a query clause");
+			}
+		}
+
 		public static void ErrorIsInaccesible (IMemberContext rc, string member, Location loc)
 		{
 			rc.Module.Compiler.Report.Error (122, loc, "`{0}' is inaccessible due to its protection level", member);
@@ -294,7 +303,12 @@ namespace Mono.CSharp {
 				return;
 
 			string from_type = type.GetSignatureForError ();
+			if (type.Kind == MemberKind.ByRef)
+				from_type = "ref " + from_type;
 			string to_type = target.GetSignatureForError ();
+			if (target.Kind == MemberKind.ByRef)
+				to_type = "ref " + to_type;
+
 			if (from_type == to_type) {
 				from_type = type.GetSignatureForErrorIncludingAssemblyName ();
 				to_type = target.GetSignatureForErrorIncludingAssemblyName ();
@@ -550,18 +564,18 @@ namespace Mono.CSharp {
 		public Expression ResolveLValue (ResolveContext ec, Expression right_side)
 		{
 			int errors = ec.Report.Errors;
-			bool out_access = right_side == EmptyExpression.OutAccess;
+			//bool out_access = right_side == EmptyExpression.OutAccess;
 
 			Expression e = DoResolveLValue (ec, right_side);
 
-			if (e != null && out_access && !(e is IMemoryLocation)) {
+			//if (e != null && out_access && !(e is IMemoryLocation)) {
 				// FIXME: There's no problem with correctness, the 'Expr = null' handles that.
 				//        Enabling this 'throw' will "only" result in deleting useless code elsewhere,
 
 				//throw new InternalErrorException ("ResolveLValue didn't return an IMemoryLocation: " +
 				//				  e.GetType () + " " + e.GetSignatureForError ());
-				e = null;
-			}
+			//	e = null;
+			//}
 
 			if (e == null) {
 				if (errors == ec.Report.Errors) {
@@ -636,6 +650,10 @@ namespace Mono.CSharp {
 		{
 			Emit (ec);
 			ec.Emit (OpCodes.Pop);
+		}
+
+		public virtual void EmitPrepare (EmitContext ec)
+		{
 		}
 
 		//
@@ -863,6 +881,15 @@ namespace Mono.CSharp {
 					return MemberLookupToExpression (rc, members, errorMode, queried_type, name, arity, restrictions, loc);
 			}
 
+			if ((restrictions & MemberLookupRestrictions.InvocableOnly) == 0) {
+				var ntuple = queried_type as NamedTupleSpec;
+				if (ntuple != null) {
+					var ms = ntuple.FindElement (rc, name, loc);
+					if (ms != null)
+						return ExprClassFromMemberInfo (ms, loc);
+				}
+			}
+
 			return null;
 		}
 
@@ -993,6 +1020,11 @@ namespace Mono.CSharp {
 
 		public virtual void FlowAnalysis (FlowAnalysisContext fc)
 		{
+		}
+
+		public virtual Reachability MarkReachable (Reachability rc)
+		{
+			return rc;
 		}
 
 		//
@@ -1128,6 +1160,16 @@ namespace Mono.CSharp {
 		public static void UnsafeError (Report Report, Location loc)
 		{
 			Report.Error (214, loc, "Pointers and fixed size buffers may only be used in an unsafe context");
+		}
+
+		public static void UnsafeInsideIteratorError (ResolveContext rc, Location loc)
+		{
+			UnsafeInsideIteratorError (rc.Report, loc);
+		}
+
+		public static void UnsafeInsideIteratorError (Report report, Location loc)
+		{
+			report.Error (1629, loc, "Unsafe code may not appear in iterators");
 		}
 
 		//
@@ -1285,10 +1327,6 @@ namespace Mono.CSharp {
 	/// </summary>
 	public abstract class ExpressionStatement : Expression
 	{
-		public virtual void MarkReachable (Reachability rc)
-		{
-		}
-
 		public virtual ExpressionStatement ResolveStatement (BlockContext ec)
 		{
 			Expression e = Resolve (ec);
@@ -1448,6 +1486,11 @@ namespace Mono.CSharp {
 				SLE.Expression.ConvertChecked (child.MakeExpression (ctx), type.GetMetaInfo ()) :
 				SLE.Expression.Convert (child.MakeExpression (ctx), type.GetMetaInfo ());
 #endif
+		}
+
+		public override Reachability MarkReachable (Reachability rc)
+		{
+			return child.MarkReachable (rc);
 		}
 
 		protected override void CloneTo (CloneContext clonectx, Expression t)
@@ -2391,12 +2434,22 @@ namespace Mono.CSharp {
 
 		public override void FlowAnalysis (FlowAnalysisContext fc)
 		{
-			expr.FlowAnalysis (fc);
+			orig_expr.FlowAnalysis (fc);
+		}
+
+		public override void FlowAnalysisConditional (FlowAnalysisContext fc)
+		{
+			orig_expr.FlowAnalysisConditional (fc);
 		}
 
 		public override SLE.Expression MakeExpression (BuilderContext ctx)
 		{
 			return orig_expr.MakeExpression (ctx);
+		}
+
+		public override Reachability MarkReachable (Reachability rc)
+		{
+			return expr.MarkReachable (rc);
 		}
 	}
 
@@ -3356,6 +3409,8 @@ namespace Mono.CSharp {
 				// introduce redundant storey but with `this' only but it's tricky to avoid
 				// at this stage as we don't know what expressions follow base
 				//
+				// TODO: It's needed only when the method with base call is moved to a storey
+				//
 				if (rc.CurrentAnonymousMethod != null) {
 					if (targs == null && method.IsGeneric) {
 						targs = method.TypeArguments;
@@ -3458,8 +3513,12 @@ namespace Mono.CSharp {
 				CheckProtectedMemberAccess (rc, member);
 			}
 
-			if (member.MemberType.IsPointer && !rc.IsUnsafe) {
-				UnsafeError (rc, loc);
+			if (member.MemberType.IsPointer) {
+				if (rc.CurrentIterator != null) {
+					UnsafeInsideIteratorError (rc, loc);
+				} else if (!rc.IsUnsafe) {
+					UnsafeError (rc, loc);
+				}
 			}
 
 			var dep = member.GetMissingDependencies ();
@@ -4003,6 +4062,11 @@ namespace Mono.CSharp {
 		public override void Emit (EmitContext ec)
 		{
 			throw new NotSupportedException ();
+		}
+
+		public override void EmitPrepare (EmitContext ec)
+		{
+			InstanceExpression?.EmitPrepare (ec);
 		}
 
 		public void EmitCall (EmitContext ec, Arguments arguments, bool statement)
@@ -5358,6 +5422,11 @@ namespace Mono.CSharp {
 					if (arg_type == InternalType.VarOutType)
 						return 0;
 
+					var ref_arg_type = arg_type as ReferenceContainer;
+					if (ref_arg_type != null) {
+						arg_type = ref_arg_type.Element;
+					}
+
 					//
 					// Do full equality check after quick path
 					//
@@ -5390,10 +5459,8 @@ namespace Mono.CSharp {
 
 		static TypeSpec MoreSpecific (TypeSpec p, TypeSpec q)
 		{
-			if (TypeManager.IsGenericParameter (p) && !TypeManager.IsGenericParameter (q))
-				return q;
-			if (!TypeManager.IsGenericParameter (p) && TypeManager.IsGenericParameter (q))
-				return p;
+			if (p.IsGenericParameter != q.IsGenericParameter)
+				return p.IsGenericParameter ? q : p;
 
 			var ac_p = p as ArrayContainer;
 			if (ac_p != null) {
@@ -5406,18 +5473,22 @@ namespace Mono.CSharp {
 					return p;
 				if (specific == ac_q.Element)
 					return q;
-			} else if (p.IsGeneric && q.IsGeneric) {
-				var pargs = TypeManager.GetTypeArguments (p);
-				var qargs = TypeManager.GetTypeArguments (q);
+
+				return null;
+			}
+
+			if (p.IsGeneric && q.IsGeneric) {
+				var pargs = p.TypeArguments;
+				var qargs = q.TypeArguments;
 
 				bool p_specific_at_least_once = false;
 				bool q_specific_at_least_once = false;
 
 				for (int i = 0; i < pargs.Length; i++) {
-					TypeSpec specific = MoreSpecific (pargs[i], qargs[i]);
-					if (specific == pargs[i])
+					TypeSpec specific = MoreSpecific (pargs [i], qargs [i]);
+					if (specific == pargs [i])
 						p_specific_at_least_once = true;
-					if (specific == qargs[i])
+					if (specific == qargs [i])
 						q_specific_at_least_once = true;
 				}
 
@@ -5921,13 +5992,13 @@ namespace Mono.CSharp {
 			int arg_count = args == null ? 0 : args.Count;
 
 			for (; a_idx < arg_count; a_idx++, ++a_pos) {
-				a = args[a_idx];
+				a = args [a_idx];
 				if (a == null)
 					continue;
 
 				if (p_mod != Parameter.Modifier.PARAMS) {
 					p_mod = cpd.FixedParameters [a_idx].ModFlags;
-					pt = ptypes[a_idx];
+					pt = ptypes [a_idx];
 					has_unsafe_arg |= pt.IsPointer;
 
 					if (p_mod == Parameter.Modifier.PARAMS) {
@@ -5955,6 +6026,14 @@ namespace Mono.CSharp {
 						//
 						((DeclarationExpression)a.Expr).Variable.Type = pt;
 						continue;
+					}
+
+					var ref_arg_type = arg_type as ReferenceContainer;
+					if (ref_arg_type != null) {
+						if (ref_arg_type.Element != pt)
+							break;
+
+						return true;
 					}
 
 					if (!TypeSpecComparer.IsEqual (arg_type, pt))
@@ -6077,8 +6156,12 @@ namespace Mono.CSharp {
 				arg_count++;
 			}
 
-			if (has_unsafe_arg && !ec.IsUnsafe) {
-				Expression.UnsafeError (ec, loc);
+			if (has_unsafe_arg) {
+				if (ec.CurrentIterator != null) {
+					Expression.UnsafeInsideIteratorError (ec, loc);
+				} else if (!ec.IsUnsafe) {
+					Expression.UnsafeError (ec, loc);
+				}
 			}
 
 			//
@@ -6460,12 +6543,12 @@ namespace Mono.CSharp {
 						GetSignatureForError ());
 				}
 
-				return null;
+				return ErrorExpression.Instance;
 			}
 
 			if (right_side == EmptyExpression.LValueMemberAccess) {
 				// Already reported as CS1648/CS1650
-				return null;
+				return ErrorExpression.Instance;
 			}
 
 			if (right_side == EmptyExpression.LValueMemberOutAccess) {
@@ -6476,7 +6559,7 @@ namespace Mono.CSharp {
 					rc.Report.Error (1649, loc, "Members of readonly field `{0}' cannot be passed ref or out (except in a constructor)",
 						GetSignatureForError ());
 				}
-				return null;
+				return ErrorExpression.Instance;
 			}
 
 			if (IsStatic) {
@@ -6487,7 +6570,7 @@ namespace Mono.CSharp {
 					GetSignatureForError ());
 			}
 
-			return null;
+			return ErrorExpression.Instance;
 		}
 
 		public override Expression DoResolveLValue (ResolveContext ec, Expression right_side)
@@ -7007,7 +7090,7 @@ namespace Mono.CSharp {
 		public override void EmitAssign (EmitContext ec, Expression source, bool leave_copy, bool isCompound)
 		{
 			if (backing_field != null) {
-				backing_field.EmitAssign (ec, source, false, false);
+				backing_field.EmitAssign (ec, source, leave_copy, false);
 				return;
 			}
 
@@ -7276,6 +7359,15 @@ namespace Mono.CSharp {
 				Error_NullPropagatingLValue (rc);
 
 			if (right_side == EmptyExpression.OutAccess) {
+				if (best_candidate?.MemberType.Kind == MemberKind.ByRef) {
+					if (Arguments?.ContainsEmitWithAwait () == true) {
+						rc.Report.Error (8178, loc, "`await' cannot be used in an expression containing a call to `{0}' because it returns by reference",
+							GetSignatureForError ());
+					}
+
+					return this;
+				}
+
 				// TODO: best_candidate can be null at this point
 				INamedBlockVariable variable = null;
 				if (best_candidate != null && rc.CurrentBlock.ParametersBlock.TopBlock.GetLocalName (best_candidate.Name, rc.CurrentBlock, ref variable) && variable is Linq.RangeVariable) {
@@ -7301,6 +7393,11 @@ namespace Mono.CSharp {
 			if (!best_candidate.HasSet) {
 				if (ResolveAutopropertyAssignment (rc, right_side))
 					return this;
+
+				if (best_candidate.MemberType.Kind == MemberKind.ByRef) {
+					getter = CandidateToBaseOverride (rc, best_candidate.Get);
+					return ByRefDereference.Create(this).Resolve(rc);
+				}
 
 				rc.Report.Error (200, loc, "Property or indexer `{0}' cannot be assigned to (it is read-only)",
 					GetSignatureForError ());
@@ -7752,13 +7849,14 @@ namespace Mono.CSharp {
 		{
 		}
 
-		public bool InferType (ResolveContext ec, Expression right_side)
+		public bool InferType (ResolveContext ec, Expression rhs)
 		{
 			if (type != null)
 				throw new InternalErrorException ("An implicitly typed local variable could not be redefined");
 			
-			type = right_side.Type;
-			if (type == InternalType.NullLiteral || type.Kind == MemberKind.Void || type == InternalType.AnonymousMethod || type == InternalType.MethodGroup) {
+			type = rhs.Type;
+
+			if (type.Kind == MemberKind.Void || InternalType.HasNoType (type) || (rhs is TupleLiteral && TupleLiteral.ContainsNoTypeElement (type))) {
 				ec.Report.Error (815, loc,
 					"An implicitly typed local variable declaration cannot be initialized with `{0}'",
 					type.GetSignatureForError ());

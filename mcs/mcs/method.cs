@@ -444,6 +444,10 @@ namespace Mono.CSharp {
 			return ms;
 		}
 
+#if DEBUG
+		int counter = 100000;
+#endif
+
 		public MethodSpec MakeGenericMethod (IMemberContext context, params TypeSpec[] targs)
 		{
 			if (targs == null)
@@ -465,6 +469,10 @@ namespace Mono.CSharp {
 			inflated.constraints = TypeParameterSpec.InflateConstraints (inflator, constraints ?? GenericDefinition.TypeParameters);
 			inflated.state |= StateFlags.PendingMakeMethod;
 
+#if DEBUG
+			inflated.ID += counter;
+			counter += 100000;
+#endif
 			//			if (inflated.parent == null)
 			//				inflated.parent = parent;
 
@@ -550,10 +558,7 @@ namespace Mono.CSharp {
 		public override void ApplyAttributeBuilder (Attribute a, MethodSpec ctor, byte[] cdata, PredefinedAttributes pa)
 		{
 			if (a.Target == AttributeTargets.ReturnValue) {
-				if (return_attributes == null)
-					return_attributes = new ReturnParameter (this, MethodBuilder, Location);
-
-				return_attributes.ApplyAttributeBuilder (a, ctor, cdata, pa);
+				CreateReturnBuilder ().ApplyAttributeBuilder (a, ctor, cdata, pa);
 				return;
 			}
 
@@ -616,6 +621,11 @@ namespace Mono.CSharp {
 			return new EmitContext (this, ig, MemberType, sourceMethod);
 		}
 
+		ReturnParameter CreateReturnBuilder ()
+		{
+			return return_attributes ?? (return_attributes = new ReturnParameter (this, MethodBuilder, Location));
+		}
+
 		public override bool Define ()
 		{
 			if (!base.Define ())
@@ -647,7 +657,7 @@ namespace Mono.CSharp {
 
 				explicit_name = null;
 			} else {
-				MethodData = new MethodData (this, ModFlags, flags, this, base_method);
+				MethodData = new MethodData (this, ModFlags, flags, this);
 
 				if (!MethodData.Define (Parent.PartialContainer, GetFullName (MemberName)))
 					return false;
@@ -703,11 +713,13 @@ namespace Mono.CSharp {
 				Module.PredefinedAttributes.DebuggerStepThrough.EmitAttribute (MethodBuilder);
 
 			if (ReturnType.BuiltinType == BuiltinTypeSpec.Type.Dynamic) {
-				return_attributes = new ReturnParameter (this, MethodBuilder, Location);
-				Module.PredefinedAttributes.Dynamic.EmitAttribute (return_attributes.Builder);
+				Module.PredefinedAttributes.Dynamic.EmitAttribute (CreateReturnBuilder ().Builder);
 			} else if (ReturnType.HasDynamicElement) {
-				return_attributes = new ReturnParameter (this, MethodBuilder, Location);
-				Module.PredefinedAttributes.Dynamic.EmitAttribute (return_attributes.Builder, ReturnType, Location);
+				Module.PredefinedAttributes.Dynamic.EmitAttribute (CreateReturnBuilder ().Builder, ReturnType, Location);
+			}
+
+			if (ReturnType.HasNamedTupleElement) {
+				Module.PredefinedAttributes.TupleElementNames.EmitAttribute (CreateReturnBuilder ().Builder, ReturnType, Location);
 			}
 
 			if (OptAttributes != null)
@@ -1937,7 +1949,6 @@ namespace Mono.CSharp {
 		protected Modifiers modifiers;
 		protected MethodAttributes flags;
 		protected TypeSpec declaring_type;
-		protected MethodSpec parent_method;
 		SourceMethodBuilder debug_builder;
 		string full_name;
 
@@ -1968,15 +1979,6 @@ namespace Mono.CSharp {
 			this.flags = flags;
 
 			this.method = method;
-		}
-
-		public MethodData (InterfaceMemberBase member,
-				   Modifiers modifiers, MethodAttributes flags, 
-				   IMethodData method,
-				   MethodSpec parent_method)
-			: this (member, modifiers, flags, method)
-		{
-			this.parent_method = parent_method;
 		}
 
 		public bool Define (TypeDefinition container, string method_full_name)
@@ -2035,6 +2037,20 @@ namespace Mono.CSharp {
 								}
 							}
 						}
+
+						if (!NamedTupleSpec.CheckOverrideName (member.MemberType, implementing.ReturnType)) {
+							container.Compiler.Report.Error (8141, method.Location,
+								"The tuple element names in the signature type of member `{0}' must match the tuple element names of interface member `{1}''",
+								member.GetSignatureForError (), implementing.GetSignatureForError ());
+						}
+
+						var p_member = method as IParametersMember;
+						var p_implementing = implementing as IParametersMember;
+						if (p_member != null && p_implementing != null && !NamedTupleSpec.CheckOverrideName (p_member, p_implementing)) {
+							container.Compiler.Report.Error (8141, method.Location,
+								"The tuple element names in the signature type of member `{0}' must match the tuple element names of interface member `{1}''",
+								member.GetSignatureForError (), implementing.GetSignatureForError ());
+						}
 					}
 				}
 			} else {
@@ -2063,7 +2079,7 @@ namespace Mono.CSharp {
 					}
 				} else {
 					//
-					// Setting implementin to null inside this block will trigger a more
+					// Setting implementing to null inside this block will trigger a more
 					// verbose error reporting for missing interface implementations
 					//
 					if (implementing.DeclaringType.IsInterface) {
@@ -2410,9 +2426,7 @@ namespace Mono.CSharp {
 			}
 
 			if (a.Target == AttributeTargets.ReturnValue) {
-				if (return_attributes == null)
-					return_attributes = new ReturnParameter (this, method_data.MethodBuilder, Location);
-
+				CreateReturnBuilder ();
 				return_attributes.ApplyAttributeBuilder (a, ctor, cdata, pa);
 				return;
 			}
@@ -2431,6 +2445,11 @@ namespace Mono.CSharp {
 			throw new NotSupportedException ();
 		}
 
+		ReturnParameter CreateReturnBuilder ()
+		{
+			return return_attributes ?? (return_attributes = new ReturnParameter (this, method_data.MethodBuilder, Location));
+		}
+
 		public virtual void Emit (TypeDefinition parent)
 		{
 			method_data.Emit (parent);
@@ -2441,11 +2460,13 @@ namespace Mono.CSharp {
 				Module.PredefinedAttributes.DebuggerHidden.EmitAttribute (method_data.MethodBuilder);
 
 			if (ReturnType.BuiltinType == BuiltinTypeSpec.Type.Dynamic) {
-				return_attributes = new ReturnParameter (this, method_data.MethodBuilder, Location);
-				Module.PredefinedAttributes.Dynamic.EmitAttribute (return_attributes.Builder);
+				Module.PredefinedAttributes.Dynamic.EmitAttribute (CreateReturnBuilder ().Builder);
 			} else if (ReturnType.HasDynamicElement) {
-				return_attributes = new ReturnParameter (this, method_data.MethodBuilder, Location);
-				Module.PredefinedAttributes.Dynamic.EmitAttribute (return_attributes.Builder, ReturnType, Location);
+				Module.PredefinedAttributes.Dynamic.EmitAttribute (CreateReturnBuilder ().Builder, ReturnType, Location);
+			}
+
+			if (ReturnType.HasNamedTupleElement) {
+				Module.PredefinedAttributes.TupleElementNames.EmitAttribute (CreateReturnBuilder ().Builder, ReturnType, Location);
 			}
 
 			if (OptAttributes != null)
