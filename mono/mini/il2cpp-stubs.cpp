@@ -305,6 +305,7 @@ int il2cpp_mono_reflection_parse_type (char *name, Il2CppMonoTypeNameParse *mono
 {
 	il2cpp::vm::TypeNameParseInfo *pInfo = new il2cpp::vm::TypeNameParseInfo();
 	std::string nameStr = name;
+	std::replace(nameStr.begin(), nameStr.end(), '/', '+');
 	il2cpp::vm::TypeNameParser parser(nameStr, *pInfo, false);
 	monoInfo->assembly.name = NULL;
 	monoInfo->il2cppTypeNameParseInfo = pInfo;
