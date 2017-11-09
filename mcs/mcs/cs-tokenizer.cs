@@ -894,16 +894,6 @@ namespace Mono.CSharp
 					res = -1;
 
 				break;
-			case Token.THROW:
-				switch (current_token) {
-				case Token.ARROW:
-				case Token.OP_COALESCING:
-				case Token.INTERR:
-					res = Token.THROW_EXPR;
-					break;
-				}
-
-				break;
 			}
 
 
@@ -1052,12 +1042,6 @@ namespace Mono.CSharp
 					//
 					if (current_token == Token.ARROW)
 						return Token.OPEN_PARENS_LAMBDA;
-
-					//
-					// Expression inside parens is deconstruct expression, (a, x.y) = ...
-					//
-					if (current_token == Token.ASSIGN && at_least_one_comma)
-						return Token.OPEN_PARENS_DECONSTRUCT;
 
 					//
 					// Expression inside parens is single type, (int[])
