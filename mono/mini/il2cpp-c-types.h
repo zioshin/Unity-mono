@@ -352,7 +352,7 @@ typedef struct
 {
 	const Il2CppMethodExecutionContextInfoC* const executionContextInfos;
 	const uint32_t executionContextInfoCount;
-	const Il2CppMonoMethod** method;
+	const Il2CppMonoMethod* method;
 	const char* const sourceFile;
 	const uint8_t sourceFileHash[16];
 	const int32_t lineStart, lineEnd;
