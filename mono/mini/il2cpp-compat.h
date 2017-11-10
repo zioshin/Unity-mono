@@ -1,8 +1,8 @@
 #pragma once
 
 #include <mono/metadata/il2cpp-compat-metadata.h>
-#include "il2cpp-c-types.h"
 #if defined(RUNTIME_IL2CPP)
+#include "il2cpp-c-types.h"
 #include "il2cpp-api.h"
 #endif // RUNTIME_IL2CPP
 #include <mono/mini/mini.h>
