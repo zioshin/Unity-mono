@@ -2554,6 +2554,32 @@ mono_metadata_lookup_generic_class (MonoClass *container_class, MonoGenericInst 
 	return gclass;
 }
 
+typedef struct
+{
+	GFunc func;
+	gpointer user_data;
+} GenericClassForeachData;
+
+
+static void 
+generic_class_foreach_callback (gpointer key, gpointer value, gpointer user_data)
+{	
+	GenericClassForeachData* data = (GenericClassForeachData*)user_data;
+	data->func(key, data->user_data);
+}
+
+void
+mono_metadata_generic_class_foreach (GFunc func, gpointer user_data)
+{
+	GenericClassForeachData data;
+
+	data.func = func;
+	data.user_data = user_data;
+
+	g_hash_table_foreach(generic_class_cache, generic_class_foreach_callback, &data);
+}
+
+
 /*
  * mono_metadata_inflate_generic_inst:
  *

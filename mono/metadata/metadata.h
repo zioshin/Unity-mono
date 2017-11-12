@@ -466,6 +466,7 @@ gboolean       mono_type_generic_inst_is_valuetype      (MonoType *type);
 gboolean       mono_metadata_generic_class_is_valuetype (MonoGenericClass *gclass);
 guint          mono_metadata_generic_class_hash  (MonoGenericClass *gclass);
 gboolean       mono_metadata_generic_class_equal (MonoGenericClass *g1, MonoGenericClass *g2);
+void           mono_metadata_generic_class_foreach (GFunc func, gpointer user_data);
 
 guint          mono_metadata_type_hash         (MonoType *t1);
 gboolean       mono_metadata_type_equal        (MonoType *t1, MonoType *t2);
