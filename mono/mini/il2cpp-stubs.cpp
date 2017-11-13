@@ -1380,9 +1380,9 @@ gboolean il2cpp_mono_methods_match(Il2CppMonoMethod* left, Il2CppMonoMethod* rig
 		return TRUE;
 	if (rightMethod == NULL || leftMethod == NULL)
 		return FALSE;
-	if (rightMethod->is_inflated && rightMethod->genericMethod->methodDefinition == leftMethod)
+	if (rightMethod->is_inflated && !rightMethod->is_generic && rightMethod->genericMethod->methodDefinition == leftMethod)
 		return TRUE;
-	if (leftMethod->is_inflated && leftMethod->genericMethod->methodDefinition == rightMethod)
+	if (leftMethod->is_inflated && !leftMethod->is_generic && leftMethod->genericMethod->methodDefinition == rightMethod)
 		return TRUE;
     if (leftMethod->is_generic && rightMethod->is_inflated && rightMethod->methodPointer &&
         leftMethod->declaring_type == rightMethod->declaring_type &&
@@ -1393,8 +1393,8 @@ gboolean il2cpp_mono_methods_match(Il2CppMonoMethod* left, Il2CppMonoMethod* rig
 
         for(int i = 0;i < leftMethod->parameters_count;++i)
         {
-            if (leftMethod->parameters[i].parameter_type != rightMethod->parameters[i].parameter_type)
-                return FALSE;
+			if ((leftMethod->parameters[i].parameter_type->type != IL2CPP_TYPE_MVAR) && (leftMethod->parameters[i].parameter_type->type != IL2CPP_TYPE_VAR) && (leftMethod->parameters[i].parameter_type != rightMethod->parameters[i].parameter_type))
+				return FALSE;
         }
 
         return TRUE;
