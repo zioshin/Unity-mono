@@ -10500,16 +10500,16 @@ thread_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		break;
 	}
 	case CMD_THREAD_GET_STATE:
-		buffer_add_int (buf, thread->state);
+		buffer_add_int (buf, VM_INTERNAL_THREAD_GET_STATE(thread));
 		break;
 	case CMD_THREAD_GET_INFO:
-		buffer_add_byte (buf, thread->threadpool_thread);
+		buffer_add_byte (buf, VM_INTERNAL_THREAD_GET_THREADPOOL_THREAD(thread));
 		break;
 	case CMD_THREAD_GET_ID:
 		buffer_add_long (buf, (guint64)(gsize)thread);
 		break;
 	case CMD_THREAD_GET_TID:
-		buffer_add_long (buf, (guint64)thread->tid);
+		buffer_add_long (buf, (guint64)VM_INTERNAL_THREAD_GET_TID(thread));
 		break;
 	case CMD_THREAD_SET_IP: {
 		DebuggerTlsData *tls;
