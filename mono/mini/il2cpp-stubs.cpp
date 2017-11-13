@@ -562,10 +562,12 @@ Il2CppMonoMethod* il2cpp_mono_class_inflate_generic_method_checked(Il2CppMonoMet
 
 void il2cpp_mono_loader_lock()
 {
+	il2cpp::utils::Debugger::LockDebugger();
 }
 
 void il2cpp_mono_loader_unlock()
 {
+	il2cpp::utils::Debugger::UnlockDebugger();
 }
 
 void il2cpp_mono_loader_lock_track_ownership(gboolean track)
@@ -574,7 +576,7 @@ void il2cpp_mono_loader_lock_track_ownership(gboolean track)
 
 gboolean il2cpp_mono_loader_lock_is_owned_by_self()
 {
-	return FALSE;
+	return il2cpp::utils::Debugger::LockOwnedBySelf();
 }
 
 gpointer il2cpp_mono_method_get_wrapper_data(Il2CppMonoMethod* method, guint32 id)
@@ -1640,6 +1642,24 @@ Il2CppMonoClass* il2cpp_iterate_loaded_classes(void* *iter)
 const char** il2cpp_get_source_files_for_type(Il2CppMonoClass *klass, int *count)
 {
 	return il2cpp::utils::Debugger::GetTypeSourceFiles((Il2CppClass*)klass, *count);
+}
+
+uint32_t il2cpp_get_internal_thread_state(Il2CppMonoInternalThread* thread)
+{
+	//we're not referenceing internal threads, but the wrapper
+	return ((Il2CppThread*)thread)->internal_thread->state;
+}
+
+bool il2cpp_get_internal_thread_threadpool_thread(Il2CppMonoInternalThread* thread)
+{
+	//we're not referenceing internal threads, but the wrapper
+	return ((Il2CppThread*)thread)->internal_thread->threadpool_thread;
+}
+
+uint64_t il2cpp_get_internal_thread_tid(Il2CppMonoInternalThread* thread)
+{
+	//we're not referenceing internal threads, but the wrapper
+	return ((Il2CppThread*)thread)->internal_thread->tid;
 }
 
 }

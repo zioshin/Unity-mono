@@ -16,6 +16,9 @@
 #define VM_THREAD_SET_STATE_BACKGROUND(thread) il2cpp_set_thread_state_background(thread)
 #define VM_THREAD_SET_FLAG_DONT_MANAGE(thread)
 #define VM_THREAD_GET_ID(thread) il2cpp_get_thread_id(thread)
+#define VM_INTERNAL_THREAD_GET_STATE(internal_thread) il2cpp_get_internal_thread_state(internal_thread)
+#define VM_INTERNAL_THREAD_GET_THREADPOOL_THREAD(internal_thread) il2cpp_get_internal_thread_threadpool_thread(internal_thread)
+#define VM_INTERNAL_THREAD_GET_TID(internal_thread) il2cpp_get_internal_thread_tid(internal_thread)
 #define VM_DOMAIN_GET_AGENT_INFO(domain) il2cpp_domain_get_agent_info(domain)
 #define VM_DOMAIN_SET_AGENT_INFO(domain, value) il2cpp_domain_set_agent_info(domain, value)
 #define VM_DOMAIN_GET_NAME(domain) il2cpp_domain_get_name(domain)
@@ -82,6 +85,9 @@
 #define VM_THREAD_SET_STATE_BACKGROUND(thread) thread->internal_thread->state |= ThreadState_Background
 #define VM_THREAD_SET_FLAG_DONT_MANAGE(thread) thread->internal_thread->flags |= MONO_THREAD_FLAG_DONT_MANAGE
 #define VM_THREAD_GET_ID(thread) thread->tid
+#define VM_INTERNAL_THREAD_GET_STATE(internal_thread) internal_thread->state
+#define VM_INTERNAL_THREAD_GET_THREADPOOL_THREAD(internal_thread) internal_thread->threadpool_thread
+#define VM_INTERNAL_THREAD_GET_TID(internal_thread) internal_thread->tid
 #define VM_DOMAIN_GET_AGENT_INFO(domain) domain_jit_info (domain)->agent_info
 #define VM_DOMAIN_SET_AGENT_INFO(domain, value) domain_jit_info (domain)->agent_info = value
 #define VM_DOMAIN_GET_NAME(domain) domain->friendly_name
