@@ -193,7 +193,7 @@ if($^O eq "linux")
 }
 elsif($^O eq 'darwin')
 {
-	$monoHostArch = $arch32 ? "i386" : "x86_64";
+	$monoHostArch = "x86_64";
 	$existingExternalMono = "$existingExternalMonoRoot/osx";
 
 	# From Massi: I was getting failures in install_name_tool about space
@@ -1573,9 +1573,9 @@ if ($artifact)
 	elsif($^O eq 'darwin')
 	{
 		# Note these tmp directories will get merged into a single 'osx' directory later by a parent script
-		$embedDirArchDestination = "$embedDirRoot/osx-tmp-$monoHostArch";
-		$distDirArchBin = "$distdir/bin-osx-tmp-$monoHostArch";
-		$versionsOutputFile = $arch32 ? "$buildsroot/versions-osx32.txt" : "$buildsroot/versions-osx64.txt";
+		$embedDirArchDestination = "$embedDirRoot/osx";
+		$distDirArchBin = "$distdir/bin";
+		$versionsOutputFile = "$buildsroot/versions-osx.txt";
 	}
 	else
 	{

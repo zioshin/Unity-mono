@@ -5,12 +5,16 @@
 
 BASEDIR=$(dirname $0)
 
-if [ "x$1" == "x--runtime-only" ]; then
-	perl "$BASEDIR/build_runtime_iphone.pl" "--runtime=1"|| exit 1
-elif [ "x$1" == "x--xcomp-only" ]; then
-	perl "$BASEDIR/build_runtime_iphone.pl" "--xcomp=1" || exit 1
-elif [ "x$1" == "x--simulator-only" ]; then
-	perl "$BASEDIR/build_runtime_iphone.pl" "--simulator=1" || exit 1
+if [ -d builds ]; then
+	echo "Skip making builds directory.  Already exists"
 else
-	perl "$BASEDIR/build_runtime_iphone.pl" "$@" || exit 1
+	mkdir builds
+fi
+
+if [ "x$1" == "x--runtime-only" ]; then
+	touch builds/dummy_iphone_runtime.txt
+elif [ "x$1" == "x--xcomp-only" ]; then
+	touch builds/dummy_iphone_xcomp.txt
+elif [ "x$1" == "x--simulator-only" ]; then
+	touch builds/dummy_iphone_sim.txt
 fi
