@@ -10505,7 +10505,7 @@ thread_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		buffer_add_long (buf, (guint64)(gsize)thread);
 		break;
 	case CMD_THREAD_GET_TID:
-		buffer_add_long (buf, (guint64)VM_INTERNAL_THREAD_GET_TID(thread));
+		buffer_add_long (buf, (guint64)VM_INTERNAL_THREAD_GET_ID(thread));
 		break;
 	case CMD_THREAD_SET_IP: {
 		DebuggerTlsData *tls;

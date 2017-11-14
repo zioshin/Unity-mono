@@ -1339,9 +1339,19 @@ void il2cpp_start_debugger_thread()
 	il2cpp::utils::Debugger::StartDebuggerThread();
 }
 
-uintptr_t il2cpp_get_thread_id(Il2CppMonoInternalThread* thread)
+uintptr_t il2cpp_internal_thread_get_thread_id(Il2CppMonoInternalThread* thread)
 {
 	return il2cpp::vm::Thread::GetId((Il2CppInternalThread*)thread);
+}
+
+uint32_t il2cpp_internal_thread_get_state(Il2CppMonoInternalThread* thread)
+{
+	return il2cpp::vm::Thread::GetState((Il2CppInternalThread*)thread);
+}
+
+bool il2cpp_internal_thread_get_threadpool_thread(Il2CppMonoInternalThread* thread)
+{
+	return ((Il2CppInternalThread*)thread)->threadpool_thread;
 }
 
 void* il2cpp_gc_alloc_fixed(size_t size)
@@ -1652,21 +1662,6 @@ Il2CppMonoClass* il2cpp_iterate_loaded_classes(void* *iter)
 const char** il2cpp_get_source_files_for_type(Il2CppMonoClass *klass, int *count)
 {
 	return il2cpp::utils::Debugger::GetTypeSourceFiles((Il2CppClass*)klass, *count);
-}
-
-uint32_t il2cpp_get_internal_thread_state(Il2CppMonoInternalThread* thread)
-{
-	return ((Il2CppInternalThread*)thread)->state;
-}
-
-bool il2cpp_get_internal_thread_threadpool_thread(Il2CppMonoInternalThread* thread)
-{
-	return ((Il2CppInternalThread*)thread)->threadpool_thread;
-}
-
-uint64_t il2cpp_get_internal_thread_tid(Il2CppMonoInternalThread* thread)
-{
-	return ((Il2CppInternalThread*)thread)->tid;
 }
 
 }
