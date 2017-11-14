@@ -346,7 +346,16 @@ unityjit_dirs := \
 	$(pcl_facade_dirs)
 
 unityaot_dirs := \
-	$(mobile_common_dirs)	\
+	$(filter-out \
+		Mono.CSharp \
+		System.Data.Services.Client \
+		System.Net.Http.WinHttpHandler \
+		System.ServiceModel.Web \
+		System.ServiceModel \
+		System.Web.Services \
+		System.Reflection.Context \
+		System.Windows \
+		System.Xml.Serialization, $(mobile_common_dirs))	\
 	System.Drawing			\
 	$(pcl_facade_dirs)
 
