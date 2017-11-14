@@ -3286,7 +3286,7 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 	if (tls->frames && tls->frames_up_to_date)
 		return;
 
-	DEBUG_PRINTF (1, "Frames for %p(tid=%lx):\n", thread, VM_THREAD_GET_ID(thread));
+	DEBUG_PRINTF (1, "Frames for %p(tid=%lx):\n", thread, VM_INTERNAL_THREAD_GET_ID(thread));
 
 	user_data.tls = tls;
 	user_data.frames = NULL;
@@ -4013,7 +4013,7 @@ thread_startup (MonoProfiler *prof, uintptr_t tid)
 	if (mono_native_thread_id_equals (MONO_UINT_TO_NATIVE_THREAD_ID (tid), debugger_thread_id))
 		return;
 
-	g_assert (mono_native_thread_id_equals (MONO_UINT_TO_NATIVE_THREAD_ID (tid), MONO_UINT_TO_NATIVE_THREAD_ID (VM_THREAD_GET_ID(thread))));
+	g_assert (mono_native_thread_id_equals (MONO_UINT_TO_NATIVE_THREAD_ID (tid), MONO_UINT_TO_NATIVE_THREAD_ID (VM_INTERNAL_THREAD_GET_ID(thread))));
 
 	mono_loader_lock ();
 	old_thread = (MonoInternalThread *)mono_g_hash_table_lookup (tid_to_thread, GUINT_TO_POINTER (tid));
