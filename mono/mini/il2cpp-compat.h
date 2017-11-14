@@ -12,7 +12,7 @@
 
 #define THREAD_STATIC_FIELD_OFFSET -1
 
-#define VM_THREAD_GET(thread) thread
+#define VM_THREAD_GET_INTERNAL(thread) il2cpp_mono_thread_get_internal(thread)
 #define VM_THREAD_SET_STATE_BACKGROUND(thread) il2cpp_set_thread_state_background(thread)
 #define VM_THREAD_SET_FLAG_DONT_MANAGE(thread)
 #define VM_THREAD_GET_ID(thread) il2cpp_get_thread_id(thread)
@@ -81,7 +81,7 @@
 #define VM_IMAGE_GET_MODULE_NAME(image) il2cpp_image_name(image)
 #define VM_IMAGE_GET_ASSEMBLY(image) il2cpp_image_assembly(image)
 #else
-#define VM_THREAD_GET(thread) thread->internal_thread
+#define VM_THREAD_GET_INTERNAL(thread) thread->internal_thread
 #define VM_THREAD_SET_STATE_BACKGROUND(thread) thread->internal_thread->state |= ThreadState_Background
 #define VM_THREAD_SET_FLAG_DONT_MANAGE(thread) thread->internal_thread->flags |= MONO_THREAD_FLAG_DONT_MANAGE
 #define VM_THREAD_GET_ID(thread) thread->tid

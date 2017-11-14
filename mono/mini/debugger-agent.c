@@ -98,11 +98,7 @@
 
 #include <mono/utils/mono-os-mutex.h>
 
-#ifdef IL2CPP_MONO_DEBUGGER
-#define THREAD_TO_INTERNAL(thread) thread
-#else
-#define THREAD_TO_INTERNAL(thread) (thread)->internal_thread
-#endif // IL2CPP_MONO_DEBUGGER
+#define THREAD_TO_INTERNAL(thread) VM_THREAD_GET_INTERNAL(thread)
 
 #include "debugger-agent.h"
 
@@ -11432,7 +11428,7 @@ debugger_thread (void *arg)
 	debugger_thread_id = mono_native_thread_id_get ();
 
 	MonoThread *thread = mono_thread_attach (mono_get_root_domain ());
-	mono_thread_set_name_internal (VM_THREAD_GET(thread), mono_string_new (mono_get_root_domain (), "Debugger agent"), TRUE, FALSE, &error);
+	mono_thread_set_name_internal (THREAD_TO_INTERNAL(thread), mono_string_new (mono_get_root_domain (), "Debugger agent"), TRUE, FALSE, &error);
 	mono_error_assert_ok (&error);
 
 	VM_THREAD_SET_STATE_BACKGROUND(thread);
