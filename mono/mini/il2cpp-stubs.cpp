@@ -1656,19 +1656,16 @@ const char** il2cpp_get_source_files_for_type(Il2CppMonoClass *klass, int *count
 
 uint32_t il2cpp_get_internal_thread_state(Il2CppMonoInternalThread* thread)
 {
-	//we're not referenceing internal threads, but the wrapper
 	return ((Il2CppInternalThread*)thread)->state;
 }
 
 bool il2cpp_get_internal_thread_threadpool_thread(Il2CppMonoInternalThread* thread)
 {
-	//we're not referenceing internal threads, but the wrapper
 	return ((Il2CppInternalThread*)thread)->threadpool_thread;
 }
 
 uint64_t il2cpp_get_internal_thread_tid(Il2CppMonoInternalThread* thread)
 {
-	//we're not referenceing internal threads, but the wrapper
 	return ((Il2CppInternalThread*)thread)->tid;
 }
 
