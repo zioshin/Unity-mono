@@ -35,16 +35,17 @@ mono_w32event_reset (gpointer handle)
 }
 
 gpointer
-ves_icall_System_Threading_Events_CreateEvent_internal (MonoBoolean manual, MonoBoolean initial, MonoString *name, gint32 *error)
+ves_icall_System_Threading_Events_CreateEvent_internal (MonoBoolean manual, MonoBoolean initial, MonoStringHandle name, gint32 *err, MonoError *error)
 {
-	if (name != NULL)
+	error_init (error);
+	if (!MONO_HANDLE_IS_NULL (name))
 	{
 		g_assertion_message("Named events are not supported by the Unity platform.");
 		return NULL;
 	}
 
 	UnityPalEvent* event = UnityPalEventNew(manual, initial);
-	*error = UnityPalGetLastError();
+	*err = UnityPalGetLastError();
 	return UnityPalEventHandleNew(event);
 }
 
