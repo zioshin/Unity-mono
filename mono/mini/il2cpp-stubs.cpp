@@ -576,7 +576,7 @@ void il2cpp_mono_loader_lock()
 
 void il2cpp_mono_loader_unlock()
 {
-	s_DebuggerLockOwnerTID = 0;
+	s_il2cpp_mono_loader_lock_tid = 0;
 	s_il2cpp_mono_loader_lock.Unlock();
 }
 
@@ -586,7 +586,7 @@ void il2cpp_mono_loader_lock_track_ownership(gboolean track)
 
 gboolean il2cpp_mono_loader_lock_is_owned_by_self()
 {
-	return s_DebuggerLockOwnerTID == il2cpp::os::Thread::CurrentThreadId();
+	return s_il2cpp_mono_loader_lock_tid == il2cpp::os::Thread::CurrentThreadId();
 }
 
 gpointer il2cpp_mono_method_get_wrapper_data(Il2CppMonoMethod* method, guint32 id)
