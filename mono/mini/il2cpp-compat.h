@@ -638,5 +638,8 @@ gboolean il2cpp_class_get_enumtype(Il2CppMonoClass *klass);
 Il2CppMonoClass* il2cpp_iterate_loaded_classes(void* *iter);
 Il2CppMonoAssembly* il2cpp_domain_get_assemblies_iter(Il2CppMonoAppDomain *domain, void* *iter);
 const char** il2cpp_get_source_files_for_type(Il2CppMonoClass *klass, int *count);
+Il2CppMonoInternalThread* il2cpp_mono_thread_get_internal(Il2CppMonoThread* thread);
+uint32_t il2cpp_internal_thread_get_state(Il2CppMonoInternalThread* thread);
+il2cpp_internal_thread_get_threadpool_thread(Il2CppMonoInternalThread* thread);
 
 #endif // RUNTIME_IL2CPP
