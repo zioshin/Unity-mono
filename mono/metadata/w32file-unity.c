@@ -5,6 +5,7 @@
 
 #include "Directory-c-api.h"
 #include "File-c-api.h"
+#include "w32error.h"
 #include "w32file.h"
 #include "utils/strenc.h"
 #include <mono/metadata/w32handle.h>
@@ -143,7 +144,7 @@ mono_w32file_get_times (gpointer handle, FILETIME *create_time, FILETIME *access
 }
 
 gboolean
-mono_w32file_set_times (gpointer handle, gint64 create_time, gint64 access_time, gint64 write_time)
+mono_w32file_set_times (gpointer handle, const FILETIME *create_time, const FILETIME *access_time, const FILETIME *write_time)
 {
 	int error = 0;
 
@@ -322,7 +323,7 @@ mono_w32file_get_volume_information (const gunichar2 *path, gunichar2 *volumenam
 }
 
 gboolean
-mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
+mono_w32file_move (const gunichar2 *path, const gunichar2 *dest, gint32 *error)
 {
 	gboolean result;
 	*error = 0;
@@ -341,26 +342,26 @@ mono_w32file_move (gunichar2 *path, gunichar2 *dest, gint32 *error)
 }
 
 gboolean
-mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName, gunichar2 *destinationBackupFileName, guint32 flags, gint32 *error)
+mono_w32file_replace (const gunichar2 *destination_file_name, const gunichar2 *source_file_name, const gunichar2 *destination_backup_file_name, guint32 flags, gint32 *error)
 {
 	gboolean result;
 	gchar* destPath = NULL;
 	gchar* sourcePath = NULL;
 	gchar* destBackupPath = NULL;
 
-	if (destinationFileName != NULL)
+	if (destination_file_name != NULL)
 	{
-		destPath = mono_unicode_to_external(destinationFileName);
+		destPath = mono_unicode_to_external(destination_file_name);
 	}
 
-	if (sourceFileName != NULL)
+	if (source_file_name != NULL)
 	{
-		sourcePath = mono_unicode_to_external(sourceFileName);
+		sourcePath = mono_unicode_to_external(source_file_name);
 	}
 
-	if (destinationBackupFileName != NULL)
+	if (destination_backup_file_name != NULL)
 	{
-		destBackupPath = mono_unicode_to_external(destinationBackupFileName);
+		destBackupPath = mono_unicode_to_external(destination_backup_file_name);
 	}
 
 	MONO_ENTER_GC_SAFE;
@@ -378,7 +379,7 @@ mono_w32file_replace (gunichar2 *destinationFileName, gunichar2 *sourceFileName,
 }
 
 gboolean
-mono_w32file_copy (gunichar2 *path, gunichar2 *dest, gboolean overwrite, gint32 *error)
+mono_w32file_copy (const gunichar2 *path, const gunichar2 *dest, gboolean overwrite, gint32 *error)
 {
 	gboolean result;
 	*error = 0;
