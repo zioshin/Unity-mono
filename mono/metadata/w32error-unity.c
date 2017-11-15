@@ -1,3 +1,4 @@
+#include <config.h>
 #include "w32error.h"
 
 #if defined(PLATFORM_UNITY) && defined(UNITY_USE_PLATFORM_STUBS)
