@@ -23,7 +23,7 @@ typedef struct CollectMetadataContext
 
 static void ContextInsertClass(CollectMetadataContext* context, MonoClass* klass)
 {
-	if(klass->inited)
+	if (klass->inited && g_hash_table_lookup(context->allTypes, klass) == NULL)
 		g_hash_table_insert(context->allTypes, klass, (gpointer)(context->currentIndex++));
 }
 
@@ -48,7 +48,7 @@ static void CollectHashMapListClasses(gpointer key, gpointer value, gpointer use
 	}
 }
 
-static void CollectHashMapGenericClass(gpointer key, gpointer value, gpointer user_data)
+static void CollectGenericClass(gpointer value, gpointer user_data)
 {
 	CollectMetadataContext* context = (CollectMetadataContext*)user_data;
 	MonoGenericClass* genericClass = (MonoGenericClass*)value;
@@ -78,9 +78,6 @@ static void CollectAssemblyMetaData (MonoAssembly *assembly, void *user_data)
 
     if(image->ptr_cache)
         g_hash_table_foreach(image->ptr_cache, CollectHashMapClass, user_data);
-
-    if(image->generic_class_cache)
-        g_hash_table_foreach(image->generic_class_cache, CollectHashMapGenericClass, user_data);
 }
 
 static int FindClassIndex(GHashTable* hashTable, MonoClass* klass)
@@ -181,6 +178,8 @@ static void CollectMetadata(MonoMetadataSnapshot* metadata)
 	context.metadata = metadata;
 	
 	mono_assembly_foreach((GFunc)CollectAssemblyMetaData, &context);
+
+	mono_metadata_generic_class_foreach(CollectGenericClass, &context);
 
 	metadata->typeCount = g_hash_table_size(context.allTypes);
 	metadata->types = g_new0(MonoMetadataType, metadata->typeCount);
