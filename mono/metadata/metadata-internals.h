@@ -429,6 +429,9 @@ typedef struct {
 	// Generic-specific caches
 	GHashTable *gclass_cache, *ginst_cache, *gmethod_cache, *gsignature_cache;
 
+	/* mirror caches of ones already on MonoImage. These ones contain generics */
+	GHashTable *szarray_cache, *array_cache;
+
 	MonoWrapperCaches wrapper_caches;
 
 	mono_mutex_t    lock;
