@@ -1699,7 +1699,7 @@ ves_icall_System_Runtime_InteropServices_Marshal_IsComObject (MonoObject* object
 #ifndef DISABLE_COM
 	return (MonoBoolean)cominterop_object_is_rcw (object);
 #else
-	g_assert_not_reached ();
+	return FALSE;
 #endif
 }
 
