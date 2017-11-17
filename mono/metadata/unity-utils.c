@@ -23,6 +23,7 @@
 #include <mono/metadata/marshal.h>
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/profiler-private.h>
+#include <mono/metadata/profiler.h>
 #include <mono/metadata/reflection-internals.h>
 #include <mono/metadata/threads.h>
 #include <mono/metadata/threadpool.h>
@@ -1151,20 +1152,6 @@ mono_unity_thread_fast_detach ()
 }
 
 // hack, FIXME jon
-void mono_profiler_install_allocation (void* callback)
-{
-
-}
-
-void mono_profiler_install_enter_leave (void*  enter, void*  fleave)
-{
-
-}
-
-void mono_profiler_install_exception (void*  throw_callback, void*  exc_method_leave, void*  clause_callback)
-{
-
-}
 
 /*
 size_t RemapPathFunction (const char* path, char* buffer, size_t buffer_len)

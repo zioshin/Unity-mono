@@ -164,11 +164,6 @@ MONO_API gpointer mono_unity_alloc(gsize size);
 MONO_API void mono_unity_g_free (void *ptr);
 
 // hack, FIXME jon
-MONO_API void mono_profiler_install_allocation (void* callback);
-MONO_API void mono_profiler_install_enter_leave (void*  enter, void*  fleave);
-MONO_API void mono_profiler_install_exception (void*  throw_callback, void*  exc_method_leave, void*  clause_callback);
-
-
 typedef size_t (*RemapPathFunction)(const char* path, char* buffer, size_t buffer_len);
 MONO_API void mono_unity_register_path_remapper (RemapPathFunction func);
 gboolean 
