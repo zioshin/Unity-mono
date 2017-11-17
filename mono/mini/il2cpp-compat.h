@@ -630,7 +630,7 @@ Il2CppMonoImage* il2cpp_defaults_corlib_image();
 int il2cpp_generic_container_get_type_argc(Il2CppMonoGenericClass* container);
 uint32_t il2cpp_method_get_flags_no_iflags (const Il2CppMonoMethod * method);
 Il2CppMonoClass* il2cpp_defaults_void_class();
-void il2cpp_set_local_value(guint8* newValue, void *value, Il2CppMonoType *localVariableTypeMono, MethodVariableKindC localVariableValue);
+void il2cpp_set_var(guint8* newValue, void *value, Il2CppMonoType *localVariableTypeMono);
 Il2CppMonoMethod* il2cpp_get_interface_method(Il2CppMonoClass* klass, Il2CppMonoClass* itf, int slot);
 gboolean il2cpp_field_is_deleted(Il2CppMonoClassField *field);
 Il2CppMonoGenericClass* il2cpp_type_get_generic_class(Il2CppMonoType *type);

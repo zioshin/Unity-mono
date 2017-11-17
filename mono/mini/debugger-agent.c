@@ -10575,7 +10575,7 @@ static uint32_t GetExecutionContextIndex(const Il2CppSequencePointC* sequencePoi
 	}
 }
 
-static void SendVariableData(DebuggerTlsData* tls, StackFrame* frame, Buffer* buf, MethodVariableKindC variableKind, uint32_t variablePosition)
+static void GetVariable(DebuggerTlsData* tls, StackFrame* frame, MethodVariableKindC variableKind, uint32_t variablePosition, Il2CppMonoType** type, void** var)
 {
 	for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
 	{
@@ -10584,29 +10584,18 @@ static void SendVariableData(DebuggerTlsData* tls, StackFrame* frame, Buffer* bu
 			Il2CppSequencePointC* sequencePoint = tls->il2cpp_context.sequencePoints[frame_index];
 			Il2CppSequencePointExecutionContextC* executionContext = tls->il2cpp_context.executionContexts[frame_index];
 			uint32_t executionContextPosition = GetExecutionContextIndex(sequencePoint, variableKind, variablePosition);
-			MonoType* localVariableType = *sequencePoint->executionContextInfos[executionContextPosition].type;
-			void* localVariableValue = executionContext->values[executionContextPosition];
-			buffer_add_value_full(buf, localVariableType, localVariableValue, frame->domain, FALSE, NULL);
-			break;
+			*type = *sequencePoint->executionContextInfos[executionContextPosition].type;
+			*var = executionContext->values[executionContextPosition];
 		}
 	}
 }
 
-static void SetVariableValue(DebuggerTlsData* tls, StackFrame* frame, guint8* buf, MethodVariableKindC variableKind, uint32_t variablePosition)
+static void SendVariableData(DebuggerTlsData* tls, StackFrame* frame, Buffer* buf, MethodVariableKindC variableKind, uint32_t variablePosition)
 {
-	for (int frame_index = 0; frame_index < tls->il2cpp_context.frameCount; ++frame_index)
-	{
-		if (tls->il2cpp_context.sequencePoints[frame_index]->method == frame->actual_method)
-		{
-			Il2CppSequencePointC* sequencePoint = tls->il2cpp_context.sequencePoints[frame_index];
-			Il2CppSequencePointExecutionContextC* executionContext = tls->il2cpp_context.executionContexts[frame_index];
-			uint32_t executionContextPosition = GetExecutionContextIndex(sequencePoint, variableKind, variablePosition);
-			MonoType* localVariableType = *sequencePoint->executionContextInfos[executionContextPosition].type;
-			void* localVariableValue = executionContext->values[executionContextPosition];
-			il2cpp_set_local_value(buf, localVariableValue, localVariableType, variableKind);
-			break;
-		}
-	}
+	MonoType* localVariableType;
+	void* localVariableValue;
+	GetVariable(tls, frame, variableKind, variablePosition, &localVariableType, &localVariableValue);
+	buffer_add_value_full(buf, localVariableType, localVariableValue, frame->domain, FALSE, NULL);
 }
 
 #endif
@@ -10768,6 +10757,8 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		MonoType *t;
 #ifndef IL2CPP_MONO_DEBUGGER
 		MonoDebugVarInfo *var;
+#else
+		void *var;
 #endif
 
 		len = decode_int (p, &p, end);
@@ -10787,7 +10778,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				t = sig->params [pos];
 				var = &jit->params [pos];
 #else
-				NOT_IMPLEMENTED;
+				GetVariable(tls, frame, kMethodVariableKindC_Parameter, pos, &t, &var);
 #endif
 			} else {
 #ifndef IL2CPP_MONO_DEBUGGER
@@ -10804,7 +10795,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				t = header->locals [pos];
 				var = &jit->locals [pos];
 #else
-				NOT_IMPLEMENTED;
+				GetVariable(tls, frame, kMethodVariableKindC_LocalVariable, pos, &t, &var);
 #endif
 			}
 
@@ -10818,7 +10809,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 #ifndef IL2CPP_MONO_DEBUGGER
 			set_var (t, var, &frame->ctx, frame->domain, val_buf, frame->reg_locations, &tls->restore_state.ctx);
 #else
-			NOT_IMPLEMENTED;
+			il2cpp_set_var(val_buf, var, t);
 #endif
 		}
 #ifndef IL2CPP_MONO_DEBUGGER
@@ -10836,6 +10827,8 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		MonoType *t;
 #ifndef IL2CPP_MONO_DEBUGGER
 		MonoDebugVarInfo *var;
+#else
+		void *var;
 #endif
 
 		t = &frame->actual_method->klass->byval_arg;
@@ -10844,15 +10837,19 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 #ifndef IL2CPP_MONO_DEBUGGER
 		var = jit->this_var;
 		g_assert (var);
+#else
+		GetVariable(tls, frame, kMethodVariableKindC_This, 0, &t, &var);
+#endif
 
 		val_buf = (guint8 *)g_alloca (mono_class_instance_size (mono_class_from_mono_type (t)));
 		err = decode_value (t, frame->domain, val_buf, p, &p, end);
 		if (err != ERR_NONE)
 			return err;
 
+#ifndef IL2CPP_MONO_DEBUGGER
 		set_var (&frame->actual_method->klass->this_arg, var, &frame->ctx, frame->domain, val_buf, frame->reg_locations, &tls->restore_state.ctx);
 #else
-		NOT_IMPLEMENTED;
+		il2cpp_set_var(val_buf, var, t);
 #endif
 		break;
 	}
