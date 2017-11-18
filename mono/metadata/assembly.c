@@ -827,7 +827,7 @@ compute_base (char *path)
 		return NULL;
 
 	/* Not a well known Mono executable, we are embedded, cant guess the base  */
-	if (strcmp (p, "/mono") && strcmp (p, "/mono-boehm") && strcmp (p, "/mono-sgen") && strcmp (p, "/pedump") && strcmp (p, "/monodis"))
+	if (strcmp (p, "/mono") && strcmp (p, "/mono-boehm") && strcmp (p, "/mono-bdwgc") && strcmp (p, "/mono-sgen") && strcmp (p, "/pedump") && strcmp (p, "/monodis"))
 		return NULL;
 	    
 	*p = 0;
@@ -835,7 +835,7 @@ compute_base (char *path)
 	if (p == NULL)
 		return NULL;
 	
-	if (strcmp (p, "/bin") != 0)
+	if (strstr (p, "/bin") == 0)
 		return NULL;
 	*p = 0;
 	return path;
