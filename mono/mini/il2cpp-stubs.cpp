@@ -5,6 +5,7 @@
 #include "gc/GCHandle.h"
 #include "gc/GarbageCollector.h"
 #include "gc/WriteBarrier.h"
+#include "metadata/FieldLayout.h"
 #include "vm/Assembly.h"
 #include "vm/AssemblyName.h"
 #include "vm/Class.h"
@@ -1603,9 +1604,13 @@ Il2CppMonoClass* il2cpp_defaults_void_class()
 	return (Il2CppMonoClass*)il2cpp_defaults.void_class;
 }
 
-void il2cpp_set_local_value(guint8* newValue, void *value, Il2CppMonoType *localVariableTypeMono, MethodVariableKindC localVariableValue)
+void il2cpp_set_var(guint8* newValue, void *value, Il2CppMonoType *localVariableTypeMono)
 {
-	
+	il2cpp::metadata::SizeAndAlignment sa = il2cpp::metadata::FieldLayout::GetTypeSizeAndAlignment((const Il2CppType*)localVariableTypeMono);
+	if (((Il2CppType*)localVariableTypeMono)->byref)
+		memcpy(*(void**)value, newValue, sa.size);
+	else
+		memcpy(value, newValue, sa.size);
 }
 
 Il2CppMonoMethod* il2cpp_get_interface_method(Il2CppMonoClass* klass, Il2CppMonoClass* itf, int slot)
