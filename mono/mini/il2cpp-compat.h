@@ -67,7 +67,8 @@
 #define VM_OBJECT_GET_DOMAIN(object) il2cpp_mono_domain_get()
 #define VM_OBJECT_GET_CLASS(object) il2cpp_object_get_class(object)
 #define VM_OBJECT_GET_TYPE(object) il2cpp_mono_object_get_type(object)
-#define VM_GENERIC_CLASS_GET_INST(klass) il2cpp_generic_class_get_inst(klass)
+#define VM_GENERIC_CLASS_GET_INST(gklass) il2cpp_generic_class_get_inst(gklass)
+#define VM_GENERIC_CLASS_GET_CONTAINER_CLASS(gklass) il2cpp_generic_class_get_container_class(gklass)
 #define VM_GENERIC_CONTAINER_GET_TYPE_ARGC(container) il2cpp_generic_container_get_type_argc(container)
 #define VM_GENERIC_INST_TYPE_ARGC(inst) il2cpp_generic_inst_type_argc(inst)
 #define VM_GENERIC_INST_TYPE_ARG(inst, i) il2cpp_generic_inst_type_arg(inst, i)
@@ -141,7 +142,8 @@
 #define VM_OBJECT_GET_CLASS(object) ((MonoObject*)object)->vtable->klass
 #define VM_OBJECT_GET_TYPE(object) ((MonoReflectionType*)object->vtable->type)->type
 #define VM_GENERIC_CONTAINER_GET_TYPE_ARGC(container) container->type_argc
-#define VM_GENERIC_CLASS_GET_INST(klass) (klass)->context.class_inst
+#define VM_GENERIC_CLASS_GET_INST(gklass) (gklass)->context.class_inst
+#define VM_GENERIC_CLASS_GET_CONTAINER_CLASS(gklass) (gklass)->container_class
 #define VM_GENERIC_INST_TYPE_ARGC(inst) (inst)->type_argc
 #define VM_GENERIC_INST_TYPE_ARG(inst, i) (inst)->type_argv[i]
 #define VM_DEFAULTS_OBJECT_CLASS mono_defaults.object_class
@@ -655,5 +657,6 @@ uint32_t il2cpp_internal_thread_get_state(Il2CppMonoInternalThread* thread);
 il2cpp_internal_thread_get_threadpool_thread(Il2CppMonoInternalThread* thread);
 Il2CppMonoMethod* il2cpp_method_get_generic_definition(Il2CppMonoMethodInflated *imethod);
 Il2CppMonoGenericInst* il2cpp_method_get_generic_class_inst(Il2CppMonoMethodInflated *imethod);
+Il2CppMonoClass* il2cpp_generic_class_get_container_class(Il2CppMonoGenericClass *gclass);
 
 #endif // RUNTIME_IL2CPP

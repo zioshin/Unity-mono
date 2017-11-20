@@ -838,16 +838,11 @@ static MonoAssembly* mono_domain_get_assemblies_iter(MonoDomain *domain, void* *
 	if (!iter)
 		return NULL;
 
-	if (!*iter)
-	{
+	if (*iter)
+		*iter = ((GList*)(*iter))->next;
+	else
 		*iter = domain->domain_assemblies;
-		if (*iter)
-			return ((GList*)(*iter))->data;
-		else
-			return NULL;
-	}
 
-	*iter = ((GList*)(*iter))->next;
 
 	if (*iter)
 		return ((GList*)(*iter))->data;
@@ -3622,27 +3617,22 @@ create_event_list (EventKind event, GPtrArray *reqs, MonoJitInfo *ji, DebuggerEv
 					int i;
 					GPtrArray *source_file_list;
 
-					while ((method = mono_class_get_methods (ei->klass, &iter))) {
 #ifdef IL2CPP_MONO_DEBUGGER
-						GPtrArray* sequencePoints;
-						GPtrArray* uniqueFileSequencePoints;
-						GArray* uniqueFileSequencePointIndices;
-						GetSequencePointsAndSourceFilesUniqueSequencePoints(method, &sequencePoints, &uniqueFileSequencePoints, &uniqueFileSequencePointIndices);
+					int fileCount;
+					const char **files;
 
-						for (i = 0; i < uniqueFileSequencePoints->len; ++i) {
-							Il2CppSequencePointC* seqPoint = (Il2CppSequencePointC*)g_ptr_array_index(uniqueFileSequencePoints, i);
-							if (strlen(seqPoint->sourceFile) != 0)
-							{
-								found = find_source_file_in_hash_table(seqPoint->sourceFile, mod->data.source_files);
-								if (found)
-									break;
-							}
-						}
+					files = il2cpp_get_source_files_for_type(ei->klass, &fileCount);
+					for (int i = 0; i < fileCount; ++i)
+					{
+						char *s = strdup_tolower(files[i]);
 
-						g_ptr_array_free(sequencePoints, TRUE);
-						g_ptr_array_free(uniqueFileSequencePoints, TRUE);
-						g_array_free(uniqueFileSequencePointIndices, TRUE);
+						found = find_source_file_in_hash_table(s, mod->data.source_files);
+						g_free(s);
+						if (found)
+							break;
+					}
 #else
+					while ((method = mono_class_get_methods (ei->klass, &iter))) {
 						MonoDebugMethodInfo *minfo = mono_debug_lookup_method (method);
 
 						if (minfo) {
@@ -3655,8 +3645,8 @@ create_event_list (EventKind event, GPtrArray *reqs, MonoJitInfo *ji, DebuggerEv
 							}
 							g_ptr_array_free (source_file_list, TRUE);
 						}
-#endif
 					}
+#endif
 					if (!found)
 						filtered = TRUE;
 				} else if (mod->kind == MOD_KIND_TYPE_NAME_ONLY && ei && ei->klass) {
@@ -5444,11 +5434,12 @@ mono_debugger_agent_user_break (void)
 		int suspend_policy;
 		GSList *events;
 
+#ifndef IL2CPP_MONO_DEBUGGER
 		/* Obtain a context */
 		MONO_CONTEXT_SET_IP (&ctx, NULL);
 		mono_walk_stack_with_ctx (user_break_cb, NULL, (MonoUnwindOptions)0, &ctx);
 		g_assert (MONO_CONTEXT_GET_IP (&ctx) != NULL);
-
+#endif
 		mono_loader_lock ();
 		events = create_event_list (EVENT_KIND_USER_BREAK, NULL, NULL, NULL, &suspend_policy);
 		mono_loader_unlock ();
@@ -7864,24 +7855,13 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 				memset (this_buf, 0, mono_class_instance_size (VM_METHOD_GET_DECLARING_TYPE(m)));
 				p = tmp_p;
 			} else {
-#ifdef IL2CPP_MONO_DEBUGGER
-				err = decode_value (VM_CLASS_GET_TYPE(VM_METHOD_GET_DECLARING_TYPE(m)), domain, mono_object_unbox(this_buf), p, &p, end);
-#else
 				err = decode_value(VM_CLASS_GET_TYPE(VM_METHOD_GET_DECLARING_TYPE(m)), domain, this_buf, p, &p, end);
-#endif
 
 				if (err != ERR_NONE)
 					return err;
 			}
 	} else {
-#ifdef IL2CPP_MONO_DEBUGGER
-		if (VM_CLASS_IS_VALUETYPE(VM_METHOD_GET_DECLARING_TYPE(m)))
-			err = decode_value (VM_CLASS_GET_TYPE(VM_METHOD_GET_DECLARING_TYPE(m)), domain, mono_object_unbox(this_buf), p, &p, end);
-		else
-			err = decode_value(VM_CLASS_GET_TYPE(VM_METHOD_GET_DECLARING_TYPE(m)), domain, this_buf, p, &p, end);
-#else
 		err = decode_value (VM_CLASS_GET_TYPE(VM_METHOD_GET_DECLARING_TYPE(m)), domain, this_buf, p, &p, end);
-#endif
 
 		if (err != ERR_NONE)
 			return err;
@@ -8022,11 +8002,7 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 				if (!VM_CLASS_IS_VALUETYPE(VM_METHOD_GET_DECLARING_TYPE(m)))
 					buffer_add_value (buf, VM_CLASS_GET_TYPE(VM_DEFAULTS_OBJECT_CLASS), &this_arg, domain);
 				else
-#if IL2CPP_MONO_DEBUGGER
-					buffer_add_value (buf, VM_CLASS_GET_TYPE(VM_METHOD_GET_DECLARING_TYPE(m)), mono_object_unbox(this_buf), domain);
-#else
 					buffer_add_value(buf, VM_CLASS_GET_TYPE(VM_METHOD_GET_DECLARING_TYPE(m)), this_buf, domain);
-#endif
 			} else {
 				buffer_add_value (buf, VM_CLASS_GET_TYPE(VM_DEFAULTS_VOID_CLASS), NULL, domain);
 			}
@@ -9365,7 +9341,7 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 			if (mono_class_is_gtd (klass))
 				buffer_add_typeid (buf, domain, klass);
 			else if (mono_class_is_ginst (klass))
-				buffer_add_typeid (buf, domain, mono_class_get_generic_class (klass)->container_class);
+				buffer_add_typeid (buf, domain, VM_GENERIC_CLASS_GET_CONTAINER_CLASS(mono_class_get_generic_class (klass)));
 			else
 				buffer_add_id (buf, 0);
 		}
