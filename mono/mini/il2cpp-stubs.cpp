@@ -12,6 +12,7 @@
 #include "vm/Domain.h"
 #include "vm/Field.h"
 #include "vm/GenericContainer.h"
+#include "vm/GenericClass.h"
 #include "vm/Image.h"
 #include "vm/Method.h"
 #include "vm/Object.h"
@@ -873,6 +874,10 @@ Il2CppMonoString* il2cpp_mono_ldstr_checked(Il2CppMonoDomain* domain, Il2CppMono
 Il2CppMonoObject* il2cpp_mono_runtime_try_invoke(Il2CppMonoMethod* method, void* obj, void** params, Il2CppMonoObject** exc, MonoError* error)
 {
 	mono_error_init(error);
+
+	if (((MethodInfo*)method)->declaring_type->valuetype)
+		obj = static_cast<Il2CppObject*>(obj) - 1;
+
 	return (Il2CppMonoObject*)il2cpp::vm::Runtime::Invoke((MethodInfo*)method, obj, params, (Il2CppException**)exc);
 }
 
@@ -975,7 +980,7 @@ Il2CppMonoCustomAttrInfo* il2cpp_mono_custom_attrs_from_method_checked(Il2CppMon
 
 Il2CppMonoCustomAttrInfo* il2cpp_mono_custom_attrs_from_class_checked(Il2CppMonoClass* klass, MonoError* error)
 {
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
+	mono_error_init(error);
 	return NULL;
 }
 
@@ -1715,6 +1720,10 @@ Il2CppMonoGenericInst* il2cpp_method_get_generic_class_inst(Il2CppMonoMethodInfl
 	return (Il2CppMonoGenericInst*)method->genericMethod->context.class_inst;
 }
 
+Il2CppMonoClass* il2cpp_generic_class_get_container_class(Il2CppMonoGenericClass *gclass)
+{
+	return (Il2CppMonoClass*)il2cpp::vm::GenericClass::GetTypeDefinition((Il2CppGenericClass*)gclass);
+}
 
 }
 
