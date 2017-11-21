@@ -4319,7 +4319,7 @@ static void
 jit_end (MonoProfiler *prof, MonoMethod *method, MonoJitInfo *jinfo)
 {
 #ifdef IL2CPP_MONO_DEBUGGER
-	if (!result)
+	//if (!result)
 	{
 		g_hash_table_insert(s_jit_info_hashtable, method, jinfo);
 	}
@@ -10918,10 +10918,10 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				} else {
 					add_var (buf, jit, &frame->api_method->klass->byval_arg, jit->this_var, &frame->ctx, frame->domain, TRUE);
 				}
-			}
 #else
-			SendVariableData (tls, frame, buf, kMethodVariableKindC_This, 0);
+				SendVariableData (tls, frame, buf, kMethodVariableKindC_This, 0);
 #endif
+			}
 		}
 		break;
 	}
@@ -11053,7 +11053,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	return ERR_NONE;
 }
 
-static ErrorCode
+static int
 array_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 {
 	MonoArray *arr;
@@ -11618,6 +11618,9 @@ debugger_thread (void *arg)
 	debugger_thread_id = mono_native_thread_id_get ();
 
 	MonoInternalThread *internal = mono_thread_internal_current ();
+#ifdef IL2CPP_MONO_DEBUGGER
+	internal->debugger_thread = 1;
+#endif
 	MonoString *str = mono_string_new_checked (mono_domain_get (), "Debugger agent", &error);
 	mono_error_assert_ok (&error);
 	mono_thread_set_name_internal (internal, str, TRUE, FALSE, &error);

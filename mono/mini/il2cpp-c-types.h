@@ -115,15 +115,20 @@ struct _Il2CppMonoDefaults
 struct _Il2CppMonoStackFrameInfo
 {
 	MonoStackFrameType type;
-	Il2CppMonoDomain *domain;
-	Il2CppMonoMethod *actual_method;
-	gpointer lmf;
 	MonoJitInfo *ji;
-	int il_offset;
-	int native_offset;
 	Il2CppMonoMethod *method;
-	mgreg_t **reg_locations;
+	Il2CppMonoMethod *actual_method;
+	Il2CppMonoDomain *domain;
 	gboolean managed;
+	gboolean async_context;
+	int native_offset;
+	int il_offset;
+	gpointer interp_exit_data;
+	gpointer interp_frame;
+	gpointer lmf;
+	guint32 unwind_info_len;
+	guint8 *unwind_info;
+	mgreg_t **reg_locations;
 };
 
 struct _Il2CppMonoCustomAttrEntry
@@ -150,6 +155,7 @@ struct _Il2CppMonoInternalThread
 	guint64 tid;
 	guint32 state;
 	gsize flags;
+	MonoBoolean debugger_thread;
 	MonoBoolean threadpool_thread;
 };
 
@@ -265,6 +271,7 @@ struct _Il2CppMonoMethod
 	unsigned int wrapper_type:5;
 	unsigned int is_inflated:1;
 	unsigned int is_generic:1;
+	unsigned int  string_ctor:1;
 };
 
 struct _Il2CppMonoClassField

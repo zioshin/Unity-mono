@@ -36,6 +36,7 @@ extern "C" {
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/debug-mono-symfile.h>
+#include <mono/metadata/profiler-private.h>
 #include <mono/metadata/profiler.h>
 #include <mono/sgen/sgen-conf.h>
 #include <mono/mini/mini.h>
@@ -268,6 +269,13 @@ uintptr_t il2cpp_mono_array_length (Il2CppMonoArray *array)
 Il2CppMonoString* il2cpp_mono_string_new (Il2CppMonoDomain *domain, const char *text)
 {
 	return (Il2CppMonoString*)il2cpp::vm::String::New(text);
+}
+
+
+Il2CppMonoString* il2cpp_mono_string_new_checked (Il2CppMonoDomain *domain, const char *text, MonoError *merror)
+{
+	mono_error_init(merror);
+	return il2cpp_mono_string_new (domain, text);
 }
 
 char* il2cpp_mono_string_to_utf8_checked (Il2CppMonoString *string_obj, MonoError *error)
@@ -1022,11 +1030,6 @@ void il2cpp_mono_profiler_install(Il2CppMonoProfiler* prof, Il2CppMonoProfileFun
 	il2cpp::vm::Profiler::Install((Il2CppProfiler*)prof, (Il2CppProfileFunc)callback);
 }
 
-void il2cpp_mono_profiler_set_events(MonoProfileFlags events)
-{
-	il2cpp::vm::Profiler::SetEvents((Il2CppProfileFlags)events);
-}
-
 void il2cpp_mono_profiler_install_appdomain(Il2CppMonoProfileAppDomainFunc start_load, Il2CppMonoProfileAppDomainResult end_load, Il2CppMonoProfileAppDomainFunc start_unload, Il2CppMonoProfileAppDomainFunc end_unload)
 {
 }
@@ -1035,22 +1038,25 @@ void il2cpp_mono_profiler_install_assembly(Il2CppMonoProfileAssemblyFunc start_l
 {
 }
 
-void il2cpp_mono_profiler_install_jit_end(MonoProfileJitResult end)
-{
-}
-
-void il2cpp_mono_profiler_install_thread(MonoProfileThreadFunc start, MonoProfileThreadFunc end)
-{
-	il2cpp::utils::Debugger::RegisterThreadCallbacks((ThreadCallback)start, (ThreadCallback)end);
-}
-
-void il2cpp_mono_profiler_install_thread_fast_attach_detach(MonoProfileThreadFunc fast_attach, MonoProfileThreadFunc fast_detach)
-{
-}
-
 void il2cpp_mono_profiler_install_runtime_initialized(Il2CppMonoProfileFunc runtime_initialized_callback)
 {
 }
+
+void il2cpp_mono_profiler_set_jit_done_callback(MonoProfilerJitDoneCallback callback)
+{
+
+}
+
+void il2cpp_mono_profiler_set_thread_started_callback(MonoProfilerThreadStartedCallback callback)
+{
+	il2cpp::utils::Debugger::RegisterThreadCallbacks((ThreadCallback)callback, (ThreadCallback)NULL);
+}
+
+void il2cpp_mono_profiler_set_thread_stopped_callback(MonoProfilerThreadStoppedCallback callback)
+{
+	il2cpp::utils::Debugger::RegisterThreadCallbacks((ThreadCallback)NULL, (ThreadCallback)callback);
+}
+
 
 char* il2cpp_mono_get_runtime_build_info()
 {

@@ -7,6 +7,7 @@
 #endif // RUNTIME_IL2CPP
 #include <mono/mini/mini.h>
 #include <mono/sgen/sgen-conf.h>
+#include <mono/metadata/profiler.h>
 
 #ifdef IL2CPP_MONO_DEBUGGER
 
@@ -241,6 +242,7 @@
 #define mono_array_addr_with_size il2cpp_mono_array_addr_with_size
 #define mono_array_length il2cpp_mono_array_length
 #define mono_string_new il2cpp_mono_string_new
+#define mono_string_new_checked il2cpp_mono_string_new_checked
 #define mono_string_to_utf8_checked il2cpp_mono_string_to_utf8_checked
 #define mono_object_hash il2cpp_mono_object_hash
 #define mono_object_unbox il2cpp_mono_object_unbox
@@ -350,13 +352,17 @@
 #define mono_network_init il2cpp_mono_network_init
 #define mono_w32socket_set_blocking il2cpp_mono_w32socket_set_blocking
 #define mono_profiler_install il2cpp_mono_profiler_install
-#define mono_profiler_set_events il2cpp_mono_profiler_set_events
 #define mono_profiler_install_appdomain il2cpp_mono_profiler_install_appdomain
 #define mono_profiler_install_assembly il2cpp_mono_profiler_install_assembly
-#define mono_profiler_install_jit_end il2cpp_mono_profiler_install_jit_end
 #define mono_profiler_install_thread il2cpp_mono_profiler_install_thread
 #define mono_profiler_install_thread_fast_attach_detach il2cpp_mono_profiler_install_thread_fast_attach_detach
 #define mono_profiler_install_runtime_initialized il2cpp_mono_profiler_install_runtime_initialized
+
+
+#define mono_profiler_set_jit_done_callback il2cpp_mono_profiler_set_jit_done_callback
+#define mono_profiler_set_thread_started_callback il2cpp_mono_profiler_set_thread_started_callback
+#define mono_profiler_set_thread_stopped_callback il2cpp_mono_profiler_set_thread_stopped_callback
+
 #define mono_get_runtime_build_info il2cpp_mono_get_runtime_build_info
 #define mono_marshal_method_from_wrapper il2cpp_mono_marshal_method_from_wrapper
 #define mini_get_debug_options il2cpp_mini_get_debug_options
@@ -459,6 +465,8 @@ int il2cpp_mono_string_length (Il2CppMonoString *s);
 char* il2cpp_mono_array_addr_with_size (Il2CppMonoArray *array, int size, uintptr_t idx);
 uintptr_t il2cpp_mono_array_length (Il2CppMonoArray *array);
 Il2CppMonoString* il2cpp_mono_string_new (Il2CppMonoDomain *domain, const char *text);
+Il2CppMonoString* il2cpp_mono_string_new (Il2CppMonoDomain *domain, const char *text);
+Il2CppMonoString* il2cpp_mono_string_new_checked (Il2CppMonoDomain *domain, const char *text, MonoError *merror);
 char* il2cpp_mono_string_to_utf8_checked (Il2CppMonoString *string_obj, MonoError *error);
 int il2cpp_mono_object_hash (Il2CppMonoObject* obj);
 void* il2cpp_mono_object_unbox (Il2CppMonoObject *obj);
@@ -566,13 +574,18 @@ Il2CppMonoReflectionType* il2cpp_mono_type_get_object_checked(Il2CppMonoDomain* 
 void il2cpp_mono_network_init();
 gint il2cpp_mono_w32socket_set_blocking(SOCKET sock, gboolean blocking);
 void il2cpp_mono_profiler_install(Il2CppMonoProfiler* prof, Il2CppMonoProfileFunc callback);
-void il2cpp_mono_profiler_set_events(MonoProfileFlags events);
+//void il2cpp_mono_profiler_set_events(MonoProfileFlags events);
 void il2cpp_mono_profiler_install_appdomain(Il2CppMonoProfileAppDomainFunc start_load, Il2CppMonoProfileAppDomainResult end_load, Il2CppMonoProfileAppDomainFunc start_unload, Il2CppMonoProfileAppDomainFunc end_unload);
 void il2cpp_mono_profiler_install_assembly(Il2CppMonoProfileAssemblyFunc start_load, Il2CppMonoProfileAssemblyResult end_load, Il2CppMonoProfileAssemblyFunc start_unload, Il2CppMonoProfileAssemblyFunc end_unload);
 void il2cpp_mono_profiler_install_jit_end(Il2CppMonoProfileJitResult end);
 void il2cpp_mono_profiler_install_thread(Il2CppMonoProfileThreadFunc start, Il2CppMonoProfileThreadFunc end);
 void il2cpp_mono_profiler_install_thread_fast_attach_detach(Il2CppMonoProfileThreadFunc fast_attach, Il2CppMonoProfileThreadFunc fast_detach);
 void il2cpp_mono_profiler_install_runtime_initialized(Il2CppMonoProfileFunc runtime_initialized_callback);
+
+void il2cpp_mono_profiler_set_jit_done_callback(MonoProfilerJitDoneCallback callback);
+void il2cpp_mono_profiler_set_thread_started_callback(MonoProfilerThreadStartedCallback callback);
+void il2cpp_mono_profiler_set_thread_stopped_callback(MonoProfilerThreadStoppedCallback callback);
+
 char* il2cpp_mono_get_runtime_build_info();
 Il2CppMonoMethod* il2cpp_mono_marshal_method_from_wrapper(Il2CppMonoMethod* wrapper);
 MonoDebugOptions* il2cpp_mini_get_debug_options();
