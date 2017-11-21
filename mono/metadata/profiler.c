@@ -112,6 +112,7 @@ load_profiler_from_installation (const char *libname, const char *name, const ch
 	return FALSE;
 }
 
+#ifndef RUNTIME_IL2CPP
 void
 mono_profiler_load (const char *desc)
 {
@@ -145,6 +146,7 @@ mono_profiler_load (const char *desc)
 
 	g_free (mname);
 }
+#endif
 
 MonoProfilerHandle
 mono_profiler_create (MonoProfiler *prof)
@@ -171,6 +173,7 @@ mono_profiler_set_coverage_filter_callback (MonoProfilerHandle handle, MonoProfi
 	mono_atomic_store_ptr (&handle->coverage_filter, (gpointer) cb);
 }
 
+#ifndef RUNTIME_IL2CPP
 mono_bool
 mono_profiler_enable_coverage (void)
 {
@@ -185,6 +188,7 @@ mono_profiler_enable_coverage (void)
 
 	return mono_profiler_state.code_coverage = TRUE;
 }
+#endif
 
 static void
 coverage_lock (void)
@@ -198,6 +202,7 @@ coverage_unlock (void)
 	mono_os_mutex_unlock (&mono_profiler_state.coverage_mutex);
 }
 
+#ifndef RUNTIME_IL2CPP
 mono_bool
 mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, MonoProfilerCoverageCallback cb)
 {
@@ -301,6 +306,7 @@ mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, 
 
 	return TRUE;
 }
+#endif
 
 MonoProfilerCoverageInfo *
 mono_profiler_coverage_alloc (MonoMethod *method, guint32 entries)

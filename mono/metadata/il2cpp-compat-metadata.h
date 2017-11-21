@@ -17,8 +17,14 @@
 #define mono_gc_pthread_create il2cpp_mono_gc_pthread_create
 #define mono_profiler_get_events il2cpp_mono_profiler_get_events
 #define mono_profiler_iomap il2cpp_mono_profiler_iomap
+#define mono_gc_register_root_wbarrier il2cpp_mono_gc_register_root_wbarrier
+#define mono_gc_wbarrier_generic_store il2cpp_mono_gc_wbarrier_generic_store
+#define mono_gc_make_vector_descr il2cpp_mono_gc_make_vector_descr
+#define mono_gc_deregister_root il2cpp_mono_gc_deregister_root
 
+int il2cpp_mono_gc_register_root_wbarrier (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char *msg);
 SgenDescriptor il2cpp_mono_gc_make_root_descr_all_refs(int numbits);
+MonoGCDescriptor il2cpp_mono_gc_make_vector_descr (void);
 void* il2cpp_mono_gc_alloc_fixed (size_t size, void* descr, MonoGCRootSource source, const char *msg);
 gboolean il2cpp_mono_gc_is_moving();
 

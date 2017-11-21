@@ -2578,7 +2578,7 @@ static void invoke_method (void);
 /*
  * SUSPEND/RESUME
  */
-
+#ifndef IL2CPP_MONO_DEBUGGER
 static MonoJitInfo*
 get_top_method_ji (gpointer ip, MonoDomain **domain, gpointer *out_ip)
 {
@@ -2607,6 +2607,7 @@ get_top_method_ji (gpointer ip, MonoDomain **domain, gpointer *out_ip)
 	}
 	return ji;
 }
+#endif
 
 /*
  * save_thread_context:
@@ -2865,6 +2866,7 @@ notify_thread (gpointer key, gpointer value, gpointer user_data)
 	}
 }
 
+#ifndef IL2CPP_MONO_DEBUGGER
 static void
 process_suspend (DebuggerTlsData *tls, MonoContext *ctx)
 {
@@ -2911,6 +2913,7 @@ process_suspend (DebuggerTlsData *tls, MonoContext *ctx)
 
 	suspend_current ();
 }
+#endif
 
 /*
  * suspend_vm:
@@ -4579,6 +4582,7 @@ bp_matches_method (MonoBreakpoint *bp, MonoMethod *method)
 static void
 add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 {
+#ifndef IL2CPP_MONO_DEBUGGER
 	int i, j;
 	MonoSeqPointInfo *seq_points;
 	MonoDomain *domain;
@@ -4627,6 +4631,7 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 	}
 
 	mono_loader_unlock ();
+#endif
 }
 
 static void
@@ -5135,6 +5140,7 @@ breakpoint_matches_assembly (MonoBreakpoint *bp, MonoAssembly *assembly)
 static gpointer
 get_this_addr (StackFrame *frame)
 {
+#ifndef IL2CPP_MONO_DEBUGGER
 	if (frame->ji->is_interp)
 		return mono_interp_frame_get_this (frame->interp_frame);
 
@@ -5145,6 +5151,10 @@ get_this_addr (StackFrame *frame)
 	guint8 *addr = (guint8 *)mono_arch_context_get_int_reg (&frame->ctx, var->index & ~MONO_DEBUG_VAR_ADDRESS_MODE_FLAGS);
 	addr += (gint32)var->offset;
 	return addr;
+#else
+	g_assert_not_reached ();
+	return NULL;
+#endif
 }
 
 static MonoMethod*
@@ -5295,6 +5305,7 @@ process_breakpoint (DebuggerTlsData *tls, gboolean from_signal)
 	ip = (guint8 *)MONO_CONTEXT_GET_IP (ctx);
 	ji = mini_jit_info_table_find (mono_domain_get (), (char*)ip, NULL);
 
+#ifndef IL2CPP_MONO_DEBUGGER
 	if (!ji) {
 		/* Interpreter */
 		// FIXME: Pass a flag instead to detect this
@@ -5309,6 +5320,7 @@ process_breakpoint (DebuggerTlsData *tls, gboolean from_signal)
 		ji = mono_interp_frame_get_jit_info (frame);
 		ip = mono_interp_frame_get_ip (frame);
 	}
+#endif
 
 	g_assert (ji && !ji->is_trampoline);
 	method = jinfo_get_method (ji);
@@ -5621,6 +5633,7 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal, uint64_t 
 	SeqPoint sp;
 	MonoSeqPointInfo *info;
 
+#ifndef IL2CPP_MONO_DEBUGGER
 	/* Skip the instruction causing the single step */
 #ifndef IL2CPP_MONO_DEBUGGER
 	if (from_signal)
@@ -5644,7 +5657,6 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal, uint64_t 
 	if (mono_thread_internal_current () != ss_req->thread)
 		return;
 
-#ifndef IL2CPP_MONO_DEBUGGER
 	ip = (guint8 *)MONO_CONTEXT_GET_IP (ctx);
 
 	ji = get_top_method_ji (ip, &domain, (gpointer*)&ip);
@@ -5866,6 +5878,7 @@ debugger_agent_breakpoint_from_context (MonoContext *ctx)
 static void
 start_single_stepping (void)
 {
+#ifndef IL2CPP_MONO_DEBUGGER
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
 	int val = mono_atomic_inc_i32 (&ss_count);
 
@@ -5876,11 +5889,13 @@ start_single_stepping (void)
 #else
 	g_assert_not_reached ();
 #endif
+#endif
 }
 
 static void
 stop_single_stepping (void)
 {
+#ifndef IL2CPP_MONO_DEBUGGER
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
 	int val = mono_atomic_dec_i32 (&ss_count);
 
@@ -5890,6 +5905,7 @@ stop_single_stepping (void)
 	}
 #else
 	g_assert_not_reached ();
+#endif
 #endif
 }
 
@@ -8093,8 +8109,12 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 			if (err != ERR_NONE)
 				break;
 			if (mono_class_is_nullable (arg_class)) {
+#ifndef IL2CPP_MONO_DEBUGGER
 				args [i] = mono_nullable_box (arg_buf [i], arg_class, &error);
 				mono_error_assert_ok (&error);
+#else
+				g_assert_not_reached ();
+#endif
 			} else {
 				args [i] = arg_buf [i];
 			}
@@ -10642,6 +10662,7 @@ thread_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		buffer_add_long (buf, (guint64)VM_INTERNAL_THREAD_GET_ID(thread));
 		break;
 	case CMD_THREAD_SET_IP: {
+#ifndef IL2CPP_MONO_DEBUGGER
 		DebuggerTlsData *tls;
 		MonoMethod *method;
 		MonoDomain *domain;
@@ -10686,6 +10707,9 @@ thread_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		} else {
 			MONO_CONTEXT_SET_IP (&tls->restore_state.ctx, (guint8*)tls->frames [0]->ji->code_start + sp.native_offset);
 		}
+#else
+		return ERR_NOT_IMPLEMENTED;
+#endif
 		break;
 	}
 	default:
@@ -10825,6 +10849,7 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 				DEBUG_PRINTF (4, "[dbg]   send arg %d.\n", pos);
 
+#ifndef IL2CPP_MONO_DEBUGGER
 				if (frame->ji->is_interp) {
 					guint8 *addr;
 
@@ -10832,14 +10857,13 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 					buffer_add_value_full (buf, sig->params [pos], addr, frame->domain, FALSE, NULL);
 				} else {
-#ifndef IL2CPP_MONO_DEBUGGER
 					g_assert (pos >= 0 && pos < jit->num_params);
 
 					add_var (buf, jit, sig->params [pos], &jit->params [pos], &frame->ctx, frame->domain, FALSE);
-#else
-					SendVariableData (tls, frame, buf, kMethodVariableKindC_Parameter, pos);
-#endif
 				}
+#else
+				SendVariableData (tls, frame, buf, kMethodVariableKindC_Parameter, pos);
+#endif
 			} else {
 #ifndef IL2CPP_MONO_DEBUGGER
 				MonoDebugLocalsInfo *locals;

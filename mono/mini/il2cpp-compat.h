@@ -253,7 +253,7 @@
 #define mono_gchandle_get_target il2cpp_mono_gchandle_get_target
 #define mono_gchandle_free il2cpp_mono_gchandle_free
 #define mono_gc_wbarrier_generic_store il2cpp_mono_gc_wbarrier_generic_store
-#define mono_reflection_parse_type il2cpp_mono_reflection_parse_type
+#define mono_reflection_parse_type_checked il2cpp_mono_reflection_parse_type_checked
 #define mono_reflection_free_type_info il2cpp_mono_reflection_free_type_info
 #define mono_custom_attrs_has_attr il2cpp_mono_custom_attrs_has_attr
 #define mono_custom_attrs_free il2cpp_mono_custom_attrs_free
@@ -315,6 +315,7 @@
 #define mono_class_try_load_from_name il2cpp_class_from_name
 #define mono_class_get_generic_class il2cpp_mono_class_get_generic_class
 #define mono_thread_internal_current il2cpp_mono_thread_internal_current
+#define mono_thread_internal_is_current il2cpp_mono_thread_internal_is_current
 #define mono_thread_internal_abort il2cpp_mono_thread_internal_abort
 #define mono_thread_internal_reset_abort il2cpp_mono_thread_internal_reset_abort
 #define mono_thread_get_name il2cpp_mono_thread_get_name
@@ -351,17 +352,6 @@
 #define mono_type_get_object_checked il2cpp_mono_type_get_object_checked
 #define mono_network_init il2cpp_mono_network_init
 #define mono_w32socket_set_blocking il2cpp_mono_w32socket_set_blocking
-#define mono_profiler_install il2cpp_mono_profiler_install
-#define mono_profiler_install_appdomain il2cpp_mono_profiler_install_appdomain
-#define mono_profiler_install_assembly il2cpp_mono_profiler_install_assembly
-#define mono_profiler_install_thread il2cpp_mono_profiler_install_thread
-#define mono_profiler_install_thread_fast_attach_detach il2cpp_mono_profiler_install_thread_fast_attach_detach
-#define mono_profiler_install_runtime_initialized il2cpp_mono_profiler_install_runtime_initialized
-
-
-#define mono_profiler_set_jit_done_callback il2cpp_mono_profiler_set_jit_done_callback
-#define mono_profiler_set_thread_started_callback il2cpp_mono_profiler_set_thread_started_callback
-#define mono_profiler_set_thread_stopped_callback il2cpp_mono_profiler_set_thread_stopped_callback
 
 #define mono_get_runtime_build_info il2cpp_mono_get_runtime_build_info
 #define mono_marshal_method_from_wrapper il2cpp_mono_marshal_method_from_wrapper
@@ -420,6 +410,7 @@
 #define mono_class_get_type il2cpp_class_get_type
 #define mono_class_get_image il2cpp_class_get_image
 #define mono_image_get_assembly il2cpp_image_get_assembly
+#define mono_image_get_name il2cpp_image_get_name
 #define mono_type_get_type il2cpp_type_get_type
 #define mono_class_get_rank il2cpp_class_get_rank
 #define mono_class_get_element_class il2cpp_class_get_element_class
@@ -433,6 +424,8 @@
 
 #define mono_domain_assemblies_lock
 #define mono_domain_assemblies_unlock
+
+#define mono_get_string_class il2cpp_mono_get_string_class
 
 Il2CppMonoMethod* il2cpp_mono_image_get_entry_point (Il2CppMonoImage *image);
 const char* il2cpp_mono_image_get_filename (Il2CppMonoImage *image);
@@ -476,7 +469,7 @@ uint32_t il2cpp_mono_gchandle_new_weakref (Il2CppMonoObject *obj, mono_bool trac
 Il2CppMonoObject*  il2cpp_mono_gchandle_get_target (uint32_t gchandle);
 void il2cpp_mono_gchandle_free (uint32_t gchandle);
 void il2cpp_mono_gc_wbarrier_generic_store (void* ptr, Il2CppMonoObject* value);
-int il2cpp_mono_reflection_parse_type (char *name, Il2CppMonoTypeNameParse *info);
+int il2cpp_mono_reflection_parse_type_checked (char *name, Il2CppMonoTypeNameParse *info, MonoError *error);
 void il2cpp_mono_reflection_free_type_info (Il2CppMonoTypeNameParse *info);
 mono_bool il2cpp_mono_custom_attrs_has_attr (Il2CppMonoCustomAttrInfo *ainfo, Il2CppMonoClass *attr_klass);
 void il2cpp_mono_custom_attrs_free (Il2CppMonoCustomAttrInfo *ainfo);
@@ -537,6 +530,7 @@ Il2CppMonoClass* il2cpp_mono_class_from_generic_parameter_internal(Il2CppMonoGen
 Il2CppMonoClass* il2cpp_mono_class_load_from_name(Il2CppMonoImage* image, const char* name_space, const char* name);
 Il2CppMonoGenericClass* il2cpp_mono_class_get_generic_class(Il2CppMonoClass* klass);
 Il2CppMonoInternalThread* il2cpp_mono_thread_internal_current();
+gboolean il2cpp_mono_thread_internal_is_current(Il2CppMonoInternalThread* thread);
 void il2cpp_mono_thread_internal_abort(Il2CppMonoInternalThread* thread);
 void il2cpp_mono_thread_internal_reset_abort(Il2CppMonoInternalThread* thread);
 gunichar2* il2cpp_mono_thread_get_name(Il2CppMonoInternalThread* this_obj, guint32* name_len);
@@ -573,18 +567,6 @@ Il2CppMonoReflectionAssemblyHandle il2cpp_mono_assembly_get_object_handle(Il2Cpp
 Il2CppMonoReflectionType* il2cpp_mono_type_get_object_checked(Il2CppMonoDomain* domain, Il2CppMonoType* type, MonoError* error);
 void il2cpp_mono_network_init();
 gint il2cpp_mono_w32socket_set_blocking(SOCKET sock, gboolean blocking);
-void il2cpp_mono_profiler_install(Il2CppMonoProfiler* prof, Il2CppMonoProfileFunc callback);
-//void il2cpp_mono_profiler_set_events(MonoProfileFlags events);
-void il2cpp_mono_profiler_install_appdomain(Il2CppMonoProfileAppDomainFunc start_load, Il2CppMonoProfileAppDomainResult end_load, Il2CppMonoProfileAppDomainFunc start_unload, Il2CppMonoProfileAppDomainFunc end_unload);
-void il2cpp_mono_profiler_install_assembly(Il2CppMonoProfileAssemblyFunc start_load, Il2CppMonoProfileAssemblyResult end_load, Il2CppMonoProfileAssemblyFunc start_unload, Il2CppMonoProfileAssemblyFunc end_unload);
-void il2cpp_mono_profiler_install_jit_end(Il2CppMonoProfileJitResult end);
-void il2cpp_mono_profiler_install_thread(Il2CppMonoProfileThreadFunc start, Il2CppMonoProfileThreadFunc end);
-void il2cpp_mono_profiler_install_thread_fast_attach_detach(Il2CppMonoProfileThreadFunc fast_attach, Il2CppMonoProfileThreadFunc fast_detach);
-void il2cpp_mono_profiler_install_runtime_initialized(Il2CppMonoProfileFunc runtime_initialized_callback);
-
-void il2cpp_mono_profiler_set_jit_done_callback(MonoProfilerJitDoneCallback callback);
-void il2cpp_mono_profiler_set_thread_started_callback(MonoProfilerThreadStartedCallback callback);
-void il2cpp_mono_profiler_set_thread_stopped_callback(MonoProfilerThreadStoppedCallback callback);
 
 char* il2cpp_mono_get_runtime_build_info();
 Il2CppMonoMethod* il2cpp_mono_marshal_method_from_wrapper(Il2CppMonoMethod* wrapper);
@@ -671,5 +653,7 @@ il2cpp_internal_thread_get_threadpool_thread(Il2CppMonoInternalThread* thread);
 Il2CppMonoMethod* il2cpp_method_get_generic_definition(Il2CppMonoMethodInflated *imethod);
 Il2CppMonoGenericInst* il2cpp_method_get_generic_class_inst(Il2CppMonoMethodInflated *imethod);
 Il2CppMonoClass* il2cpp_generic_class_get_container_class(Il2CppMonoGenericClass *gclass);
+
+Il2CppMonoClass* il2cpp_mono_get_string_class (void);
 
 #endif // RUNTIME_IL2CPP

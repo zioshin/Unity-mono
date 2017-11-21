@@ -328,8 +328,9 @@ void il2cpp_mono_gc_wbarrier_generic_store (void* ptr, Il2CppMonoObject* value)
 	il2cpp::gc::WriteBarrier::GenericStore(ptr, (Il2CppObject*)value);
 }
 
-int il2cpp_mono_reflection_parse_type (char *name, Il2CppMonoTypeNameParse *monoInfo)
+int il2cpp_mono_reflection_parse_type_checked (char *name, Il2CppMonoTypeNameParse *monoInfo, MonoError *error)
 {
+	mono_error_init(error);
 	il2cpp::vm::TypeNameParseInfo *pInfo = new il2cpp::vm::TypeNameParseInfo();
 	std::string nameStr = name;
 	std::replace(nameStr.begin(), nameStr.end(), '/', '+');
@@ -527,6 +528,18 @@ Il2CppMonoMethod* il2cpp_mono_get_method_checked(Il2CppMonoImage* image, guint32
 SgenDescriptor il2cpp_mono_gc_make_root_descr_all_refs(int numbits)
 {
 	return NULL;
+}
+
+int il2cpp_mono_gc_register_root_wbarrier (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char *msg)
+{
+	IL2CPP_ASSERT(0 && "This method is not yet implemented");
+	return 0;
+}
+
+MonoGCDescriptor il2cpp_mono_gc_make_vector_descr (void)
+{
+	IL2CPP_ASSERT(0 && "This method is not yet implemented");
+	return 0;
 }
 
 int il2cpp_mono_class_interface_offset_with_variance(Il2CppMonoClass* klass, Il2CppMonoClass* itf, gboolean* non_exact_match)
@@ -794,6 +807,11 @@ Il2CppMonoGenericClass* il2cpp_mono_class_get_generic_class(Il2CppMonoClass* mon
 Il2CppMonoInternalThread* il2cpp_mono_thread_internal_current()
 {
 	return (Il2CppMonoInternalThread*)(((Il2CppThread*)il2cpp_mono_thread_current())->internal_thread);
+}
+
+gboolean il2cpp_mono_thread_internal_is_current(Il2CppMonoInternalThread* thread)
+{
+	return il2cpp_mono_thread_internal_current () == thread;
 }
 
 void il2cpp_mono_thread_internal_abort(Il2CppMonoInternalThread* thread)
@@ -1729,6 +1747,12 @@ Il2CppMonoGenericInst* il2cpp_method_get_generic_class_inst(Il2CppMonoMethodInfl
 Il2CppMonoClass* il2cpp_generic_class_get_container_class(Il2CppMonoGenericClass *gclass)
 {
 	return (Il2CppMonoClass*)il2cpp::vm::GenericClass::GetTypeDefinition((Il2CppGenericClass*)gclass);
+}
+
+
+Il2CppMonoClass* il2cpp_mono_get_string_class (void)
+{
+	return (Il2CppMonoClass*)il2cpp_defaults.string_class;
 }
 
 }
