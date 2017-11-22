@@ -1,17 +1,22 @@
 #include "pmip_my_callstack.h"
 #include "mono/metadata/mono-debug.h"
+#include "mono/metadata/profiler.h"
+
+/* Dummy structure used for the profiler callbacks */
+typedef struct {
+	void* dummy;
+} PMIPProfiler;
 
 static char *
-pmip_pretty(MonoMethod* method)
+pmip_pretty(MonoCompile* monoCompile)
 {
-	char *lineNumber;
-	char* filePath;
 	char* methodName;
 	char* assemblyName;
 	char* formattedPMIP;
 	MonoDebugSourceLocation* debugSourceLocation;
 	MonoDebugMethodInfo* debugMethodInfo;
-	MonoDomain *domain;
+	MonoDomain* domain;
+	MonoMethod* method = monoCompile->method; 
 
 	domain = mono_domain_get();
 	if (!domain)
@@ -23,15 +28,11 @@ pmip_pretty(MonoMethod* method)
 	debugMethodInfo = mono_debug_lookup_method(method);
 
 	assemblyName = method->klass->image->module_name;
-	lineNumber = debugSourceLocation ? g_strdup_printf("%d", debugSourceLocation->row) : g_strdup("<UNKNOWN>");
-	filePath = debugSourceLocation ? g_strdup(debugSourceLocation->source_file) : g_strdup("<UNKNOWN>");
 
-	formattedPMIP = g_strdup_printf("[%s] %s Line %s File %s", assemblyName, methodName, lineNumber, filePath);
+	formattedPMIP = g_strdup_printf("[%s] %s", assemblyName, methodName);
 
 	mono_debug_free_source_location(debugSourceLocation);
 	g_free(methodName);
-	g_free(lineNumber);
-	g_free(filePath);
 
 	return formattedPMIP;
 }
@@ -40,44 +41,85 @@ pmip_pretty(MonoMethod* method)
 
 static gboolean enabled;
 static mono_mutex_t mutex;
-static FILE* fd;
+static HANDLE fileHandle;
+PMIPProfiler pmipProfiler;
+int pmipFileNum;
 
 #define pmip_my_callstack_lock() mono_os_mutex_lock (&mutex)
 #define pmip_my_callstack_unlock() mono_os_mutex_unlock (&mutex)
 
 void
-mono_pmip_my_callstack_init (const char *options)
+create_next_pmip_file()
 {
-	char* file_name = g_strdup_printf("pmip.%d", GetCurrentProcessId());
+	char* file_name = g_strdup_printf("pmip_%d_%d.txt", GetCurrentProcessId(), pmipFileNum++);
 	char* path = g_build_filename(g_get_tmp_dir(), file_name, NULL);
 
-	mono_os_mutex_init_recursive(&mutex);
+	pmip_my_callstack_lock ();
 
-	fd = _fsopen(path, "w", _SH_DENYNO);
+	if(fileHandle)
+		CloseHandle(fileHandle);
+
+	fileHandle = CreateFileA(path,
+							GENERIC_WRITE,
+							FILE_SHARE_DELETE | FILE_SHARE_READ,
+							NULL,
+							CREATE_ALWAYS,
+							FILE_FLAG_DELETE_ON_CLOSE,
+							NULL);
+
+	if (INVALID_HANDLE_VALUE != fileHandle)
+		enabled = TRUE;
+
+	pmip_my_callstack_unlock ();
 
 	g_free(file_name);
 	g_free(path);
+}
 
-	if (fd)
-		enabled = TRUE;
+void
+mono_pmip_my_callstack_init (const char *options)
+{
+	pmipFileNum = 0;
+
+	mono_os_mutex_init_recursive(&mutex);
+
+	mono_profiler_install((MonoProfiler*)&pmipProfiler, NULL);
+	mono_profiler_set_events ((MonoProfileFlags)(MONO_PROFILE_APPDOMAIN_EVENTS));
+	mono_profiler_install_appdomain (NULL, NULL, NULL, mono_pmip_my_callstack_on_domain_unload_end);
+
+	create_next_pmip_file();
+}
+
+void
+mono_pmip_my_callstack_on_domain_unload_end()
+{
+	if(!enabled)
+		return;
+
+	create_next_pmip_file();
 }
 
 void
 mono_pmip_my_callstack_save_method_info (MonoCompile *cfg)
 {
 	char* pretty_name;
+	char* frame;
+	long bytesWritten = 0;
 
 	if (!enabled)
 		return;
 
-	pretty_name = pmip_pretty(cfg->method);
+	pretty_name = pmip_pretty(cfg);
 
 	pmip_my_callstack_lock ();
-	fprintf(fd, "%p;%p;%s\n", cfg->native_code, ((char*)cfg->native_code) + cfg->code_size, pretty_name);
-	fflush (fd);
+	frame = g_strdup_printf("%p;%p;%s\n", cfg->native_code, ((char*)cfg->native_code) + cfg->code_size, pretty_name);
+	WriteFile(fileHandle, frame, strlen(frame), &bytesWritten, NULL);
+	FlushFileBuffers(fileHandle);
+
 	pmip_my_callstack_unlock ();
 
 	g_free(pretty_name);
+	g_free(frame);
 }
 
 void
@@ -88,13 +130,19 @@ mono_pmip_my_callstack_remove_method (MonoDomain *domain, MonoMethod *method, Mo
 void
 mono_pmip_my_callstack_save_trampoline_info (MonoTrampInfo *info)
 {
+	char* frame;
+	long bytesWritten = 0;
+
 	if (!enabled)
 		return;
 
 	pmip_my_callstack_lock ();
-	fprintf (fd, "%p;%p;%s\n", info->code, ((char*)info->code) + info->code_size, info->name ? info->name : "");
-	fflush (fd);
+	frame = g_strdup_printf ("%p;%p;%s\n", info->code, ((char*)info->code) + info->code_size, info->name ? info->name : "");
+	WriteFile(fileHandle, frame, strlen(frame), bytesWritten, NULL);
+	FlushFileBuffers(fileHandle);
 	pmip_my_callstack_unlock ();
+
+	g_free(frame);
 }
 
 void
@@ -109,6 +157,11 @@ void
 mono_pmip_my_callstack_init (const char *options)
 {
 	g_error ("Only Available On Windows With Jit Enabled");
+}
+
+void
+mono_pmip_my_callstack_on_domain_unload_end()
+{
 }
 
 void

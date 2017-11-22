@@ -3704,7 +3704,6 @@ mini_init (const char *filename, const char *runtime_version)
 	}
 	if (g_hasenv ("MONO_PMIP")) {
 		mono_pmip_my_callstack_init ("");
-		mono_dont_free_domains = TRUE;
 	}
 
 #ifdef XDEBUG_ENABLED
