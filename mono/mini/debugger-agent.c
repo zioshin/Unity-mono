@@ -11638,7 +11638,9 @@ debugger_thread (void *arg)
 	gboolean attach_failed = FALSE;
 
 	DEBUG_PRINTF (1, "[dbg] Agent thread started, pid=%p\n", (gpointer) (gsize) mono_native_thread_id_get ());
-
+#ifdef IL2CPP_MONO_DEBUGGER
+    mono_thread_attach (il2cpp_mono_get_root_domain ());
+#endif
 	debugger_thread_id = mono_native_thread_id_get ();
 
 	MonoInternalThread *internal = mono_thread_internal_current ();

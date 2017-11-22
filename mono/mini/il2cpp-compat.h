@@ -14,7 +14,7 @@
 #define THREAD_STATIC_FIELD_OFFSET -1
 
 #define VM_THREAD_GET_INTERNAL(thread) il2cpp_mono_thread_get_internal(thread)
-#define VM_INTERNAL_THREAD_SET_STATE_BACKGROUND(internal_thread) il2cpp_set_thread_state_background(internal_thread)
+#define VM_INTERNAL_THREAD_SET_STATE_BACKGROUND(internal_thread) il2cpp_internal_thread_set_state_background(internal_thread)
 #define VM_INTERNAL_THREAD_SET_FLAG_DONT_MANAGE(thread)
 #define VM_INTERNAL_THREAD_GET_ID(internal_thread) il2cpp_internal_thread_get_thread_id(internal_thread)
 #define VM_INTERNAL_THREAD_GET_STATE(internal_thread) il2cpp_internal_thread_get_state(internal_thread)

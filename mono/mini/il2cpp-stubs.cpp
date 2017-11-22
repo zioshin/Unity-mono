@@ -5,6 +5,7 @@
 #include "gc/GCHandle.h"
 #include "gc/GarbageCollector.h"
 #include "gc/WriteBarrier.h"
+#include "gc/gc_wrapper.h"
 #include "metadata/FieldLayout.h"
 #include "vm/Assembly.h"
 #include "vm/AssemblyName.h"
@@ -288,8 +289,7 @@ char* il2cpp_mono_string_to_utf8_checked (Il2CppMonoString *string_obj, MonoErro
 
 int il2cpp_mono_object_hash (Il2CppMonoObject* obj)
 {
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
+	return (int)((intptr_t)obj >> 3);
 }
 
 void* il2cpp_mono_object_unbox (Il2CppMonoObject *monoObj)
@@ -532,13 +532,12 @@ SgenDescriptor il2cpp_mono_gc_make_root_descr_all_refs(int numbits)
 
 int il2cpp_mono_gc_register_root_wbarrier (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char *msg)
 {
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
+	il2cpp::gc::GarbageCollector::RegisterRoot(start, size);
+	return 1;
 }
 
 MonoGCDescriptor il2cpp_mono_gc_make_vector_descr (void)
 {
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
 	return 0;
 }
 
@@ -917,15 +916,16 @@ void il2cpp_mono_gc_base_init()
 {
 }
 
+static il2cpp::os::Mutex s_il2cpp_gc_root_lock(false);
 int il2cpp_mono_gc_register_root(char* start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char* msg)
 {
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
+	il2cpp::gc::GarbageCollector::RegisterRoot(start, size);
+	return 1;
 }
 
 void il2cpp_mono_gc_deregister_root(char* addr)
 {
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
+	il2cpp::gc::GarbageCollector::UnregisterRoot(addr);
 }
 
 #ifndef HOST_WIN32
@@ -1067,12 +1067,12 @@ void il2cpp_mono_profiler_set_jit_done_callback(MonoProfilerJitDoneCallback call
 
 void il2cpp_mono_profiler_set_thread_started_callback(MonoProfilerThreadStartedCallback callback)
 {
-	il2cpp::utils::Debugger::RegisterThreadCallbacks((ThreadCallback)callback, (ThreadCallback)NULL);
+	il2cpp::utils::Debugger::RegisterThreadStartedCallback((ThreadCallback)callback);
 }
 
 void il2cpp_mono_profiler_set_thread_stopped_callback(MonoProfilerThreadStoppedCallback callback)
 {
-	il2cpp::utils::Debugger::RegisterThreadCallbacks((ThreadCallback)NULL, (ThreadCallback)callback);
+	il2cpp::utils::Debugger::RegisterThreadStoppedCallback((ThreadCallback)callback);
 }
 
 
@@ -1328,8 +1328,7 @@ void* il2cpp_mono_gc_alloc_fixed (size_t size, void* descr, MonoGCRootSource sou
 typedef void* (*Il2CppMonoGCLockedCallbackFunc) (void *data);
 void* il2cpp_mono_gc_invoke_with_gc_lock (Il2CppMonoGCLockedCallbackFunc func, void *data)
 {
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return NULL;
+	return il2cpp::gc::GarbageCollector::CallWithAllocLockHeld (func, data);
 }
 
 int il2cpp_mono_profiler_get_events (void)
@@ -1344,9 +1343,9 @@ void il2cpp_mono_profiler_iomap (char *report, const char *pathname, const char 
 
 // These functions expose the IL2CPP VM C++ API to C
 
-void il2cpp_set_thread_state_background(Il2CppMonoThread* thread)
+void il2cpp_internal_thread_set_state_background(Il2CppMonoThread* thread)
 {
-	il2cpp::vm::Thread::SetState((Il2CppThread*)thread, il2cpp::vm::kThreadStateBackground);
+	il2cpp::vm::Thread::SetState((Il2CppInternalThread*)thread, il2cpp::vm::kThreadStateBackground);
 }
 
 void* il2cpp_domain_get_agent_info(Il2CppMonoAppDomain* domain)
