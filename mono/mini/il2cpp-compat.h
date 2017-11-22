@@ -53,6 +53,7 @@
 #define VM_METHOD_GET_NAME(method) il2cpp_method_get_name(method)
 #define VM_METHOD_IS_GENERIC(method) il2cpp_method_is_generic(method)
 #define VM_METHOD_IS_INFLATED(method) il2cpp_method_is_inflated(method)
+#define VM_METHOD_IS_STRING_CTOR(method) il2cpp_method_is_string_ctor(method)
 #define VM_INFLATED_METHOD_GET_DECLARING(imethod) il2cpp_method_get_generic_definition(imethod)
 #define VM_INFLATED_METHOD_GET_CLASS_INST(imethod) il2cpp_method_get_generic_class_inst(imethod)
 #define VM_FIELD_GET_NAME(field) il2cpp_mono_field_get_name(field)
@@ -127,6 +128,7 @@
 #define VM_METHOD_GET_NAME(method) (method)->name
 #define VM_METHOD_IS_GENERIC(method) method->is_generic
 #define VM_METHOD_IS_INFLATED(method) method->is_inflated
+#define VM_METHOD_IS_STRING_CTOR(method) method->string_ctor
 #define VM_INFLATED_METHOD_GET_DECLARING(imethod) (imethod)->declaring
 #define VM_INFLATED_METHOD_GET_CLASS_INST(imethod) (imethod)->context.class_inst
 #define VM_FIELD_GET_NAME(field) field->name
@@ -638,6 +640,7 @@ Il2CppMonoClass* il2cpp_defaults_exception_class();
 Il2CppMonoImage* il2cpp_defaults_corlib_image();
 int il2cpp_generic_container_get_type_argc(Il2CppMonoGenericClass* container);
 uint32_t il2cpp_method_get_flags_no_iflags (const Il2CppMonoMethod * method);
+bool il2cpp_method_is_string_ctor (const Il2CppMonoMethod * method);
 Il2CppMonoClass* il2cpp_defaults_void_class();
 void il2cpp_set_var(guint8* newValue, void *value, Il2CppMonoType *localVariableTypeMono);
 Il2CppMonoMethod* il2cpp_get_interface_method(Il2CppMonoClass* klass, Il2CppMonoClass* itf, int slot);

@@ -151,12 +151,46 @@ struct _Il2CppMonoReflectionType
 
 struct _Il2CppMonoInternalThread
 {
-	void *thread_info;
-	guint64 tid;
-	guint32 state;
-	gsize flags;
-	MonoBoolean debugger_thread;
-	MonoBoolean threadpool_thread;
+	Il2CppMonoObject obj;
+	int lock_thread_id;
+	void* handle;
+	void* native_handle;
+	Il2CppMonoArray* cached_culture_info;
+	uint16_t* name;
+	int name_len;
+	uint32_t state;
+	Il2CppMonoObject* abort_exc;
+	int abort_state_handle;
+	uint64_t tid;
+	intptr_t debugger_thread;
+	void** static_data;
+	void* runtime_thread_info;
+	Il2CppMonoObject* current_appcontext;
+	Il2CppMonoObject* root_domain_thread;
+	Il2CppMonoArray* _serialized_principal;
+	int _serialized_principal_version;
+	void* appdomain_refs;
+	int32_t interruption_requested;
+	void* synch_cs;
+	uint8_t threadpool_thread;
+	uint8_t thread_interrupt_requested;
+	int stack_size;
+	uint8_t apartment_state;
+	int critical_region_level;
+	int managed_id;
+	uint32_t small_id;
+	void* manage_callback;
+	void* interrupt_on_stop;
+	void* flags;
+	void* thread_pinning_ref;
+	void* abort_protected_block_count;
+	int32_t priority;
+	void* owned_mutexes;
+	void * suspended;
+	int32_t self_suspended;
+	size_t thread_state;
+	size_t unused2;
+	void* last;
 };
 
 struct _Il2CppMonoThread
@@ -271,7 +305,6 @@ struct _Il2CppMonoMethod
 	unsigned int wrapper_type:5;
 	unsigned int is_inflated:1;
 	unsigned int is_generic:1;
-	unsigned int  string_ctor:1;
 };
 
 struct _Il2CppMonoClassField

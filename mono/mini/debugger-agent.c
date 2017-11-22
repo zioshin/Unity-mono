@@ -852,7 +852,11 @@ is_debugger_thread (void)
 	if (!internal)
 		return FALSE;
 
+#ifndef IL2CPP_MONO_DEBUGGER
 	return internal->debugger_thread;
+#else
+    return debugger_thread_id == mono_native_thread_id_get ();
+#endif
 }
 
 static int
@@ -2697,7 +2701,7 @@ copy_unwind_state_from_frame_data (MonoThreadUnwindState *to, GetLastFrameUserDa
 	to->unwind_data [MONO_UNWIND_DATA_JIT_TLS] = jit_tls;
 	to->valid = TRUE;
 }
-
+#ifndef IL2CPP_MONO_DEBUGGER
 /*
  * thread_interrupt:
  *
@@ -2782,6 +2786,7 @@ thread_interrupt (DebuggerTlsData *tls, MonoThreadInfo *info, MonoJitInfo *ji)
 		}
 	}
 }
+#endif
 
 /*
  * reset_native_thread_suspend_state:
@@ -8166,9 +8171,9 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 		if ((invoke->flags & INVOKE_FLAG_RETURN_OUT_ARGS) && CHECK_PROTOCOL_VERSION (2, 35))
 			out_args = TRUE;
 		buffer_add_byte (buf, 1 + (out_this ? 2 : 0) + (out_args ? 4 : 0));
-		if (m->string_ctor) {
+		if (VM_METHOD_IS_STRING_CTOR(m)) {
 			buffer_add_value (buf, &mono_get_string_class ()->byval_arg, &res, domain);
-		} else if (VM_TYPE_GET_TYPE (sig->ret) == MONO_TYPE_VOID && !m->string_ctor) {
+		} else if (VM_TYPE_GET_TYPE (sig->ret) == MONO_TYPE_VOID && !VM_METHOD_IS_STRING_CTOR(m)) {
 			if (!strcmp (VM_METHOD_GET_NAME (m), ".ctor")) {
 				if (!VM_CLASS_IS_VALUETYPE (VM_METHOD_GET_DECLARING_TYPE (m)))
 					buffer_add_value (buf, VM_CLASS_GET_TYPE (VM_DEFAULTS_OBJECT_CLASS), &this_arg, domain);
@@ -11638,10 +11643,10 @@ debugger_thread (void *arg)
 	gboolean attach_failed = FALSE;
 
 	DEBUG_PRINTF (1, "[dbg] Agent thread started, pid=%p\n", (gpointer) (gsize) mono_native_thread_id_get ());
+    debugger_thread_id = mono_native_thread_id_get ();
 #ifdef IL2CPP_MONO_DEBUGGER
     mono_thread_attach (il2cpp_mono_get_root_domain ());
 #endif
-	debugger_thread_id = mono_native_thread_id_get ();
 
 	MonoInternalThread *internal = mono_thread_internal_current ();
 #ifdef IL2CPP_MONO_DEBUGGER

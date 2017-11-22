@@ -1043,39 +1043,6 @@ gint il2cpp_mono_w32socket_set_blocking(void* sock, gboolean blocking)
 	return 0;
 }
 
-void il2cpp_mono_profiler_install(Il2CppMonoProfiler* prof, Il2CppMonoProfileFunc callback)
-{
-	il2cpp::vm::Profiler::Install((Il2CppProfiler*)prof, (Il2CppProfileFunc)callback);
-}
-
-void il2cpp_mono_profiler_install_appdomain(Il2CppMonoProfileAppDomainFunc start_load, Il2CppMonoProfileAppDomainResult end_load, Il2CppMonoProfileAppDomainFunc start_unload, Il2CppMonoProfileAppDomainFunc end_unload)
-{
-}
-
-void il2cpp_mono_profiler_install_assembly(Il2CppMonoProfileAssemblyFunc start_load, Il2CppMonoProfileAssemblyResult end_load, Il2CppMonoProfileAssemblyFunc start_unload, Il2CppMonoProfileAssemblyFunc end_unload)
-{
-}
-
-void il2cpp_mono_profiler_install_runtime_initialized(Il2CppMonoProfileFunc runtime_initialized_callback)
-{
-}
-
-void il2cpp_mono_profiler_set_jit_done_callback(MonoProfilerJitDoneCallback callback)
-{
-
-}
-
-void il2cpp_mono_profiler_set_thread_started_callback(MonoProfilerThreadStartedCallback callback)
-{
-	il2cpp::utils::Debugger::RegisterThreadStartedCallback((ThreadCallback)callback);
-}
-
-void il2cpp_mono_profiler_set_thread_stopped_callback(MonoProfilerThreadStoppedCallback callback)
-{
-	il2cpp::utils::Debugger::RegisterThreadStoppedCallback((ThreadCallback)callback);
-}
-
-
 char* il2cpp_mono_get_runtime_build_info()
 {
 	return g_strdup_printf ("%s (%s)", "0.0", "IL2CPP");
@@ -1329,16 +1296,6 @@ typedef void* (*Il2CppMonoGCLockedCallbackFunc) (void *data);
 void* il2cpp_mono_gc_invoke_with_gc_lock (Il2CppMonoGCLockedCallbackFunc func, void *data)
 {
 	return il2cpp::gc::GarbageCollector::CallWithAllocLockHeld (func, data);
-}
-
-int il2cpp_mono_profiler_get_events (void)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
-}
-void il2cpp_mono_profiler_iomap (char *report, const char *pathname, const char *new_pathname)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
 }
 
 // These functions expose the IL2CPP VM C++ API to C
@@ -1625,6 +1582,12 @@ Il2CppMonoImage* il2cpp_defaults_corlib_image()
 uint32_t il2cpp_method_get_flags_no_iflags(const Il2CppMonoMethod * method)
 {
 	return ((MethodInfo*)method)->flags;
+}
+
+bool il2cpp_method_is_string_ctor(const Il2CppMonoMethod * method)
+{
+	MethodInfo* methodInfo = (MethodInfo*)method;
+	return methodInfo->declaring_type == il2cpp_defaults.string_class && !strcmp (methodInfo->name, ".ctor");
 }
 
 Il2CppMonoClass* il2cpp_defaults_void_class()
