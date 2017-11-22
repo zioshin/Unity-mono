@@ -4790,7 +4790,7 @@ static MonoBreakpoint* set_breakpoint_fast(Il2CppSequencePointC *sp, EventReques
 	int i;
 
 	if (error)
-		mono_error_init(error);
+		error_init(error);
 
 	// FIXME:
 	// - suspend/resume the vm to prevent code patching problems
@@ -11671,7 +11671,7 @@ debugger_thread (void *arg)
 #ifdef IL2CPP_MONO_DEBUGGER
 			{
 				Il2CppMonoDomain* domain = il2cpp_mono_get_root_domain();
-				appdomain_load(NULL, domain, 0);
+				appdomain_load(NULL, domain);
 				AgentDomainInfo *info = VM_DOMAIN_GET_AGENT_INFO(domain);
 				void *iter = NULL;
 				Il2CppMonoClass *klass;

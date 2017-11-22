@@ -533,7 +533,7 @@ Il2CppMonoClass* il2cpp_mono_class_load_from_name(Il2CppMonoImage* image, const 
 Il2CppMonoGenericClass* il2cpp_mono_class_get_generic_class(Il2CppMonoClass* klass);
 Il2CppMonoInternalThread* il2cpp_mono_thread_internal_current();
 gboolean il2cpp_mono_thread_internal_is_current(Il2CppMonoInternalThread* thread);
-void il2cpp_mono_thread_internal_abort(Il2CppMonoInternalThread* thread);
+void il2cpp_mono_thread_internal_abort(Il2CppMonoInternalThread* thread, gboolean appdomain_unload);
 void il2cpp_mono_thread_internal_reset_abort(Il2CppMonoInternalThread* thread);
 gunichar2* il2cpp_mono_thread_get_name(Il2CppMonoInternalThread* this_obj, guint32* name_len);
 void il2cpp_mono_thread_set_name_internal(Il2CppMonoInternalThread* this_obj, Il2CppMonoString* name, gboolean permanent, gboolean reset, MonoError* error);

@@ -275,13 +275,13 @@ Il2CppMonoString* il2cpp_mono_string_new (Il2CppMonoDomain *domain, const char *
 
 Il2CppMonoString* il2cpp_mono_string_new_checked (Il2CppMonoDomain *domain, const char *text, MonoError *merror)
 {
-	mono_error_init(merror);
+	error_init(merror);
 	return il2cpp_mono_string_new (domain, text);
 }
 
 char* il2cpp_mono_string_to_utf8_checked (Il2CppMonoString *string_obj, MonoError *error)
 {
-	mono_error_init(error);
+	error_init(error);
 	Il2CppString *str = (Il2CppString*)string_obj;
 	std::string s = il2cpp::utils::StringUtils::Utf16ToUtf8(str->chars, str->length);
 	return g_strdup(s.c_str());
@@ -330,7 +330,7 @@ void il2cpp_mono_gc_wbarrier_generic_store (void* ptr, Il2CppMonoObject* value)
 
 int il2cpp_mono_reflection_parse_type_checked (char *name, Il2CppMonoTypeNameParse *monoInfo, MonoError *error)
 {
-	mono_error_init(error);
+	error_init(error);
 	il2cpp::vm::TypeNameParseInfo *pInfo = new il2cpp::vm::TypeNameParseInfo();
 	std::string nameStr = name;
 	std::replace(nameStr.begin(), nameStr.end(), '/', '+');
@@ -600,13 +600,13 @@ Il2CppMonoGenericContainer* il2cpp_mono_method_get_generic_container(Il2CppMonoM
 
 Il2CppMonoMethod* il2cpp_mono_class_inflate_generic_method_full_checked(Il2CppMonoMethod* method, Il2CppMonoClass* klass_hint, Il2CppMonoGenericContext* context, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return (Il2CppMonoMethod*) il2cpp::metadata::GenericMetadata::Inflate((MethodInfo*)method, (Il2CppClass*)klass_hint, (Il2CppGenericContext*)context);
 }
 
 Il2CppMonoMethod* il2cpp_mono_class_inflate_generic_method_checked(Il2CppMonoMethod* method, Il2CppMonoGenericContext* context, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return (Il2CppMonoMethod*)il2cpp::metadata::GenericMetadata::Inflate((MethodInfo*)method, NULL, (Il2CppGenericContext*)context);
 }
 
@@ -655,7 +655,7 @@ Il2CppMonoGenericContainer* il2cpp_mono_class_get_generic_container(Il2CppMonoCl
 
 void il2cpp_mono_class_setup_interfaces(Il2CppMonoClass* klass, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	il2cpp::vm::Class::SetupInterfaces((Il2CppClass*)klass);
 }
 
@@ -708,7 +708,7 @@ GPtrArray* il2cpp_mono_class_get_methods_by_name(Il2CppMonoClass* il2cppMonoKlas
 
 	array = g_ptr_array_new ();
 	startklass = klass;
-	mono_error_init (error);
+	error_init (error);
 
 	if (name != NULL)
 		compare_func = (ignore_case) ? mono_utf8_strcasecmp : strcmp;
@@ -813,7 +813,7 @@ gboolean il2cpp_mono_thread_internal_is_current(Il2CppMonoInternalThread* thread
 	return il2cpp_mono_thread_internal_current () == thread;
 }
 
-void il2cpp_mono_thread_internal_abort(Il2CppMonoInternalThread* thread)
+void il2cpp_mono_thread_internal_abort(Il2CppMonoInternalThread* thread, gboolean appdomain_unload)
 {
 	il2cpp::vm::Thread::RequestAbort((Il2CppInternalThread*)thread);
 }
@@ -831,7 +831,7 @@ gunichar2* il2cpp_mono_thread_get_name(Il2CppMonoInternalThread* this_obj, guint
 void il2cpp_mono_thread_set_name_internal(Il2CppMonoInternalThread* this_obj, Il2CppMonoString* name, gboolean permanent, gboolean reset, MonoError* error)
 {
 	il2cpp::vm::Thread::SetName((Il2CppInternalThread*)this_obj, (Il2CppString*)name);
-	mono_error_init(error);
+	error_init(error);
 }
 
 void il2cpp_mono_thread_suspend_all_other_threads()
@@ -862,19 +862,19 @@ void il2cpp_mono_nullable_init(guint8* buf, Il2CppMonoObject* value, Il2CppMonoC
 
 Il2CppMonoObject* il2cpp_mono_value_box_checked(Il2CppMonoDomain* domain, Il2CppMonoClass* klass, gpointer value, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return (Il2CppMonoObject*)il2cpp::vm::Object::Box((Il2CppClass*)klass, value);
 }
 
 void il2cpp_mono_field_static_get_value_checked(Il2CppMonoVTable* vt, Il2CppMonoClassField* field, void* value, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	il2cpp::vm::Field::StaticGetValue((FieldInfo*)field, value);
 }
 
 void il2cpp_mono_field_static_get_value_for_thread(Il2CppMonoInternalThread* thread, Il2CppMonoVTable* vt, Il2CppMonoClassField* field, void* value, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	il2cpp::vm::Field::StaticGetValueForThread((FieldInfo*)field, value, (Il2CppInternalThread*)thread);
 }
 
@@ -886,7 +886,7 @@ Il2CppMonoObject* il2cpp_mono_field_get_value_object_checked(Il2CppMonoDomain* d
 
 Il2CppMonoObject* il2cpp_mono_object_new_checked(Il2CppMonoDomain* domain, Il2CppMonoClass* klass, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return (Il2CppMonoObject*)il2cpp::vm::Object::New((Il2CppClass*)klass);
 }
 
@@ -898,7 +898,7 @@ Il2CppMonoString* il2cpp_mono_ldstr_checked(Il2CppMonoDomain* domain, Il2CppMono
 
 Il2CppMonoObject* il2cpp_mono_runtime_try_invoke(Il2CppMonoMethod* method, void* obj, void** params, Il2CppMonoObject** exc, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 
 	if (((MethodInfo*)method)->declaring_type->valuetype)
 		obj = static_cast<Il2CppObject*>(obj) - 1;
@@ -989,7 +989,7 @@ gboolean il2cpp_mono_verifier_is_method_valid_generic_instantiation(Il2CppMonoMe
 
 Il2CppMonoType* il2cpp_mono_reflection_get_type_checked(Il2CppMonoImage* rootimage, Il2CppMonoImage* image, Il2CppMonoTypeNameParse* info, gboolean ignorecase, gboolean* type_resolve, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 
 	Il2CppClass *klass = il2cpp::vm::Image::FromTypeNameParseInfo((Il2CppImage*)image, *((il2cpp::vm::TypeNameParseInfo*)info->il2cppTypeNameParseInfo), ignorecase);
 	if (!klass)
@@ -1000,25 +1000,25 @@ Il2CppMonoType* il2cpp_mono_reflection_get_type_checked(Il2CppMonoImage* rootima
 
 Il2CppMonoCustomAttrInfo* il2cpp_mono_custom_attrs_from_method_checked(Il2CppMonoMethod* method, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return NULL;
 }
 
 Il2CppMonoCustomAttrInfo* il2cpp_mono_custom_attrs_from_class_checked(Il2CppMonoClass* klass, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return NULL;
 }
 
 Il2CppMonoCustomAttrInfo* il2cpp_mono_custom_attrs_from_property_checked(Il2CppMonoClass* klass, Il2CppMonoProperty* property, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return NULL;
 }
 
 Il2CppMonoCustomAttrInfo* il2cpp_mono_custom_attrs_from_field_checked(Il2CppMonoClass* klass, Il2CppMonoClassField* field, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return NULL;
 }
 
@@ -1029,7 +1029,7 @@ Il2CppMonoReflectionAssemblyHandle il2cpp_mono_assembly_get_object_handle(Il2Cpp
 
 Il2CppMonoReflectionType* il2cpp_mono_type_get_object_checked(Il2CppMonoDomain* domain, Il2CppMonoType* type, MonoError* error)
 {
-	mono_error_init(error);
+	error_init(error);
 	return (Il2CppMonoReflectionType*)il2cpp::vm::Reflection::GetTypeObject((const Il2CppType*)type);
 }
 

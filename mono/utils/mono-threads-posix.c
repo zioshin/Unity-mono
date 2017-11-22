@@ -78,7 +78,11 @@ mono_thread_platform_create_thread (MonoThreadStart thread_fn, gpointer thread_d
 #endif /* HAVE_PTHREAD_ATTR_SETSTACKSIZE */
 
 	/* Actually start the thread */
+#ifdef RUNTIME_IL2CPP
+	res = pthread_create (&thread, &attr, (gpointer (*)(gpointer)) thread_fn, thread_data);
+#else
 	res = mono_gc_pthread_create (&thread, &attr, (gpointer (*)(gpointer)) thread_fn, thread_data);
+#endif
 	if (res) {
 		res = pthread_attr_destroy (&attr);
 		if (res != 0)
