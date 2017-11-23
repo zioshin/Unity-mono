@@ -122,6 +122,7 @@ namespace System.Globalization
 		static CultureInfo ()
 		{
 			invariant_culture_info = new CultureInfo (InvariantCultureId, false, true);
+			ConstructCurrentCulture();
 		}
 		
 		public static CultureInfo CreateSpecificCulture (string name)
