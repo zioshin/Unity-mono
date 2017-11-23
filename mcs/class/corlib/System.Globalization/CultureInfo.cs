@@ -593,9 +593,19 @@ namespace System.Globalization
 		public static CultureInfo InstalledUICulture
 		{
 #if NET_2_0
-			get { return GetCultureInfo (BootstrapCultureID); }
+			get 
+			{ 
+				if(BootstrapCultureID == 0)
+					ConstructCurrentCulture();
+				return GetCultureInfo (BootstrapCultureID); 
+			}
 #else
-			get { return new CultureInfo (BootstrapCultureID); }
+			get 
+			{ 
+				if(BootstrapCultureID == 0)
+					ConstructCurrentCulture();
+				return new CultureInfo (BootstrapCultureID); 
+			}
 #endif
 		}
 		public bool IsReadOnly 
