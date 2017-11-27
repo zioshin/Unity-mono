@@ -237,7 +237,7 @@
     <ClInclude Include="..\mono\mini\mini-windows.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\mono\mini\pmip_my_callstack.h">
+    <ClInclude Include="..\mono\mini\mixed_callstack_plugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
