@@ -53,7 +53,7 @@ create_next_pmip_file()
 {
 	char* file_name = g_strdup_printf("pmip_%d_%d.txt", GetCurrentProcessId(), pmipFileNum++);
 	char* path = g_build_filename(g_get_tmp_dir(), file_name, NULL);
-	char* version = g_strdup("UnityMixedCallstacks:1.0\n");
+	char* version = "UnityMixedCallstacks:1.0\n";
 	long bytesWritten = 0;
 
 	pmip_my_callstack_lock ();
@@ -78,7 +78,6 @@ create_next_pmip_file()
 
 	g_free(file_name);
 	g_free(path);
-	g_free(version);
 }
 
 void
