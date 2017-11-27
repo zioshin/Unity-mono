@@ -441,33 +441,27 @@ namespace System.IO {
 			FileStream f = null;
 			string path;
 			Random rnd;
-			int num = 0;
+			int num;
+			int count = 0;
 
 			rnd = new Random ();
+			var tmp_path = GetTempPath ();
 			do {
 				num = rnd.Next ();
 				num++;
-				path = Path.Combine (GetTempPath(), "tmp" + num.ToString("x") + ".tmp");
+				path = Path.Combine (tmp_path, "tmp" + num.ToString ("x", CultureInfo.InvariantCulture) + ".tmp");
 
 				try {
 					f = new FileStream (path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read,
 							    8192, false, (FileOptions) 1);
-				}
-				#if !DISABLE_SECURITY
-				catch (SecurityException) {
-					// avoid an endless loop
-					throw;
-				}
-				#endif
-				catch (UnauthorizedAccessException) {
-					// This can happen if we don't have write permission to /tmp
-					throw;
-				}
-				catch (DirectoryNotFoundException) {
-					// This happens when TMPDIR does not exist
-					throw;
-				}
-				catch {
+				} catch (IOException ex){
+					//fileAlreadyExists == false is the replacement for ex._HResult != MonoIO.FileAlreadyExistsHResult
+					var fileAlreadyExists = File.Exists(path);
+					if (fileAlreadyExists == false || count ++ > 65536)
+						throw;
+				} catch (UnauthorizedAccessException ex) {
+					if (count ++ > 65536)
+						throw new IOException (ex.Message, ex);
 				}
 			} while (f == null);
 			
