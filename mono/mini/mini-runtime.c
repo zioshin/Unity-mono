@@ -3702,7 +3702,7 @@ mini_init (const char *filename, const char *runtime_version)
 		mono_lldb_init ("");
 		mono_dont_free_domains = TRUE;
 	}
-	if (g_hasenv ("MONO_PMIP")) {
+	if (g_hasenv ("UNITY_MIXED_CALLSTACK")) {
 		mono_pmip_my_callstack_init ("");
 	}
 
