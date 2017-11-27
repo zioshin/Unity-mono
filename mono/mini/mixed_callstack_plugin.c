@@ -1,4 +1,4 @@
-#include "pmip_my_callstack.h"
+#include "mixed_callstack_plugin.h"
 #include "mono/metadata/mono-debug.h"
 #include "mono/metadata/profiler.h"
 
@@ -81,7 +81,7 @@ create_next_pmip_file()
 }
 
 void
-mono_pmip_my_callstack_init (const char *options)
+mixed_callstack_plugin_init (const char *options)
 {
 	pmipFileNum = 0;
 
@@ -89,13 +89,13 @@ mono_pmip_my_callstack_init (const char *options)
 
 	mono_profiler_install((MonoProfiler*)&pmipProfiler, NULL);
 	mono_profiler_set_events ((MonoProfileFlags)(MONO_PROFILE_APPDOMAIN_EVENTS));
-	mono_profiler_install_appdomain (NULL, NULL, NULL, mono_pmip_my_callstack_on_domain_unload_end);
+	mono_profiler_install_appdomain (NULL, NULL, NULL, mixed_callstack_plugin_on_domain_unload_end);
 
 	create_next_pmip_file();
 }
 
 void
-mono_pmip_my_callstack_on_domain_unload_end()
+mixed_callstack_plugin_on_domain_unload_end()
 {
 	if(!enabled)
 		return;
@@ -104,7 +104,7 @@ mono_pmip_my_callstack_on_domain_unload_end()
 }
 
 void
-mono_pmip_my_callstack_save_method_info (MonoCompile *cfg)
+mixed_callstack_plugin_save_method_info (MonoCompile *cfg)
 {
 	char* pretty_name;
 	char* frame;
@@ -127,12 +127,12 @@ mono_pmip_my_callstack_save_method_info (MonoCompile *cfg)
 }
 
 void
-mono_pmip_my_callstack_remove_method (MonoDomain *domain, MonoMethod *method, MonoJitDynamicMethodInfo *info)
+mixed_callstack_plugin_remove_method (MonoDomain *domain, MonoMethod *method, MonoJitDynamicMethodInfo *info)
 {
 }
 
 void
-mono_pmip_my_callstack_save_trampoline_info (MonoTrampInfo *info)
+mixed_callstack_plugin_save_trampoline_info (MonoTrampInfo *info)
 {
 	char* frame;
 	long bytesWritten = 0;
@@ -150,7 +150,7 @@ mono_pmip_my_callstack_save_trampoline_info (MonoTrampInfo *info)
 }
 
 void
-mono_pmip_my_callstack_save_specific_trampoline_info (gpointer arg1, MonoTrampolineType tramp_type, MonoDomain *domain, gpointer code, guint32 code_len)
+mixed_callstack_plugin_save_specific_trampoline_info (gpointer arg1, MonoTrampolineType tramp_type, MonoDomain *domain, gpointer code, guint32 code_len)
 {
 
 }
@@ -158,33 +158,33 @@ mono_pmip_my_callstack_save_specific_trampoline_info (gpointer arg1, MonoTrampol
 #else
 
 void
-mono_pmip_my_callstack_init (const char *options)
+mixed_callstack_plugin_init (const char *options)
 {
 	g_error ("Only Available On Windows With Jit Enabled");
 }
 
 void
-mono_pmip_my_callstack_on_domain_unload_end()
+mixed_callstack_plugin_on_domain_unload_end()
 {
 }
 
 void
-mono_pmip_my_callstack_save_method_info (MonoCompile *cfg)
+mixed_callstack_plugin_save_method_info (MonoCompile *cfg)
 {
 }
 
 void
-mono_pmip_my_callstack_save_trampoline_info (MonoTrampInfo *info)
+mixed_callstack_plugin_save_trampoline_info (MonoTrampInfo *info)
 {
 }
 
 void
-mono_pmip_my_callstack_remove_method (MonoDomain *domain, MonoMethod *method, MonoJitDynamicMethodInfo *info)
+mixed_callstack_plugin_remove_method (MonoDomain *domain, MonoMethod *method, MonoJitDynamicMethodInfo *info)
 {
 }
 
 void
-mono_pmip_my_callstack_save_specific_trampoline_info (gpointer arg1, MonoTrampolineType tramp_type, MonoDomain *domain, gpointer code, guint32 code_len)
+mixed_callstack_plugin_save_specific_trampoline_info (gpointer arg1, MonoTrampolineType tramp_type, MonoDomain *domain, gpointer code, guint32 code_len)
 {
 }
 
