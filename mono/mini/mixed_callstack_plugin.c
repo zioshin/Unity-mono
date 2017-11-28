@@ -5,7 +5,7 @@
 /* Dummy structure used for the profiler callbacks */
 typedef struct {
 	void* dummy;
-} PMIPProfiler;
+} MixedCallstackProfiler;
 
 static char *
 pmip_pretty(MonoCompile* monoCompile)
@@ -42,11 +42,11 @@ pmip_pretty(MonoCompile* monoCompile)
 static gboolean enabled;
 static mono_mutex_t mutex;
 static HANDLE fileHandle;
-PMIPProfiler pmipProfiler;
+MixedCallstackProfiler mixedCallstackProfiler;
 int pmipFileNum;
 
-#define pmip_my_callstack_lock() mono_os_mutex_lock (&mutex)
-#define pmip_my_callstack_unlock() mono_os_mutex_unlock (&mutex)
+#define mixed_callstack_plugin_lock() mono_os_mutex_lock (&mutex)
+#define mixed_callstack_plugin_unlock() mono_os_mutex_unlock (&mutex)
 
 void
 create_next_pmip_file()
@@ -56,7 +56,7 @@ create_next_pmip_file()
 	char* version = "UnityMixedCallstacks:1.0\n";
 	long bytesWritten = 0;
 
-	pmip_my_callstack_lock ();
+	mixed_callstack_plugin_lock ();
 
 	if(fileHandle)
 		CloseHandle(fileHandle);
@@ -74,7 +74,7 @@ create_next_pmip_file()
 
 	WriteFile(fileHandle, version, strlen(version), &bytesWritten, NULL);
 
-	pmip_my_callstack_unlock ();
+	mixed_callstack_plugin_unlock ();
 
 	g_free(file_name);
 	g_free(path);
@@ -87,7 +87,7 @@ mixed_callstack_plugin_init (const char *options)
 
 	mono_os_mutex_init_recursive(&mutex);
 
-	mono_profiler_install((MonoProfiler*)&pmipProfiler, NULL);
+	mono_profiler_install((MonoProfiler*)&mixedCallstackProfiler, NULL);
 	mono_profiler_set_events ((MonoProfileFlags)(MONO_PROFILE_APPDOMAIN_EVENTS));
 	mono_profiler_install_appdomain (NULL, NULL, NULL, mixed_callstack_plugin_on_domain_unload_end);
 
@@ -115,12 +115,12 @@ mixed_callstack_plugin_save_method_info (MonoCompile *cfg)
 
 	pretty_name = pmip_pretty(cfg);
 
-	pmip_my_callstack_lock ();
+	mixed_callstack_plugin_lock ();
 	frame = g_strdup_printf("%p;%p;%s\n", cfg->native_code, ((char*)cfg->native_code) + cfg->code_size, pretty_name);
 	WriteFile(fileHandle, frame, strlen(frame), &bytesWritten, NULL);
 	FlushFileBuffers(fileHandle);
 
-	pmip_my_callstack_unlock ();
+	mixed_callstack_plugin_unlock ();
 
 	g_free(pretty_name);
 	g_free(frame);
@@ -140,11 +140,11 @@ mixed_callstack_plugin_save_trampoline_info (MonoTrampInfo *info)
 	if (!enabled)
 		return;
 
-	pmip_my_callstack_lock ();
+	mixed_callstack_plugin_lock ();
 	frame = g_strdup_printf ("%p;%p;%s\n", info->code, ((char*)info->code) + info->code_size, info->name ? info->name : "");
 	WriteFile(fileHandle, frame, strlen(frame), bytesWritten, NULL);
 	FlushFileBuffers(fileHandle);
-	pmip_my_callstack_unlock ();
+	mixed_callstack_plugin_unlock ();
 
 	g_free(frame);
 }
