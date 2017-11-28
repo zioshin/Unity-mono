@@ -2731,8 +2731,14 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this, MonoAr
 		mono_array_size_t *lower_bounds;
 		pcount = mono_array_length (params);
 		lengths = alloca (sizeof (mono_array_size_t) * pcount);
-		for (i = 0; i < pcount; ++i)
+		for (i = 0; i < pcount; ++i) {
+			MonoObject* length = mono_array_get (params, MonoObject*, i);
+			if (length == NULL) {
+				mono_gc_wbarrier_generic_store (exc, (MonoObject*)mono_get_exception_argument ("parameters", "Arrays indexes must be set to an object instance."));
+				return NULL;
+			}
 			lengths [i] = *(mono_array_size_t*) ((char*)mono_array_get (params, gpointer, i) + sizeof (MonoObject));
+		}
 
 		if (m->klass->rank == pcount) {
 			/* Only lengths provided. */
