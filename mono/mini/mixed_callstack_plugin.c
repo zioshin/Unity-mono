@@ -142,7 +142,7 @@ mixed_callstack_plugin_save_trampoline_info (MonoTrampInfo *info)
 
 	mixed_callstack_plugin_lock ();
 	frame = g_strdup_printf ("%p;%p;%s\n", info->code, ((char*)info->code) + info->code_size, info->name ? info->name : "");
-	WriteFile(fileHandle, frame, strlen(frame), bytesWritten, NULL);
+	WriteFile(fileHandle, frame, strlen(frame), &bytesWritten, NULL);
 	FlushFileBuffers(fileHandle);
 	mixed_callstack_plugin_unlock ();
 
