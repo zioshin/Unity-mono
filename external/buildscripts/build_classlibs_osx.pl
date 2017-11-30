@@ -479,6 +479,7 @@ if ($unity)
 
 #Overlaying files
 CopyIgnoringHiddenFiles("add_to_build_results/", "$root/builds/");
+CopyIgnoringHiddenFiles("$externalBuildDeps/libgdiplus/osx/", "$root/builds/monodistribution/lib/");
 
 if($ENV{UNITY_THISISABUILDMACHINE})
 {
