@@ -1512,18 +1512,6 @@ if ($artifact)
 			system("rm -rf $distdirlibmono/gac/nunit*");
 		}
 
-		if ($buildMSBuild)
-		{
-			#MSBuild requires a recent version of mono to build, so use the one we built
-			$ENV{MONO_BIN_DIR} = "$distdir/bin-osx-tmp-x86_64/";
-
-			chdir("$msbuildroot") eq 1 or die ("failed to chdir : $monoroot/external/msbuild\n");
-			system("./cibuild.sh --scope Compile --target Mono --host Mono --config Release") eq 0 or die ("failed to build msbuild");
-			system("./install-mono-prefix.sh $distdir") eq 0 or die ("failed to install mono");
-
-			chdir("$currentdir") eq 1 or die ("failed to chdir : $monoroot");
-		}
-
 		# Remove a self referencing sym link that causes problems
 		system("rm -rf $monoprefix/bin/bin");
 
@@ -1770,6 +1758,18 @@ if ($artifact)
 	system("echo \"unity-mono-build-scripts-revision = $buildScriptsRevision\" >> $versionsOutputFile");
 	my $tmp = `date`;
 	system("echo \"build-date = $tmp\" >> $versionsOutputFile");
+
+	if ($buildMSBuild)
+	{
+		#MSBuild requires a recent version of mono to build, so use the one we built
+		$ENV{MONO_BIN_DIR} = "$distDirArchBin/";
+
+		chdir("$msbuildroot") eq 1 or die ("failed to chdir : $monoroot/external/msbuild\n");
+		system("./cibuild.sh --scope Compile --target Mono --host Mono --config Release") eq 0 or die ("failed to build msbuild");
+		system("./install-mono-prefix.sh $distdir") eq 0 or die ("failed to install mono");
+
+		chdir("$currentdir") eq 1 or die ("failed to chdir : $monoroot");
+	}
 }
 else
 {
