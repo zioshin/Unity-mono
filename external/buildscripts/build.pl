@@ -1514,16 +1514,14 @@ if ($artifact)
 
 		if ($buildMSBuild)
 		{
-			#Our classlibrary build is missing String.format, so discard our changes before building msbuild
-			my $currentPath = $ENV{PATH};
-			$ENV{PATH} = $startPath;
+			#MSBuild requires a recent version of mono to build, so use the one we built
+			$ENV{MONO_BIN_DIR} = "$distdir/bin-osx-tmp-x86_64/";
 
 			chdir("$msbuildroot") eq 1 or die ("failed to chdir : $monoroot/external/msbuild\n");
 			system("./cibuild.sh --scope Compile --target Mono --host Mono --config Release") eq 0 or die ("failed to build msbuild");
 			system("./install-mono-prefix.sh $distdir") eq 0 or die ("failed to install mono");
 
-			chdir("$monoroot") eq 1 or die ("failed to chdir : $monoroot");
-			$ENV{PATH} = $currentPath;
+			chdir("$currentdir") eq 1 or die ("failed to chdir : $monoroot");
 		}
 
 		# Remove a self referencing sym link that causes problems
