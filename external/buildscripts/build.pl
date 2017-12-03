@@ -14,13 +14,14 @@ my $monoroot = File::Spec->rel2abs(dirname(__FILE__) . "/../..");
 my $monoroot = abs_path($monoroot);
 
 my $buildscriptsdir = "$monoroot/external/buildscripts";
+my $msbuildroot = "$monoroot/external/msbuild";
 my $addtoresultsdistdir = "$buildscriptsdir/add_to_build_results/monodistribution";
 my $buildsroot = "$monoroot/builds";
 my $includesroot = "$buildsroot/include";
 my $sourcesroot = "$buildsroot/source";
 my $distdir = "$buildsroot/monodistribution";
 my $buildMachine = $ENV{UNITY_THISISABUILDMACHINE};
-
+my $startPath = $ENV{PATH};
 # This script should not be ran on windows, if it is, kindly call the wrapper
 # to switch over to cygwin
 if ($^O eq "MSWin32")
@@ -41,6 +42,7 @@ my $debug=0;
 my $disableMcs=0;
 my $mcsOnly=0;
 my $buildUsAndBoo=0;
+my $buildMSBuild=0;
 my $artifactsCommon=0;
 my $artifactsRuntime=1;
 my $runRuntimeTests=1;
@@ -91,6 +93,7 @@ GetOptions(
 	'disablemcs=i'=>\$disableMcs,
 	'mcsonly=i'=>\$mcsOnly,
 	'buildusandboo=i'=>\$buildUsAndBoo,
+	'buildMSBuild=i'=>\$buildMSBuild,
 	'runtimetests=i'=>\$runRuntimeTests,
 	'classlibtests=i'=>\$runClasslibTests,
 	'arch32=i'=>\$arch32,
@@ -1507,6 +1510,20 @@ if ($artifact)
 		{
 			system("rm -rf $distdirlibmono/2.0/nunit*");
 			system("rm -rf $distdirlibmono/gac/nunit*");
+		}
+
+		if ($buildMSBuild)
+		{
+			#Our classlibrary build is missing String.format, so discard our changes before building msbuild
+			my $currentPath = $ENV{PATH};
+			$ENV{PATH} = $startPath;
+
+			chdir("$msbuildroot") eq 1 or die ("failed to chdir : $monoroot/external/msbuild\n");
+			system("./cibuild.sh --scope Compile --target Mono --host Mono --config Release") eq 0 or die ("failed to build msbuild");
+			system("./install-mono-prefix.sh $distdir") eq 0 or die ("failed to install mono");
+
+			chdir("$monoroot") eq 1 or die ("failed to chdir : $monoroot");
+			$ENV{PATH} = $currentPath;
 		}
 
 		# Remove a self referencing sym link that causes problems

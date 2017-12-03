@@ -36,5 +36,6 @@ system(
 	"--artifact=1",
 	"--artifactscommon=1",
 	"--buildusandboo=1",
+	"--buildMSBuild=1",
 	"--forcedefaultbuilddeps=1",
 	"--shortprefix=$shortPrefix") eq 0 or die ("Failed building mono\n");
