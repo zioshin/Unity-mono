@@ -9203,12 +9203,10 @@ assembly_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	case CMD_ASSEMBLY_GET_ENTRY_POINT: {
 		guint32 token;
 		MonoMethod *m;
-#ifndef IL2CPP_MONO_DEBUGGER
+
 		if (ass->image->dynamic) {
 			buffer_add_id (buf, 0);
-		} else 
-#endif
-		{
+		} else {
 #ifdef IL2CPP_MONO_DEBUGGER
 			m = il2cpp_mono_image_get_entry_point(ass->image);
 			if (m == NULL)
