@@ -17,6 +17,7 @@ mono_image_open_from_data_with_name
 mono_assembly_fill_assembly_name
 mono_stringify_assembly_name
 mono_assembly_name_parse
+mono_assembly_name_free
 mono_assembly_loaded
 mono_loader_get_last_error
 mono_loader_error_prepare_exception
