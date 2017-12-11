@@ -4,6 +4,7 @@
 #if defined(RUNTIME_IL2CPP)
 #include "il2cpp-class-internals.h"
 #include "il2cpp-object-internals.h"
+#include "vm-utils/Debugger.h"
 #endif // RUNTIME_IL2CPP
 
 #define IL2CPP_MONO_PUBLIC_KEY_TOKEN_LENGTH	17
@@ -147,66 +148,10 @@ struct _Il2CppMonoTypeNameParse
 	void *il2cppTypeNameParseInfo;
 };
 
-typedef enum
-{
-	kMethodVariableKindC_This,
-	kMethodVariableKindC_Parameter,
-	kMethodVariableKindC_LocalVariable
-} MethodVariableKindC;
-
-typedef enum
-{
-	kSequencePointKindC_Normal,
-	kSequencePointKindC_StepOut
-} SequencePointKindC;
-
-typedef struct
-{
-	const MonoType* const* const type;
-	const char* const name;
-	const MethodVariableKindC variableKind;
-	const int start;
-	const int end;
-} Il2CppMethodExecutionContextInfoC;
-
-typedef struct
-{
-	int startOffset;
-	int endOffset;
-} Il2CppMethodScopeC;
-
-typedef struct
-{
-	int codeSize;
-	int numScopes;
-	Il2CppMethodScopeC *scopes;
-} Il2CppMethodHeaderInfoC;
-
-typedef struct
-{
-	const Il2CppMethodExecutionContextInfoC* const executionContextInfos;
-	const uint32_t executionContextInfoCount;
-	const Il2CppMethodHeaderInfoC *header;
-	const MonoMethod* method;
-	const char* const sourceFile;
-	const uint8_t sourceFileHash[16];
-	const int32_t lineStart, lineEnd;
-	const int32_t columnStart, columnEnd;
-	const int32_t ilOffset;
-	const SequencePointKindC kind;
-	uint8_t isActive;
-	uint64_t id;
-} Il2CppSequencePointC;
-
-typedef struct
-{
-	void** values;
-} Il2CppSequencePointExecutionContextC;
-
 typedef struct Il2CppThreadUnwindState
 {
-	Il2CppSequencePointC** sequencePoints;
-	Il2CppSequencePointExecutionContextC** executionContexts;
+	Il2CppSequencePoint** sequencePoints;
+	Il2CppSequencePointExecutionContext** executionContexts;
 	uint32_t frameCount;
 } Il2CppThreadUnwindState;
 

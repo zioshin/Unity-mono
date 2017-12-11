@@ -1360,17 +1360,17 @@ const char* il2cpp_domain_get_name(MonoDomain* domain)
 	return ((Il2CppDomain*)domain)->friendly_name;
 }
 
-Il2CppSequencePointC* il2cpp_get_sequence_points(void* *iter)
+Il2CppSequencePoint* il2cpp_get_sequence_points(void* *iter)
 {
-	return (Il2CppSequencePointC*)il2cpp::utils::Debugger::GetSequencePoints(iter);
+	return (Il2CppSequencePoint*)il2cpp::utils::Debugger::GetSequencePoints(iter);
 }
 
-Il2CppSequencePointC* il2cpp_get_method_sequence_points(MonoMethod* method, void* *iter)
+Il2CppSequencePoint* il2cpp_get_method_sequence_points(MonoMethod* method, void* *iter)
 {
 	if (!method)
-		return (Il2CppSequencePointC*)il2cpp::utils::Debugger::GetSequencePoints(iter);
+		return (Il2CppSequencePoint*)il2cpp::utils::Debugger::GetSequencePoints(iter);
 	else
-		return (Il2CppSequencePointC*)il2cpp::utils::Debugger::GetSequencePoints((const MethodInfo*)method, iter);
+		return (Il2CppSequencePoint*)il2cpp::utils::Debugger::GetSequencePoints((const MethodInfo*)method, iter);
 }
 
 gboolean il2cpp_mono_methods_match(MonoMethod* left, MonoMethod* right)
