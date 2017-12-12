@@ -37,6 +37,7 @@
 #define MonoDomain Il2CppDomain
 #define MonoDomainFunc Il2CppDomainFunc
 #define MonoException Il2CppException
+#define MonoObject Il2CppObject
 #define MonoVTable Il2CppVTable
 #define MonoMarshalByRefObject Il2CppMarshalByRefObject
 
@@ -48,16 +49,9 @@
 
 //still stubs everywhere
 typedef struct _Il2CppMonoMethodSignature Il2CppMonoMethodSignature;
-typedef struct _Il2CppMonoObject Il2CppMonoObject;
 typedef struct _Il2CppMonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks;
 typedef struct Il2CppDefaults Il2CppMonoDefaults;
 typedef struct _Il2CppMonoTypeNameParse Il2CppMonoTypeNameParse;
-
-struct _Il2CppMonoObject
-{
-	Il2CppMonoVTable *vtable;
-	void *synchronization;
-};
 
 };
 
@@ -85,7 +79,7 @@ struct _Il2CppMonoTypeNameParse
 	void *il2cppTypeNameParseInfo;
 };
 
-TYPED_HANDLE_DECL (Il2CppMonoObject);
+TYPED_HANDLE_DECL (MonoObject);
 TYPED_HANDLE_DECL (MonoReflectionAssembly);
 Il2CppMonoDefaults il2cpp_mono_defaults;
 MonoDebugOptions il2cpp_mono_debug_options;
