@@ -11275,8 +11275,12 @@ object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 	switch (command) {
 	case CMD_OBJECT_REF_GET_TYPE:
+#ifndef IL2CPP_MONO_DEBUGGER
 		/* This handles transparent proxies too */
 		buffer_add_typeid (buf, VM_OBJECT_GET_DOMAIN(obj), mono_class_from_mono_type (((MonoReflectionType*)obj->vtable->type)->type));
+#else
+		buffer_add_typeid (buf, VM_OBJECT_GET_DOMAIN(obj), obj->vtable->klass);
+#endif //IL2CPP_MONO_DEBUGGER
 		break;
 	case CMD_OBJECT_REF_GET_VALUES:
 		len = decode_int (p, &p, end);

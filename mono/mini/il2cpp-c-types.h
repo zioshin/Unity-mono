@@ -35,12 +35,12 @@
 #define MonoAppDomain Il2CppAppDomain
 #define MonoDomain Il2CppDomain
 #define MonoDomainFunc Il2CppDomainFunc
+#define MonoObject Il2CppObject
 
 //still stubs everywhere
 typedef struct _Il2CppMonoMethodSignature Il2CppMonoMethodSignature;
 typedef struct _Il2CppMonoVTable Il2CppMonoVTable;
 typedef struct _Il2CppMonoMarshalByRefObject Il2CppMonoMarshalByRefObject;
-typedef struct _Il2CppMonoObject Il2CppMonoObject;
 typedef struct _Il2CppMonoCustomAttrInfo Il2CppMonoCustomAttrInfo;
 typedef struct _Il2CppMonoJitTlsData Il2CppMonoJitTlsData;
 typedef struct _Il2CppMonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks;
@@ -62,15 +62,9 @@ struct _Il2CppCattrNamedArg
 	MonoProperty *prop;
 };
 
-struct _Il2CppMonoObject
-{
-	Il2CppMonoVTable *vtable;
-	void *synchronization;
-};
-
 struct _Il2CppMonoException
 {
-	Il2CppMonoObject object;
+	MonoObject object;
 };
 
 struct _Il2CppMonoMethodInflated
@@ -120,7 +114,7 @@ struct _Il2CppMonoRuntimeExceptionHandlingCallbacks
 
 struct _Il2CppMonoMarshalByRefObject
 {
-	Il2CppMonoObject obj;
+	MonoObject obj;
 };
 
 struct _Il2CppMonoVTable
@@ -155,7 +149,7 @@ typedef struct Il2CppThreadUnwindState
 	uint32_t frameCount;
 } Il2CppThreadUnwindState;
 
-TYPED_HANDLE_DECL (Il2CppMonoObject);
+TYPED_HANDLE_DECL (MonoObject);
 TYPED_HANDLE_DECL (MonoReflectionAssembly);
 Il2CppMonoDefaults il2cpp_mono_defaults;
 MonoDebugOptions il2cpp_mono_debug_options;
