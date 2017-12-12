@@ -46,7 +46,6 @@
 
 #if defined(RUNTIME_IL2CPP)
 
-#define MonoVTable Il2CppMonoVTable
 #define MonoMethodSignature Il2CppMonoMethodSignature
 #define MonoObject Il2CppMonoObject
 #define MonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks
@@ -272,7 +271,7 @@ void il2cpp_mono_method_get_param_names (MonoMethod *method, const char **names)
 mono_bool il2cpp_mono_type_generic_inst_is_valuetype (MonoType *type);
 MonoMethodHeader* il2cpp_mono_method_get_header_checked (MonoMethod *method, MonoError *error);
 gboolean il2cpp_mono_class_init (MonoClass *klass);
-Il2CppMonoVTable* il2cpp_mono_class_vtable (MonoDomain *domain, MonoClass *klass);
+MonoVTable* il2cpp_mono_class_vtable (MonoDomain *domain, MonoClass *klass);
 MonoClassField* il2cpp_mono_class_get_field_from_name (MonoClass *klass, const char *name);
 int32_t il2cpp_mono_array_element_size (MonoClass *ac);
 int32_t il2cpp_mono_class_instance_size (MonoClass *klass);
@@ -297,7 +296,7 @@ char* il2cpp_mono_string_to_utf8_checked (MonoString *string_obj, MonoError *err
 int il2cpp_mono_object_hash (Il2CppMonoObject* obj);
 void* il2cpp_mono_object_unbox (Il2CppMonoObject *obj);
 void il2cpp_mono_field_set_value (Il2CppMonoObject *obj, MonoClassField *field, void *value);
-void il2cpp_mono_field_static_set_value (Il2CppMonoVTable *vt, MonoClassField *field, void *value);
+void il2cpp_mono_field_static_set_value (MonoVTable *vt, MonoClassField *field, void *value);
 uint32_t il2cpp_mono_gchandle_new_weakref (Il2CppMonoObject *obj, mono_bool track_resurrection);
 Il2CppMonoObject*  il2cpp_mono_gchandle_get_target (uint32_t gchandle);
 void il2cpp_mono_gchandle_free (uint32_t gchandle);
@@ -361,8 +360,8 @@ void il2cpp_mono_stack_mark_record_size(MonoThreadInfo* info, HandleStackMark* s
 Il2CppMonoRuntimeExceptionHandlingCallbacks* il2cpp_mono_get_eh_callbacks();
 void il2cpp_mono_nullable_init(guint8* buf, Il2CppMonoObject* value, MonoClass* klass);
 Il2CppMonoObject* il2cpp_mono_value_box_checked(MonoDomain* domain, MonoClass* klass, gpointer value, MonoError* error);
-void il2cpp_mono_field_static_get_value_checked(Il2CppMonoVTable* vt, MonoClassField* field, void* value, MonoError* error);
-void il2cpp_mono_field_static_get_value_for_thread(MonoInternalThread* thread, Il2CppMonoVTable* vt, MonoClassField* field, void* value, MonoError* error);
+void il2cpp_mono_field_static_get_value_checked(MonoVTable* vt, MonoClassField* field, void* value, MonoError* error);
+void il2cpp_mono_field_static_get_value_for_thread(MonoInternalThread* thread, MonoVTable* vt, MonoClassField* field, void* value, MonoError* error);
 Il2CppMonoObject* il2cpp_mono_field_get_value_object_checked(MonoDomain* domain, MonoClassField* field, Il2CppMonoObject* obj, MonoError* error);
 Il2CppMonoObject* il2cpp_mono_object_new_checked(MonoDomain* domain, MonoClass* klass, MonoError* error);
 MonoString* il2cpp_mono_ldstr_checked(MonoDomain* domain, MonoImage* image, guint32 idx, MonoError* error);

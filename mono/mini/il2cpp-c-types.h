@@ -37,6 +37,7 @@
 #define MonoDomain Il2CppDomain
 #define MonoDomainFunc Il2CppDomainFunc
 #define MonoException Il2CppException
+#define MonoVTable Il2CppVTable
 #define MonoMarshalByRefObject Il2CppMarshalByRefObject
 
 //Unsupported in il2cpp, should never be referenced
@@ -47,7 +48,6 @@
 
 //still stubs everywhere
 typedef struct _Il2CppMonoMethodSignature Il2CppMonoMethodSignature;
-typedef struct _Il2CppMonoVTable Il2CppMonoVTable;
 typedef struct _Il2CppMonoObject Il2CppMonoObject;
 typedef struct _Il2CppMonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks;
 typedef struct Il2CppDefaults Il2CppMonoDefaults;
@@ -69,13 +69,6 @@ struct _Il2CppMonoRuntimeExceptionHandlingCallbacks
 
 };
 
-struct _Il2CppMonoVTable
-{
-	MonoClass *klass;
-	MonoDomain *domain;
-	guint8 initialized;
-	gpointer type;
-	guint init_failed     : 1;
 struct _Il2CppMonoMethodSignature
 {
 	MonoType *ret;
