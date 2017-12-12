@@ -37,29 +37,25 @@
 #define MonoDomain Il2CppDomain
 #define MonoDomainFunc Il2CppDomainFunc
 
+//Unsupported in il2cpp, should never be referenced
+#define MonoCustomAttrInfo #error Custom Attributes Not Supported
+#define MonoCustomAttrEntry #error Custom Attributes Not Supported
+#define CattrNamedArg #error Custom Attributes Not Supported
+#define MonoJitTlsData #error Jit TLS Data Unsupported
+
 //still stubs everywhere
 typedef struct _Il2CppMonoMethodSignature Il2CppMonoMethodSignature;
 typedef struct _Il2CppMonoVTable Il2CppMonoVTable;
 typedef struct _Il2CppMonoMarshalByRefObject Il2CppMonoMarshalByRefObject;
 typedef struct _Il2CppMonoObject Il2CppMonoObject;
-typedef struct _Il2CppMonoCustomAttrInfo Il2CppMonoCustomAttrInfo;
 typedef struct _Il2CppMonoJitTlsData Il2CppMonoJitTlsData;
 typedef struct _Il2CppMonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks;
-typedef struct _Il2CppMonoCustomAttrEntry Il2CppMonoCustomAttrEntry;
 typedef struct Il2CppDefaults Il2CppMonoDefaults;
 typedef struct _Il2CppMonoException Il2CppMonoException;
-typedef struct _Il2CppCattrNamedArg Il2CppCattrNamedArg;
 typedef struct _Il2CppMonoTypeNameParse Il2CppMonoTypeNameParse;
 
 
 struct _Il2CppMonoJitTlsData { void *dummy; };
-
-struct _Il2CppCattrNamedArg
-{
-	MonoType *type;
-	MonoClassField *field;
-	MonoProperty *prop;
-};
 
 struct _Il2CppMonoObject
 {
@@ -70,19 +66,6 @@ struct _Il2CppMonoObject
 struct _Il2CppMonoException
 {
 	Il2CppMonoObject object;
-};
-
-struct _Il2CppMonoCustomAttrEntry
-{
-	MonoMethod *ctor;
-	uint32_t data_size;
-	const mono_byte* data;
-};
-
-struct _Il2CppMonoCustomAttrInfo
-{
-	int num_attrs;
-	Il2CppMonoCustomAttrEntry attrs [MONO_ZERO_LEN_ARRAY];
 };
 
 
