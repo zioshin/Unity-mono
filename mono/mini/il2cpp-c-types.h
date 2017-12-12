@@ -36,6 +36,8 @@
 #define MonoAppDomain Il2CppAppDomain
 #define MonoDomain Il2CppDomain
 #define MonoDomainFunc Il2CppDomainFunc
+#define MonoException Il2CppException
+#define MonoMarshalByRefObject Il2CppMarshalByRefObject
 
 //Unsupported in il2cpp, should never be referenced
 #define MonoCustomAttrInfo #error Custom Attributes Not Supported
@@ -46,16 +48,10 @@
 //still stubs everywhere
 typedef struct _Il2CppMonoMethodSignature Il2CppMonoMethodSignature;
 typedef struct _Il2CppMonoVTable Il2CppMonoVTable;
-typedef struct _Il2CppMonoMarshalByRefObject Il2CppMonoMarshalByRefObject;
 typedef struct _Il2CppMonoObject Il2CppMonoObject;
-typedef struct _Il2CppMonoJitTlsData Il2CppMonoJitTlsData;
 typedef struct _Il2CppMonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks;
 typedef struct Il2CppDefaults Il2CppMonoDefaults;
-typedef struct _Il2CppMonoException Il2CppMonoException;
 typedef struct _Il2CppMonoTypeNameParse Il2CppMonoTypeNameParse;
-
-
-struct _Il2CppMonoJitTlsData { void *dummy; };
 
 struct _Il2CppMonoObject
 {
@@ -63,9 +59,6 @@ struct _Il2CppMonoObject
 	void *synchronization;
 };
 
-struct _Il2CppMonoException
-{
-	Il2CppMonoObject object;
 };
 
 
@@ -74,9 +67,6 @@ struct _Il2CppMonoRuntimeExceptionHandlingCallbacks
 	void (*il2cpp_mono_walk_stack_with_state) (Il2CppMonoInternalStackWalk func, MonoThreadUnwindState *state, MonoUnwindOptions options, void *user_data);
 };
 
-struct _Il2CppMonoMarshalByRefObject
-{
-	Il2CppMonoObject obj;
 };
 
 struct _Il2CppMonoVTable
@@ -86,8 +76,6 @@ struct _Il2CppMonoVTable
 	guint8 initialized;
 	gpointer type;
 	guint init_failed     : 1;
-};
-
 struct _Il2CppMonoMethodSignature
 {
 	MonoType *ret;
@@ -103,13 +91,6 @@ struct _Il2CppMonoTypeNameParse
 	MonoAssemblyName assembly;
 	void *il2cppTypeNameParseInfo;
 };
-
-typedef struct Il2CppThreadUnwindState
-{
-	Il2CppSequencePoint** sequencePoints;
-	Il2CppSequencePointExecutionContext** executionContexts;
-	uint32_t frameCount;
-} Il2CppThreadUnwindState;
 
 TYPED_HANDLE_DECL (Il2CppMonoObject);
 TYPED_HANDLE_DECL (MonoReflectionAssembly);
