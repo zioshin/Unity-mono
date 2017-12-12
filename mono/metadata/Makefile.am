@@ -106,7 +106,7 @@ else
 noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(sgen_libraries) $(bdwgc_libraries)
 endif
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(GLIB_CFLAGS) $(SHARED_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(GLIB_CFLAGS) $(SHARED_CFLAGS) $(UNITY_PAL_CFLAGS)
 
 #
 # Make sure any prefix changes are updated in the binaries too.

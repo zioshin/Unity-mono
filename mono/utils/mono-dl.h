@@ -49,5 +49,8 @@ char* mono_dl_current_error_string (void);
 int mono_dl_get_executable_path (char *buf, int buflen);
 const char* mono_dl_get_system_dir (void);
 
+/* UNITY specific for internal P/Invoke support */
+void mono_dl_register_symbol (const char* name, void *addr);
+
 #endif /* __MONO_UTILS_DL_H__ */
 

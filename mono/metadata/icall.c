@@ -103,6 +103,9 @@
 #include "decimal-ms.h"
 #include "number-ms.h"
 
+#include <os/c-api/TimeZoneInfo-c-api.h>
+
+
 #if !defined(HOST_WIN32) && defined(HAVE_SYS_UTSNAME_H)
 #include <sys/utsname.h>
 #endif
@@ -8101,6 +8104,17 @@ mono_icall_init (void)
 		}
 	}
 #endif
+
+#define MONO_REGISTER_INTERNAL_PINVOKE(name) do { \
+		mono_dl_register_symbol(#name, name);	\
+	} while(0)
+
+	MONO_REGISTER_INTERNAL_PINVOKE (UseUnityPalForTimeZoneInformation);
+	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalTimeZoneInfoGetTimeZoneIDs);
+	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalGetLocalTimeZoneData);
+	MONO_REGISTER_INTERNAL_PINVOKE (UnityPalGetTimeZoneDataForID);
+
+#undef MONO_REGISTER_INTERNAL_PINVOKE
 
 	icall_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 	mono_os_mutex_init (&icall_mutex);

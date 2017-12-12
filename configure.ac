@@ -814,9 +814,13 @@ AC_SUBST([SHARED_CFLAGS])
 
 GLIB_CFLAGS='-I$(top_srcdir)/mono/eglib -I$(top_builddir)/mono/eglib'
 GLIB_LIBS='$(top_builddir)/mono/eglib/libeglib.la -lm'
+UNITY_PAL_CFLAGS='-I$(top_srcdir)/../../il2cpp/build/libil2cpp'
+UNITY_PAL_LIBS='$(top_srcdir)/unity-pal/libunity-pal.la'
   
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
+AC_SUBST(UNITY_PAL_CFLAGS)
+AC_SUBST(UNITY_PAL_LIBS)
 
 # Enable support for fast thread-local storage
 # Some systems have broken support, so we allow to disable it.
@@ -4822,6 +4826,7 @@ tools/pedump/Makefile
 runtime/Makefile
 msvc/Makefile
 po/Makefile
+unity-pal/Makefile
 ])
 
 # Update all submodules recursively to ensure everything is checked out
