@@ -145,13 +145,15 @@ if ($iphone_simulator || $minimal) {
 	@arches = ('i386');
 }
 
-my $arch = 'x86_64';
-
+for my $arch (@arches)
 {
 	print "Building for architecture: $arch\n";
 
-	my $macversion = '10.6';
+	my $macversion = '10.5';
 	my $sdkversion = '10.6';
+	if ($arch eq 'x86_64') {
+		$macversion = '10.6';
+	}
 
 	# Set up clang toolchain
 	$sdkPath = "$externalBuildDeps/MacBuildEnvironment/builds/MacOSX$sdkversion.sdk";
@@ -164,8 +166,8 @@ my $arch = 'x86_64';
 	$ENV{'CXX'} = "$sdkPath/../usr/bin/clang++";
 
 	# Make architecture-specific targets and lipo at the end
-	my $bintarget = "$root/builds/monodistribution/bin";
-	my $libtarget = "$root/builds/embedruntimes/osx";
+	my $bintarget = "$root/builds/monodistribution/bin-$arch";
+	my $libtarget = "$root/builds/embedruntimes/osx-$arch";
 	my $sdkoptions = '';
 
 	if ($minimal)
@@ -280,4 +282,27 @@ my $arch = 'x86_64';
 
 	system("ln","-f","$root/mono/mini/mono","$bintarget/mono") eq 0 or die("failed symlinking mono executable");
 	system("ln","-f","$root/mono/metadata/pedump","$bintarget/pedump") eq 0 or die("failed symlinking pedump executable");
+}
+
+# Create universal binaries
+mkpath ("$root/builds/embedruntimes/osx");
+for $file ('libmono.0.dylib','libmono.a','libMonoPosixHelper.dylib') {
+	system ('lipo', "$root/builds/embedruntimes/osx-i386/$file", "$root/builds/embedruntimes/osx-x86_64/$file", '-create', '-output', "$root/builds/embedruntimes/osx/$file");
+}
+system('cp', "$root/builds/embedruntimes/osx-i386/MonoBundleBinary", "$root/builds/embedruntimes/osx/MonoBundleBinary");
+
+# Create universal binaries
+mkpath ("$root/builds/embedruntimes/osx");
+for $file ('libmono.0.dylib','libmono.a','libMonoPosixHelper.dylib') {
+	system ('lipo', "$root/builds/embedruntimes/osx-i386/$file", "$root/builds/embedruntimes/osx-x86_64/$file", '-create', '-output', "$root/builds/embedruntimes/osx/$file");
+}
+system('cp', "$root/builds/embedruntimes/osx-i386/MonoBundleBinary", "$root/builds/embedruntimes/osx/MonoBundleBinary-i386");
+system('cp', "$root/builds/embedruntimes/osx-x86_64/MonoBundleBinary", "$root/builds/embedruntimes/osx/MonoBundleBinary-x86_64");
+
+if ($ENV{"UNITY_THISISABUILDMACHINE"}) {
+	# Clean up temporary arch-specific directories
+	rmtree("$root/builds/embedruntimes/osx-i386");
+	rmtree("$root/builds/embedruntimes/osx-x86_64");
+	rmtree("$root/builds/monodistribution/bin-i386");
+	rmtree("$root/builds/monodistribution/bin-x86_64");
 }
