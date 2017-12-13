@@ -53,6 +53,7 @@
 #include <sys/endian.h>
 #endif
 
+#include <mono/metadata/profiler.h>
 #ifndef IL2CPP_MONO_DEBUGGER
 #include <mono/metadata/mono-debug.h>
 #include <mono/metadata/debug-internals.h>
@@ -70,16 +71,19 @@
 #include <mono/utils/mono-coop-mutex.h>
 #include <mono/utils/mono-coop-semaphore.h>
 #include <mono/utils/mono-error-internals.h>
+#ifndef IL2CPP_MONO_DEBUGGER
 #include <mono/utils/mono-stack-unwinding.h>
+#endif
 #include <mono/utils/mono-time.h>
 #include <mono/utils/mono-threads.h>
 #include <mono/utils/networking.h>
 #include <mono/utils/mono-proclib.h>
 #include <mono/utils/w32api.h>
+#ifndef IL2CPP_MONO_DEBUGGER
 #include "mini.h"
 #include "seq-points.h"
 #include "interp/interp.h"
-
+#endif
 /*
  * On iOS we can't use System.Environment.Exit () as it will do the wrong
  * shutdown sequence.
@@ -88,6 +92,9 @@
 #define TRY_MANAGED_SYSTEM_ENVIRONMENT_EXIT
 #endif
 
+#ifdef IL2CPP_MONO_DEBUGGER
+#define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
+#endif
 
 #ifndef MONO_ARCH_SOFT_DEBUG_SUPPORTED
 #define DISABLE_DEBUGGER_AGENT 1
@@ -144,9 +151,13 @@ typedef struct
 	MonoDebugMethodJitInfo *jit;
 #endif
 	MonoJitInfo *ji;
+#ifndef IL2CPP_MONO_DEBUGGER
 	MonoInterpFrameHandle interp_frame;
+#endif
 	int flags;
+#ifndef IL2CPP_MONO_DEBUGGER
 	mgreg_t *reg_locations [MONO_MAX_IREGS];
+#endif
 	/*
 	 * Whenever ctx is set. This is FALSE for the last frame of running threads, since
 	 * the frame can become invalid.
@@ -3211,6 +3222,7 @@ typedef struct {
 	GSList *frames;
 } ComputeFramesUserData;
 
+#ifndef IL2CPP_MONO_DEBUGGER
 static gboolean
 process_frame (StackFrameInfo *info, MonoContext *ctx, gpointer user_data)
 {
@@ -3274,8 +3286,10 @@ process_frame (StackFrameInfo *info, MonoContext *ctx, gpointer user_data)
 	frame->flags = flags;
 	frame->ji = info->ji;
 	frame->interp_frame = info->interp_frame;
+#ifndef IL2CPP_MONO_DEBUGGER
 	if (info->reg_locations)
 		memcpy (frame->reg_locations, info->reg_locations, MONO_MAX_IREGS * sizeof (mgreg_t*));
+#endif
 	if (ctx) {
 		frame->ctx = *ctx;
 		frame->has_ctx = TRUE;
@@ -3286,7 +3300,9 @@ process_frame (StackFrameInfo *info, MonoContext *ctx, gpointer user_data)
 
 	return FALSE;
 }
+#endif
 
+#ifndef IL2CPP_MONO_DEBUGGER
 static gboolean
 process_filter_frame (StackFrameInfo *info, MonoContext *ctx, gpointer user_data)
 {
@@ -3305,7 +3321,9 @@ process_filter_frame (StackFrameInfo *info, MonoContext *ctx, gpointer user_data
 
 	return process_frame (info, ctx, user_data);
 }
+#endif
 
+#ifndef IL2CPP_MONO_DEBUGGER
 /*
  * Return a malloc-ed list of StackFrame structures.
  */
@@ -3334,6 +3352,7 @@ compute_frame_info_from (MonoInternalThread *thread, DebuggerTlsData *tls, MonoT
 
 	return res;
 }
+#endif
 
 static void
 compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
@@ -4436,6 +4455,7 @@ breakpoints_init (void)
 	bp_locs = g_hash_table_new (NULL, NULL);
 }	
 
+#ifndef IL2CPP_MONO_DEBUGGER
 /*
  * insert_breakpoint:
  *
@@ -4530,6 +4550,7 @@ insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo
 
 	DEBUG_PRINTF (1, "[dbg] Inserted breakpoint at %s:[il=0x%x,native=0x%x] [%p](%d).\n", mono_method_full_name (jinfo_get_method (ji), TRUE), (int)it.seq_point.il_offset, (int)it.seq_point.native_offset, inst->ip, count);
 }
+#endif
 
 #ifndef IL2CPP_MONO_DEBUGGER
 
@@ -4661,6 +4682,7 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 #endif
 }
 
+#ifndef IL2CPP_MONO_DEBUGGER
 static void
 set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_points, MonoBreakpoint *bp, MonoError *error)
 {
@@ -4689,6 +4711,7 @@ set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_
 
 	insert_breakpoint (seq_points, domain, ji, bp, error);
 }
+#endif
 
 static void
 clear_breakpoint (MonoBreakpoint *bp);
@@ -4710,7 +4733,9 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 	GHashTableIter iter, iter2;
 	MonoDomain *domain;
 	MonoMethod *m;
+#ifndef IL2CPP_MONO_DEBUGGER
 	MonoSeqPointInfo *seq_points;
+#endif
 	GPtrArray *methods;
 	GPtrArray *method_domains;
 	GPtrArray *method_seq_points;
@@ -4805,7 +4830,6 @@ static MonoBreakpoint* set_breakpoint_fast(Il2CppSequencePoint *sp, EventRequest
 	GHashTableIter iter, iter2;
 	MonoDomain *domain;
 	MonoMethod *m;
-	MonoSeqPointInfo *seq_points;
 	GPtrArray *methods;
 	GPtrArray *method_domains;
 	GPtrArray *method_seq_points;
@@ -4995,6 +5019,7 @@ ensure_jit (StackFrame* frame)
 }
 #endif
 
+#ifndef IL2CPP_MONO_DEBUGGER
 /*
  * ss_update:
  *
@@ -5092,6 +5117,7 @@ ss_update (SingleStepReq *req, MonoJitInfo *ji, SeqPoint *sp, DebuggerTlsData *t
 
 	return hit;
 }
+#endif
 
 #ifdef IL2CPP_MONO_DEBUGGER
 /*
@@ -5619,14 +5645,15 @@ mono_debugger_agent_user_break (void)
 		events = create_event_list (EVENT_KIND_USER_BREAK, NULL, NULL, NULL, &suspend_policy);
 		mono_loader_unlock ();
 
-#ifndef IL2CPP_MONO_DEBUGGER
-		process_event (EVENT_KIND_USER_BREAK, NULL, 0, &ctx, events, suspend_policy);
-#else
+#ifdef IL2CPP_MONO_DEBUGGER
 		process_event (EVENT_KIND_USER_BREAK, NULL, 0, &ctx, events, suspend_policy, 0);
-#endif
+	}
+#else
+		process_event (EVENT_KIND_USER_BREAK, NULL, 0, &ctx, events, suspend_policy);
 	} else if (debug_options.native_debugger_break) {
 		G_BREAKPOINT ();
 	}
+#endif
 }
 
 static const char*
@@ -5660,10 +5687,10 @@ process_single_step_inner (DebuggerTlsData *tls, gboolean from_signal, uint64_t 
 	GSList *events;
 	MonoContext *ctx = &tls->restore_state.ctx;
 	MonoMethod *method;
+#ifndef IL2CPP_MONO_DEBUGGER
 	SeqPoint sp;
 	MonoSeqPointInfo *info;
 
-#ifndef IL2CPP_MONO_DEBUGGER
 	/* Skip the instruction causing the single step */
 #ifndef IL2CPP_MONO_DEBUGGER
 	if (from_signal)
@@ -6078,6 +6105,7 @@ static void ss_bp_add_one_il2cpp(SingleStepReq *ss_req, int *ss_req_bp_count, GH
 
 #endif // IL2CPP_MONO_DEBUGGER
 
+#ifndef IL2CPP_MONO_DEBUGGER
 static gboolean
 is_last_non_empty (SeqPoint* sp, MonoSeqPointInfo *info)
 {
@@ -6099,6 +6127,7 @@ is_last_non_empty (SeqPoint* sp, MonoSeqPointInfo *info)
 	g_free (next);
 	return TRUE;
 }
+#endif
 
 #ifndef IL2CPP_MONO_DEBUGGER
 /*
@@ -6441,9 +6470,11 @@ static ErrorCode
 ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilter filter, EventRequest *req)
 {
 	DebuggerTlsData *tls;
+#ifndef IL2CPP_MONO_DEBUGGER
 	MonoSeqPointInfo *info = NULL;
 	SeqPoint *sp = NULL;
 	SeqPoint local_sp;
+#endif
 	gboolean found_sp;
 	MonoMethod *method = NULL;
 #ifndef IL2CPP_MONO_DEBUGGER
@@ -6594,6 +6625,7 @@ ss_create (MonoInternalThread *thread, StepSize size, StepDepth depth, StepFilte
 
 	return ERR_NONE;
 }
+
 
 static void
 ss_destroy (SingleStepReq *req)
@@ -7364,12 +7396,14 @@ obj_is_of_type (MonoObject *obj, MonoType *t)
 {
 	MonoClass *klass = obj->vtable->klass;
 	if (!mono_class_is_assignable_from (mono_class_from_mono_type (t), klass)) {
+#ifndef IL2CPP_MONO_DEBUGGER
 		if (mono_class_is_transparent_proxy (klass)) {
 			klass = ((MonoTransparentProxy *)obj)->remote_class->proxy_class;
 			if (mono_class_is_assignable_from (mono_class_from_mono_type (t), klass)) {
 				return TRUE;
 			}
 		}
+#endif
 		return FALSE;
 	}
 	return TRUE;
@@ -8019,7 +8053,9 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 	MonoDomain *domain;
 	guint8 *this_buf;
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
+#ifndef IL2CPP_MONO_DEBUGGER
 	MonoLMFExt ext;
+#endif
 #endif
 	MonoStopwatch watch;
 
@@ -10511,6 +10547,9 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 #endif
 	}
 	case CMD_METHOD_RESOLVE_TOKEN: {
+#ifdef IL2CPP_MONO_DEBUGGER
+		return ERR_NOT_IMPLEMENTED;
+#else
 		guint32 token = decode_int (p, &p, end);
 
 		// FIXME: Generics
@@ -10577,6 +10616,7 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 			break;
 		}
 		}
+#endif
 		break;
 	}
 	case CMD_METHOD_GET_CATTRS: {
@@ -11323,10 +11363,12 @@ object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	gboolean remote_obj = FALSE;
 
 	obj_type = obj->vtable->klass;
+#ifndef IL2CPP_MONO_DEBUGGER
 	if (mono_class_is_transparent_proxy (obj_type)) {
 		obj_type = ((MonoTransparentProxy *)obj)->remote_class->proxy_class;
 		remote_obj = TRUE;
 	}
+#endif
 
 	g_assert (obj_type);
 
@@ -11945,8 +11987,6 @@ unity_process_breakpoint_inner(DebuggerTlsData *tls, gboolean from_signal, Il2Cp
 	GSList *bp_events = NULL, *ss_events = NULL, *enter_leave_events = NULL;
 	EventKind kind = EVENT_KIND_BREAKPOINT;
 	MonoContext *ctx = &tls->restore_state.ctx;
-	//MonoSeqPointInfo *info;
-	SeqPoint sp;
 	gboolean found_sp;
 	MonoMethod* method = sequencePoint->method;
 

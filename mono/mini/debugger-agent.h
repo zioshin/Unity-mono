@@ -5,7 +5,9 @@
 #ifndef __MONO_DEBUGGER_AGENT_H__
 #define __MONO_DEBUGGER_AGENT_H__
 
+#ifndef IL2CPP_MONO_DEBUGGER
 #include "mini.h"
+#endif
 #include "il2cpp-compat.h"
 #include <mono/utils/mono-stack-unwinding.h>
 

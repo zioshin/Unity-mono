@@ -2,8 +2,8 @@
 
 #ifdef IL2CPP_MONO_DEBUGGER
 
-#include <mono/sgen/sgen-conf.h>
-#include <mono/metadata/mono-gc.h>
+//#include <mono/sgen/sgen-conf.h>
+//#include <mono/metadata/mono-gc.h>
 
 #if defined(_POSIX_VERSION)
 #include <pthread.h>

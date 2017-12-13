@@ -1,13 +1,15 @@
 #pragma once
 
-#include <mono/metadata/il2cpp-compat-metadata.h>
 #if defined(RUNTIME_IL2CPP)
 #include "il2cpp-c-types.h"
 #include "il2cpp-api.h"
-#endif // RUNTIME_IL2CPP
+#else
 #include <mono/mini/mini.h>
-#include <mono/sgen/sgen-conf.h>
 #include <mono/metadata/profiler.h>
+#endif // RUNTIME_IL2CPP
+#include <mono/sgen/sgen-conf.h>
+
+#include <mono/metadata/il2cpp-compat-metadata.h>
 
 #ifdef IL2CPP_MONO_DEBUGGER
 
@@ -49,7 +51,6 @@
 #define MonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks
 #define StackFrameInfo Il2CppMonoStackFrameInfo
 #define MonoMethodInflated Il2CppMonoMethodInflated
-#define debug_options il2cpp_mono_debug_options
 #define MonoTypeNameParse Il2CppMonoTypeNameParse
 
 #define mono_image_get_entry_point il2cpp_mono_image_get_entry_point
@@ -210,18 +211,11 @@
 #define mono_method_get_declaring_generic_method il2cpp_mono_method_get_declaring_generic_method
 #define jinfo_get_method il2cpp_jinfo_get_method
 #define mono_defaults il2cpp_mono_defaults
-#define mono_find_prev_seq_point_for_native_offset il2cpp_mono_find_prev_seq_point_for_native_offset
 #define mono_w32socket_accept_internal il2cpp_mono_w32socket_accept_internal
-#define mono_find_next_seq_point_for_native_offset il2cpp_mono_find_next_seq_point_for_native_offset
 #define mono_class_has_parent il2cpp_mono_class_has_parent
 #define mono_class_is_gtd il2cpp_class_is_generic
 #define mono_class_is_ginst il2cpp_class_is_inflated
 #define mono_generic_container_get_param il2cpp_mono_generic_container_get_param
-#define mono_find_seq_point il2cpp_mono_find_seq_point
-#define mono_seq_point_iterator_init il2cpp_mono_seq_point_iterator_init
-#define mono_seq_point_iterator_next il2cpp_mono_seq_point_iterator_next
-#define mono_seq_point_init_next il2cpp_mono_seq_point_init_next
-#define mono_get_seq_points il2cpp_mono_get_seq_points
 #define G_BREAKPOINT IL2CPP_G_BREAKPOINT
 #define mono_thread_info_safe_suspend_and_run il2cpp_mono_thread_info_safe_suspend_and_run
 #define mono_error_cleanup il2cpp_mono_error_cleanup
@@ -357,7 +351,6 @@ void il2cpp_mono_thread_internal_reset_abort(MonoInternalThread* thread);
 gunichar2* il2cpp_mono_thread_get_name(MonoInternalThread* this_obj, guint32* name_len);
 void il2cpp_mono_thread_set_name_internal(MonoInternalThread* this_obj, MonoString* name, gboolean permanent, gboolean reset, MonoError* error);
 void il2cpp_mono_thread_suspend_all_other_threads();
-void il2cpp_mono_stack_mark_record_size(MonoThreadInfo* info, HandleStackMark* stackmark, const char* func_name);
 Il2CppMonoRuntimeExceptionHandlingCallbacks* il2cpp_mono_get_eh_callbacks();
 void il2cpp_mono_nullable_init(guint8* buf, MonoObject* value, MonoClass* klass);
 MonoObject* il2cpp_mono_value_box_checked(MonoDomain* domain, MonoClass* klass, gpointer value, MonoError* error);
@@ -385,10 +378,7 @@ gint il2cpp_mono_w32socket_set_blocking(SOCKET sock, gboolean blocking);
 
 char* il2cpp_mono_get_runtime_build_info();
 MonoMethod* il2cpp_mono_marshal_method_from_wrapper(MonoMethod* wrapper);
-MonoDebugOptions* il2cpp_mini_get_debug_options();
 gpointer il2cpp_mono_jit_find_compiled_method_with_jit_info(MonoDomain* domain, MonoMethod* method, MonoJitInfo** ji);
-MonoLMF** il2cpp_mono_get_lmf_addr();
-void il2cpp_mono_set_lmf(MonoLMF* lmf);
 gpointer il2cpp_mono_aot_get_method_checked(MonoDomain* domain, MonoMethod* method, MonoError* error);
 void il2cpp_mono_arch_setup_resume_sighandler_ctx(MonoContext* ctx, gpointer func);
 void il2cpp_mono_arch_set_breakpoint(MonoJitInfo* ji, guint8* ip);
@@ -397,7 +387,6 @@ void il2cpp_mono_arch_start_single_stepping();
 void il2cpp_mono_arch_stop_single_stepping();
 void il2cpp_mono_arch_skip_breakpoint(MonoContext* ctx, MonoJitInfo* ji);
 void il2cpp_mono_arch_skip_single_step(MonoContext* ctx);
-void il2cpp_mono_arch_init_lmf_ext(MonoLMFExt* ext, gpointer prev_lmf);
 mgreg_t il2cpp_mono_arch_context_get_int_reg(MonoContext* ctx, int reg);
 void il2cpp_mono_arch_context_set_int_reg(MonoContext* ctx, int reg, mgreg_t val);
 void il2cpp_mono_walk_stack_with_ctx(Il2CppMonoJitStackWalk func, MonoContext* start_ctx, MonoUnwindOptions unwind_options, void* user_data);
@@ -408,16 +397,9 @@ MonoJitInfo* il2cpp_mini_jit_info_table_find(MonoDomain* domain, char* addr, Mon
 void il2cpp_mono_restore_context(MonoContext* ctx);
 MonoMethod* il2cpp_mono_method_get_declaring_generic_method(MonoMethod* method);
 MonoMethod* il2cpp_jinfo_get_method (MonoJitInfo *ji);
-gboolean il2cpp_mono_find_prev_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info, SeqPoint* seq_point);
 SOCKET il2cpp_mono_w32socket_accept_internal (SOCKET s, struct sockaddr *addr, socklen_t *addrlen, gboolean blocking);
-gboolean il2cpp_mono_find_next_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info, SeqPoint* seq_point);
 gboolean il2cpp_mono_class_has_parent (MonoClass *klass, MonoClass *parent);
 MonoGenericParam* il2cpp_mono_generic_container_get_param (MonoGenericContainer *gc, int i);
-gboolean il2cpp_mono_find_seq_point (MonoDomain *domain, MonoMethod *method, gint32 il_offset, MonoSeqPointInfo **info, SeqPoint *seq_point);
-void il2cpp_mono_seq_point_iterator_init (SeqPointIterator* it, MonoSeqPointInfo* info);
-gboolean il2cpp_mono_seq_point_iterator_next (SeqPointIterator* it);
-void il2cpp_mono_seq_point_init_next (MonoSeqPointInfo* info, SeqPoint sp, SeqPoint* next);
-MonoSeqPointInfo* il2cpp_mono_get_seq_points (MonoDomain *domain, MonoMethod *method);
 void IL2CPP_G_BREAKPOINT();
 void il2cpp_mono_thread_info_safe_suspend_and_run (MonoNativeThreadId id, gboolean interrupt_kernel, MonoSuspendThreadCallback callback, gpointer user_data);
 void il2cpp_mono_error_cleanup (MonoError *oerror);

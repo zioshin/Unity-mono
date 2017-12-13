@@ -32,6 +32,9 @@ extern "C" {
 #include <glib.h>
 #include <mono/utils/mono-coop-mutex.h>
 #include <mono/utils/mono-string.h>
+	//#include <mono/utils/mono-stack-unwinding.h>
+
+#ifndef IL2CPP_MONO_DEBUGGER
 #include <mono/metadata/handle.h>
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/appdomain.h>
@@ -39,9 +42,15 @@ extern "C" {
 #include <mono/metadata/debug-mono-symfile.h>
 #include <mono/metadata/profiler-private.h>
 #include <mono/metadata/profiler.h>
+#endif
+
 #include <mono/sgen/sgen-conf.h>
+
+#ifndef IL2CPP_MONO_DEBUGGER
 #include <mono/mini/mini.h>
 #include <mono/metadata/seq-points-data.h>
+#endif
+
 #include "il2cpp-c-types.h"
 #include <mono/metadata/il2cpp-compat-metadata.h>
 
@@ -774,11 +783,6 @@ void il2cpp_mono_thread_suspend_all_other_threads()
 	IL2CPP_ASSERT(0 && "This method is not yet implemented");
 }
 
-void il2cpp_mono_stack_mark_record_size(MonoThreadInfo* info, HandleStackMark* stackmark, const char* func_name)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-}
-
 Il2CppMonoRuntimeExceptionHandlingCallbacks* il2cpp_mono_get_eh_callbacks()
 {
 	IL2CPP_ASSERT(0 && "This method is not yet implemented");
@@ -972,17 +976,6 @@ gpointer il2cpp_mono_jit_find_compiled_method_with_jit_info(MonoDomain* domain, 
 	return 0;
 }
 
-MonoLMF** il2cpp_mono_get_lmf_addr()
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return NULL;
-}
-
-void il2cpp_mono_set_lmf(MonoLMF* lmf)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-}
-
 gpointer il2cpp_mono_aot_get_method_checked(MonoDomain* domain, MonoMethod* method, MonoError* error)
 {
 	IL2CPP_ASSERT(0 && "This method is not yet implemented");
@@ -1020,11 +1013,6 @@ void il2cpp_mono_arch_skip_breakpoint(MonoContext* ctx, MonoJitInfo* ji)
 }
 
 void il2cpp_mono_arch_skip_single_step(MonoContext* ctx)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-}
-
-void il2cpp_mono_arch_init_lmf_ext(MonoLMFExt* ext, gpointer prev_lmf)
 {
 	IL2CPP_ASSERT(0 && "This method is not yet implemented");
 }
@@ -1091,12 +1079,6 @@ MonoMethod* il2cpp_jinfo_get_method (MonoJitInfo *ji)
 	return NULL;
 }
 
-gboolean il2cpp_mono_find_prev_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info, SeqPoint* seq_point)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
-}
-
 void il2cpp_mono_error_cleanup (MonoError *oerror)
 {
 }
@@ -1112,12 +1094,6 @@ void* il2cpp_mono_w32socket_accept_internal (void* s, struct sockaddr *addr, voi
 	return 0;
 }
 
-gboolean il2cpp_mono_find_next_seq_point_for_native_offset (MonoDomain *domain, MonoMethod *method, gint32 native_offset, MonoSeqPointInfo **info, SeqPoint* seq_point)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
-}
-
 gboolean il2cpp_mono_class_has_parent (MonoClass *klass, MonoClass *parent)
 {
 	IL2CPP_ASSERT(0 && "This method is not yet implemented");
@@ -1127,34 +1103,6 @@ gboolean il2cpp_mono_class_has_parent (MonoClass *klass, MonoClass *parent)
 MonoGenericParam* il2cpp_mono_generic_container_get_param (MonoGenericContainer *gc, int i)
 {
 	return (MonoGenericParam*)il2cpp::vm::GenericContainer::GetGenericParameter((Il2CppGenericContainer*)gc, i);
-}
-
-gboolean il2cpp_mono_find_seq_point (MonoDomain *domain, MonoMethod *method, gint32 il_offset, MonoSeqPointInfo **info, SeqPoint *seq_point)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
-}
-
-void il2cpp_mono_seq_point_iterator_init (SeqPointIterator* it, MonoSeqPointInfo* info)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-}
-
-gboolean il2cpp_mono_seq_point_iterator_next (SeqPointIterator* it)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return 0;
-}
-
-void il2cpp_mono_seq_point_init_next (MonoSeqPointInfo* info, SeqPoint sp, SeqPoint* next)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-}
-
-MonoSeqPointInfo* il2cpp_mono_get_seq_points (MonoDomain *domain, MonoMethod *method)
-{
-	IL2CPP_ASSERT(0 && "This method is not yet implemented");
-	return NULL;
 }
 
 void IL2CPP_G_BREAKPOINT()

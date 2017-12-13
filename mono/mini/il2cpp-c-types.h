@@ -6,8 +6,33 @@
 #include "il2cpp-object-internals.h"
 #include "vm-utils/Debugger.h"
 #endif // RUNTIME_IL2CPP
+//#include <mono/metadata/handle.h>
 
 #define IL2CPP_MONO_PUBLIC_KEY_TOKEN_LENGTH	17
+
+/* IL offsets used to mark the sequence points belonging to method entry/exit events */
+#define METHOD_ENTRY_IL_OFFSET -1
+#define METHOD_EXIT_IL_OFFSET 0xffffff
+
+#define NOT_IMPLEMENTED do { g_assert_not_reached (); } while (0)
+
+typedef enum {
+	MONO_THREAD_FLAG_DONT_MANAGE = 1, // Don't wait for or abort this thread
+	MONO_THREAD_FLAG_NAME_SET = 2, // Thread name set from managed code
+	MONO_THREAD_FLAG_APPDOMAIN_ABORT = 4, // Current requested abort originates from appdomain unload
+} MonoThreadFlags;
+
+typedef enum {
+	ThreadState_Running = 0x00000000,
+	ThreadState_SuspendRequested = 0x00000002,
+	ThreadState_Background = 0x00000004,
+	ThreadState_Unstarted = 0x00000008,
+	ThreadState_Stopped = 0x00000010,
+	ThreadState_WaitSleepJoin = 0x00000020,
+	ThreadState_Suspended = 0x00000040,
+	ThreadState_AbortRequested = 0x00000080,
+	ThreadState_Aborted = 0x00000100
+} MonoThreadState;
 
 //Converted to il2cpp types
 #define MonoType Il2CppType
@@ -23,7 +48,9 @@
 #define MonoGenericContainer Il2CppGenericContainer
 #define MonoProperty PropertyInfo
 #define MonoString Il2CppString
+//#define MonoStringHandle Il2CppStringHandle
 #define MonoArray Il2CppArraySize
+//#define MonoArrayHandle Il2CppArraySizeHandle
 #define MonoThread Il2CppThread
 #define MonoInternalThread Il2CppInternalThread
 #define MonoReflectionType Il2CppReflectionType
@@ -32,12 +59,16 @@
 #define MonoAssembyName Il2CppAssemblyName
 #define MonoMethodHeader Il2CppMethodHeaderInfo
 #define MonoReflectionAssembly Il2CppReflectionAssembly
+#define MonoReflectionAssemblyHandle Il2CppReflectionAssembly*
 #define MonoAppDomain Il2CppAppDomain
 #define MonoDomain Il2CppDomain
 #define MonoDomainFunc Il2CppDomainFunc
 #define MonoObject Il2CppObject
+#define MonoObjectHandle Il2CppObject*
+//#define MonoObjectHandleOut Il2CppObjectHandleOut
 #define MonoVTable Il2CppVTable
 #define MonoException Il2CppException
+//#define MonoExceptionHandle Il2CppExceptionHandle
 #define MonoMarshalByRefObject Il2CppMarshalByRefObject
 
 //Unsupported in il2cpp, should never be referenced
@@ -60,6 +91,21 @@ struct _Il2CppMonoMethodInflated
 	MonoGenericContext context;
 };
 
+typedef enum {
+	/* Normal managed frames */
+	FRAME_TYPE_MANAGED = 0,
+	/* Pseudo frame marking the start of a method invocation done by the soft debugger */
+	FRAME_TYPE_DEBUGGER_INVOKE = 1,
+	/* Frame for transitioning to native code */
+	FRAME_TYPE_MANAGED_TO_NATIVE = 2,
+	FRAME_TYPE_TRAMPOLINE = 3,
+	/* Interpreter frame */
+	FRAME_TYPE_INTERP = 4,
+	/* Frame for transitioning from interpreter to managed code */
+	FRAME_TYPE_INTERP_TO_MANAGED = 5,
+	FRAME_TYPE_NUM = 6
+} MonoStackFrameType;
+
 struct _Il2CppMonoStackFrameInfo
 {
 	MonoStackFrameType type;
@@ -79,7 +125,12 @@ struct _Il2CppMonoStackFrameInfo
 	mgreg_t **reg_locations;
 };
 
-typedef gboolean (*Il2CppMonoInternalStackWalk) (Il2CppMonoStackFrameInfo *frame, MonoContext *ctx, gpointer data);
+typedef struct _MonoContext
+{
+	void* dummy;
+} _MonoContext;
+
+typedef gboolean (*Il2CppMonoInternalStackWalk) (Il2CppMonoStackFrameInfo *frame, _MonoContext *ctx, gpointer data);
 
 struct _Il2CppMonoRuntimeExceptionHandlingCallbacks
 {
@@ -102,10 +153,9 @@ struct _Il2CppMonoTypeNameParse
 	void *il2cppTypeNameParseInfo;
 };
 
-TYPED_HANDLE_DECL (MonoObject);
-TYPED_HANDLE_DECL (MonoReflectionAssembly);
+/*TYPED_HANDLE_DECL (MonoObject);
+TYPED_HANDLE_DECL (Il2CppReflectionAssembly);*/
 Il2CppMonoDefaults il2cpp_mono_defaults;
-MonoDebugOptions il2cpp_mono_debug_options;
 
 typedef void (*Il2CppMonoProfileFunc) (MonoProfiler *prof);
 typedef void (*Il2CppMonoProfileAppDomainFunc) (MonoProfiler *prof, MonoDomain *domain);
