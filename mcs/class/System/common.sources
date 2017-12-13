@@ -309,6 +309,8 @@ Mono.AppleTls/Items.cs
 Mono.UnityTls/UnityTls.cs
 Mono.UnityTls/UnityTlsCiphersuites.cs
 Mono.UnityTls/UnityTlsProvider.cs
+Mono.UnityTls/UnityTlsStream.cs
+Mono.UnityTls/UnityTlsContext.cs
 
 Mono.Net.Security/AsyncProtocolRequest.cs
 Mono.Net.Security/CallbackHelpers.cs
