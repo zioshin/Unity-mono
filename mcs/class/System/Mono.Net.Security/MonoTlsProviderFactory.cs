@@ -164,15 +164,18 @@ namespace Mono.Net.Security
 
 				string legacyProvider = "Mono.Net.Security.LegacyTlsProvider";
 				providerRegistration.Add ("legacy", legacyProvider);
-
+#if UNITY
+				var unityProvider = "Mono.Unity.UnityTlsProvider";
+				string defaultProvider = unityProvider;
+				providerRegistration.Add ("unitytls", unityProvider);
+#else
 				string defaultProvider = null;
 				if (IsBtlsSupported ()) {
 					var btlsProvider = "Mono.Btls.MonoBtlsProvider";
 					providerRegistration.Add ("btls", btlsProvider);
 					defaultProvider = btlsProvider;
 				}
-			
-#if !UNITY
+
 				if (Platform.IsMacOS) {
 					var appleProvider = "Mono.AppleTls.AppleTlsProvider";
 					providerRegistration.Add ("apple", appleProvider);
