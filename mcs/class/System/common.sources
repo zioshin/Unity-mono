@@ -312,6 +312,7 @@ Mono.UnityTls/UnityTlsProvider.cs
 Mono.UnityTls/UnityTlsStream.cs
 Mono.UnityTls/UnityTlsContext.cs
 Mono.UnityTls/Debug.cs
+Mono.UnityTls/CertHelper.cs
 
 Mono.Net.Security/AsyncProtocolRequest.cs
 Mono.Net.Security/CallbackHelpers.cs
