@@ -6728,7 +6728,7 @@ static Il2CppSequencePoint* il2cpp_find_catch_sequence_point_in_method(Il2CppSeq
 	void *seqPointIter = NULL;
 	while (sp = il2cpp_get_method_sequence_points(method, &seqPointIter))
 	{
-		if (sp->tryDepth == tryDepth && sp->ilOffset > ilOffset && sp->catchType != NULL && mono_class_is_assignable_from(sp->catchType, VM_OBJECT_GET_CLASS(exc)))
+		if (sp->tryDepth == tryDepth && sp->ilOffset > ilOffset && sp->catchType != NULL && mono_class_is_assignable_from(sp->catchType, exc->object.vtable->klass))
 			return sp;
 	}
 
