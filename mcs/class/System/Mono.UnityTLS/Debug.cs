@@ -32,7 +32,10 @@ namespace Mono.Unity
 
 			AlertDescription alert = UnityTlsConversions.VerifyResultToAlertDescription (verifyResult, defaultAlert);
 			string message = string.Format ("{0} - error code: {1}, verify result: {2}", context, errorState.code, verifyResult);
-			throw new TlsException (alert, message);
+
+			// The internal TlsException is not handled/translated by Mono.
+			// This means that we need to throw the user facing AuthentificationException ourself
+			throw new System.Security.Authentication.AuthenticationException(message);
 		}
 	}
 }
