@@ -244,6 +244,9 @@
     <ClCompile Include="..\mono\metadata\unity-utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\mono\metadata\unity-icall.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\mono\metadata\w32file.c">
       <Filter>Source Files</Filter>
     </ClCompile>

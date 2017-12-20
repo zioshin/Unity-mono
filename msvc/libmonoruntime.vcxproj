@@ -109,6 +109,7 @@
     <ClCompile Include="..\mono\metadata\verify.c" />
     <ClCompile Include="..\mono\metadata\unity-liveness.c" />
     <ClCompile Include="..\mono\metadata\unity-utils.c" />
+    <ClCompile Include="..\mono\metadata\unity-icall.c" />
     <ClCompile Include="..\mono\metadata\w32file.c" />
     <ClCompile Include="..\mono\metadata\w32handle-namespace.c" />
     <ClCompile Include="..\mono\metadata\w32handle.c" />

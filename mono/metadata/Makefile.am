@@ -286,6 +286,7 @@ common_sources = \
 	unity-memory-info.h \
 	unity-utils.c   \
 	unity-utils.h   \
+	unity-icall.c   \
 	unity-liveness.c
 
 # These source files have compile time dependencies on GC code
