@@ -90,14 +90,6 @@ static int FindClassIndex(GHashTable* hashTable, MonoClass* klass)
 	return (int)value;
 }
 
-static gchar* GetTypeName(MonoClass* klass)
-{
-	const char* name = mono_class_get_name(klass);
-	const char* name_space = mono_class_get_namespace(klass);
-
-	return g_strdup_printf("%s.%s", name_space, name);
-}
-
 static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 {
 	MonoClass* klass = (MonoClass*)key;
@@ -163,7 +155,7 @@ static void AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 	}
 
 	type->assemblyName = mono_class_get_image(klass)->assembly->aname.name;
-	type->name = GetTypeName(klass);
+	type->name = mono_type_get_name_full(&klass->byval_arg, MONO_TYPE_NAME_FORMAT_IL);
 	type->typeInfoAddress = (uint64_t)klass;
 	type->size = (klass->valuetype) != 0 ? (mono_class_instance_size(klass) - sizeof(MonoObject)) : mono_class_instance_size(klass);
 }
