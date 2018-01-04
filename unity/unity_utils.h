@@ -43,4 +43,8 @@ void mono_unity_set_data_dir(const char* dir);
 char* mono_unity_get_data_dir();
 MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token);
 
+
+typedef struct mono_unity_unitytls_interface mono_unity_unitytls_interface;
+void mono_unity_install_unitytls_interface(mono_unity_unitytls_interface* callbacks);
+
 #endif

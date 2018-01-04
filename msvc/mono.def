@@ -846,3 +846,4 @@ mono_unity_thread_fast_attach
 mono_unity_thread_fast_detach
 mono_profiler_set_profiler_events
 mono_profiler_create
+mono_unity_install_unitytls_interface

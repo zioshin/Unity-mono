@@ -299,3 +299,9 @@ MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token)
 {
 	return mono_class_get(image, type_token);
 }
+
+// unitytls is only available in new mono (mbe). This dummy makes sure that the editor does not need to distinguish between those versions.
+void
+mono_unity_install_unitytls_interface(mono_unity_unitytls_interface* callbacks)
+{
+}
