@@ -250,11 +250,7 @@ mono_gc_base_init (void)
 
 	mono_thread_info_attach ();
 
-#ifdef HAVE_BDWGC_GC
-	GC_set_on_event (on_gc_notification);
-#else
 	GC_set_on_collection_event (on_gc_notification);
-#endif
 	GC_on_heap_resize = on_gc_heap_resize;
 
 	gc_initialized = TRUE;
