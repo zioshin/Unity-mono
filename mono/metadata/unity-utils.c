@@ -1136,3 +1136,16 @@ mono_unity_thread_fast_detach ()
 	mono_thread_pop_appdomain_ref ();
 }
 
+static mono_bool enable_handler_block_guards = TRUE;
+
+void
+mono_unity_set_enable_handler_block_guards (mono_bool allow)
+{
+	enable_handler_block_guards = allow;
+}
+
+mono_bool
+mono_unity_get_enable_handler_block_guards (void)
+{
+	return enable_handler_block_guards;
+}
