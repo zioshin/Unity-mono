@@ -17,19 +17,8 @@ typedef struct _GPtrArray custom_growable_array;
 void sgen_stop_world (int generation);
 void sgen_restart_world (int generation);
 #elif defined(HAVE_BOEHM_GC)
-#ifdef HAVE_BDWGC_GC
-extern void GC_stop_world_external();
-extern void GC_start_world_external();
-#else
-void GC_stop_world_external()
-{
-	g_assert_not_reached ();
-}
-void GC_start_world_external()
-{
-	g_assert_not_reached ();
-}
-#endif
+extern void boehm_stop_world();
+extern void boehm_start_world();
 #else
 #error need to implement liveness GC API
 #endif
@@ -612,7 +601,7 @@ void mono_unity_liveness_stop_gc_world (LivenessState* state)
 #if defined(HAVE_SGEN_GC)
 	sgen_stop_world (1);
 #elif defined(HAVE_BOEHM_GC)
-	GC_stop_world_external ();
+	boehm_stop_world ();
 #else
 #error need to implement liveness GC API
 #endif
@@ -623,7 +612,7 @@ void mono_unity_liveness_start_gc_world (LivenessState* state)
 #if defined(HAVE_SGEN_GC)
 	sgen_restart_world (1);
 #elif defined(HAVE_BOEHM_GC)
-	GC_start_world_external ();
+	boehm_start_world ();
 #else
 #error need to implement liveness GC API
 #endif

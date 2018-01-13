@@ -37,6 +37,7 @@
 #include <mono/utils/mono-counters.h>
 #include <mono/utils/mono-compiler.h>
 #include <mono/utils/unlocked.h>
+#include <private/gc_locks.h>
 
 #if HAVE_BOEHM_GC
 
@@ -2052,6 +2053,19 @@ void
 mono_gc_register_obj_with_weak_fields (void *obj)
 {
 	g_error ("Weak fields not supported by boehm gc");
+}
+
+/* Unity specific APIs */
+void boehm_stop_world()
+{
+    LOCK();
+    STOP_WORLD();
+}
+
+void boehm_start_world()
+{
+    START_WORLD();
+    UNLOCK();
 }
 
 #else
