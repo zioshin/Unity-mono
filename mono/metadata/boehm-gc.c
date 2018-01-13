@@ -37,13 +37,13 @@
 #include <mono/utils/mono-counters.h>
 #include <mono/utils/mono-compiler.h>
 #include <mono/utils/unlocked.h>
-#include <private/gc_locks.h>
 
 #if HAVE_BOEHM_GC
 
 #undef TRUE
 #undef FALSE
 #define THREAD_LOCAL_ALLOC 1
+#include "private/gc_priv.h"
 #include "private/pthread_support.h"
 
 #if defined(HOST_DARWIN) && defined(HAVE_PTHREAD_GET_STACKADDR_NP)
