@@ -81,7 +81,7 @@ static int
 suspend_signal_get (void)
 {
 #if defined(PLATFORM_ANDROID)
-	return SIGPWR;
+	return SIGUSR1;
 #elif defined (SIGRTMIN)
 	static int suspend_signum = -1;
 	if (suspend_signum == -1)
@@ -100,7 +100,7 @@ static int
 restart_signal_get (void)
 {
 #if defined(PLATFORM_ANDROID)
-	return SIGXCPU;
+	return SIGUSR2;
 #elif defined (SIGRTMIN)
 	static int restart_signum = -1;
 	if (restart_signum == -1)
