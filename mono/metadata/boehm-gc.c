@@ -201,7 +201,7 @@ mono_gc_base_init (void)
 	GC_push_other_roots = mono_push_other_roots;
 #endif
 
-#if !defined(PLATFORM_ANDROID)
+#if defined(HAVE_BDWGC_GC) || !defined(PLATFORM_ANDROID)
 	/* If GC_no_dls is set to true, GC_find_limit is not called. This causes a seg fault on Android. */
 	GC_no_dls = TRUE;
 #endif
