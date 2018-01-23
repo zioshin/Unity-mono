@@ -913,5 +913,8 @@ mono_find_image_set_owner (void *ptr);
 void
 mono_loader_register_module (const char *name, MonoDl *module);
 
+gboolean
+mono_type_in_image (MonoType *type, MonoImage *image);
+
 #endif /* __MONO_METADATA_INTERNALS_H__ */
 
