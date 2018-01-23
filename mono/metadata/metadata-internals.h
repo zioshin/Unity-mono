@@ -940,5 +940,9 @@ mono_loader_register_module (const char *name, MonoDl *module);
 gboolean
 mono_assembly_is_problematic_version (const char *name, guint16 major, guint16 minor, guint16 build, guint16 revision);
 
+
+gboolean
+mono_type_in_image (MonoType *type, MonoImage *image);
+
 #endif /* __MONO_METADATA_INTERNALS_H__ */
 
