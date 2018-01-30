@@ -485,10 +485,12 @@ static CRITICAL_SECTION allocator_section;
 static CRITICAL_SECTION handle_section;
 
 typedef enum {
-	HANDLE_WEAK,
+	HANDLE_TYPE_MIN,
+	HANDLE_WEAK = HANDLE_TYPE_MIN,
 	HANDLE_WEAK_TRACK,
 	HANDLE_NORMAL,
-	HANDLE_PINNED
+	HANDLE_PINNED,
+	HANDLE_TYPE_MAX
 } HandleType;
 
 static HandleType mono_gchandle_get_type (guint32 gchandle);
@@ -899,7 +901,7 @@ mono_gchandle_free_domain (MonoDomain *domain)
 {
 	guint type;
 
-	for (type = 0; type < 3; ++type) {
+	for (type = HANDLE_TYPE_MIN; type < HANDLE_TYPE_MAX; ++type) {
 		guint slot;
 		HandleData *handles = &gc_handles [type];
 		lock_handles (handles);
@@ -1194,16 +1196,17 @@ void mono_gc_strong_handle_foreach(GFunc func, gpointer user_data)
 {
 	int gcHandleTypeIndex;
 	uint32_t i;
-	const HandleType types[] = { HANDLE_NORMAL, HANDLE_PINNED };
 
 	lock_handles (handles);
 
-	for (gcHandleTypeIndex = 0; gcHandleTypeIndex < sizeof(types)/sizeof(HandleType); gcHandleTypeIndex++)
+	for (gcHandleTypeIndex = HANDLE_NORMAL; gcHandleTypeIndex < HANDLE_TYPE_MAX; gcHandleTypeIndex++)
 	{
-		HandleData* handles = &gc_handles[types[gcHandleTypeIndex]];
+		HandleData* handles = &gc_handles[gcHandleTypeIndex];
 
 		for (i = 0; i < handles->size; i++)
 		{
+			if (!(handles->bitmap[i / 32] & (1 << (i % 32))))
+				continue;
 			if (handles->entries[i] != NULL)
 				func(handles->entries[i], user_data);
 		}
