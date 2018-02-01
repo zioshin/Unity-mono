@@ -880,6 +880,7 @@ type_from_op (MonoInst *ins, MonoInst *src1, MonoInst *src2) {
 			break;
 		case STACK_PTR:
 		case STACK_MP:
+		case STACK_OBJ:
 #if SIZEOF_REGISTER == 8
 			ins->opcode = OP_LCONV_TO_U;
 #else
