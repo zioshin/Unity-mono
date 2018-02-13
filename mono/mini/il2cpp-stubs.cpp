@@ -41,6 +41,7 @@ extern "C" {
 #include <mono/metadata/profiler.h>
 #include <mono/sgen/sgen-conf.h>
 #include <mono/mini/mini.h>
+#include <mono/mini/mini-runtime.h>
 #include <mono/metadata/seq-points-data.h>
 #include "il2cpp-c-types.h"
 #include <mono/metadata/il2cpp-compat-metadata.h>
@@ -91,7 +92,7 @@ Il2CppMonoMethodSignature* il2cpp_mono_method_signature (MonoMethod *m)
 	MethodInfo* method = (MethodInfo*)m;
 
 	if (method_signatures == NULL)
-		method_signatures = mono_g_hash_table_new_type(NULL, NULL, MONO_HASH_KEY_GC, MONO_ROOT_SOURCE_DEBUGGER, "method-to-signature for il2cpp table");
+		method_signatures = mono_g_hash_table_new_type(NULL, NULL, MONO_HASH_KEY_GC, MONO_ROOT_SOURCE_DEBUGGER, NULL, "method-to-signature for il2cpp table");
 
 	Il2CppMonoMethodSignature* existing_signature = (Il2CppMonoMethodSignature*)mono_g_hash_table_lookup(method_signatures, method);
 	if (existing_signature != NULL)
@@ -468,7 +469,7 @@ SgenDescriptor il2cpp_mono_gc_make_root_descr_all_refs(int numbits)
 	return NULL;
 }
 
-int il2cpp_mono_gc_register_root_wbarrier (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char *msg)
+int il2cpp_mono_gc_register_root_wbarrier (char *start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, void* key, const char *msg)
 {
 	il2cpp::gc::GarbageCollector::RegisterRoot(start, size);
 	return 1;
@@ -857,7 +858,7 @@ void il2cpp_mono_gc_base_init()
 }
 
 static il2cpp::os::Mutex s_il2cpp_gc_root_lock(false);
-int il2cpp_mono_gc_register_root(char* start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, const char* msg)
+int il2cpp_mono_gc_register_root(char* start, size_t size, MonoGCDescriptor descr, MonoGCRootSource source, void* key, const char* msg)
 {
 	il2cpp::gc::GarbageCollector::RegisterRoot(start, size);
 	return 1;
@@ -1507,6 +1508,13 @@ char* il2cpp_assembly_get_full_name(MonoAssembly *assembly)
 {
     std::string s = il2cpp::vm::AssemblyName::AssemblyNameToString(assembly->aname);
     return g_strdup(s.c_str());
+}
+
+// The profiler.c file needs this method. We don't want to pull in boehm-gc.c though, so stub it here.
+guint32
+mono_gc_get_managed_allocator_types (void)
+{
+	return 0;
 }
 
 }

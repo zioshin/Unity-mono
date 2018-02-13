@@ -241,6 +241,7 @@ mono/metadata/metadata-cross-helpers.c
 mono/metadata/method-builder.c
 mono/metadata/monitor.c
 mono/metadata/mono-basic-block.c
+mono/metadata/mono-conc-hash.c
 mono/metadata/mono-config.c
 mono/metadata/mono-config-dirs.c
 mono/metadata/mono-debug.c
@@ -367,6 +368,7 @@ mono/metadata/metadata.h
 mono/metadata/method-builder.h
 mono/metadata/monitor.h
 mono/metadata/mono-basic-block.h
+mono/metadata/mono-conc-hash.h
 mono/metadata/mono-config.h
 mono/metadata/mono-config-dirs.h
 mono/metadata/mono-debug-debugger.h
@@ -386,6 +388,7 @@ mono/metadata/object-internals.h
 mono/metadata/object-offsets.h
 mono/metadata/object.h
 mono/metadata/opcodes.h
+mono/metadata/profiler-events.h
 mono/metadata/profiler-private.h
 mono/metadata/profiler.h
 mono/metadata/property-bag.h
@@ -516,16 +519,19 @@ support/libm/math_private.h
 ####################
 #mono mini files
 ####################
+mono/mini/aot-runtime.h
 mono/mini/cfgdump.h
 mono/mini/debugger-agent.c
 mono/mini/debugger-agent.h
 mono/mini/il2cpp-c-types.h
 mono/mini/il2cpp-compat.h
 mono/mini/il2cpp-stubs.cpp
+mono/mini/interp/interp.h
 mono/mini/jit.h
 mono/mini/mini-amd64.h
 mono/mini/mini-arch.h
 mono/mini/mini-ops.h
+mono/mini/mini-runtime.h
 mono/mini/mini-unwind.h
 mono/mini/mini-x86.h
 mono/mini/mini.h
