@@ -438,7 +438,7 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 				MonoError error;
 				MonoObject* val = NULL;
 
-				mono_field_static_get_value_checked (mono_class_vtable (domain, klass), field, &val, &error);
+				mono_field_static_get_value_checked (mono_class_vtable_checked (domain, klass, &error), field, &val, &error);
 
 				if (val && mono_error_ok (&error))
 				{

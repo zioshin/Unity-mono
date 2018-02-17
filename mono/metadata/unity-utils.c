@@ -18,6 +18,7 @@
 #include <mono/metadata/object.h>
 #include <mono/metadata/metadata.h>
 #include <mono/metadata/tabledefs.h>
+#include <mono/metadata/class-init.h>
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/marshal.h>
@@ -916,7 +917,7 @@ MonoImage* mono_unity_image_get_mscorlib()
 MonoClass* mono_unity_generic_container_get_parameter_class(MonoGenericContainer* generic_container, gint index)
 {
 	MonoGenericParam *param = mono_generic_container_get_param(generic_container, index);
-	return mono_class_from_generic_parameter_internal(param);
+	return mono_class_create_generic_parameter(param);
 }
 
 MonoString* mono_unity_string_append_assembly_name_if_necessary(MonoString* typeName, const char* assemblyName)
@@ -1110,7 +1111,7 @@ mono_unity_class_get_generic_parameter_at (MonoClass* klass, guint32 index)
 	if (!generic_container || index >= generic_container->type_argc)
 		return NULL;
 
-	return mono_class_from_generic_parameter_internal (mono_generic_container_get_param (generic_container, index));
+	return mono_class_create_generic_parameter (mono_generic_container_get_param (generic_container, index));
 }
 
 MONO_API guint32

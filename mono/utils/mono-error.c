@@ -340,7 +340,6 @@ mono_error_set_type_load_name (MonoError *oerror, const char *type_name, const c
 void
 mono_error_set_specific (MonoError *oerror, int error_code, const char *message)
 {
-#ifndef RUNTIME_IL2CPP
 	MonoErrorInternal *error = (MonoErrorInternal*)oerror;
 	mono_error_prepare (error);
 

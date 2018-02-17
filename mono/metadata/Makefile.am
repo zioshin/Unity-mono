@@ -89,12 +89,6 @@ noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(sgen_librarie
 
 lib_LTLIBRARIES = $(icall_table_libraries)
 
-if DISABLE_EXECUTABLES
-noinst_LTLIBRARIES = libmonoruntime-config.la $(shared_sgen_libraries) $(shared_boehm_libraries) $(shared_bdwgc_libraries)
-else
-noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(sgen_libraries) $(bdwgc_libraries)
-endif
-
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(GLIB_CFLAGS) $(SHARED_CFLAGS)
 
 #
@@ -341,7 +335,7 @@ sgen_sources = \
 	sgen-client-mono.h
 
 libmonoruntime_la_SOURCES = $(common_sources) $(icall_tables_sources) $(gc_dependent_sources) $(null_gc_sources) $(boehm_sources)
-libmonoruntime_la_CFLAGS = $(BOEHM_DEFINES)
+libmonoruntime_la_CFLAGS = $(BOEHM_DEFINES) $(LIBGC_CPPFLAGS)
 libmonoruntime_la_LIBADD = libmonoruntime-config.la
 
 libmonoruntimebdwgc_la_SOURCES = $(common_sources) $(icall_tables_sources) $(gc_dependent_sources) $(unity_gc_dependent_sources) $(null_gc_sources) $(boehm_sources)

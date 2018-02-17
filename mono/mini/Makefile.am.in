@@ -103,7 +103,7 @@ endif
  
 if SUPPORT_BDWGC
 bdwgc_libraries = libmonobdwgc-2.0.la
-bdwgc_static_libraries = libmini-static.la $(bdwgc_static_libs)
+bdwgc_static_libraries = libmini.la $(interp_libs_with_mini) $(bdwgc_libs)
 bdwgc_binaries  = mono-bdwgc
 endif
 
