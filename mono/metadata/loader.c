@@ -32,6 +32,7 @@
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/loader.h>
+#include <mono/metadata/class-init.h>
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/reflection.h>
@@ -41,6 +42,7 @@
 #include <mono/metadata/lock-tracer.h>
 #include <mono/metadata/verify-internals.h>
 #include <mono/metadata/unity-utils.h>
+#include <mono/metadata/exception-internals.h>
 #include <mono/utils/mono-logger-internals.h>
 #include <mono/utils/mono-dl.h>
 #include <mono/utils/mono-membar.h>
@@ -225,7 +227,7 @@ field_from_memberref (MonoImage *image, guint32 token, MonoClass **retklass,
 	/* we may want to check the signature here... */
 
 	if (*ptr++ != 0x6) {
-		mono_error_set_field_load (error, klass, fname, "Bad field signature class token %08x field name %s token %08x", class_index, fname, token);
+		mono_error_set_field_missing (error, klass, fname, NULL, "Bad field signature class token %08x field token %08x", class_index, token);
 		return NULL;
 	}
 
@@ -236,10 +238,10 @@ field_from_memberref (MonoImage *image, guint32 token, MonoClass **retklass,
 	 */
 	sig_type = (MonoType *)find_cached_memberref_sig (image, cols [MONO_MEMBERREF_SIGNATURE]);
 	if (!sig_type) {
-		MonoError inner_error;
+		ERROR_DECL_VALUE (inner_error);
 		sig_type = mono_metadata_parse_type_checked (image, NULL, 0, FALSE, ptr, &ptr, &inner_error);
 		if (sig_type == NULL) {
-			mono_error_set_field_load (error, klass, fname, "Could not parse field '%s' signature %08x due to: %s", fname, token, mono_error_get_message (&inner_error));
+			mono_error_set_field_missing (error, klass, fname, NULL, "Could not parse field signature %08x due to: %s", token, mono_error_get_message (&inner_error));
 			mono_error_cleanup (&inner_error);
 			return NULL;
 		}
@@ -252,7 +254,7 @@ field_from_memberref (MonoImage *image, guint32 token, MonoClass **retklass,
 	field = mono_class_get_field_from_name_full (klass, fname, sig_type);
 
 	if (!field) {
-		mono_error_set_field_load (error, klass, fname, "Could not find field '%s'", fname);
+		mono_error_set_field_missing (error, klass, fname, sig_type, "Could not find field in class");
 	}
 
 	return field;
@@ -266,9 +268,9 @@ field_from_memberref (MonoImage *image, guint32 token, MonoClass **retklass,
 MonoClassField*
 mono_field_from_token (MonoImage *image, guint32 token, MonoClass **retklass, MonoGenericContext *context)
 {
-	MonoError error;
-	MonoClassField *res = mono_field_from_token_checked (image, token, retklass, context, &error);
-	g_assert (mono_error_ok (&error));
+	ERROR_DECL (error);
+	MonoClassField *res = mono_field_from_token_checked (image, token, retklass, context, error);
+	mono_error_assert_ok (error);
 	return res;
 }
 
@@ -286,7 +288,7 @@ mono_field_from_token_checked (MonoImage *image, guint32 token, MonoClass **retk
 		MonoClass *handle_class;
 
 		*retklass = NULL;
-		MonoError inner_error;
+		ERROR_DECL_VALUE (inner_error);
 		result = (MonoClassField *)mono_lookup_dynamic_token_class (image, token, TRUE, &handle_class, context, &inner_error);
 		mono_error_cleanup (&inner_error);
 		// This checks the memberref type as well
@@ -319,7 +321,7 @@ mono_field_from_token_checked (MonoImage *image, guint32 token, MonoClass **retk
 		if (retklass)
 			*retklass = k;
 		if (mono_class_has_failure (k)) {
-			MonoError causedby_error;
+			ERROR_DECL_VALUE (causedby_error);
 			error_init (&causedby_error);
 			mono_error_set_for_class_failure (&causedby_error, k);
 			mono_error_set_bad_image (error, image, "Could not resolve field token 0x%08x, due to: %s", token, mono_error_get_message (&causedby_error));
@@ -523,10 +525,8 @@ find_method (MonoClass *in_class, MonoClass *ic, const char* name, MonoMethodSig
 		result = find_method_in_class (mono_defaults.object_class, name, qname, fqname, sig, mono_defaults.object_class, error);
 
 	//we did not find the method
-	if (!result && mono_error_ok (error)) {
-		char *desc = mono_signature_get_managed_fmt_string (sig);
-		mono_error_set_method_load (error, initial_class, g_strdup (name), desc, "");
-	}
+	if (!result && mono_error_ok (error))
+		mono_error_set_method_missing (error, initial_class, name, sig, NULL);
 		
  out:
 	g_free (class_name);
@@ -650,9 +650,9 @@ fail:
 MonoMethodSignature*
 mono_method_get_signature_full (MonoMethod *method, MonoImage *image, guint32 token, MonoGenericContext *context)
 {
-	MonoError error;
-	MonoMethodSignature *res = mono_method_get_signature_checked (method, image, token, context, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoMethodSignature *res = mono_method_get_signature_checked (method, image, token, context, error);
+	mono_error_cleanup (error);
 	return res;
 }
 
@@ -752,9 +752,9 @@ mono_method_get_signature_checked (MonoMethod *method, MonoImage *image, guint32
 MonoMethodSignature*
 mono_method_get_signature (MonoMethod *method, MonoImage *image, guint32 token)
 {
-	MonoError error;
-	MonoMethodSignature *res = mono_method_get_signature_checked (method, image, token, NULL, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoMethodSignature *res = mono_method_get_signature_checked (method, image, token, NULL, error);
+	mono_error_cleanup (error);
 	return res;
 }
 
@@ -842,7 +842,7 @@ method_from_memberref (MonoImage *image, guint32 idx, MonoGenericContext *typesp
 	sig_idx = cols [MONO_MEMBERREF_SIGNATURE];
 
 	if (!mono_verifier_verify_memberref_method_signature (image, sig_idx, NULL)) {
-		mono_error_set_method_load (error, klass, g_strdup (mname), NULL, "Verifier rejected method signature");
+		mono_error_set_method_missing (error, klass, mname, NULL, "Verifier rejected method signature");
 		goto fail;
 	}
 
@@ -884,12 +884,8 @@ method_from_memberref (MonoImage *image, guint32 idx, MonoGenericContext *typesp
 		goto fail;
 	}
 
-	if (!method && mono_error_ok (error)) {
-
-		char *desc = mono_signature_get_managed_fmt_string (sig);
-
-		mono_error_set_method_load (error, klass, g_strdup (mname), desc, "Failed to load due to unknown reasons");
-	}
+	if (!method && mono_error_ok (error))
+		mono_error_set_method_missing (error, klass, mname, sig, "Failed to load due to unknown reasons");
 
 	return method;
 
@@ -1763,9 +1759,9 @@ mono_get_method_from_token (MonoImage *image, guint32 token, MonoClass *klass,
 MonoMethod *
 mono_get_method (MonoImage *image, guint32 token, MonoClass *klass)
 {
-	MonoError error;
-	MonoMethod *result = mono_get_method_checked (image, token, klass, NULL, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoMethod *result = mono_get_method_checked (image, token, klass, NULL, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1776,9 +1772,9 @@ MonoMethod *
 mono_get_method_full (MonoImage *image, guint32 token, MonoClass *klass,
 		      MonoGenericContext *context)
 {
-	MonoError error;
-	MonoMethod *result = mono_get_method_checked (image, token, klass, context, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoMethod *result = mono_get_method_checked (image, token, klass, context, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1950,9 +1946,9 @@ MonoMethod *
 mono_get_method_constrained (MonoImage *image, guint32 token, MonoClass *constrained_class,
 			     MonoGenericContext *context, MonoMethod **cil_method)
 {
-	MonoError error;
-	MonoMethod *result = mono_get_method_constrained_checked (image, token, constrained_class, context, cil_method, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoMethod *result = mono_get_method_constrained_checked (image, token, constrained_class, context, cil_method, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -2531,15 +2527,15 @@ mono_method_signature_checked (MonoMethod *m, MonoError *error)
 	/* Verify metadata consistency */
 	if (signature->generic_param_count) {
 		if (!container || !container->is_method) {
-			mono_error_set_method_load (error, m->klass, g_strdup (m->name), mono_signature_get_managed_fmt_string (signature), "Signature claims method has generic parameters, but generic_params table says it doesn't for method 0x%08x from image %s", idx, img->name);
+			mono_error_set_method_missing (error, m->klass, m->name, signature, "Signature claims method has generic parameters, but generic_params table says it doesn't for method 0x%08x from image %s", idx, img->name);
 			return NULL;
 		}
 		if (container->type_argc != signature->generic_param_count) {
-			mono_error_set_method_load (error, m->klass, g_strdup (m->name), mono_signature_get_managed_fmt_string (signature), "Inconsistent generic parameter count.  Signature says %d, generic_params table says %d for method 0x%08x from image %s", signature->generic_param_count, container->type_argc, idx, img->name);
+			mono_error_set_method_missing (error, m->klass, m->name, signature, "Inconsistent generic parameter count.  Signature says %d, generic_params table says %d for method 0x%08x from image %s", signature->generic_param_count, container->type_argc, idx, img->name);
 			return NULL;
 		}
 	} else if (container && container->is_method && container->type_argc) {
-		mono_error_set_method_load (error, m->klass, g_strdup (m->name), mono_signature_get_managed_fmt_string (signature), "generic_params table claims method has generic parameters, but signature says it doesn't for method 0x%08x from image %s", idx, img->name);
+		mono_error_set_method_missing (error, m->klass, m->name, signature, "generic_params table claims method has generic parameters, but signature says it doesn't for method 0x%08x from image %s", idx, img->name);
 		return NULL;
 	}
 	if (m->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) {
@@ -2576,7 +2572,7 @@ mono_method_signature_checked (MonoMethod *m, MonoError *error)
 		case PINVOKE_ATTRIBUTE_CALL_CONV_GENERIC:
 		case PINVOKE_ATTRIBUTE_CALL_CONV_GENERICINST:
 		default: {
-			mono_error_set_method_load (error, m->klass, g_strdup (m->name), mono_signature_get_managed_fmt_string (signature), "unsupported calling convention : 0x%04x for method 0x%08x from image %s", piinfo->piflags, idx, img->name);
+			mono_error_set_method_missing (error, m->klass, m->name, signature, "Unsupported calling convention : 0x%04x for method 0x%08x from image %s", piinfo->piflags, idx, img->name);
 		}
 			return NULL;
 		}
@@ -2601,15 +2597,15 @@ mono_method_signature_checked (MonoMethod *m, MonoError *error)
 MonoMethodSignature*
 mono_method_signature (MonoMethod *m)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoMethodSignature *sig;
 
-	sig = mono_method_signature_checked (m, &error);
+	sig = mono_method_signature_checked (m, error);
 	if (!sig) {
 		char *type_name = mono_type_get_full_name (m->klass);
-		g_warning ("Could not load signature of %s:%s due to: %s", type_name, m->name, mono_error_get_message (&error));
+		g_warning ("Could not load signature of %s:%s due to: %s", type_name, m->name, mono_error_get_message (error));
 		g_free (type_name);
-		mono_error_cleanup (&error);
+		mono_error_cleanup (error);
 	}
 
 	return sig;
@@ -2642,8 +2638,19 @@ mono_method_get_token (MonoMethod *method)
 	return method->token;
 }
 
+gboolean
+mono_method_has_no_body (MonoMethod *method)
+{
+	return ((method->flags & METHOD_ATTRIBUTE_ABSTRACT) ||
+		(method->iflags & METHOD_IMPL_ATTRIBUTE_RUNTIME) ||
+		(method->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) ||
+		(method->flags & METHOD_ATTRIBUTE_PINVOKE_IMPL));
+}
+
+// FIXME Replace all internal callers of mono_method_get_header_checked with
+// mono_method_get_header_internal; the difference is in error initialization.
 MonoMethodHeader*
-mono_method_get_header_checked (MonoMethod *method, MonoError *error)
+mono_method_get_header_internal (MonoMethod *method, MonoError *error)
 {
 	int idx;
 	guint32 rva;
@@ -2654,7 +2661,9 @@ mono_method_get_header_checked (MonoMethod *method, MonoError *error)
 	error_init (error);
 	img = method->klass->image;
 
-	if ((method->flags & METHOD_ATTRIBUTE_ABSTRACT) || (method->iflags & METHOD_IMPL_ATTRIBUTE_RUNTIME) || (method->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) || (method->flags & METHOD_ATTRIBUTE_PINVOKE_IMPL)) {
+	// FIXME: for internal callers maybe it makes sense to do this check at the call site, not
+	// here?
+	if (mono_method_has_no_body (method)) {
 		mono_error_set_bad_image (error, img, "Method has no body");
 		return NULL;
 	}
@@ -2711,15 +2720,22 @@ mono_method_get_header_checked (MonoMethod *method, MonoError *error)
 	return mono_metadata_parse_mh_full (img, container, (const char *)loc, error);
 }
 
+MonoMethodHeader*
+mono_method_get_header_checked (MonoMethod *method, MonoError *error)
+// Public function that must initialize MonoError for compatibility.
+{
+	MONO_API_ERROR_INIT (error);
+	return mono_method_get_header_internal (method, error);
+}
 /**
  * mono_method_get_header:
  */
 MonoMethodHeader*
 mono_method_get_header (MonoMethod *method)
 {
-	MonoError error;
-	MonoMethodHeader *header = mono_method_get_header_checked (method, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoMethodHeader *header = mono_method_get_header_checked (method, error);
+	mono_error_cleanup (error);
 	return header;
 }
 

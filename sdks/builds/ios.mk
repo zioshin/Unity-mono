@@ -11,20 +11,19 @@
 
 PLATFORM_BIN=$(XCODE_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/bin
 
-_ios_CFLAGS= \
+ios_CFLAGS= \
 	$(if $(filter $(RELEASE),true),-O2,-O0 -ggdb3 -gdwarf-2) \
 	-DMONOTOUCH=1
 
-_ios_CPPFLAGS= \
+ios_CPPFLAGS= \
 	$(if $(filter $(RELEASE),true),-O2,-O0 -ggdb3 -gdwarf-2) \
 	-DMONOTOUCH=1
 
-_ios_CXXFLAGS= \
+ios_CXXFLAGS= \
 	$(if $(filter $(RELEASE),true),-O2,-O0 -ggdb3 -gdwarf-2) \
 	-DMONOTOUCH=1
 
-_ios_LDFLAGS= \
-	-Wl,-no_weak_imports
+ios_LDFLAGS=
 
 ##
 # Parameters
@@ -57,11 +56,11 @@ _ios_$(1)_AC_VARS= \
 	ac_cv_func_utimensat=no \
 	mono_cv_sizeof_sunpath=104 \
 	mono_cv_uscore=yes \
-	$(ios_$(1)_AC_VARS)
+	$$(ios_$(1)_AC_VARS)
 
 _ios_$(1)_CFLAGS= \
-	$$(_ios_CFLAGS) \
-	-isysroot $(XCODE_DIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6.0 \
+	$$(ios_CFLAGS) \
+	-isysroot $(XCODE_DIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS$$(IOS_VERSION).sdk -miphoneos-version-min=$$(IOS_VERSION_MIN) \
 	-Wl,-application_extension \
 	-fexceptions \
 	-DSMALL_CONFIG -DDISABLE_POLICY_EVIDENCE=1 -DDISABLE_PROCESS_HANDLING=1 -D_XOPEN_SOURCE -DHOST_IOS -DHAVE_LARGE_FILE_SUPPORT=1 \
@@ -69,8 +68,8 @@ _ios_$(1)_CFLAGS= \
 	$$(ios_$(1)_CFLAGS)
 
 _ios_$(1)_CPPFLAGS= \
-	$$(_ios_CPPFLAGS) \
-	-isysroot $(XCODE_DIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6.0 \
+	$$(ios_CPPFLAGS) \
+	-isysroot $(XCODE_DIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS$$(IOS_VERSION).sdk -miphoneos-version-min=$$(IOS_VERSION_MIN) \
 	-arch $(2) \
 	-Wl,-application_extension \
 	-DSMALL_CONFIG -DDISABLE_POLICY_EVIDENCE=1 -DDISABLE_PROCESS_HANDLING=1 -D_XOPEN_SOURCE -DHOST_IOS -DHAVE_LARGE_FILE_SUPPORT=1 \
@@ -78,8 +77,8 @@ _ios_$(1)_CPPFLAGS= \
 	$$(ios_$(1)_CPPFLAGS)
 
 _ios_$(1)_CXXFLAGS= \
-	$$(_ios_CXXFLAGS) \
-	-isysroot $(XCODE_DIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk -miphoneos-version-min=6.0 \
+	$$(ios_CXXFLAGS) \
+	-isysroot $(XCODE_DIR)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS$$(IOS_VERSION).sdk -miphoneos-version-min=$$(IOS_VERSION_MIN) \
 	-arch $(2) \
 	-Wl,-application_extension \
 	-DSMALL_CONFIG -DDISABLE_POLICY_EVIDENCE=1 -DDISABLE_PROCESS_HANDLING=1 -D_XOPEN_SOURCE -DHOST_IOS -DHAVE_LARGE_FILE_SUPPORT=1 \
@@ -87,7 +86,8 @@ _ios_$(1)_CXXFLAGS= \
 	$$(ios_$(1)_CPPFLAGS)
 
 _ios_$(1)_LDFLAGS= \
-	$$(_ios_LDFLAGS) \
+	$$(ios_LDFLAGS) \
+	-Wl,-no_weak_imports \
 	-arch $(2) \
 	-framework CoreFoundation \
 	-lobjc -lc++ \
@@ -178,31 +178,31 @@ _ios_$(1)_AC_VARS= \
 	$(ios_$(1)_AC_VARS)
 
 _ios_$(1)_CFLAGS= \
-	$$(_ios_CFLAGS) \
-	-isysroot $$(XCODE_DIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -mios-simulator-version-min=6.0 \
+	$$(ios_CFLAGS) \
+	-isysroot $$(XCODE_DIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$$(IOS_VERSION).sdk -mios-simulator-version-min=$$(IOS_VERSION_MIN) \
 	-arch $(2) \
 	-Wl,-application_extension \
 	-DHOST_IOS \
 	$$(ios_$(1)_CFLAGS)
 
 _ios_$(1)_CPPFLAGS= \
-	$$(_ios_CPPFLAGS) \
-	-isysroot $$(XCODE_DIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -mios-simulator-version-min=6.0 \
+	$$(ios_CPPFLAGS) \
+	-isysroot $$(XCODE_DIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$$(IOS_VERSION).sdk -mios-simulator-version-min=$$(IOS_VERSION_MIN) \
 	-arch $(2) \
 	-Wl,-application_extension \
 	-DHOST_IOS \
 	$$(ios_$(1)_CPPFLAGS)
 
 _ios_$(1)_CXXFLAGS= \
-	$$(_ios_CXXFLAGS) \
-	-isysroot $$(XCODE_DIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk -mios-simulator-version-min=6.0 \
+	$$(ios_CXXFLAGS) \
+	-isysroot $$(XCODE_DIR)/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator$$(IOS_VERSION).sdk -mios-simulator-version-min=$$(IOS_VERSION_MIN) \
 	-arch $(2) \
 	-Wl,-application_extension\
 	-DHOST_IOS \
 	$$(ios_$(1)_CXXFLAGS)
 
 _ios_$(1)_LDFLAGS= \
-	$$(_ios_LDFLAGS) \
+	$$(ios_LDFLAGS) \
 	$$(ios_$(1)_LDFLAGS)
 
 _ios_$(1)_CONFIGURE_ENVIRONMENT = \
@@ -226,7 +226,6 @@ _ios_$(1)_CONFIGURE_FLAGS= \
 	--disable-visibility-hidden \
 	--enable-maintainer-mode \
 	--enable-minimal=com,remoting,shared_perfcounters \
-	--with-glib=embedded \
 	--with-tls=pthread \
 	--without-ikvm-native
 
@@ -259,17 +258,35 @@ $(eval $(call iOSSimulatorTemplate,sim64,x86_64))
 $(TOP)/tools/offsets-tool/MonoAotOffsetsDumper.exe: $(wildcard $(TOP)/tools/offsets-tool/*.cs)
 	$(MAKE) -C $(dir $@) MonoAotOffsetsDumper.exe
 
+LLVM_REV=3b82b3c9041eb997f627f881a67d20be37264e9c
+
+# Download a prebuilt llvm
+.stamp-ios-llvm-$(LLVM_REV):
+	./download-llvm.sh $(LLVM_REV)
+	touch $@
+
+build-ios-llvm: .stamp-ios-llvm-$(LLVM_REV)
+
+clean-ios-llvm:
+	$(RM) -rf ../out/ios-llvm64 ../out/ios-llvm32 .stamp-ios-llvm-$(LLVM_REV)
+
 ##
 # Parameters:
 #  $(1): target (cross32 or cross64)
 #  $(2): arch (arm or aarch64)
+#  $(3): llvm (llvm32 or llvm64)
+#  $(4): configure target arch
+#  $(5): offsets tool --abi argument
 #
 # Flags:
 #  ios_$(1)_AC_VARS
 #  ios_$(1)_CFLAGS
 #  ios_$(1)_CXXFLAGS
 #  ios_$(1)_LDFLAGS
+#  ios_$(1)_CONFIGURE_FLAGS
 define iOSCrossTemplate
+
+_ios_$(1)_OFFSET_TOOL_ABI=$(5)
 
 _ios_$(1)_CC=$$(CCACHE) $$(PLATFORM_BIN)/clang
 _ios_$(1)_CXX=$$(CCACHE) $$(PLATFORM_BIN)/clang++
@@ -278,26 +295,26 @@ _ios_$(1)_AC_VARS= \
 	$$(ios_$(1)_AC_VARS)
 
 _ios_$(1)_CFLAGS= \
-	$$(_ios_CFLAGS) \
-	-isysroot $$(XCODE_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=10.7 \
+	$$(ios_CFLAGS) \
+	-isysroot $$(XCODE_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX$$(MACOS_VERSION).sdk -mmacosx-version-min=$$(MACOS_VERSION_MIN) \
 	-Qunused-arguments \
 	$$(ios_$(1)_CFLAGS)
 
 _ios_$(1)_CXXFLAGS= \
-	$$(_ios_CXXFLAGS) \
-	-isysroot $$(XCODE_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=10.7 \
+	$$(ios_CXXFLAGS) \
+	-isysroot $$(XCODE_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX$$(MACOS_VERSION).sdk -mmacosx-version-min=$$(MACOS_VERSION_MIN) \
 	-Qunused-arguments \
 	-stdlib=libc++ \
 	$$(ios_$(1)_CXXFLAGS)
 
 _ios_$(1)_LDFLAGS= \
-	$$(_ios_LDFLAGS) \
+	$$(ios_LDFLAGS) \
 	-stdlib=libc++ \
 	$$(ios_$(1)_LDFLAGS)
 
 _ios_$(1)_CONFIGURE_FLAGS= \
-	--build=i386-apple-darwin10 \
-	--target=$(2)-darwin \
+	$$(ios_$(1)_CONFIGURE_FLAGS) \
+	--target=$(4) \
 	--cache-file=$$(TOP)/sdks/builds/ios-$(1).config.cache \
 	--prefix=$$(TOP)/sdks/out/ios-$(1) \
 	--disable-boehm \
@@ -309,10 +326,8 @@ _ios_$(1)_CONFIGURE_FLAGS= \
 	--enable-dtrace=yes \
 	--enable-icall-symbol-map \
 	--enable-minimal=com,remoting \
-	--with-cross-offsets=$(2)-apple-darwin10.h \
-	--with-glib=embedded
-
-# _ios_$(1)_CONFIGURE_FLAGS += --enable-llvm --with-llvm=../llvm/usr
+	--with-cross-offsets=$(4).h \
+	--with-llvm=$$(TOP)/sdks/out/ios-$(3)
 
 _ios_$(1)_CONFIGURE_ENVIRONMENT= \
 	CC="$$(_ios_$(1)_CC)" \
@@ -324,7 +339,7 @@ _ios_$(1)_CONFIGURE_ENVIRONMENT= \
 .stamp-ios-$(1)-toolchain:
 	touch $$@
 
-.stamp-ios-$(1)-configure: $$(TOP)/configure
+.stamp-ios-$(1)-configure: $$(TOP)/configure | build-ios-llvm
 	mkdir -p $$(TOP)/sdks/builds/ios-$(1)
 	cd $$(TOP)/sdks/builds/ios-$(1) && PATH="$$(PLATFORM_BIN):$$$$PATH" $$(TOP)/configure $$(_ios_$(1)_AC_VARS) $$(_ios_$(1)_CONFIGURE_ENVIRONMENT) $$(_ios_$(1)_CONFIGURE_FLAGS)
 	touch $$@
@@ -332,13 +347,13 @@ _ios_$(1)_CONFIGURE_ENVIRONMENT= \
 $$(TOP)/sdks/builds/ios-$(1)/mono/utils/mono-dtrace.h: .stamp-ios-$(1)-configure
 	$$(MAKE) -C $$(dir $$@) $$(notdir $$@)
 
-$$(TOP)/sdks/builds/ios-$(1)/$(2)-apple-darwin10.h: .stamp-ios-$(1)-configure $$(TOP)/sdks/builds/ios-$(1)/mono/utils/mono-dtrace.h $$(TOP)/tools/offsets-tool/MonoAotOffsetsDumper.exe
+$$(TOP)/sdks/builds/ios-$(1)/$(4).h: .stamp-ios-$(1)-configure $$(TOP)/sdks/builds/ios-$(1)/mono/utils/mono-dtrace.h $$(TOP)/tools/offsets-tool/MonoAotOffsetsDumper.exe
 	cd $$(TOP)/sdks/builds/ios-$(1) && \
 		MONO_PATH=$(TOP)/tools/offsets-tool/CppSharp/osx_32 \
 			mono --arch=32 --debug $$(TOP)/tools/offsets-tool/MonoAotOffsetsDumper.exe \
-				--abi $(2)-apple-darwin10 --platform ios --out $$(TOP)/sdks/builds/ios-$(1)/ --mono $$(TOP) --targetdir $$(TOP)/sdks/builds/ios-$(1)
+				--gen-ios --abi $$(_ios_$(1)_OFFSET_TOOL_ABI) --outfile $$@ --mono $$(TOP) --targetdir $$(TOP)/sdks/builds/ios-$(1)
 
-build-ios-$(1): $$(TOP)/sdks/builds/ios-$(1)/$(2)-apple-darwin10.h
+build-ios-$(1): $$(TOP)/sdks/builds/ios-$(1)/$(4).h
 
 .PHONY: package-ios-$(1)
 package-ios-$(1):
@@ -352,5 +367,9 @@ TARGETS += ios-$(1)
 
 endef
 
-$(eval $(call iOSCrossTemplate,cross32,arm))
-$(eval $(call iOSCrossTemplate,cross64,aarch64))
+ios_cross32_CONFIGURE_FLAGS=--build=i386-apple-darwin10
+ios_crosswatch_CONFIGURE_FLAGS=--build=i386-apple-darwin10 	--with-cooperative-gc=yes
+$(eval $(call iOSCrossTemplate,cross32,arm,llvm32,arm-darwin,arm-apple-darwin10))
+$(eval $(call iOSCrossTemplate,cross64,aarch64,llvm64,aarch64-darwin,aarch64-apple-darwin10))
+$(eval $(call iOSCrossTemplate,crosswatch,armv7k,llvm32,armv7k-unknown-darwin,armv7k-apple-darwin))
+

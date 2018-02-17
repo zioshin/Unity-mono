@@ -1160,7 +1160,8 @@ namespace Mono.CSharp {
 				//
 				if (ec.CurrentAnonymousMethod is AsyncInitializer) {
 					var storey = (AsyncTaskStorey) ec.CurrentAnonymousMethod.Storey;
-					if (storey.ReturnType == ec.Module.PredefinedTypes.Task.TypeSpec) {
+					var s_return_type = storey.ReturnType;
+					if (s_return_type == ec.Module.PredefinedTypes.Task.TypeSpec) {
 						//
 						// Extra trick not to emit ret/leave inside awaiter body
 						//
@@ -1168,8 +1169,8 @@ namespace Mono.CSharp {
 						return true;
 					}
 
-					if (storey.ReturnType.IsGenericTask)
-						block_return_type = storey.ReturnType.TypeArguments[0];
+					if (s_return_type.IsGenericTask || (s_return_type.Arity == 1 && s_return_type.IsCustomTaskType ()))
+					    block_return_type = s_return_type.TypeArguments[0];
 				}
 
 				if (ec.CurrentIterator != null) {
@@ -1220,7 +1221,7 @@ namespace Mono.CSharp {
 							return false;
 						}
 
-						if (!async_type.IsGenericTask) {
+						if (!async_type.IsGeneric) {
 							if (this is ContextualReturn)
 								return true;
 
@@ -2412,14 +2413,14 @@ namespace Mono.CSharp {
 			AddressTaken = 1 << 2,
 			CompilerGenerated = 1 << 3,
 			Constant = 1 << 4,
-			ForeachVariable = 1 << 5,
-			FixedVariable = 1 << 6,
-			UsingVariable = 1 << 7,
+			ForeachVariable = 1 << 5 | ReadonlyMask,
+			FixedVariable = 1 << 6 | ReadonlyMask,
+			UsingVariable = 1 << 7 | ReadonlyMask,
 			IsLocked = 1 << 8,
 			SymbolFileHidden = 1 << 9,
 			ByRef = 1 << 10,
 
-			ReadonlyMask = ForeachVariable | FixedVariable | UsingVariable
+			ReadonlyMask = 1 << 20
 		}
 
 		TypeSpec type;
@@ -2539,7 +2540,7 @@ namespace Mono.CSharp {
 
 		public bool IsFixed {
 			get {
-				return (flags & Flags.FixedVariable) != 0;
+				return (flags & Flags.FixedVariable) == Flags.FixedVariable;
 			}
 			set {
 				flags = value ? flags | Flags.FixedVariable : flags & ~Flags.FixedVariable;
@@ -2677,7 +2678,7 @@ namespace Mono.CSharp {
 
 		public string GetReadOnlyContext ()
 		{
-			switch (flags & Flags.ReadonlyMask) {
+			switch (flags & (Flags.ForeachVariable | Flags.FixedVariable | Flags.UsingVariable)) {
 			case Flags.FixedVariable:
 				return "fixed variable";
 			case Flags.ForeachVariable:

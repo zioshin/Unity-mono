@@ -527,17 +527,28 @@ TESTS_CS_SRC=		\
 	bug-58782-plain-throw.cs \
 	bug-58782-capture-and-throw.cs \
 	recursive-struct-arrays.cs \
+	struct-explicit-layout.cs \
 	bug-59281.cs	\
 	init_array_with_lazy_type.cs \
 	weak-fields.cs \
-	threads-leak.cs
+	threads-leak.cs	\
+	threads-init.cs \
+	bug-60848.cs
 
 if AMD64
 TESTS_CS_SRC += async-exc-compilation.cs finally_guard.cs finally_block_ending_in_dead_bb.cs
+if !HOST_WIN32
+# requires working altstack
+TESTS_CS_SRC += bug-60862.cs
+endif
 endif
 
 if X86
 TESTS_CS_SRC += async-exc-compilation.cs finally_guard.cs finally_block_ending_in_dead_bb.cs
+if !HOST_WIN32
+# requires working altstack
+TESTS_CS_SRC += bug-60862.cs
+endif
 endif
 
 TESTS_IL_SRC=			\
@@ -553,7 +564,7 @@ TESTS_IL_SRC=			\
 	locallocTest.il		\
 	initblkTest.il		\
 	qt-instance.il		\
-	vararg.il		\
+	vararg3.il		\
 	bug-29859.il		\
 	bug-78549.il		\
 	static-fields-nonconst.il	\
@@ -608,7 +619,14 @@ TESTS_IL_SRC=			\
 	gsharing-valuetype-layout.il	\
 	invalid_generic_instantiation.il \
 	bug-45841-fpstack-exceptions.il \
-	instance_tailrec.il
+	instance_tailrec.il	\
+	dim-constrainedcall.il	\
+	dim-diamondshape.il	\
+	dim-genericmethods.il	\
+	dim-methodimpl.il	\
+	dim-sharedgenerics.il	\
+	dim-simple.il	\
+	dim-valuetypes.il
 
 TESTS_GSHARED_SRC = \
 	generics-sharing.2.cs	\
@@ -716,7 +734,17 @@ INTERP_PLATFORM_DISABLED_TESTS= \
 	delegate-exit.exe \
 	delegate1.exe \
 	delegate3.exe \
+	thunks.exe \
 	finalizer-exception.exe \
+	delegate5.exe \
+	delegate8.exe \
+	bug-323114.exe \
+	threadpool-exceptions3.exe \
+	threadpool-exceptions6.exe \
+	bug-80392.2.exe \
+	remoting3.exe \
+	remoting2.exe \
+	appdomain-unload-callback.exe \
 	monitor-abort.exe
 endif
 
@@ -741,12 +769,6 @@ PLATFORM_DISABLED_TESTS += \
 	sgen-bridge.exe \
 	sgen-bridge-major-fragmentation.exe \
 	sgen-bridge-xref.exe
-endif
-
-if ENABLE_COOP
-COOP_DISABLED_TESTS= thunks.exe
-else
-COOP_DISABLED_TESTS= 
 endif
 
 PROFILE_DISABLED_TESTS=
@@ -931,12 +953,27 @@ CI_DISABLED_TESTS = \
 # failing tests which we temporarily disable for PRs
 # so they don't interfere with other people's work
 CI_PR_DISABLED_TESTS = \
-	appdomain-threadpool-unload.exe
+	appdomain-threadpool-unload.exe \
+	monitor-abort.exe \
+	monitor-wait-abort.exe \
+	process-stress-3.exe \
+	sleep.exe
+
+if ENABLE_COOP
+CI_PR_DISABLED_TESTS += \
+	abort-cctor.exe \
+	bug-58782-plain-throw.exe \
+	bug-58782-capture-and-throw.exe
+endif
 
 # appdomain-threadpool-unload.exe creates 100 appdomains, takes too long with llvm
 LLVM_DISABLED_TESTS = \
 	finally_block_ending_in_dead_bb.exe \
 	appdomain-threadpool-unload.exe
+
+# https://github.com/mono/mono/issues/6490
+LLVM_DISABLED_TESTS += \
+	weak-fields.exe
 
 LLVM = $(filter --llvm, $(MONO_ENV_OPTIONS))
 
@@ -949,14 +986,18 @@ LLVM = $(filter --llvm, $(MONO_ENV_OPTIONS))
 # appdomain-thread-abort.exe: https://bugzilla.xamarin.com/show_bug.cgi?id=47054
 # abort-try-holes.exe is flaky due to unwinding failure to the finally block when aborting
 # appdomain-marshalbyref-assemblyload.exe: https://bugzilla.xamarin.com/show_bug.cgi?id=49308
+# threads-init.exe: runs out of system threads
+# dim-constrainedcall.exe: fails on dontnet as well (https://github.com/dotnet/coreclr/issues/15353)
 KNOWN_FAILING_TESTS = \
 	delegate-async-exception.exe	\
 	bug-348522.2.exe	\
 	bug-459094.exe \
 	delegate-invoke.exe \
 	bug-Xamarin-5278.exe \
+	appdomain-marshalbyref-assemblyload.exe	\
 	abort-try-holes.exe \
-	appdomain-marshalbyref-assemblyload.exe
+	threads-init.exe \
+	dim-constrainedcall.exe
 
 DISABLED_TESTS = \
 	$(KNOWN_FAILING_TESTS) \
@@ -973,26 +1014,22 @@ DISABLED_TESTS = \
 #                exit code 0, but doesn't actually execute the test.
 # block_guard_restore_aligment_on_exit.exe: flaky (10% of the time it hangs and thus times out)
 # weak-fields.exe: https://bugzilla.xamarin.com/show_bug.cgi?id=60973
+# bug-60862.exe: missing support to map IP->method; only works on platforms with altstack support.
 INTERP_DISABLED_TESTS = \
 	$(KNOWN_FAILING_TESTS) \
 	$(INTERP_PLATFORM_DISABLED_TESTS) \
 	$(COOP_DISABLED_TESTS) \
 	$(if $(CI),$(CI_DISABLED_TESTS)) \
 	$(if $(CI_PR),$(CI_PR_DISABLED_TESTS)) \
-	abort-cctor.exe \
 	appdomain-unload.exe \
-	array_load_exception.exe \
-	async-exc-compilation.exe \
 	async-with-cb-throws.exe \
 	block_guard_restore_aligment_on_exit.exe \
 	bug-335131.2.exe \
 	bug-415577.exe \
 	bug-45841-fpstack-exceptions.exe \
 	bug-48015.exe \
-	bug-58782-capture-and-throw.exe \
-	bug-58782-plain-throw.exe \
-	bug-81673.exe \
 	bug445361.exe \
+	bug-60862.exe \
 	calliGenericTest.exe \
 	cominterop.exe \
 	context-static.exe \
@@ -1002,39 +1039,24 @@ INTERP_DISABLED_TESTS = \
 	even-odd.exe \
 	exception18.exe \
 	field-access.exe \
-	finally_block_ending_in_dead_bb.exe \
 	handleref.exe \
-	invalid_generic_instantiation.exe \
-	ldftn-access.exe \
-	marshal.exe \
-	marshal8.exe \
-	method-access.exe \
 	nullable_boxing.2.exe \
-	pinvoke-2.2.exe \
-	pinvoke-utf8.exe \
 	pinvoke.exe \
-	pinvoke11.exe \
 	pinvoke2.exe \
 	pinvoke3.exe \
-	pinvoke_ppcc.exe \
-	pinvoke_ppcd.exe \
-	pinvoke_ppcf.exe \
-	pinvoke_ppci.exe \
-	pinvoke_ppcs.exe \
 	safehandle.2.exe \
 	stackframes-async.2.exe \
 	static-constructor.exe \
-	test-type-ctor.exe \
 	thread6.exe \
 	threadpool-exceptions2.exe \
 	threadpool-exceptions4.exe \
 	threadpool-exceptions5.exe \
-	thunks.exe \
 	typeload-unaligned.exe \
 	weak-fields.exe \
 	vararg.exe \
 	vararg2.exe \
-	winx64structs.exe
+	vararg3.exe	\
+	dim-diamondshape.exe
 
 TESTS_CS=$(filter-out $(DISABLED_TESTS),$(TESTS_CS_SRC:.cs=.exe))
 TESTS_IL=$(filter-out $(DISABLED_TESTS),$(TESTS_IL_SRC:.il=.exe))
@@ -1987,7 +2009,7 @@ TESTSAOT_STRESS_PROCESS=$(TESTS_STRESS_PROCESS:.exe=.exe$(PLATFORM_AOT_SUFFIX))
 endif
 
 test-process-stress: $(TESTS_STRESS_PROCESS) $(TESTSAOT_STRESS_PROCESS) test-runner.exe
-	$(TOOLS_RUNTIME) $(TEST_RUNNER) --testsuite-name $@ --disabled "$(DISABLED_TESTS)" --timeout 600 $(TESTS_STRESS_PROCESS)
+	$(TOOLS_RUNTIME) $(TEST_RUNNER) --testsuite-name $@ --disabled "$(DISABLED_TESTS)" --timeout 900 $(TESTS_STRESS_PROCESS)
 
 coreclr-gcstress:
 	$(MAKE) -C $(mono_build_root)/acceptance-tests coreclr-gcstress

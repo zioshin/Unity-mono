@@ -322,6 +322,12 @@ public class Tests : TestsBase, ITest2
 			new Tests ().attach ();
 			return 0;
 		}
+		if (args.Length > 0 && args [0] == "step-out-void-async") {
+			var wait = new ManualResetEvent (false);
+			step_out_void_async (wait);
+			wait.WaitOne ();//Don't exist until step_out_void_async is executed...
+			return 0;
+		}
 		assembly_load ();
 		breakpoints ();
 		single_stepping ();
@@ -357,6 +363,7 @@ public class Tests : TestsBase, ITest2
 		if (args.Length > 0 && args [0] == "invoke-abort")
 			new Tests ().invoke_abort ();
 		new Tests ().evaluate_method ();
+		Bug59649 ();
 		return 3;
 	}
 
@@ -427,6 +434,7 @@ public class Tests : TestsBase, ITest2
 		}
 		ss7 ();
 		ss_nested ();
+		ss_nested_with_two_args_wrapper ();        
 		ss_regress_654694 ();
 		ss_step_through ();
 		ss_non_user_code ();
@@ -541,6 +549,21 @@ public class Tests : TestsBase, ITest2
 		ss_nested_1 (ss_nested_2 ());
 		ss_nested_1 (ss_nested_2 ());
 		ss_nested_3 ();
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static void ss_nested_with_two_args_wrapper () {
+		ss_nested_with_two_args(ss_nested_arg (), ss_nested_arg ());
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static int ss_nested_with_two_args (int a1, int a2) {
+		return a1 + a2;
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static int ss_nested_arg () {
+		return 0;
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
@@ -1720,6 +1743,24 @@ public class Tests : TestsBase, ITest2
 			attach_break ();
 		}
 	}
+
+	public static void Bug59649 ()
+	{
+		UninitializedClass.Call();//Breakpoint here and step in
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	static async void step_out_void_async (ManualResetEvent wait)
+	{
+		await Task.Yield ();
+		step_out_void_async_2 ();
+		wait.Set ();
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	static void step_out_void_async_2 ()
+	{
+	}
 }
 
 public class SentinelClass : MarshalByRefObject {
@@ -1798,5 +1839,23 @@ public class LineNumbers
 	}
 }
 
+class UninitializedClass
+{
+	static string DummyCall()
+	{
+		//Should NOT step into this method
+		//if StepFilter.StaticCtor is set
+		//because this is part of static class initilization
+		return String.Empty;
+	}
+
+	static string staticField = DummyCall();
+
+	public static void Call()
+	{
+		//Should step into this method
+		//Console.WriteLine ("Call called");
+	}
+}
 
 

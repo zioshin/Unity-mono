@@ -130,8 +130,6 @@
 #endif
 #endif
 
-#define ALIGN_TO(val,align) (((val) + ((align) - 1)) & ~((align) - 1))
-
 #define SIGNAL_STACK_SIZE (64 * 1024)
 
 #define STACK_BIAS MONO_SPARC_STACK_BIAS
@@ -1569,7 +1567,7 @@ else { \
 static guint32*
 emit_call (MonoCompile *cfg, guint32 *code, guint32 patch_type, gconstpointer data)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	gpointer target;
 
 	/* FIXME: This only works if the target method is already compiled */
@@ -1579,8 +1577,8 @@ emit_call (MonoCompile *cfg, guint32 *code, guint32 patch_type, gconstpointer da
 		patch_info.type = patch_type;
 		patch_info.data.target = data;
 
-		target = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, &patch_info, FALSE, &error);
-		mono_error_raise_exception_deprecated (&error); /* FIXME: don't raise here */
+		target = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, &patch_info, FALSE, error);
+		mono_error_raise_exception_deprecated (error); /* FIXME: don't raise here */
 
 		/* FIXME: Add optimizations if the target is close enough */
 		sparc_set (code, target, sparc_o7);

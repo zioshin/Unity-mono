@@ -8,7 +8,8 @@ MONO_SECURITY=Mono.Security
 endif
 
 LIBRARY = System.Security.dll
-LIB_REFS = secxml/System bare/System.Xml $(MONO_SECURITY)
+API_BIN_REFS := System.Numerics
+LIB_REFS = $(MONO_SECURITY) System System.Xml
 KEYFILE = ../msfinal.pub
 LIB_MCS_FLAGS = \
 	-nowarn:414,618 \
@@ -28,18 +29,11 @@ EXTRA_DISTFILES = \
 
 RESX_RESOURCE_STRING = ../../../external/corefx/src/System.Security.Cryptography.Xml/src/Resources/Strings.resx
 
-ifdef MOBILE_PROFILE
-NO_TEST = yes
-endif
-
 include ../../build/library.make
 
-$(build_lib): $(secxml_libdir)/System.dll $(MONO_SECURITY_DLL)
-
-$(secxml_libdir)/System.dll:
-	(cd ../System; $(MAKE) $@)
+$(build_lib): $(MONO_SECURITY_DLL)
 
 $(the_libdir_base)/Mono.Security.dll:
 	(cd ../Mono.Security; $(MAKE))
 
-.NOTPARALLEL: $(secxml_libdir)/System.dll $(bare_libdir)/Mono.Security.dll
+.NOTPARALLEL: $(bare_libdir)/Mono.Security.dll

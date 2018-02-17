@@ -9,7 +9,7 @@
  * typeid must be a C symbol name unique to the type, don't worry about namespace
  * 	pollution, since it will be automatically prefixed to avoid it.
  * typename is a C string containing the full name of the type
- * first_icall_id s the symbol ID of the first internal call of the declared
+ * first_icall_id is the symbol ID of the first internal call of the declared
  * 	type (see below)
  *
  * The list of internal calls of the methods of a type must follow the
@@ -18,7 +18,7 @@
  * 	ICALL(icallid, methodname, cfuncptr)
  *
  * icallid must be a C symbol, unique for each icall defined in this file and
- * tipically equal to the typeid + '_' + a sequential number.
+ * typically equal to the typeid + '_' + a sequential number.
  * methodname is a C string defining the method name and the optional signature
  * (the signature is required only when several internal calls in the type
  * have the same name)
@@ -183,11 +183,11 @@ HANDLES(ICALL(INTCFGHOST_1, "get_bundled_app_config", ves_icall_System_Configura
 HANDLES(ICALL(INTCFGHOST_2, "get_bundled_machine_config", ves_icall_System_Configuration_InternalConfigurationHost_get_bundled_machine_config))
 
 ICALL_TYPE(CONSOLE, "System.ConsoleDriver", CONSOLE_1)
-ICALL(CONSOLE_1, "InternalKeyAvailable", ves_icall_System_ConsoleDriver_InternalKeyAvailable )
-ICALL(CONSOLE_2, "Isatty", ves_icall_System_ConsoleDriver_Isatty )
-ICALL(CONSOLE_3, "SetBreak", ves_icall_System_ConsoleDriver_SetBreak )
-ICALL(CONSOLE_4, "SetEcho", ves_icall_System_ConsoleDriver_SetEcho )
-ICALL(CONSOLE_5, "TtySetup", ves_icall_System_ConsoleDriver_TtySetup )
+HANDLES(ICALL(CONSOLE_1, "InternalKeyAvailable", ves_icall_System_ConsoleDriver_InternalKeyAvailable))
+HANDLES(ICALL(CONSOLE_2, "Isatty", ves_icall_System_ConsoleDriver_Isatty))
+HANDLES(ICALL(CONSOLE_3, "SetBreak", ves_icall_System_ConsoleDriver_SetBreak))
+HANDLES(ICALL(CONSOLE_4, "SetEcho", ves_icall_System_ConsoleDriver_SetEcho))
+HANDLES(ICALL(CONSOLE_5, "TtySetup", ves_icall_System_ConsoleDriver_TtySetup))
 
 ICALL_TYPE(TZONE, "System.CurrentSystemTimeZone", TZONE_1)
 ICALL(TZONE_1, "GetTimeZoneData", ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData)
@@ -868,7 +868,8 @@ ICALL(SECMAN_2, "get_SecurityEnabled", ves_icall_System_Security_SecurityManager
 ICALL(SECMAN_3, "set_SecurityEnabled", ves_icall_System_Security_SecurityManager_set_SecurityEnabled)
 
 ICALL_TYPE(STRING, "System.String", STRING_1)
-ICALL(STRING_1, ".ctor(char*)", ves_icall_System_String_ctor_RedirectToCreateString)
+ICALL(STRING_1, ".ctor(System.ReadOnlySpan`1<char>)", ves_icall_System_String_ctor_RedirectToCreateString)
+ICALL(STRING_1a, ".ctor(char*)", ves_icall_System_String_ctor_RedirectToCreateString)
 ICALL(STRING_2, ".ctor(char*,int,int)", ves_icall_System_String_ctor_RedirectToCreateString)
 ICALL(STRING_3, ".ctor(char,int)", ves_icall_System_String_ctor_RedirectToCreateString)
 ICALL(STRING_4, ".ctor(char[])", ves_icall_System_String_ctor_RedirectToCreateString)
@@ -944,23 +945,23 @@ ICALL_TYPE(THREAD, "System.Threading.Thread", THREAD_1)
 ICALL(THREAD_1, "Abort_internal(System.Threading.InternalThread,object)", ves_icall_System_Threading_Thread_Abort)
 ICALL(THREAD_1a, "ByteArrayToCurrentDomain(byte[])", ves_icall_System_Threading_Thread_ByteArrayToCurrentDomain)
 ICALL(THREAD_1b, "ByteArrayToRootDomain(byte[])", ves_icall_System_Threading_Thread_ByteArrayToRootDomain)
-ICALL(THREAD_2, "ClrState(System.Threading.InternalThread,System.Threading.ThreadState)", ves_icall_System_Threading_Thread_ClrState)
+HANDLES(ICALL(THREAD_2, "ClrState(System.Threading.InternalThread,System.Threading.ThreadState)", ves_icall_System_Threading_Thread_ClrState))
 ICALL(THREAD_2a, "ConstructInternalThread", ves_icall_System_Threading_Thread_ConstructInternalThread)
 ICALL(THREAD_55, "GetAbortExceptionState", ves_icall_System_Threading_Thread_GetAbortExceptionState)
-ICALL(THREAD_60, "GetCurrentThread", ves_icall_System_Threading_Thread_GetCurrentThread)
+HANDLES(ICALL(THREAD_60, "GetCurrentThread", ves_icall_System_Threading_Thread_GetCurrentThread))
 ICALL(THREAD_7, "GetDomainID", ves_icall_System_Threading_Thread_GetDomainID)
-ICALL(THREAD_8, "GetName_internal(System.Threading.InternalThread)", ves_icall_System_Threading_Thread_GetName_internal)
-ICALL(THREAD_57, "GetPriorityNative", ves_icall_System_Threading_Thread_GetPriority)
+HANDLES(ICALL(THREAD_8, "GetName_internal(System.Threading.InternalThread)", ves_icall_System_Threading_Thread_GetName_internal))
+HANDLES(ICALL(THREAD_57, "GetPriorityNative", ves_icall_System_Threading_Thread_GetPriority))
 ICALL(THREAD_59, "GetStackTraces", ves_icall_System_Threading_Thread_GetStackTraces)
-ICALL(THREAD_11, "GetState(System.Threading.InternalThread)", ves_icall_System_Threading_Thread_GetState)
+HANDLES(ICALL(THREAD_11, "GetState(System.Threading.InternalThread)", ves_icall_System_Threading_Thread_GetState))
 ICALL(THREAD_53, "InterruptInternal", ves_icall_System_Threading_Thread_Interrupt_internal)
 ICALL(THREAD_12, "JoinInternal", ves_icall_System_Threading_Thread_Join_internal)
 ICALL(THREAD_13, "MemoryBarrier", ves_icall_System_Threading_Thread_MemoryBarrier)
 ICALL(THREAD_14, "ResetAbortNative", ves_icall_System_Threading_Thread_ResetAbort)
 ICALL(THREAD_15, "ResumeInternal", ves_icall_System_Threading_Thread_Resume)
 ICALL(THREAD_18, "SetName_internal(System.Threading.InternalThread,string)", ves_icall_System_Threading_Thread_SetName_internal)
-ICALL(THREAD_58, "SetPriorityNative", ves_icall_System_Threading_Thread_SetPriority)
-ICALL(THREAD_21, "SetState(System.Threading.InternalThread,System.Threading.ThreadState)", ves_icall_System_Threading_Thread_SetState)
+HANDLES(ICALL(THREAD_58, "SetPriorityNative", ves_icall_System_Threading_Thread_SetPriority))
+HANDLES(ICALL(THREAD_21, "SetState(System.Threading.InternalThread,System.Threading.ThreadState)", ves_icall_System_Threading_Thread_SetState))
 ICALL(THREAD_22, "SleepInternal", ves_icall_System_Threading_Thread_Sleep_internal)
 ICALL(THREAD_54, "SpinWait_nop", ves_icall_System_Threading_Thread_SpinWait_nop)
 ICALL(THREAD_23, "SuspendInternal", ves_icall_System_Threading_Thread_Suspend)
@@ -1004,6 +1005,7 @@ ICALL(THREADP_5, "InitializeVMTp", ves_icall_System_Threading_ThreadPool_Initial
 ICALL(THREADP_6, "IsThreadPoolHosted", ves_icall_System_Threading_ThreadPool_IsThreadPoolHosted)
 ICALL(THREADP_7, "NotifyWorkItemComplete", ves_icall_System_Threading_ThreadPool_NotifyWorkItemComplete)
 ICALL(THREADP_8, "NotifyWorkItemProgressNative", ves_icall_System_Threading_ThreadPool_NotifyWorkItemProgressNative)
+ICALL(THREADP_8m, "NotifyWorkItemQueued", ves_icall_System_Threading_ThreadPool_NotifyWorkItemQueued)
 ICALL(THREADP_9, "PostQueuedCompletionStatus", ves_icall_System_Threading_ThreadPool_PostQueuedCompletionStatus)
 ICALL(THREADP_11, "ReportThreadStatus", ves_icall_System_Threading_ThreadPool_ReportThreadStatus)
 ICALL(THREADP_12, "RequestWorkerThread", ves_icall_System_Threading_ThreadPool_RequestWorkerThread)

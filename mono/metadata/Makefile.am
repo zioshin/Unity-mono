@@ -69,43 +69,25 @@ else
 platform_sources += threadpool-worker-default.c
 endif
 
-
-#
-# libtool is not capable of creating static/shared versions of the same
-# convenience lib, so we have to do it ourselves
-#
 if SUPPORT_SGEN
-if DISABLE_EXECUTABLES
-shared_sgen_libraries = libmonoruntimesgen.la 
-else
-if SHARED_MONO
-shared_sgen_libraries = libmonoruntimesgen.la 
-endif
-endif
-sgen_libraries = $(shared_sgen_libraries) libmonoruntimesgen-static.la 
+sgen_libraries = libmonoruntimesgen.la
 endif
 
 if SUPPORT_BOEHM
-if DISABLE_EXECUTABLES
-shared_boehm_libraries = libmonoruntime.la
-else
-if SHARED_MONO
-shared_boehm_libraries = libmonoruntime.la
-endif
-endif
-boehm_libraries = $(shared_boehm_libraries) libmonoruntime-static.la
+boehm_libraries = libmonoruntime.la
 endif
 
 if SUPPORT_BDWGC
-if DISABLE_EXECUTABLES
-shared_bdwgc_libraries = libmonoruntimebdwgc.la
-else
-if SHARED_MONO
-shared_bdwgc_libraries = libmonoruntimebdwgc.la
+bdwgc_libraries = libmonoruntimebdwgc.la
 endif
+
+if DISABLE_ICALL_TABLES
+icall_table_libraries = libmono-icall-table.la
 endif
-bdwgc_libraries = $(shared_bdwgc_libraries) libmonoruntimebdwgc-static.la
-endif
+
+noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(sgen_libraries) $(bdwgc_libraries)
+
+lib_LTLIBRARIES = $(icall_table_libraries)
 
 if DISABLE_EXECUTABLES
 noinst_LTLIBRARIES = libmonoruntime-config.la $(shared_sgen_libraries) $(shared_boehm_libraries) $(shared_bdwgc_libraries)
@@ -133,6 +115,14 @@ libmonoruntime_config_la_SOURCES = \
 	mono-config-dirs.c
 libmonoruntime_config_la_CPPFLAGS = $(AM_CPPFLAGS) -DMONO_BINDIR=\"$(bindir)/\" -DMONO_ASSEMBLIES=\"$(assembliesdir)\" -DMONO_CFG_DIR=\"$(confdir)\" -DMONO_RELOC_LIBDIR=\"../$(reloc_libdir)\"
 
+#
+# This library contains the icall tables if the runtime was configured with --disable-icall-tables
+#
+if DISABLE_ICALL_TABLES
+libmono_icall_table_la_SOURCES = \
+	icall-table.c
+endif
+
 CLEANFILES = mono-bundle.stamp
 
 null_sources = \
@@ -150,6 +140,11 @@ unity_sources = \
 	unity-utils.h	\
 	unity-icall.c
 
+if !DISABLE_ICALL_TABLES
+icall_tables_sources = \
+	icall-table.c
+endif
+
 common_sources = \
 	$(platform_sources)	\
 	$(unity_sources) \
@@ -162,8 +157,12 @@ common_sources = \
 	attach.c		\
 	cil-coff.h		\
 	class.c			\
+	class-getters.h		\
+	class-init.h		\
+	class-init.c		\
 	class-internals.h	\
 	class-inlines.h		\
+	class-private-definition.h	\
 	class-accessors.c	\
 	cominterop.c		\
 	cominterop.h		\
@@ -195,6 +194,7 @@ common_sources = \
 	icall.c			\
 	icall-internals.h \
 	icall-def.h		\
+	icall-table.h	\
 	image.c			\
 	image-internals.h	\
 	jit-info.c		\
@@ -240,6 +240,7 @@ common_sources = \
 	number-ms.c		\
 	number-ms.h		\
 	object.c	\
+	object-forward.h	\
 	object-internals.h	\
 	opcodes.c		\
 	property-bag.h	\
@@ -339,44 +340,29 @@ sgen_sources = \
 	sgen-mono.c		\
 	sgen-client-mono.h
 
-libmonoruntime_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(unity_gc_dependent_sources) $(null_gc_sources) $(boehm_sources)
-libmonoruntime_la_CFLAGS = $(BOEHM_DEFINES) $(LIBGC_CPPFLAGS)
+libmonoruntime_la_SOURCES = $(common_sources) $(icall_tables_sources) $(gc_dependent_sources) $(null_gc_sources) $(boehm_sources)
+libmonoruntime_la_CFLAGS = $(BOEHM_DEFINES)
 libmonoruntime_la_LIBADD = libmonoruntime-config.la
 
-libmonoruntimebdwgc_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(unity_gc_dependent_sources) $(null_gc_sources) $(boehm_sources)
+libmonoruntimebdwgc_la_SOURCES = $(common_sources) $(icall_tables_sources) $(gc_dependent_sources) $(unity_gc_dependent_sources) $(null_gc_sources) $(boehm_sources)
 libmonoruntimebdwgc_la_CFLAGS = $(BDWGC_DEFINES) $(LIBGCBDWGC_CPPFLAGS)
-libmonoruntimebdwgc_la_LIBADD = libmonoruntime-config.la $(btls_libs)
+libmonoruntimebdwgc_la_LIBADD = libmonoruntime-config.la
 
-libmonoruntimesgen_la_SOURCES = $(common_sources) $(gc_dependent_sources) $(unity_gc_dependent_sources) $(sgen_sources)
+libmonoruntimesgen_la_SOURCES = $(common_sources) $(icall_tables_sources) $(gc_dependent_sources) $(sgen_sources)
 libmonoruntimesgen_la_CFLAGS = $(SGEN_DEFINES)
 libmonoruntimesgen_la_LIBADD = libmonoruntime-config.la
 
-libmonoruntime_static_la_SOURCES = $(libmonoruntime_la_SOURCES)
-libmonoruntime_static_la_LDFLAGS = -static
-libmonoruntime_static_la_CFLAGS = $(BOEHM_DEFINES) $(LIBGC_CPPFLAGS)
-libmonoruntime_static_la_LIBADD = $(bundle_obj) libmonoruntime-config.la
-
-libmonoruntimebdwgc_static_la_SOURCES = $(libmonoruntimebdwgc_la_SOURCES)
-libmonoruntimebdwgc_static_la_LDFLAGS = -static
-libmonoruntimebdwgc_static_la_CFLAGS = $(BDWGC_DEFINES) $(LIBGCBDWGC_CPPFLAGS)
-libmonoruntimebdwgc_static_la_LIBADD = $(bundle_obj) libmonoruntime-config.la $(btls_static_libs)
-
-libmonoruntimesgen_static_la_SOURCES = $(libmonoruntimesgen_la_SOURCES)
-libmonoruntimesgen_static_la_LDFLAGS = -static
-libmonoruntimesgen_static_la_CFLAGS = $(SGEN_DEFINES)
-libmonoruntimesgen_static_la_LIBADD = libmonoruntime-config.la
-
 libmonoruntimeincludedir = $(includedir)/mono-$(API_VER)/mono/metadata
 
+# This list is sorted for easier searching.
 libmonoruntimeinclude_HEADERS = \
+	appdomain.h		\
 	assembly.h		\
 	attrdefs.h		\
-	appdomain.h		\
 	blob.h			\
 	class.h			\
 	debug-helpers.h		\
 	debug-mono-symfile.h	\
-	threads.h		\
 	environment.h		\
 	exception.h		\
 	image.h			\
@@ -385,13 +371,15 @@ libmonoruntimeinclude_HEADERS = \
 	mono-config.h		\
 	mono-debug.h		\
 	mono-gc.h		\
-	sgen-bridge.h		\
 	object.h		\
+	object-forward.h	\
 	opcodes.h		\
 	profiler.h		\
 	profiler-events.h	\
 	reflection.h		\
 	row-indexes.h		\
+	sgen-bridge.h		\
+	threads.h		\
 	tokentype.h		\
 	verify.h		
 

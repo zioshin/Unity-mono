@@ -33,7 +33,7 @@
     <DebugType>full</DebugType>
     <NoWarn>1699,436</NoWarn>
     <Optimize>false</Optimize>
-    <DefineConstants>TRACE;NET_4_0;NET_4_5;NET_4_6;MONO;WIN_PLATFORM;MULTIPLEX_OS;CONFIGURATION_2_0;FEATURE_PAL;SYSTEM_NAMESPACE;MONO;PLATFORM_UNIX;MONO_FEATURE_PROCESS_START;MONO_FEATURE_THREAD_ABORT;MONO_FEATURE_THREAD_SUSPEND_RESUME;MONO_FEATURE_MULTIPLE_APPDOMAINS;CODEDOM;MONO_FEATURE_APPLETLS;MONO_FEATURE_BTLS</DefineConstants>
+    <DefineConstants>TRACE;NET_4_0;NET_4_5;NET_4_6;MONO;WIN_PLATFORM;MULTIPLEX_OS;CONFIGURATION_2_0;XML_DEP;FEATURE_PAL;SYSTEM_NAMESPACE;MONO;PLATFORM_UNIX;MONO_FEATURE_PROCESS_START;MONO_FEATURE_THREAD_ABORT;MONO_FEATURE_THREAD_SUSPEND_RESUME;MONO_FEATURE_MULTIPLE_APPDOMAINS;CODEDOM;MONO_FEATURE_APPLETLS;MONO_FEATURE_BTLS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -41,7 +41,7 @@
     <DebugType>pdbonly</DebugType>
     <NoWarn>1699,436</NoWarn>
     <Optimize>true</Optimize>
-    <DefineConstants>NET_4_0;NET_4_5;NET_4_6;MONO;WIN_PLATFORM;MULTIPLEX_OS;CONFIGURATION_2_0;FEATURE_PAL;SYSTEM_NAMESPACE;MONO;PLATFORM_UNIX;MONO_FEATURE_PROCESS_START;MONO_FEATURE_THREAD_ABORT;MONO_FEATURE_THREAD_SUSPEND_RESUME;MONO_FEATURE_MULTIPLE_APPDOMAINS;CODEDOM;MONO_FEATURE_APPLETLS;MONO_FEATURE_BTLS</DefineConstants>
+    <DefineConstants>NET_4_0;NET_4_5;NET_4_6;MONO;WIN_PLATFORM;MULTIPLEX_OS;CONFIGURATION_2_0;XML_DEP;FEATURE_PAL;SYSTEM_NAMESPACE;MONO;PLATFORM_UNIX;MONO_FEATURE_PROCESS_START;MONO_FEATURE_THREAD_ABORT;MONO_FEATURE_THREAD_SUSPEND_RESUME;MONO_FEATURE_MULTIPLE_APPDOMAINS;CODEDOM;MONO_FEATURE_APPLETLS;MONO_FEATURE_BTLS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -60,6 +60,8 @@
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\Collections\Generic\EnumerableHelpers.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\Collections\Generic\LargeArrayBuilder.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\CSharpHelpers.cs" />
+    <Compile Include="..\..\..\external\corefx\src\Common\src\System\IO\ChunkedMemoryStream.cs" />
+    <Compile Include="..\..\..\external\corefx\src\Common\src\System\IO\DelegatingStream.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\IO\TempFileCollection.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\Net\HttpStatusDescription.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\Net\Logging\NetEventSource.Common.cs" />
@@ -206,9 +208,12 @@
     <Compile Include="..\..\..\external\corefx\src\System.IO.Compression\src\System\IO\Compression\GZipStream.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.HttpListener\src\System\Net\WebSockets\HttpListenerWebSocketContext.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.ServicePoint\src\System\Net\SecurityProtocolType.cs" />
+    <Compile Include="..\..\..\external\corefx\src\System.Net.WebClient\src\System\Net\WebClient.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets.Client\src\System\Net\WebSockets\ClientWebSocket.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets.Client\src\System\Net\WebSockets\ClientWebSocketOptions.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets.Client\src\System\Net\WebSockets\WebSocketHandle.Managed.cs" />
+    <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets.WebSocketProtocol\src\System\Net\WebSockets\ManagedWebSocket.netstandard.cs" />
+    <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets\src\System\Net\WebSockets\ValueWebSocketReceiveResult.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets\src\System\Net\WebSockets\WebSocket.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets\src\System\Net\WebSockets\WebSocketCloseStatus.cs" />
     <Compile Include="..\..\..\external\corefx\src\System.Net.WebSockets\src\System\Net\WebSockets\WebSocketContext.cs" />
@@ -729,7 +734,6 @@
     <Compile Include="..\referencesource\System\net\System\Net\TransportType.cs" />
     <Compile Include="..\referencesource\System\net\System\Net\UnicodeDecodingConformance.cs" />
     <Compile Include="..\referencesource\System\net\System\Net\UnicodeEncodingConformance.cs" />
-    <Compile Include="..\referencesource\System\net\System\Net\webclient.cs" />
     <Compile Include="..\referencesource\System\net\System\Net\WebException.cs" />
     <Compile Include="..\referencesource\System\net\System\Net\WebExceptionStatus.cs" />
     <Compile Include="..\referencesource\System\net\System\Net\WebHeaderCollection.cs" />
@@ -739,7 +743,6 @@
     <Compile Include="..\referencesource\System\net\System\Net\WebRequestMethods.cs" />
     <Compile Include="..\referencesource\System\net\System\Net\WebResponse.cs" />
     <Compile Include="..\referencesource\System\net\System\Net\WebUtility.cs" />
-    <Compile Include="..\referencesource\System\net\System\Net\WriteStreamClosedEventArgs.cs" />
     <Compile Include="..\referencesource\System\net\System\URI.cs" />
     <Compile Include="..\referencesource\System\net\System\UriEnumTypes.cs" />
     <Compile Include="..\referencesource\System\net\System\UriExt.cs" />
@@ -1223,7 +1226,6 @@
     <Compile Include="System.Net\HttpWebResponse.cs" />
     <Compile Include="System.Net\ICredentialPolicy.cs" />
     <Compile Include="System.Net\IPv6Address.cs" />
-    <Compile Include="System.Net\IWebConnectionState.cs" />
     <Compile Include="System.Net\IWebProxyScript.cs" />
     <Compile Include="System.Net\ListenerAsyncResult.cs" />
     <Compile Include="System.Net\ListenerPrefix.cs" />
@@ -1237,14 +1239,15 @@
     <Compile Include="System.Net\ServicePoint.cs" />
     <Compile Include="System.Net\ServicePointManager.cs" />
     <Compile Include="System.Net\ServicePointManager.extra.cs" />
-    <Compile Include="System.Net\SimpleAsyncResult.cs" />
+    <Compile Include="System.Net\ServicePointScheduler.cs" />
     <Compile Include="System.Net\SocketPermission.cs" />
     <Compile Include="System.Net\SocketPermissionAttribute.cs" />
-    <Compile Include="System.Net\WebAsyncResult.cs" />
     <Compile Include="System.Net\WebConnection.cs" />
-    <Compile Include="System.Net\WebConnectionData.cs" />
-    <Compile Include="System.Net\WebConnectionGroup.cs" />
     <Compile Include="System.Net\WebConnectionStream.cs" />
+    <Compile Include="System.Net\WebConnectionTunnel.cs" />
+    <Compile Include="System.Net\WebOperation.cs" />
+    <Compile Include="System.Net\WebRequestStream.cs" />
+    <Compile Include="System.Net\WebResponseStream.cs" />
     <Compile Include="System.Runtime.InteropServices.ComTypes\ADVF.cs" />
     <Compile Include="System.Runtime.InteropServices.ComTypes\DATADIR.cs" />
     <Compile Include="System.Runtime.InteropServices.ComTypes\DVASPECT.cs" />
@@ -1351,9 +1354,14 @@
       <Project>{2CA6026B-2DC8-4C4C-A12C-1E8234049DB7}</Project>
       <Name>corlib-net_4_x</Name>
     </ProjectReference>
-    <Reference Include="./../../../external/api-snapshot/profiles/net_4_x/System.Net.Http.dll">
+    <Reference Include="./../../../external/binary-reference-assemblies/v4.7.1/System.Net.Http.dll">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>./../../../external/api-snapshot/profiles/net_4_x/System.Net.Http.dll</HintPath>
+      <HintPath>./../../../external/binary-reference-assemblies/v4.7.1/System.Net.Http.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="./../../../external/binary-reference-assemblies/v4.7.1/System.Xml.dll">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>./../../../external/binary-reference-assemblies/v4.7.1/System.Xml.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

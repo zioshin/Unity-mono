@@ -10,6 +10,7 @@ using Diag = System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 
 using NUnit.Framework;
 
@@ -4287,6 +4288,53 @@ public class DebuggerTests
 	}
 
 	[Test]
+	[Category("NotWorking")] // flaky, see https://github.com/mono/mono/issues/6997
+	public void StepOutAsync () {
+		vm.Detach ();
+		Start (new string [] { "dtest-app.exe", "step-out-void-async" });
+		var e = run_until ("step_out_void_async_2");
+		create_step (e);
+		var e2 = step_out ();
+		assert_location (e2, "MoveNext");//we are in step_out_void_async
+		step_req.Disable ();
+		step_req.Depth = StepDepth.Out;
+		step_req.Enable ();
+		vm.Resume ();
+		var e3 = GetNextEvent ();
+		//after step-out from async void, execution should continue
+		//and runtime should exit
+		Assert.IsTrue (e3 is VMDeathEvent, e3.GetType().FullName);
+		vm = null;
+	}
+
+	[Test]
+	[Category("NotWorking")]
+	public void ShouldCorrectlyStepOverOnExitFromArgsAfterStepInMethodParameter() {
+		Event e = run_until ("ss_nested_with_two_args_wrapper");
+
+		var req = create_step(e);
+		req.Enable();
+
+		e = step_once();
+		assert_location(e, "ss_nested_with_two_args_wrapper");
+
+		e = step_into();
+		assert_location(e, "ss_nested_arg");
+
+		e = step_over();
+		assert_location(e, "ss_nested_arg");
+
+		e = step_over();
+		assert_location(e, "ss_nested_arg");
+
+		e = step_over();
+		assert_location(e, "ss_nested_with_two_args_wrapper");
+
+		e = step_into();
+		assert_location(e, "ss_nested_arg");
+	}
+
+	[Test]
 	// Uses a fixed port
 	[Category("NotWorking")]
 	public void Attach () {
@@ -4361,6 +4409,29 @@ public class DebuggerTests
 		}
 	}
 
-}
+	[Test]
+	public void Bug59649 ()
+	{
+		Event e = run_until ("Bug59649");
 
-}
+		var req = create_step (e);
+		req.Filter = StepFilter.StaticCtor;
+		req.Enable ();
+
+		// Approach call instruction
+		e = step_once ();
+		//StackTraceDump (e);
+
+		// Follow call
+		e = step_into ();
+		//StackTraceDump (e);
+
+		e = step_into ();
+		//StackTraceDump (e);
+
+		// Is cctor in this bug, ends up in the static field constructor
+		// DummyCall
+		assert_location (e, "Call");
+	}
+} // class DebuggerTests
+} // namespace

@@ -19,6 +19,7 @@
 #include "mono/metadata/metadata-internals.h"
 #include <mono/metadata/profiler-private.h>
 #include "mono/metadata/class-internals.h"
+#include "mono/metadata/class-init.h"
 #include "mono/metadata/gc-internals.h"
 #include "mono/metadata/domain-internals.h"
 #include "mono/metadata/opcodes.h"
@@ -218,9 +219,9 @@ MonoReflectionAssembly*
 mono_assembly_get_object (MonoDomain *domain, MonoAssembly *assembly)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionAssemblyHandle result = mono_assembly_get_object_handle (domain, assembly, &error);
-	mono_error_cleanup (&error); /* FIXME new API that doesn't swallow the error */
+	ERROR_DECL (error);
+	MonoReflectionAssemblyHandle result = mono_assembly_get_object_handle (domain, assembly, error);
+	mono_error_cleanup (error); /* FIXME new API that doesn't swallow the error */
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -255,9 +256,9 @@ MonoReflectionModule*
 mono_module_get_object   (MonoDomain *domain, MonoImage *image)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionModuleHandle result = mono_module_get_object_handle (domain, image, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionModuleHandle result = mono_module_get_object_handle (domain, image, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -319,9 +320,9 @@ MonoReflectionModule*
 mono_module_file_get_object (MonoDomain *domain, MonoImage *image, int table_index)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionModuleHandle result = mono_module_file_get_object_handle (domain, image, table_index, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionModuleHandle result = mono_module_file_get_object_handle (domain, image, table_index, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -425,9 +426,9 @@ mono_type_normalize (MonoType *type)
 MonoReflectionType*
 mono_type_get_object (MonoDomain *domain, MonoType *type)
 {
-	MonoError error;
-	MonoReflectionType *ret = mono_type_get_object_checked (domain, type, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionType *ret = mono_type_get_object_checked (domain, type, error);
+	mono_error_cleanup (error);
 
 	return ret;
 }
@@ -489,8 +490,11 @@ mono_type_get_object_checked (MonoDomain *domain, MonoType *type, MonoError *err
 	norm_type = mono_type_normalize (type);
 	if (norm_type != type) {
 		res = mono_type_get_object_checked (domain, norm_type, error);
-		if (!mono_error_ok (error))
+		if (!mono_error_ok (error)) {
+			mono_domain_unlock (domain);
+			mono_loader_unlock ();
 			return NULL;
+		}
 		mono_g_hash_table_insert (domain->type_hash, type, res);
 		mono_domain_unlock (domain);
 		mono_loader_unlock ();
@@ -527,8 +531,11 @@ mono_type_get_object_checked (MonoDomain *domain, MonoType *type, MonoError *err
 	}
 	/* This is stored in vtables/JITted code so it has to be pinned */
 	res = (MonoReflectionType *)mono_object_new_pinned (domain, mono_defaults.runtimetype_class, error);
-	if (!mono_error_ok (error))
+	if (!mono_error_ok (error)) {
+		mono_domain_unlock (domain);
+		mono_loader_unlock ();
 		return NULL;
+	}
 
 	res->type = type;
 	mono_g_hash_table_insert (domain->type_hash, type, res);
@@ -563,9 +570,9 @@ MonoReflectionMethod*
 mono_method_get_object (MonoDomain *domain, MonoMethod *method, MonoClass *refclass)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionMethodHandle ret = mono_method_get_object_handle (domain, method, refclass, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionMethodHandle ret = mono_method_get_object_handle (domain, method, refclass, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (ret);
 }
 
@@ -677,9 +684,9 @@ MonoReflectionField*
 mono_field_get_object (MonoDomain *domain, MonoClass *klass, MonoClassField *field)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionFieldHandle result = mono_field_get_object_handle (domain, klass, field, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionFieldHandle result = mono_field_get_object_handle (domain, klass, field, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -757,9 +764,9 @@ MonoReflectionProperty*
 mono_property_get_object (MonoDomain *domain, MonoClass *klass, MonoProperty *property)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionPropertyHandle result = mono_property_get_object_handle (domain, klass, property, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionPropertyHandle result = mono_property_get_object_handle (domain, klass, property, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -822,9 +829,9 @@ MonoReflectionEvent*
 mono_event_get_object (MonoDomain *domain, MonoClass *klass, MonoEvent *event)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionEventHandle result = mono_event_get_object_handle (domain, klass, event, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionEventHandle result = mono_event_get_object_handle (domain, klass, event, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -871,7 +878,7 @@ mono_event_get_object_handle (MonoDomain *domain, MonoClass *klass, MonoEvent *e
 static MonoObjectHandle
 mono_get_reflection_missing_object (MonoDomain *domain)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	static MonoClassField *missing_value_field = NULL;
 	
 	if (!missing_value_field) {
@@ -882,8 +889,8 @@ mono_get_reflection_missing_object (MonoDomain *domain)
 		g_assert (missing_value_field);
 	}
 	/* FIXME change mono_field_get_value_object_checked to return a handle */
-	MonoObjectHandle obj = MONO_HANDLE_NEW (MonoObject, mono_field_get_value_object_checked (domain, missing_value_field, NULL, &error));
-	mono_error_assert_ok (&error);
+	MonoObjectHandle obj = MONO_HANDLE_NEW (MonoObject, mono_field_get_value_object_checked (domain, missing_value_field, NULL, error));
+	mono_error_assert_ok (error);
 	return obj;
 }
 
@@ -1099,9 +1106,9 @@ MonoArray*
 mono_param_get_objects (MonoDomain *domain, MonoMethod *method)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoArrayHandle result = mono_param_get_objects_internal (domain, method, NULL, &error);
-	mono_error_assert_ok (&error);
+	ERROR_DECL (error);
+	MonoArrayHandle result = mono_param_get_objects_internal (domain, method, NULL, error);
+	mono_error_assert_ok (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -1165,9 +1172,9 @@ MonoReflectionMethodBody*
 mono_method_body_get_object (MonoDomain *domain, MonoMethod *method)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoReflectionMethodBodyHandle result = mono_method_body_get_object_handle (domain, method, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoReflectionMethodBodyHandle result = mono_method_body_get_object_handle (domain, method, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -1289,9 +1296,9 @@ MonoObject *
 mono_get_dbnull_object (MonoDomain *domain)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
-	MonoObjectHandle obj = get_dbnull_object (domain, &error);
-	mono_error_assert_ok (&error);
+	ERROR_DECL (error);
+	MonoObjectHandle obj = get_dbnull_object (domain, error);
+	mono_error_assert_ok (error);
 	HANDLE_FUNCTION_RETURN_OBJ (obj);
 }
 
@@ -1786,9 +1793,9 @@ mono_identifier_unescape_info (MonoTypeNameParse *info)
 int
 mono_reflection_parse_type (char *name, MonoTypeNameParse *info)
 {
-	MonoError error;
-	gboolean result = mono_reflection_parse_type_checked (name, info, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	gboolean result = mono_reflection_parse_type_checked (name, info, error);
+	mono_error_cleanup (error);
 	return result ? 1 : 0;
 }
 
@@ -1984,11 +1991,11 @@ mono_reflection_get_type_internal (MonoImage *rootimage, MonoImage* image, MonoT
 			type = &klass->this_arg;
 			goto leave;
 		} else if (modval == -1) {
-			klass = mono_ptr_class_get (&klass->byval_arg);
+			klass = mono_class_create_ptr (&klass->byval_arg);
 		} else if (modval == -2) {
 			bounded = TRUE;
 		} else { /* array rank */
-			klass = mono_bounded_array_class_get (klass, modval, bounded);
+			klass = mono_class_create_bounded_array (klass, modval, bounded);
 		}
 	}
 
@@ -2010,9 +2017,9 @@ leave:
  */
 MonoType*
 mono_reflection_get_type (MonoImage* image, MonoTypeNameParse *info, gboolean ignorecase, gboolean *type_resolve) {
-	MonoError error;
-	MonoType *result = mono_reflection_get_type_with_rootimage (image, image, info, ignorecase, type_resolve, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoType *result = mono_reflection_get_type_with_rootimage (image, image, info, ignorecase, type_resolve, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -2139,7 +2146,7 @@ mono_reflection_get_type_with_rootimage (MonoImage *rootimage, MonoImage* image,
 	for (mod = info->nested; mod; mod = mod->next)
 		g_string_append_printf (fullName, "+%s", (char*)mod->data);
 
-	assembly = mono_domain_try_type_resolve_checked ( mono_domain_get (), fullName->str, NULL, error);
+	assembly = mono_domain_try_type_resolve_name ( mono_domain_get (), fullName->str, error);
 	if (!is_ok (error)) {
 		g_string_free (fullName, TRUE);
 		return NULL;
@@ -2195,9 +2202,12 @@ mono_reflection_free_type_info (MonoTypeNameParse *info)
 MonoType*
 mono_reflection_type_from_name (char *name, MonoImage *image)
 {
-	MonoError error;
-	MonoType  *result = mono_reflection_type_from_name_checked (name, image, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	error_init (error);
+
+	MonoType * const result = mono_reflection_type_from_name_checked (name, image, error);
+
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -2222,7 +2232,7 @@ mono_reflection_type_from_name_checked (char *name, MonoImage *image, MonoError 
 	tmp = g_strdup (name);
 	
 	/*g_print ("requested type %s\n", str);*/
-	MonoError parse_error;
+	ERROR_DECL_VALUE (parse_error);
 	if (!mono_reflection_parse_type_checked (tmp, &info, &parse_error)) {
 		mono_error_cleanup (&parse_error);
 		goto leave;
@@ -2244,9 +2254,9 @@ mono_reflection_get_token (MonoObject *obj_raw)
 {
 	HANDLE_FUNCTION_ENTER ();
 	MONO_HANDLE_DCL (MonoObject, obj);
-	MonoError error;
-	guint32 result = mono_reflection_get_token_checked (obj, &error);
-	mono_error_assert_ok (&error);
+	ERROR_DECL (error);
+	guint32 result = mono_reflection_get_token_checked (obj, error);
+	mono_error_assert_ok (error);
 	HANDLE_FUNCTION_RETURN_VAL (result);
 }
 
@@ -2419,7 +2429,7 @@ mono_class_bind_generic_parameters (MonoClass *klass, int type_argc, MonoType **
 	inst = mono_metadata_get_generic_inst (type_argc, types);
 	gclass = mono_metadata_lookup_generic_class (klass, inst, is_dynamic);
 
-	return mono_generic_class_get_class (gclass);
+	return mono_class_create_generic_inst (gclass);
 }
 
 static MonoGenericInst*
@@ -2959,7 +2969,7 @@ mono_reflection_call_is_assignable_to (MonoClass *klass, MonoClass *oklass, Mono
 	params [0] = mono_type_get_object_checked (mono_domain_get (), &oklass->byval_arg, error);
 	return_val_if_nok (error, FALSE);
 
-	MonoError inner_error;
+	ERROR_DECL_VALUE (inner_error);
 	res = mono_runtime_try_invoke (method, mono_class_get_ref_info_raw (klass), params, &exc, &inner_error); /* FIXME use handles */
 
 	if (exc || !is_ok (&inner_error)) {
@@ -2979,9 +2989,9 @@ mono_reflection_type_get_type (MonoReflectionType *reftype)
 {
 	g_assert (reftype);
 
-	MonoError error;
-	MonoType *result = mono_reflection_type_get_handle (reftype, &error);
-	mono_error_assert_ok (&error);
+	ERROR_DECL (error);
+	MonoType *result = mono_reflection_type_get_handle (reftype, error);
+	mono_error_assert_ok (error);
 	return result;
 }
 

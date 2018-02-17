@@ -14,6 +14,7 @@
  */
 #include <config.h>
 #include "mono/metadata/assembly.h"
+#include "mono/metadata/class-init.h"
 #include "mono/metadata/gc-internals.h"
 #include "mono/metadata/mono-endian.h"
 #include "mono/metadata/object-internals.h"
@@ -176,7 +177,7 @@ find_event_index (MonoClass *klass, MonoEvent *event)
 static MonoType*
 cattr_type_from_name (char *n, MonoImage *image, gboolean is_enum, MonoError *error)
 {
-	MonoError inner_error;
+	ERROR_DECL_VALUE (inner_error);
 	MonoType *t = mono_reflection_type_from_name_checked (n, image, &inner_error);
 	if (!t) {
 		mono_error_set_type_load_name (error, g_strdup(n), NULL,
@@ -311,7 +312,13 @@ handle_enum:
 		if (slen > 0 && !bcheck_blob (p, slen - 1, boundp, error))
 			return NULL;
 		*end = p + slen;
-		return mono_string_new_len_checked (mono_domain_get (), p, slen, error);
+		// https://bugzilla.xamarin.com/show_bug.cgi?id=60848
+		// Custom attribute strings are encoded as wtf-8 instead of utf-8.
+		// If we decode using utf-8 like the spec says, we will silently fail
+		//  to decode some attributes in assemblies that Windows .NET Framework
+		//  and CoreCLR both manage to decode.
+		// See https://simonsapin.github.io/wtf-8/ for a description of wtf-8.
+		return mono_string_new_wtf8_len_checked (mono_domain_get (), p, slen, error);
 	case MONO_TYPE_CLASS: {
 		MonoReflectionType *rt;
 		char *n;
@@ -1144,9 +1151,9 @@ leave:
 void
 ves_icall_System_Reflection_CustomAttributeData_ResolveArgumentsInternal (MonoReflectionMethod *ref_method, MonoReflectionAssembly *assembly, gpointer data, guint32 len, MonoArray **ctor_args, MonoArray **named_args)
 {
-	MonoError error;
-	(void) reflection_resolve_custom_attribute_data (ref_method, assembly, data, len, ctor_args, named_args, &error);
-	mono_error_set_pending_exception (&error);
+	ERROR_DECL (error);
+	(void) reflection_resolve_custom_attribute_data (ref_method, assembly, data, len, ctor_args, named_args, error);
+	mono_error_set_pending_exception (error);
 }
 
 static MonoObjectHandle
@@ -1245,9 +1252,9 @@ mono_custom_attrs_construct_by_type (MonoCustomAttrInfo *cinfo, MonoClass *attr_
 MonoArray*
 mono_custom_attrs_construct (MonoCustomAttrInfo *cinfo)
 {
-	MonoError error;
-	MonoArray *result = mono_custom_attrs_construct_by_type (cinfo, NULL, &error);
-	mono_error_assert_ok (&error); /*FIXME proper error handling*/
+	ERROR_DECL (error);
+	MonoArray *result = mono_custom_attrs_construct_by_type (cinfo, NULL, error);
+	mono_error_assert_ok (error); /*FIXME proper error handling*/
 
 	return result;
 }
@@ -1278,9 +1285,9 @@ mono_custom_attrs_data_construct (MonoCustomAttrInfo *cinfo, MonoError *error)
 MonoCustomAttrInfo*
 mono_custom_attrs_from_index (MonoImage *image, guint32 idx)
 {
-	MonoError error;
-	MonoCustomAttrInfo *result = mono_custom_attrs_from_index_checked (image, idx, FALSE, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoCustomAttrInfo *result = mono_custom_attrs_from_index_checked (image, idx, FALSE, error);
+	mono_error_cleanup (error);
 	return result;
 }
 /**
@@ -1368,9 +1375,9 @@ mono_custom_attrs_from_index_checked (MonoImage *image, guint32 idx, gboolean ig
 MonoCustomAttrInfo*
 mono_custom_attrs_from_method (MonoMethod *method)
 {
-	MonoError error;
-	MonoCustomAttrInfo* result = mono_custom_attrs_from_method_checked  (method, &error);
-	mono_error_cleanup (&error); /* FIXME want a better API that doesn't swallow the error */
+	ERROR_DECL (error);
+	MonoCustomAttrInfo* result = mono_custom_attrs_from_method_checked  (method, error);
+	mono_error_cleanup (error); /* FIXME want a better API that doesn't swallow the error */
 	return result;
 }
 
@@ -1409,9 +1416,9 @@ mono_custom_attrs_from_method_checked (MonoMethod *method, MonoError *error)
 MonoCustomAttrInfo*
 mono_custom_attrs_from_class (MonoClass *klass)
 {
-	MonoError error;
-	MonoCustomAttrInfo *result = mono_custom_attrs_from_class_checked (klass, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoCustomAttrInfo *result = mono_custom_attrs_from_class_checked (klass, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1446,9 +1453,9 @@ mono_custom_attrs_from_class_checked (MonoClass *klass, MonoError *error)
 MonoCustomAttrInfo*
 mono_custom_attrs_from_assembly (MonoAssembly *assembly)
 {
-	MonoError error;
-	MonoCustomAttrInfo *result = mono_custom_attrs_from_assembly_checked (assembly, FALSE, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoCustomAttrInfo *result = mono_custom_attrs_from_assembly_checked (assembly, FALSE, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1488,9 +1495,9 @@ mono_custom_attrs_from_module (MonoImage *image, MonoError *error)
 MonoCustomAttrInfo*
 mono_custom_attrs_from_property (MonoClass *klass, MonoProperty *property)
 {
-	MonoError error;
-	MonoCustomAttrInfo * result = mono_custom_attrs_from_property_checked (klass, property, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoCustomAttrInfo * result = mono_custom_attrs_from_property_checked (klass, property, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1517,9 +1524,9 @@ mono_custom_attrs_from_property_checked (MonoClass *klass, MonoProperty *propert
 MonoCustomAttrInfo*
 mono_custom_attrs_from_event (MonoClass *klass, MonoEvent *event)
 {
-	MonoError error;
-	MonoCustomAttrInfo * result = mono_custom_attrs_from_event_checked (klass, event, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoCustomAttrInfo * result = mono_custom_attrs_from_event_checked (klass, event, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1546,9 +1553,9 @@ mono_custom_attrs_from_event_checked (MonoClass *klass, MonoEvent *event, MonoEr
 MonoCustomAttrInfo*
 mono_custom_attrs_from_field (MonoClass *klass, MonoClassField *field)
 {
-	MonoError error;
-	MonoCustomAttrInfo * result = mono_custom_attrs_from_field_checked (klass, field, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoCustomAttrInfo * result = mono_custom_attrs_from_field_checked (klass, field, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1580,9 +1587,9 @@ mono_custom_attrs_from_field_checked (MonoClass *klass, MonoClassField *field, M
 MonoCustomAttrInfo*
 mono_custom_attrs_from_param (MonoMethod *method, guint32 param)
 {
-	MonoError error;
-	MonoCustomAttrInfo *result = mono_custom_attrs_from_param_checked (method, param, &error);
-	mono_error_cleanup (&error);
+	ERROR_DECL (error);
+	MonoCustomAttrInfo *result = mono_custom_attrs_from_param_checked (method, param, error);
+	mono_error_cleanup (error);
 	return result;
 }
 
@@ -1688,9 +1695,9 @@ mono_custom_attrs_has_attr (MonoCustomAttrInfo *ainfo, MonoClass *attr_klass)
 MonoObject*
 mono_custom_attrs_get_attr (MonoCustomAttrInfo *ainfo, MonoClass *attr_klass)
 {
-	MonoError error;
-	MonoObject *res = mono_custom_attrs_get_attr_checked (ainfo, attr_klass, &error);
-	mono_error_assert_ok (&error); /*FIXME proper error handling*/
+	ERROR_DECL (error);
+	MonoObject *res = mono_custom_attrs_get_attr_checked (ainfo, attr_klass, error);
+	mono_error_assert_ok (error); /*FIXME proper error handling*/
 	return res;
 }
 
@@ -1731,10 +1738,10 @@ MonoCustomAttrInfo*
 mono_reflection_get_custom_attrs_info (MonoObject *obj_raw)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
+	ERROR_DECL (error);
 	MONO_HANDLE_DCL (MonoObject, obj);
-	MonoCustomAttrInfo *result = mono_reflection_get_custom_attrs_info_checked (obj, &error);
-	mono_error_assert_ok (&error);
+	MonoCustomAttrInfo *result = mono_reflection_get_custom_attrs_info_checked (obj, error);
+	mono_error_assert_ok (error);
 	HANDLE_FUNCTION_RETURN_VAL (result);
 }
 
@@ -1928,10 +1935,10 @@ MonoArray*
 mono_reflection_get_custom_attrs (MonoObject *obj_raw)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
+	ERROR_DECL (error);
 	MONO_HANDLE_DCL (MonoObject, obj);
-	MonoArrayHandle result = mono_reflection_get_custom_attrs_by_type_handle (obj, NULL, &error);
-	mono_error_cleanup (&error);
+	MonoArrayHandle result = mono_reflection_get_custom_attrs_by_type_handle (obj, NULL, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -1946,10 +1953,10 @@ MonoArray*
 mono_reflection_get_custom_attrs_data (MonoObject *obj_raw)
 {
 	HANDLE_FUNCTION_ENTER ();
-	MonoError error;
+	ERROR_DECL (error);
 	MONO_HANDLE_DCL (MonoObject, obj);
-	MonoArrayHandle result = mono_reflection_get_custom_attrs_data_checked (obj, &error);
-	mono_error_cleanup (&error);
+	MonoArrayHandle result = mono_reflection_get_custom_attrs_data_checked (obj, error);
+	mono_error_cleanup (error);
 	HANDLE_FUNCTION_RETURN_OBJ (result);
 }
 
@@ -2160,7 +2167,7 @@ static void
 init_weak_fields_inner (MonoImage *image, GHashTable *indexes)
 {
 	MonoTableInfo *tdef;
-	MonoError error;
+	ERROR_DECL (error);
 	MonoClass *klass = NULL;
 	guint32 memberref_index = -1;
 	int first_method_idx = -1;
@@ -2168,9 +2175,9 @@ init_weak_fields_inner (MonoImage *image, GHashTable *indexes)
 
 	if (image == mono_get_corlib ()) {
 		/* Typedef */
-		klass = mono_class_from_name_checked (image, "System", "WeakAttribute", &error);
-		if (!is_ok (&error)) {
-			mono_error_cleanup (&error);
+		klass = mono_class_from_name_checked (image, "System", "WeakAttribute", error);
+		if (!is_ok (error)) {
+			mono_error_cleanup (error);
 			return;
 		}
 		if (!klass)
@@ -2238,7 +2245,11 @@ init_weak_fields_inner (MonoImage *image, GHashTable *indexes)
 				const char *nspace = mono_metadata_string_heap (image, cols [MONO_TYPEREF_NAMESPACE]);
 
 				if (!strcmp (nspace, "System") && !strcmp (name, "WeakAttribute")) {
-					MonoClass *klass = mono_class_from_typeref (image, MONO_TOKEN_TYPE_REF | nindex);
+					MonoClass *klass = mono_class_from_typeref_checked (image, MONO_TOKEN_TYPE_REF | nindex, error);
+					if (!is_ok (error)) {
+						mono_error_cleanup (error);
+						return;
+					}
 					g_assert (!strcmp (klass->name, "WeakAttribute"));
 					/* Allow a testing dll as well since some profiles don't have WeakAttribute */
 					if (klass && (klass->image == mono_get_corlib () || strstr (klass->image->name, "Mono.Runtime.Testing"))) {

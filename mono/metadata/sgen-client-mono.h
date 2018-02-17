@@ -77,6 +77,7 @@ struct _SgenClientThreadInfo {
 
 extern void mono_sgen_register_moved_object (void *obj, void *destination);
 extern void mono_sgen_gc_event_moves (void);
+extern void mono_sgen_gc_event_resize (void);
 
 extern void mono_sgen_init_stw (void);
 
@@ -97,7 +98,7 @@ sgen_mono_array_size (GCVTable vtable, MonoArray *array, mword *bounds_size, mwo
 	else
 		element_size = vtable->klass->sizes.element_size;
 
-	size_without_bounds = size = MONO_SIZEOF_MONO_ARRAY + element_size * mono_array_length_fast (array);
+	size_without_bounds = size = MONO_SIZEOF_MONO_ARRAY + (mword)element_size * mono_array_length_fast (array);
 
 	if (G_UNLIKELY (array->bounds)) {
 		size += sizeof (mono_array_size_t) - 1;

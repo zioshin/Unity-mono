@@ -819,7 +819,7 @@ namespace Mono.CSharp {
 			if (expr_type == target_type)
 				return true;
 
-			if (expr_type == InternalType.ThrowExpr)
+			if (expr_type == InternalType.ThrowExpr || expr_type == InternalType.DefaultType)
 				return target_type.Kind != MemberKind.InternalCompilerType;
 
 			if (target_type.IsNullableType)
@@ -1230,6 +1230,13 @@ namespace Mono.CSharp {
 				var operators = MemberCache.GetUserOperator (source_type, Operator.OpType.Implicit, declared_only);
 				if (operators != null) {
 					FindApplicableUserDefinedConversionOperators (rc, operators, source_type_expr, target_type, restr, ref candidates);
+				}
+
+				if (source_type_expr == source && source_type.IsNullableType) {
+					operators = MemberCache.GetUserOperator (source_type.TypeArguments [0], Operator.OpType.Implicit, declared_only);
+					if (operators != null) {
+						FindApplicableUserDefinedConversionOperators (rc, operators, source_type_expr, target_type, restr, ref candidates);
+					}
 				}
 
 				if (!implicitOnly) {

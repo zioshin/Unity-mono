@@ -50,8 +50,6 @@ gboolean sgen_mono_xdomain_checks = FALSE;
 /* Functions supplied by the runtime to be called by the GC */
 static MonoGCCallbacks gc_callbacks;
 
-#define ALIGN_TO(val,align) ((((guint64)val) + ((align) - 1)) & ~((align) - 1))
-
 #define OPDEF(a,b,c,d,e,f,g,h,i,j) \
 	a = i,
 
@@ -545,7 +543,7 @@ sgen_client_finalize_notify (void)
 }
 
 void
-mono_gc_register_for_finalization (MonoObject *obj, void *user_data)
+mono_gc_register_for_finalization (MonoObject *obj, MonoFinalizationProc user_data)
 {
 	sgen_object_register_for_finalization (obj, user_data);
 }
@@ -869,7 +867,7 @@ mono_gc_clear_domain (MonoDomain * domain)
 
 	binary_protocol_domain_unload_begin (domain);
 
-	sgen_stop_world (0);
+	sgen_stop_world (0, FALSE);
 
 	if (sgen_concurrent_collection_in_progress ())
 		sgen_perform_collection (0, GENERATION_OLD, "clear domain", TRUE, FALSE);
@@ -937,7 +935,7 @@ mono_gc_clear_domain (MonoDomain * domain)
 		sgen_object_layout_dump (stdout);
 	}
 
-	sgen_restart_world (0);
+	sgen_restart_world (0, FALSE);
 
 	binary_protocol_domain_unload_end (domain);
 	binary_protocol_flush_buffers (FALSE);
@@ -1884,6 +1882,7 @@ mono_gc_set_string_length (MonoString *str, gint32 new_length)
 #define GC_ROOT_NUM 32
 #define SPECIAL_ADDRESS_FIN_QUEUE ((void*)1)
 #define SPECIAL_ADDRESS_CRIT_FIN_QUEUE ((void*)2)
+#define SPECIAL_ADDRESS_EPHEMERON ((void*)3)
 
 typedef struct {
 	int count;		/* must be the first field */
@@ -2183,12 +2182,45 @@ report_registered_roots (void)
 }
 
 static void
+report_ephemeron_roots (void)
+{
+        EphemeronLinkNode *current = ephemeron_list;
+        Ephemeron *cur, *array_end;
+        GCObject *tombstone;
+        GCRootReport report = { 0 };
+
+        for (current = ephemeron_list; current; current = current->next) {
+                MonoArray *array = current->array;
+
+                if (!sgen_is_object_alive_for_current_gen ((GCObject*)array))
+                        continue;
+
+                cur = mono_array_addr (array, Ephemeron, 0);
+                array_end = cur + mono_array_length_fast (array);
+                tombstone = SGEN_LOAD_VTABLE ((GCObject*)array)->domain->ephemeron_tombstone;
+
+                for (; cur < array_end; ++cur) {
+                        GCObject *key = cur->key;
+
+                        if (!key || key == tombstone)
+                                continue;
+
+                        if (cur->value && sgen_is_object_alive_for_current_gen (key))
+				report_gc_root (&report, SPECIAL_ADDRESS_EPHEMERON, cur->value);
+		}
+	}
+
+	notify_gc_roots (&report);
+}
+
+static void
 sgen_report_all_roots (SgenPointerQueue *fin_ready_queue, SgenPointerQueue *critical_fin_queue)
 {
 	if (!MONO_PROFILER_ENABLED (gc_roots))
 		return;
 
 	report_registered_roots ();
+	report_ephemeron_roots ();
 	report_pin_queue ();
 	report_finalizer_roots_from_queue (fin_ready_queue, SPECIAL_ADDRESS_FIN_QUEUE);
 	report_finalizer_roots_from_queue (critical_fin_queue, SPECIAL_ADDRESS_CRIT_FIN_QUEUE);
@@ -2727,12 +2759,30 @@ mono_gc_pthread_create (pthread_t *new_thread, const pthread_attr_t *attr, void 
  * Miscellaneous
  */
 
+static size_t last_heap_size = -1;
+static size_t worker_heap_size;
+
 void
 sgen_client_total_allocated_heap_changed (size_t allocated_heap)
 {
-	MONO_PROFILER_RAISE (gc_resize, (allocated_heap));
-
 	mono_runtime_resource_check_limit (MONO_RESOURCE_GC_HEAP, allocated_heap);
+
+	/*
+	 * This function can be called from SGen's worker threads. We want to try
+	 * and avoid exposing those threads to the profiler API, so save the heap
+	 * size value and report it later when the main GC thread calls
+	 * mono_sgen_gc_event_resize ().
+	 */
+	worker_heap_size = allocated_heap;
+}
+
+void
+mono_sgen_gc_event_resize (void)
+{
+	if (worker_heap_size != last_heap_size) {
+		last_heap_size = worker_heap_size;
+		MONO_PROFILER_RAISE (gc_resize, (last_heap_size));
+	}
 }
 
 gboolean
@@ -3317,11 +3367,13 @@ sgen_client_binary_protocol_collection_begin (int minor_gc_count, int generation
 	MONO_GC_BEGIN (generation);
 
 	MONO_PROFILER_RAISE (gc_event, (MONO_GC_EVENT_START, generation));
+	MONO_PROFILER_RAISE (gc_event2, (MONO_GC_EVENT_START, generation, generation == GENERATION_OLD && concurrent_collection_in_progress));
 
 	if (!pseudo_roots_registered) {
 		pseudo_roots_registered = TRUE;
 		MONO_PROFILER_RAISE (gc_root_register, (SPECIAL_ADDRESS_FIN_QUEUE, 1, MONO_ROOT_SOURCE_FINALIZER_QUEUE, NULL, "Finalizer Queue"));
 		MONO_PROFILER_RAISE (gc_root_register, (SPECIAL_ADDRESS_CRIT_FIN_QUEUE, 1, MONO_ROOT_SOURCE_FINALIZER_QUEUE, NULL, "Finalizer Queue (Critical)"));
+		MONO_PROFILER_RAISE (gc_root_register, (SPECIAL_ADDRESS_EPHEMERON, 1, MONO_ROOT_SOURCE_EPHEMERON, NULL, "Ephemerons"));
 	}
 
 #ifndef DISABLE_PERFCOUNTERS
@@ -3338,6 +3390,7 @@ sgen_client_binary_protocol_collection_end (int minor_gc_count, int generation, 
 	MONO_GC_END (generation);
 
 	MONO_PROFILER_RAISE (gc_event, (MONO_GC_EVENT_END, generation));
+	MONO_PROFILER_RAISE (gc_event2, (MONO_GC_EVENT_END, generation, generation == GENERATION_OLD && concurrent_collection_in_progress));
 }
 
 #ifdef HOST_WASM

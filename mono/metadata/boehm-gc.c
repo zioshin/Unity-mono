@@ -512,6 +512,7 @@ on_gc_notification (GC_EventType event)
 		break;
 	default:
 		MONO_PROFILER_RAISE (gc_event, (e, 0));
+		MONO_PROFILER_RAISE (gc_event2, (e, 0, TRUE));
 		break;
 	}
 
@@ -519,10 +520,12 @@ on_gc_notification (GC_EventType event)
 	case GC_EVENT_PRE_STOP_WORLD:
 		mono_thread_info_suspend_lock ();
 		MONO_PROFILER_RAISE (gc_event, (MONO_GC_EVENT_PRE_STOP_WORLD_LOCKED, 0));
+		MONO_PROFILER_RAISE (gc_event2, (MONO_GC_EVENT_PRE_STOP_WORLD_LOCKED, 0, TRUE));
 		break;
 	case GC_EVENT_POST_START_WORLD:
 		mono_thread_info_suspend_unlock ();
 		MONO_PROFILER_RAISE (gc_event, (MONO_GC_EVENT_POST_START_WORLD_UNLOCKED, 0));
+		MONO_PROFILER_RAISE (gc_event2, (MONO_GC_EVENT_POST_START_WORLD_UNLOCKED, 0, TRUE));
 		break;
 	default:
 		break;
@@ -609,7 +612,7 @@ push_handle_stack (HandleStack* stack)
 
 	while (cur) {
 		if (cur->size > 0)
-			GC_push_all (cur->elems, (char*)(cur->elems + cur->size) + 1);
+			GC_push_all ((gpointer)&cur->elems[0], (char*)(cur->elems + cur->size) + 1);
 		if (cur == last)
 			break;
 		cur = cur->next;
@@ -1499,7 +1502,7 @@ void mono_gc_set_skip_thread (gboolean value)
 }
 
 void
-mono_gc_register_for_finalization (MonoObject *obj, void *user_data)
+mono_gc_register_for_finalization (MonoObject *obj, MonoFinalizationProc user_data)
 {
 	guint offset = 0;
 

@@ -593,14 +593,14 @@ _wapi_dirname (const gchar *filename)
 }
 
 static GDir*
-_wapi_g_dir_open (const gchar *path, guint flags, GError **error)
+_wapi_g_dir_open (const gchar *path, guint flags, GError **gerror)
 {
 	GDir *ret;
 
 	MONO_ENTER_GC_SAFE;
-	ret = g_dir_open (path, flags, error);
+	ret = g_dir_open (path, flags, gerror);
 	MONO_EXIT_GC_SAFE;
-	if (ret == NULL && ((*error)->code == G_FILE_ERROR_NOENT || (*error)->code == G_FILE_ERROR_NOTDIR || (*error)->code == G_FILE_ERROR_NAMETOOLONG) && IS_PORTABILITY_SET) {
+	if (ret == NULL && ((*gerror)->code == G_FILE_ERROR_NOENT || (*gerror)->code == G_FILE_ERROR_NOTDIR || (*gerror)->code == G_FILE_ERROR_NAMETOOLONG) && IS_PORTABILITY_SET) {
 		gchar *located_filename = mono_portability_find_file (path, TRUE);
 		GError *tmp_error = NULL;
 
@@ -613,7 +613,7 @@ _wapi_g_dir_open (const gchar *path, guint flags, GError **error)
 		MONO_EXIT_GC_SAFE;
 		g_free (located_filename);
 		if (tmp_error == NULL) {
-			g_clear_error (error);
+			g_clear_error (gerror);
 		}
 	}
 
@@ -706,19 +706,19 @@ file_compare (gconstpointer a, gconstpointer b)
 static gint
 _wapi_io_scandir (const gchar *dirname, const gchar *pattern, gchar ***namelist)
 {
-	GError *error = NULL;
+	GError *gerror = NULL;
 	GDir *dir;
 	GPtrArray *names;
 	gint result;
 	mono_w32file_unix_glob_t glob_buf;
 	gint flags = 0, i;
 
-	dir = _wapi_g_dir_open (dirname, 0, &error);
+	dir = _wapi_g_dir_open (dirname, 0, &gerror);
 	if (dir == NULL) {
 		/* g_dir_open returns ENOENT on directories on which we don't
 		 * have read/x permission */
-		gint errnum = get_errno_from_g_file_error (error->code);
-		g_error_free (error);
+		gint errnum = get_errno_from_g_file_error (gerror->code);
+		g_error_free (gerror);
 		if (errnum == ENOENT &&
 		    !_wapi_access (dirname, F_OK) &&
 		    _wapi_access (dirname, R_OK|X_OK)) {
@@ -3491,10 +3491,35 @@ mono_w32file_get_attributes_ex (const gunichar2 *name, MonoIOStat *stat)
 	/* fill stat block */
 
 	stat->attributes = _wapi_stat_to_file_attributes (utf8_name, &buf, &linkbuf);
-	stat->creation_time = (((guint64) (buf.st_mtime < buf.st_ctime ? buf.st_mtime : buf.st_ctime)) * 10 * 1000 * 1000) + 116444736000000000ULL;
-	stat->last_access_time = (((guint64) (buf.st_atime)) * 10 * 1000 * 1000) + 116444736000000000ULL;
-	stat->last_write_time = (((guint64) (buf.st_mtime)) * 10 * 1000 * 1000) + 116444736000000000ULL;
 	stat->length = (stat->attributes & FILE_ATTRIBUTE_DIRECTORY) ? 0 : buf.st_size;
+
+// Multiply seconds by this
+#define SECMULT (1000*1000*10ULL)
+
+// Constants to convert Unix times to the API expected by .NET and Windows
+#define CONVERT_BASE  116444736000000000ULL
+
+#if HAVE_STRUCT_STAT_ST_ATIMESPEC
+	if (buf.st_mtimespec.tv_sec < buf.st_ctimespec.tv_sec || (buf.st_mtimespec.tv_sec == buf.st_ctimespec.tv_sec && buf.st_mtimespec.tv_nsec < buf.st_ctimespec.tv_nsec))
+		stat->creation_time = buf.st_mtimespec.tv_sec * SECMULT + (buf.st_mtimespec.tv_nsec / 100) + CONVERT_BASE;
+	else
+		stat->creation_time = buf.st_ctimespec.tv_sec * SECMULT + (buf.st_ctimespec.tv_nsec / 100) + CONVERT_BASE;
+
+	stat->last_access_time = buf.st_atimespec.tv_sec * SECMULT + (buf.st_atimespec.tv_nsec / 100) + CONVERT_BASE;
+	stat->last_write_time = buf.st_mtimespec.tv_sec * SECMULT + (buf.st_mtimespec.tv_nsec / 100) + CONVERT_BASE;
+#elif HAVE_STRUCT_STAT_ST_ATIM
+	if (buf.st_mtime < buf.st_ctime || (buf.st_mtime == buf.st_ctime && buf.st_mtim.tv_nsec < buf.st_ctim.tv_nsec))
+		stat->creation_time = buf.st_mtime * SECMULT + (buf.st_mtim.tv_nsec / 100) + CONVERT_BASE;
+	else
+		stat->creation_time = buf.st_ctime * SECMULT + (buf.st_ctim.tv_nsec / 100) + CONVERT_BASE;
+
+	stat->last_access_time = buf.st_atime * SECMULT + (buf.st_atim.tv_nsec / 100) + CONVERT_BASE;
+	stat->last_write_time = buf.st_mtime * SECMULT + (buf.st_mtim.tv_nsec / 100) + CONVERT_BASE;
+#else
+	stat->creation_time = (((guint64) (buf.st_mtime < buf.st_ctime ? buf.st_mtime : buf.st_ctime)) * 10 * 1000 * 1000) + CONVERT_BASE;
+	stat->last_access_time = (((guint64) (buf.st_atime)) * SECMULT) + CONVERT_BASE;
+	stat->last_write_time = (((guint64) (buf.st_mtime)) * SECMULT) + CONVERT_BASE;
+#endif
 
 	g_free (utf8_name);
 	return TRUE;
@@ -4549,7 +4574,7 @@ mono_w32file_get_drive_type(const gunichar2 *root_path_name)
 	return (drive_type);
 }
 
-#if defined (HOST_DARWIN) || defined (__linux__) || defined(HOST_BSD) || defined(__FreeBSD_kernel__) || defined(__HAIKU__)
+#if defined (HOST_DARWIN) || defined (__linux__) || defined(HOST_BSD) || defined(__FreeBSD_kernel__) || defined(__HAIKU__) || defined(_AIX)
 static gchar*
 get_fstypename (gchar *utfpath)
 {

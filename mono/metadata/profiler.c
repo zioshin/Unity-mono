@@ -319,13 +319,12 @@ mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, 
 
 	coverage_unlock ();
 
-	MonoError error;
-	MonoMethodHeader *header = mono_method_get_header_checked (method, &error);
-	mono_error_assert_ok (&error);
+	MonoMethodHeaderSummary header;
 
-	guint32 size;
+	g_assert (mono_method_get_header_summary (method, &header));
 
-	const unsigned char *start = mono_method_header_get_code (header, &size, NULL);
+	guint32 size = header.code_size;
+	const unsigned char *start = header.code;
 	const unsigned char *end = start + size;
 	MonoDebugMethodInfo *minfo = mono_debug_lookup_method (method);
 
@@ -367,7 +366,6 @@ mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, 
 		g_free (sym_seq_points);
 		g_ptr_array_free (source_file_list, TRUE);
 
-		mono_metadata_free_mh (header);
 		return TRUE;
 	}
 
@@ -402,8 +400,6 @@ mono_profiler_get_coverage_data (MonoProfilerHandle handle, MonoMethod *method, 
 			g_free ((char *) data.file_name);
 		}
 	}
-
-	mono_metadata_free_mh (header);
 
 	return TRUE;
 }

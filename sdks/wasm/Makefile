@@ -1,4 +1,5 @@
 TOP=$(realpath $(CURDIR)/../..)
+include $(TOP)/sdks/versions.mk
 include $(TOP)/sdks/paths.mk
 
 EMCC=source $(TOP)/sdks/builds/toolchains/emsdk/emsdk_env.sh && emcc
@@ -49,7 +50,7 @@ TEST_MCS_DEPS = $(patsubst %,-r:%, $(TEST_DEPS))
 
 .stamp-v8: .stamp-depot-tools
 	PATH=$(TOP)/sdks/wasm/depot_tools:$$PATH fetch v8
-	cd v8 && tools/dev/v8gen.py x64.release
+	cd v8 && tools/dev/v8gen.py -vv x64.release
 	cd v8 && $(TOP)/sdks/wasm/depot_tools/ninja -C out.gn/x64.release
 	touch $@
 
@@ -70,24 +71,38 @@ managed/:
 $(patsubst %,managed/%,$(BCL_ASSEMBLIES)): managed/%: $(WASM_BCL_DIR)/% | managed/
 	cp $< $@
 
+$(TOP)/mcs/class/lib/wasm/nunitlite.dll: FORCE
+	$(MAKE) -C $(TOP)/mcs/tools/nunit-lite PROFILE=wasm
+
 #FIXME change BCL sdk build to include nunitlite.dll in out/bcl/wasm/
 managed/nunitlite.dll: $(TOP)/mcs/class/lib/wasm/nunitlite.dll | managed/
-	cd $(TOP)/mcs/tools/nunit-lite && make PROFILE=wasm
 	cp $< $@
 
 managed/main.exe: $(TEST_DEPS) $(APP_SOURCES) | managed/
 	mcs /nostdlib /unsafe -out:$@ $(TEST_MCS_DEPS) $(APP_SOURCES)
 
-$(TOP)/mcs/class/lib/wasm/tests/wasm_corlib_test.dll:
-	cd $(TOP)/mcs/class/corlib && make test-local PROFILE=wasm
+$(TOP)/mcs/class/lib/wasm/tests/wasm_corlib_test.dll: FORCE
+	$(MAKE) -C "$(TOP)/mcs/class/corlib" test-local PROFILE=wasm
 
 managed/wasm_corlib_test.dll: $(TOP)/mcs/class/lib/wasm/tests/wasm_corlib_test.dll
+	cp $< $@
+
+$(TOP)/mcs/class/lib/wasm/tests/wasm_System_test.dll: FORCE
+	$(MAKE) -C "$(TOP)/mcs/class/System" test-local PROFILE=wasm
+
+managed/wasm_System_test.dll: $(TOP)/mcs/class/lib/wasm/tests/wasm_System_test.dll
+	cp $< $@
+
+$(TOP)/mcs/class/lib/wasm/tests/wasm_System.Core_test.dll: FORCE
+	$(MAKE) -C "$(TOP)/mcs/class/System.Core" test-local PROFILE=wasm
+
+managed/wasm_System.Core_test.dll: $(TOP)/mcs/class/lib/wasm/tests/wasm_System.Core_test.dll
 	cp $< $@
 
 managed/mini_tests.dll: $(TEST_DEPS) $(MINI_TEST_SOURCES) mini-test-runner.cs | managed/
 	mcs /nostdlib /unsafe -target:library -out:$@ -define:__MOBILE__,ARCH_32 $(TEST_MCS_DEPS) $(MINI_TEST_SOURCES) mini-test-runner.cs 
 
-build-managed: managed/nunitlite.dll managed/mini_tests.dll managed/wasm_corlib_test.dll managed/main.exe
+build-managed: managed/nunitlite.dll managed/mini_tests.dll managed/main.exe managed/wasm_corlib_test.dll managed/wasm_System_test.dll managed/wasm_System.Core_test.dll
 
 build: build-native build-managed
 
@@ -96,4 +111,20 @@ run-%: toolchain build
 
 clean:
 	
-package:
+package: build
+	rm -rf tmp
+	mkdir tmp
+	mkdir tmp/bcl
+	cp -r $(TOP)/sdks/out/bcl/wasm/* tmp/bcl/
+	cp driver.c tmp/
+	cp mono.js tmp/
+	cp mono.wasm tmp/
+	cp mono.wasm.map tmp/
+	cp $(TOP)/sdks/out/wasm-interp/lib/libmonosgen-2.0.a tmp/
+	cp test.js tmp/
+	cp main.cs tmp/
+	cp library_mono.js tmp/
+	(cd tmp;  zip -r9 ../mono-wasm-$(shell git rev-parse --short HEAD).zip .)
+	rm -rf tmp
+
+FORCE:
