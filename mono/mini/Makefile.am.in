@@ -274,7 +274,7 @@ mono_bdwgc_LDADD = \
 	$(MONO_DTRACE_OBJECT)
 
 mono_bdwgc_LDFLAGS = \
-	$(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
+	$(static_flags) $(monobinldflags) $(monobin_platform_ldflags)
 
 mono_sgen_LDADD = \
 	$(MONO_SGEN_LIB)	\
