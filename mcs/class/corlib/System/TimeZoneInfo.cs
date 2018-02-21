@@ -131,6 +131,18 @@ namespace System {
 					if (timeZone == null) {
 						timeZone = TimeZoneInfo.GetLocalTimeZone (this);
 
+#if UNITY
+						if (timeZone == Utc) {
+							TimeZoneInfo localUnity = null;
+							try {
+								localUnity = CreateLocalUnity();
+							} catch {
+								localUnity = null;
+							}
+							if(localUnity != null)
+								timeZone = localUnity;
+						}
+#endif
 						// this step is to break the reference equality
 						// between TimeZoneInfo.Local and a second time zone
 						// such as "Pacific Standard Time"
