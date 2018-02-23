@@ -237,19 +237,37 @@ namespace System.CodeDom.Compiler {
 
 			foreach(string file in filenames) {
 				if((bool)filehash[file]==false) {
-					File.Delete(file);
+					DeleteFile(file);
 					filehash.Remove(file);
 				} else
 					allDeleted = false;
 			}
 			if (basepath != null) {
 				string tmpFile = basepath + ".tmp";
-				File.Delete (tmpFile);
+				DeleteFile(tmpFile);
 				basepath = null;
 			}
 			if (allDeleted && ownTempDir != null) {
-				Directory.Delete (ownTempDir, true);
+				DeleteDirectory(ownTempDir, true);
 				ownTempDir = null;
+			}
+		}
+
+		void DeleteDirectory(string path, bool recursive) {
+			try {
+				Directory.Delete(path, recursive);
+			}
+			catch {
+				// Ignore all exceptions
+			}
+		}
+
+		void DeleteFile(string path) {
+			try {
+				File.Delete(path);
+			}
+			catch {
+				// Ignore all exceptions
 			}
 		}
 
