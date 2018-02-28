@@ -5544,6 +5544,18 @@ mono_type_is_byref (MonoType *type)
 }
 
 /**
+ * mono_type_get_attrs:
+ * @type: the MonoType operated on
+ *
+ * Returns: the param attributes.
+ */
+guint
+mono_type_get_attrs (MonoType *type)
+{
+	return type->attrs;
+}
+
+/**
  * mono_type_get_type:
  * @type: the MonoType operated on
  *
