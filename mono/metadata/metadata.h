@@ -386,7 +386,7 @@ typedef enum {
 gboolean
 mono_type_is_byref       (MonoType *type);
 
-guint
+guint16
 mono_type_get_attrs      (MonoType *type);
 
 int

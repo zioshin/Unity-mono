@@ -5549,7 +5549,7 @@ mono_type_is_byref (MonoType *type)
  *
  * Returns: the param attributes.
  */
-guint
+guint16
 mono_type_get_attrs (MonoType *type)
 {
 	return type->attrs;
