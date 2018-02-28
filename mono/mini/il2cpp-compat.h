@@ -50,6 +50,8 @@
 #define MonoRuntimeExceptionHandlingCallbacks Il2CppMonoRuntimeExceptionHandlingCallbacks
 #define debug_options il2cpp_mono_debug_options
 #define MonoTypeNameParse Il2CppMonoTypeNameParse
+#define MonoDebugOptions Il2CppMonoDebugOptions
+#define MonoLMF Il2CppMonoLMF
 
 #define mono_image_get_entry_point il2cpp_mono_image_get_entry_point
 #define mono_image_get_filename il2cpp_mono_image_get_filename
@@ -237,6 +239,7 @@
 #define mono_method_get_class il2cpp_method_get_class
 #define mono_class_get_image il2cpp_class_get_image
 #define mono_class_get_interfaces il2cpp_class_get_interfaces
+#undef MONO_CLASS_IS_INTERFACE
 #define MONO_CLASS_IS_INTERFACE il2cpp_class_is_interface
 #define mono_image_get_assembly il2cpp_image_get_assembly
 #define mono_image_get_name il2cpp_image_get_name
@@ -250,13 +253,19 @@
 #define mono_method_get_token il2cpp_method_get_token
 #define mono_method_is_generic il2cpp_method_is_generic
 #define mono_method_is_inflated il2cpp_method_is_inflated
+#undef mono_field_is_deleted
 #define mono_field_is_deleted il2cpp_field_is_deleted
 #define mono_domain_get_assemblies_iter il2cpp_domain_get_assemblies_iter
 
+#undef mono_domain_assemblies_lock
 #define mono_domain_assemblies_lock
+#undef mono_domain_assemblies_unlock
 #define mono_domain_assemblies_unlock
 
 #define mono_get_string_class il2cpp_mono_get_string_class
+
+#define MONO_MAX_IREGS 1
+#define NOT_IMPLEMENTED do { g_assert_not_reached (); } while (0)
 
 MonoMethod* il2cpp_mono_image_get_entry_point (MonoImage *image);
 const char* il2cpp_mono_image_get_filename (MonoImage *image);

@@ -78,11 +78,21 @@
 #include <mono/utils/networking.h>
 #include <mono/utils/mono-proclib.h>
 #include <mono/utils/w32api.h>
+
+#ifndef RUNTIME_IL2CPP
 #include "mini.h"
 #include "seq-points.h"
 #include "aot-runtime.h"
 #include "mini-runtime.h"
 #include "interp/interp.h"
+#endif
+
+#ifdef RUNTIME_IL2CPP
+#include <mono/metadata/seq-points-data.h>
+#include <mono/metadata/profiler.h>
+#include <mono/metadata/tokentype.h>
+#define MONO_ARCH_SOFT_DEBUG_SUPPORTED
+#endif
 
 /*
  * On iOS we can't use System.Environment.Exit () as it will do the wrong
@@ -626,8 +636,6 @@ typedef struct ReplyPacket {
 	int error;
 	Buffer *data;
 } ReplyPacket;
-
-#define DEBUG(level,s) do { if (G_UNLIKELY ((level) <= log_level)) { s; fflush (log_file); } } while (0)
 
 #ifdef HOST_ANDROID
 #define DEBUG_PRINTF(level, ...) do { if (G_UNLIKELY ((level) <= log_level)) { g_print (__VA_ARGS__); } } while (0)
@@ -1456,7 +1464,11 @@ socket_transport_connect (const char *address)
 				break;       /* Success */
 			
 			MONO_ENTER_GC_SAFE;
+#ifdef HOST_WIN32
+			closesocket (sfd);
+#else
 			close (sfd);
+#endif
 			MONO_EXIT_GC_SAFE;
 		}
 
@@ -2271,6 +2283,7 @@ void mono_debugger_il2cpp_init (const Il2CppDebuggerMetadataRegistration *data)
 {
 	s_jit_info_hashtable = g_hash_table_new_full(mono_aligned_addr_hash, NULL, NULL, NULL);
     g_il2cpp_metadata = data;
+    debug_options.native_debugger_break = FALSE;
 }
 
 static gpointer
@@ -4482,6 +4495,8 @@ breakpoints_init (void)
  *   Insert the breakpoint described by BP into the method described by
  * JI.
  */
+#ifndef RUNTIME_IL2CPP
+
 static void
 insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo *ji, MonoBreakpoint *bp, MonoError *error)
 {
@@ -4571,7 +4586,6 @@ insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo
 	DEBUG_PRINTF (1, "[dbg] Inserted breakpoint at %s:[il=0x%x,native=0x%x] [%p](%d).\n", mono_method_full_name (jinfo_get_method (ji), TRUE), (int)it.seq_point.il_offset, (int)it.seq_point.native_offset, inst->ip, count);
 }
 
-#ifndef RUNTIME_IL2CPP
 
 static void
 remove_breakpoint (BreakpointInstance *inst)
@@ -4701,6 +4715,8 @@ add_pending_breakpoints (MonoMethod *method, MonoJitInfo *ji)
 #endif
 }
 
+#ifndef RUNTIME_IL2CPP
+
 static void
 set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_points, MonoBreakpoint *bp, MonoError *error)
 {
@@ -4729,6 +4745,8 @@ set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_
 
 	insert_breakpoint (seq_points, domain, ji, bp, error);
 }
+
+#endif
 
 static void
 clear_breakpoint (MonoBreakpoint *bp);
@@ -8178,8 +8196,10 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 	MonoObject *this_arg, *res, *exc = NULL;
 	MonoDomain *domain;
 	guint8 *this_buf;
-#ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
+#ifndef RUNTIME_IL2CPP
+#ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED 
 	MonoLMFExt ext;
+#endif
 #endif
 	MonoStopwatch watch;
 
