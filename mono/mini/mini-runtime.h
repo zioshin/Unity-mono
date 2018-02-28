@@ -50,6 +50,9 @@ typedef struct
 	GHashTable *llvm_jit_callees;
 	/* Maps MonoMethod -> RuntimeMethod */
 	MonoInternalHashTable interp_code_hash;
+
+	/* Maps MonoMethod patchable address */
+	GHashTable *patch_targets;
 } MonoJitDomainInfo;
 
 #define domain_jit_info(domain) ((MonoJitDomainInfo*)((domain)->runtime_info))

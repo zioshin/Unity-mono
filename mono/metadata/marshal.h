@@ -115,6 +115,7 @@ typedef enum {
 	WRAPPER_SUBTYPE_ARRAY_ACCESSOR,
 	/* Subtypes of MONO_WRAPPER_MANAGED_TO_MANAGED */
 	WRAPPER_SUBTYPE_GENERIC_ARRAY_HELPER,
+	WRAPPER_SUBTYPE_GENERIC_PATCHABLE,
 	/* Subtypes of MONO_WRAPPER_DELEGATE_INVOKE */
 	WRAPPER_SUBTYPE_DELEGATE_INVOKE_VIRTUAL,
 	WRAPPER_SUBTYPE_DELEGATE_INVOKE_BOUND,
@@ -395,6 +396,9 @@ mono_marshal_get_array_accessor_wrapper (MonoMethod *method);
 
 MonoMethod *
 mono_marshal_get_generic_array_helper (MonoClass *klass, gchar *name, MonoMethod *method);
+
+MonoMethod *
+mono_marshal_get_patchable_wrapper (MonoMethod *method, gpointer* target);
 
 MonoMethod *
 mono_marshal_get_thunk_invoke_wrapper (MonoMethod *method);

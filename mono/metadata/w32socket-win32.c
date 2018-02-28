@@ -330,9 +330,11 @@ gint
 mono_w32socket_get_available (SOCKET sock, guint64 *amount)
 {
 	gint ret;
+	//u_long long_amount = 0;
 	MONO_ENTER_GC_SAFE;
-	ret = ioctlsocket (sock, FIONREAD, (int*) amount);
+	ret = ioctlsocket (sock, FIONREAD, /*&long_amount*/amount);
 	MONO_EXIT_GC_SAFE;
+	//*amount = long_amount;
 	return ret;
 }
 

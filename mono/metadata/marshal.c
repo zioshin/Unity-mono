@@ -12126,6 +12126,60 @@ mono_marshal_get_generic_array_helper (MonoClass *klass, gchar *name, MonoMethod
 	return res;
 }
 
+
+MonoMethod *
+mono_marshal_get_patchable_wrapper (MonoMethod *method, gpointer* target)
+{
+	MonoMethodSignature *sig, *csig;
+	MonoMethodBuilder *mb;
+	MonoMethod *res;
+	WrapperInfo *info;
+	int i;
+	gpointer compiled_method;
+	MonoError error;
+	error_init (&error);
+
+	if (method->wrapper_type == MONO_WRAPPER_MANAGED_TO_MANAGED) {
+		// TODO check sub type
+		return method;
+	}
+
+	mb = mono_mb_new (method->klass, method->name, MONO_WRAPPER_MANAGED_TO_MANAGED);
+	mb->method->slot = -1;
+
+	//mb->method->flags = METHOD_ATTRIBUTE_PRIVATE | METHOD_ATTRIBUTE_VIRTUAL |
+	//	METHOD_ATTRIBUTE_NEW_SLOT | METHOD_ATTRIBUTE_HIDE_BY_SIG | METHOD_ATTRIBUTE_FINAL;
+
+	sig = mono_method_signature (method);
+	csig = mono_metadata_signature_dup_full (method->klass->image, sig);
+	csig->generic_param_count = 0;
+
+#ifdef ENABLE_ILGEN
+	if (method->signature->hasthis)
+		mono_mb_emit_ldarg (mb, 0);
+	for (i = 0; i < csig->param_count; i++)
+		mono_mb_emit_ldarg (mb, i + 1);
+
+	*target = compiled_method = mono_compile_method_checked (method, &error);
+
+	mono_mb_emit_ptr (mb, target);
+	mono_mb_emit_byte (mb, CEE_LDIND_I);
+	mono_mb_emit_calli (mb, csig);
+	//mono_mb_emit_managed_call (mb, method, NULL);
+	mono_mb_emit_byte (mb, CEE_RET);
+
+	/* We can corlib internal methods */
+	mb->skip_visibility = TRUE;
+#endif
+	info = mono_wrapper_info_create (mb, WRAPPER_SUBTYPE_GENERIC_PATCHABLE);
+	info->d.generic_array_helper.method = method;
+	res = mono_mb_create (mb, csig, csig->param_count + 16, info);
+
+	mono_mb_free (mb);
+
+	return res;
+}
+
 /*
  * The mono_win32_compat_* functions are implementations of inline
  * Windows kernel32 APIs, which are DllImport-able under MS.NET,

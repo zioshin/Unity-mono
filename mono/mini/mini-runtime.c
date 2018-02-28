@@ -1198,6 +1198,7 @@ mono_patch_info_hash (gconstpointer data)
 	case MONO_PATCH_INFO_AOT_JIT_INFO:
 	case MONO_PATCH_INFO_GET_TLS_TRAMP:
 	case MONO_PATCH_INFO_SET_TLS_TRAMP:
+	case MONO_PATCH_INFO_UNITY_HOT_PATCH:
 		return (ji->type << 8) | (gssize)ji->data.target;
 	case MONO_PATCH_INFO_GSHAREDVT_CALL:
 		return (ji->type << 8) | (gssize)ji->data.gsharedvt->method;
@@ -1651,11 +1652,50 @@ mono_resolve_patch_target (MonoMethod *method, MonoDomain *domain, guint8 *code,
 		target = (gpointer) &mono_profiler_state.gc_allocation_count;
 		break;
 	}
+	case MONO_PATCH_INFO_UNITY_HOT_PATCH: {
+
+		mono_domain_lock (domain);
+		if (!domain_jit_info (domain)->patch_targets)
+			domain_jit_info (domain)->patch_targets = g_hash_table_new (NULL, NULL);
+
+		target = (gpointer)mono_domain_alloc0 (domain, sizeof (gpointer));
+		g_hash_table_insert (domain_jit_info (domain)->patch_targets, patch_info->data.target, NULL);
+		mono_domain_unlock (domain);
+		target = (gpointer)&mono_profiler_state.gc_allocation_count;
+		break;
+	}
 	default:
 		g_assert_not_reached ();
 	}
 
 	return (gpointer)target;
+}
+
+MONO_API int mono_patch_method (MonoMethod* old_method, MonoMethod* new_method)
+{
+	MonoDomain *domain;
+	gpointer* target;
+	gpointer compiled_method;
+	MonoError error;
+	error_init (&error);
+
+	domain = mono_domain_get ();
+
+	mono_domain_lock (domain);
+	if (!domain_jit_info (domain)->patch_targets)
+		domain_jit_info (domain)->patch_targets = g_hash_table_new (NULL, NULL);
+	target = (gpointer*)g_hash_table_lookup (domain_jit_info (domain)->patch_targets, old_method);
+	if (!target) {
+		mono_domain_unlock (domain);
+		return 0;
+	}
+	mono_domain_unlock (domain);
+
+	compiled_method = mono_compile_method_checked (new_method, &error);
+
+	*target = compiled_method;
+
+	return 1;
 }
 
 void

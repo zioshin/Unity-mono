@@ -2465,6 +2465,12 @@ mono_emit_method_call_full (MonoCompile *cfg, MonoMethod *method, MonoMethodSign
 		call->method = mono_marshal_get_remoting_invoke_with_check (method);
 	else
 #endif
+	/*if (strcmp (method->klass->name, "Program") == 0 && strcmp (method->name, "Jon") == 0 &&
+		cfg->method->wrapper_type != MONO_WRAPPER_MANAGED_TO_MANAGED) {
+		mini_emit_runtime_constant (cfg, 0, method);
+		call->method = mono_marshal_get_patchable_wrapper (method);
+	}
+	else*/
 		call->method = method;
 	call->inst.flags |= MONO_INST_HAS_METHOD;
 	call->inst.inst_left = this_ins;
@@ -5827,6 +5833,41 @@ mini_redirect_call (MonoCompile *cfg, MonoMethod *method,
 			EMIT_NEW_VTABLECONST (cfg, iargs [0], vtable);
 			iargs [1] = args [0];
 			return mono_emit_method_call (cfg, managed_alloc, iargs, this_ins);
+		}
+	}
+	if (strcmp (method->klass->name, "Program") == 0) {
+		/* managed string allocation support */
+		if (strcmp (method->name, "Jon") == 0) {
+			MonoInst *iargs[1];
+
+
+			if (strcmp (method->klass->name, "Program") == 0 && strcmp (method->name, "Jon") == 0 &&
+				cfg->method->wrapper_type != MONO_WRAPPER_MANAGED_TO_MANAGED) {
+
+				gpointer* target;
+
+				mono_domain_lock (cfg->domain);
+				if (!domain_jit_info (cfg->domain)->patch_targets)
+					domain_jit_info (cfg->domain)->patch_targets = g_hash_table_new (NULL, NULL);
+
+				target = (gpointer*)mono_domain_alloc0 (cfg->domain, sizeof (gpointer));
+				g_hash_table_insert (domain_jit_info (cfg->domain)->patch_targets, method, target);
+
+				mono_domain_unlock (cfg->domain);
+
+				//MonoInst* c = mini_emit_runtime_constant (cfg, 0, method);
+				//MonoInst* c = mini_emit_runtime_constant (cfg, MONO_PATCH_INFO_UNITY_HOT_PATCH, NULL);
+
+				//MONO_EMIT_NEW_BIALU_IMM (cfg, OP_COMPARE_IMM, -1, c, 0);
+				//MONO_EMIT_NEW_COND_EXC (cfg, NE_UN, "InvalidCastException");
+				MonoMethod* wrapper = mono_marshal_get_patchable_wrapper (method, target);
+
+				return mono_emit_method_call (cfg, wrapper, iargs, this_ins);
+			}
+			//EMIT_NEW_PCONST (cfg, iargs[0], (char*)data_ptr);
+
+			//return mini_emit_calli (cfg, signature, args, iargs, NULL, NULL);
+			return NULL;
 		}
 	}
 	return NULL;
