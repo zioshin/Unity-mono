@@ -296,7 +296,12 @@ mono_w32socket_set_blocking (SOCKET sock, gboolean blocking)
 gint
 mono_w32socket_get_available (SOCKET sock, guint64 *amount)
 {
-	return ioctlsocket (sock, FIONREAD, (int*) amount);
+	gint ret;
+	u_long amount_long = 0;
+	ret = ioctlsocket (sock, FIONREAD, &amount_long);
+	*amount = amount_long;
+
+	return ret;
 }
 
 void
