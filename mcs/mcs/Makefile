@@ -8,6 +8,8 @@ include ../build/rules.make
 
 PROGRAM = mcs.exe
 
+TARGET_NET_REFFERENCE=v4.6
+
 EXTRA_DISTFILES = \
 	mcs.csproj		\
 	mcs.sln		\
