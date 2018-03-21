@@ -14,7 +14,11 @@
 #endif
 
 #include <stdint.h>
+
+/* inttypes.h is only available from VS2013 */
+#if !defined(_MSC_VER) || (_MSC_VER >= 1800)
 #include <inttypes.h>
+#endif
 
 #include <eglib-config.h>
 #ifndef EGLIB_NO_REMAP
@@ -42,6 +46,10 @@
 #else
 #define G_BEGIN_DECLS
 #define G_END_DECLS
+#endif
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define inline __inline
 #endif
 
 G_BEGIN_DECLS
