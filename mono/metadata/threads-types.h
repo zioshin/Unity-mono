@@ -273,4 +273,7 @@ ves_icall_System_Threading_OSSpecificSynchronizationContext_GetOSContext ();
 void
 ves_icall_System_Threading_OSSpecificSynchronizationContext_PostInternal (gpointer callback, gpointer arg);
 
+gboolean
+mono_threads_is_current_thread_in_protected_block (void);
+
 #endif /* _MONO_METADATA_THREADS_TYPES_H_ */
