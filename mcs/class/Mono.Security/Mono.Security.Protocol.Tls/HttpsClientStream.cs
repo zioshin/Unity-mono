@@ -40,11 +40,8 @@ using SNCX = System.Security.Cryptography.X509Certificates;
 namespace Mono.Security.Protocol.Tls {
 
         // Note: DO NOT REUSE this class - instead use SslClientStream
-#if !SECURITY_DEP
-        public class HttpsClientStream : SslClientStream {
-#else
+
         internal class HttpsClientStream : SslClientStream {
-#endif
 
                 private HttpWebRequest _request;
 		private int _status;
