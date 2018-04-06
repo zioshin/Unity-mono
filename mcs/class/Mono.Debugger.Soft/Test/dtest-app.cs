@@ -1780,6 +1780,18 @@ public class Tests : TestsBase, ITest2
 	static void step_out_void_async_2 ()
 	{
 	}
+
+	public static unsafe void pointer_arguments (int* a, BlittableStruct* s) {
+		*a = 0;
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static unsafe void pointers () {
+		int[] a = new [] {1,2,3};
+		BlittableStruct s = new BlittableStruct () { i = 2, d = 3.0 };
+		fixed (int* pa = a)
+			pointer_arguments (pa, &s);
+	}
 }
 
 public class SentinelClass : MarshalByRefObject {

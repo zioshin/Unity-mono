@@ -127,7 +127,7 @@ struct _MonoArray {
 	mono_64bitaligned_t vector [MONO_ZERO_LEN_ARRAY];
 };
 
-#define MONO_SIZEOF_MONO_ARRAY (sizeof (MonoArray) - MONO_ZERO_LEN_ARRAY * sizeof (double))
+#define MONO_SIZEOF_MONO_ARRAY (sizeof (MonoArray) - MONO_ZERO_LEN_ARRAY * sizeof (mono_64bitaligned_t))
 
 struct _MonoString {
 	MonoObject object;
@@ -641,6 +641,7 @@ typedef struct {
 	void (*mono_raise_exception_with_ctx) (MonoException *ex, MonoContext *ctx);
 	gboolean (*mono_exception_walk_trace) (MonoException *ex, MonoInternalExceptionFrameWalk func, gpointer user_data);
 	gboolean (*mono_install_handler_block_guard) (MonoThreadUnwindState *unwind_state);
+	void (*mono_uninstall_current_handler_block_guard) (void);
 	gboolean (*mono_current_thread_has_handle_block_guard) (void);
 	gboolean (*mono_above_abort_threshold) (void);
 	void (*mono_clear_abort_threshold) (void);
@@ -648,6 +649,9 @@ typedef struct {
 } MonoRuntimeExceptionHandlingCallbacks;
 
 MONO_COLD void mono_set_pending_exception (MonoException *exc);
+
+MONO_COLD void
+mono_set_pending_exception_handle (MonoExceptionHandle exc);
 
 /* remoting and async support */
 
@@ -741,7 +745,7 @@ mono_domain_get_tls_offset (void);
  * encountering instances of user defined subclasses of System.Type.
  */
 
-#define IS_MONOTYPE(obj) (!(obj) || (((MonoObject*)(obj))->vtable->klass->image == mono_defaults.corlib && ((MonoReflectionType*)(obj))->type != NULL))
+#define IS_MONOTYPE(obj) (!(obj) || (m_class_get_image (mono_object_class ((obj))) == mono_defaults.corlib && ((MonoReflectionType*)(obj))->type != NULL))
 
 #define IS_MONOTYPE_HANDLE(obj) IS_MONOTYPE (MONO_HANDLE_RAW (obj))
 
@@ -1161,7 +1165,6 @@ typedef struct {
 	MonoString *name;
 	MonoObject *def_value;
 	gint32 offset;
-	gint32 table_idx;
 	MonoReflectionType *typeb;
 	MonoArray *rva_data;
 	MonoArray *cattrs;
@@ -1221,6 +1224,7 @@ typedef struct {
 	gboolean is_main;
 	MonoArray *resources;
 	GHashTable *unparented_classes;
+	MonoArray *table_indexes;
 } MonoReflectionModuleBuilder;
 
 /* Safely acess System.Reflection.Emit.ModuleBuidler from native code */
@@ -1710,9 +1714,6 @@ mono_runtime_class_init_full (MonoVTable *vtable, MonoError *error);
 void
 mono_method_clear_object (MonoDomain *domain, MonoMethod *method);
 
-void
-mono_class_compute_gc_descriptor (MonoClass *klass);
-
 gsize*
 mono_class_compute_bitmap (MonoClass *klass, gsize *bitmap, int size, int offset, int *max_set, gboolean static_fields);
 
@@ -1849,7 +1850,7 @@ mono_ldstr_checked (MonoDomain *domain, MonoImage *image, uint32_t str_index, Mo
 MonoString*
 mono_string_new_len_checked (MonoDomain *domain, const char *text, guint length, MonoError *error);
 
-MonoString*
+MONO_PROFILER_API MonoString*
 mono_string_new_checked (MonoDomain *domain, const char *text, MonoError *merror);
 
 MonoString*
@@ -1869,6 +1870,9 @@ mono_string_from_utf32_checked (mono_unichar4 *data, MonoError *error);
 
 char*
 mono_ldstr_utf8 (MonoImage *image, guint32 idx, MonoError *error);
+
+char*
+mono_utf16_to_utf8 (const mono_unichar2 *s, gsize slength, MonoError *error);
 
 gboolean
 mono_runtime_object_init_checked (MonoObject *this_obj, MonoError *error);

@@ -3742,6 +3742,48 @@ namespace MonoTests.System
 		{
 		}
 
+		[Test]
+		public void IsAssignableFromArraySpecialInterfaceGtd ()
+		{
+			// Regression test for https://github.com/mono/mono/issues/7095
+			// An "array special interface" is a Mono name for some
+			// interfaces that are implemented by arrays.
+			// Check that an array special interface GTD (ie, IList<> not IList<Foo>) work
+			// correctly with IsAssignableFrom.
+			var il = typeof (IList<>);
+			var ie = typeof (IEnumerable<>);
+			var ilparam = il.GetTypeInfo ().GenericTypeParameters [0];
+			var ilparr = ilparam.MakeArrayType ();
+
+			Assert.IsTrue (ie.IsAssignableFrom (ie), "IList<> ---> IEnumerable<>");
+			Assert.IsTrue (il.IsAssignableFrom (ilparr), "!0[] ---> IList<>");
+
+			var ilparrarr = ilparr.MakeArrayType ();
+
+			Assert.IsFalse (il.IsAssignableFrom (ilparrarr), "!0[][] -!-> IList<>");
+
+			Assert.IsFalse (il.IsAssignableFrom (typeof (Array)), "System.Array -!-> IList<>");
+		}
+
+		[Test]
+		public void IsAssignableFromArrayEnumerator ()
+		{
+			// Regression test for https://github.com/mono/mono/issues/7093
+			// An array does not implement IEnumerator`1
+
+			var arrStr = typeof (string[]);
+			var ieStr = typeof (IEnumerator<string>);
+			var ieEqStr = typeof (IEnumerator<IEquatable<string>>);
+			Assert.IsFalse (ieStr.IsAssignableFrom (arrStr), "string[] -!-> IEnumerator<string>");
+			Assert.IsFalse (ieEqStr.IsAssignableFrom (arrStr), "string[] -!-> IEnumerator<IEquatable<string>>");
+
+			var arrInt = typeof (int[]);
+			var ieInt = typeof (IEnumerator<int>);
+			var ieEqInt = typeof (IEnumerator<IEquatable<int>>);
+			Assert.IsFalse (ieInt.IsAssignableFrom (arrInt), "int[] -!-> IEnumerator<int>");
+			Assert.IsFalse (ieEqInt.IsAssignableFrom (arrInt), "int[] -!-> IEnumerator<IEquatable<int>>");
+		}
+
 		[Test] // Bug #612780
 		public void CannotMakeDerivedTypesFromTypedByRef ()
 		{

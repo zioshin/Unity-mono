@@ -130,7 +130,7 @@ mono_threads_state_poll_with_info (MonoThreadInfo *info)
 	THREADS_SUSPEND_DEBUG ("FINISH SELF SUSPEND OF %p\n", mono_thread_info_get_tid (info));
 
 	/* Fast check for pending suspend requests */
-	if (!(info->thread_state & (STATE_ASYNC_SUSPEND_REQUESTED | STATE_SELF_SUSPEND_REQUESTED)))
+	if (!(info->thread_state & STATE_ASYNC_SUSPEND_REQUESTED))
 		return;
 
 	++coop_save_count;
@@ -426,7 +426,7 @@ mono_threads_assert_gc_unsafe_region (void)
 }
 
 gboolean
-mono_threads_is_coop_enabled (void)
+mono_threads_are_safepoints_enabled (void)
 {
 #if defined(USE_COOP_GC)
 	return TRUE;
@@ -455,7 +455,7 @@ mono_threads_is_blocking_transition_enabled (void)
 void
 mono_threads_coop_init (void)
 {
-	if (!mono_threads_is_coop_enabled () && !mono_threads_is_blocking_transition_enabled ())
+	if (!mono_threads_are_safepoints_enabled () && !mono_threads_is_blocking_transition_enabled ())
 		return;
 
 	mono_counters_register ("Coop Reset Blocking", MONO_COUNTER_GC | MONO_COUNTER_INT, &coop_reset_blocking_count);
@@ -473,13 +473,13 @@ mono_threads_coop_init (void)
 void
 mono_threads_coop_begin_global_suspend (void)
 {
-	if (mono_threads_is_coop_enabled ())
+	if (mono_threads_are_safepoints_enabled ())
 		mono_polling_required = 1;
 }
 
 void
 mono_threads_coop_end_global_suspend (void)
 {
-	if (mono_threads_is_coop_enabled ())
+	if (mono_threads_are_safepoints_enabled ())
 		mono_polling_required = 0;
 }

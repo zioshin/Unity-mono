@@ -3511,6 +3511,10 @@ public class DebuggerTests
 		Assert.AreEqual ("domains", frames [2].Method.Name);
 		Assert.AreEqual (vm.RootDomain, frames [2].Domain);
 
+		// Check enum creation in other domains
+		var anenum = vm.CreateEnumMirror (d_method.DeclaringType.Assembly.GetType ("AnEnum"), vm.CreateValue (1));
+		Assert.AreEqual (1, anenum.Value);
+
 		// Test breakpoints on already JITted methods in other domains
 		m = entry_point.DeclaringType.GetMethod ("invoke_in_domain_2");
 		Assert.IsNotNull (m);
@@ -4435,7 +4439,7 @@ public class DebuggerTests
 		// DummyCall
 		assert_location (e, "Call");
 	}
-	
+
 	[Test]
 	public void Pointer_GetValue () {
 		var e = run_until ("pointer_arguments");
@@ -4467,6 +4471,7 @@ public class DebuggerTests
 		AssertValue (2, f);
 		f = structValue.Fields[1];
 		AssertValue (3.0, f);
+
 	}
 } // class DebuggerTests
 } // namespace

@@ -844,6 +844,11 @@ typedef struct {
 void          mono_register_bundled_assemblies (const MonoBundledAssembly **assemblies);
 void          mono_register_config_for_assembly (const char* assembly_name, const char* config_xml);
 ");
+
+				// These values are part of the public API, so they are expected not to change
+				tc.WriteLine("#define MONO_AOT_MODE_NORMAL 1");
+				tc.WriteLine("#define MONO_AOT_MODE_FULL 3");
+				tc.WriteLine("#define MONO_AOT_MODE_LLVMONLY 4");
 			} else {
 				tc.WriteLine ("#include <mono/metadata/mono-config.h>");
 				tc.WriteLine ("#include <mono/metadata/assembly.h>\n");
@@ -2487,7 +2492,15 @@ void          mono_register_config_for_assembly (const char* assembly_name, cons
 	static bool Target64BitApplication ()
 	{
 		// Should probably handled the --cross and sdk parameters.
-		return Environment.Is64BitProcess;
+		string targetArchitecture = GetEnv ("VSCMD_ARG_TGT_ARCH", "");
+		if (targetArchitecture.Length != 0) {
+			if (string.Compare (targetArchitecture, "x64", StringComparison.OrdinalIgnoreCase) == 0)
+				return true;
+			else
+				return false;
+		} else {
+			return Environment.Is64BitProcess;
+		}
 	}
 
 	static string GetMonoDir ()
@@ -2582,6 +2595,13 @@ void          mono_register_config_for_assembly (const char* assembly_name, cons
 			linkerArgs.Add ("vcruntime.lib");
 			linkerArgs.Add ("msvcrt.lib");
 			linkerArgs.Add ("oldnames.lib");
+		}
+
+		if (MakeBundle.compress) {
+			if (staticLinkMono)
+				linkerArgs.Add("zlibstatic.lib");
+			else
+				linkerArgs.Add("zlib.lib");
 		}
 
 		return;

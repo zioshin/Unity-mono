@@ -79,7 +79,7 @@ get_type_name (MonoErrorInternal *error)
 		return error->type_name;
 	MonoClass *klass = get_class (error);
 	if (klass)
-		return klass->name;
+		return m_class_get_name (klass);
 	return "<unknown type>";
 }
 
@@ -89,8 +89,8 @@ get_assembly_name (MonoErrorInternal *error)
 	if (error->assembly_name)
 		return error->assembly_name;
 	MonoClass *klass = get_class (error);
-	if (klass && klass->image)
-		return klass->image->name;
+	if (klass && m_class_get_image (klass))
+		return m_class_get_image (klass)->name;
 	return "<unknown assembly>";
 }
 
@@ -550,7 +550,7 @@ get_type_name_as_mono_string (MonoErrorInternal *error, MonoDomain *domain, Mono
 	} else {
 		MonoClass *klass = get_class (error);
 		if (klass) {
-			char *name = mono_type_full_name (&klass->byval_arg);
+			char *name = mono_type_full_name (m_class_get_byval_arg (klass));
 			if (name) {
 				res = string_new_cleanup (domain, name);
 				g_free (name);
@@ -572,7 +572,7 @@ set_message_on_exception (MonoException *exception, MonoErrorInternal *error, Mo
 		mono_error_set_out_of_memory (error_out, "Could not allocate exception object");
 }
 
-MonoExceptionHandle
+static MonoExceptionHandle
 mono_error_prepare_exception_handle (MonoError *oerror, MonoError *error_out)
 // Can fail with out-of-memory
 {
@@ -710,7 +710,7 @@ Convert this MonoError to an exception if it's faulty or return NULL.
 The error object is cleant after.
 */
 
-MonoExceptionHandle
+static MonoExceptionHandle
 mono_error_convert_to_exception_handle (MonoError *target_error)
 {
 	ERROR_DECL (error);

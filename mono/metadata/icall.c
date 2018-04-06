@@ -1,4 +1,4 @@
-/**
+ /**
  * \file
  *
  * Authors:
@@ -101,6 +101,7 @@
 #include <mono/utils/mono-threads.h>
 #include <mono/metadata/w32error.h>
 #include <mono/utils/w32api.h>
+#include <mono/utils/mono-merp.h>
 
 #include "decimal-ms.h"
 #include "number-ms.h"
@@ -175,8 +176,9 @@ ves_icall_System_Array_GetValueImpl (MonoArray *arr, guint32 pos)
 	esize = mono_array_element_size (ac);
 	ea = (gpointer*)((char*)arr->vector + (pos * esize));
 
-	if (ac->element_class->valuetype) {
-		result = mono_value_box_checked (arr->obj.vtable->domain, ac->element_class, ea, error);
+	MonoClass *ac_element_class = m_class_get_element_class (ac);
+	if (m_class_is_valuetype (ac_element_class)) {
+		result = mono_value_box_checked (arr->obj.vtable->domain, ac_element_class, ea, error);
 		mono_error_set_pending_exception (error);
 	} else
 		result = (MonoObject *)*ea;
@@ -197,8 +199,8 @@ ves_icall_System_Array_GetValue (MonoArray *arr, MonoArray *idxs)
 	
 	ac = (MonoClass *)arr->obj.vtable->klass;
 
-	g_assert (ic->rank == 1);
-	if (io->bounds != NULL || io->max_length !=  ac->rank) {
+	g_assert (m_class_get_rank (ic) == 1);
+	if (io->bounds != NULL || io->max_length !=  m_class_get_rank (ac)) {
 		mono_set_pending_exception (mono_get_exception_argument (NULL, NULL));
 		return NULL;
 	}
@@ -214,7 +216,7 @@ ves_icall_System_Array_GetValue (MonoArray *arr, MonoArray *idxs)
 		return ves_icall_System_Array_GetValueImpl (arr, *ind);
 	}
 	
-	for (i = 0; i < ac->rank; i++) {
+	for (i = 0; i < m_class_get_rank (ac); i++) {
 		if ((ind [i] < arr->bounds [i].lower_bound) ||
 		    (ind [i] >=  (mono_array_lower_bound_t)arr->bounds [i].length + arr->bounds [i].lower_bound)) {
 			mono_set_pending_exception (mono_get_exception_index_out_of_range ());
@@ -223,7 +225,7 @@ ves_icall_System_Array_GetValue (MonoArray *arr, MonoArray *idxs)
 	}
 
 	pos = ind [0] - arr->bounds [0].lower_bound;
-	for (i = 1; i < ac->rank; i++)
+	for (i = 1; i < m_class_get_rank (ac); i++)
 		pos = pos * arr->bounds [i].length + ind [i] - 
 			arr->bounds [i].lower_bound;
 
@@ -243,7 +245,6 @@ array_set_value_impl (MonoArrayHandle arr, MonoObjectHandle value, guint32 pos, 
 	MonoClass *ac, *vc, *ec;
 	gint32 esize, vsize;
 	gpointer *ea, *va;
-	int et, vt;
 
 	guint64 u64 = 0;
 	gint64 i64 = 0;
@@ -260,7 +261,7 @@ array_set_value_impl (MonoArrayHandle arr, MonoObjectHandle value, guint32 pos, 
 		vc = NULL;
 
 	ac = mono_handle_class (arr);
-	ec = ac->element_class;
+	ec = m_class_get_element_class (ac);
 
 	esize = mono_array_element_size (ac);
 	ea = mono_array_handle_pin_with_size (arr, esize, pos, &arr_gchandle);
@@ -293,10 +294,12 @@ array_set_value_impl (MonoArrayHandle arr, MonoObjectHandle value, guint32 pos, 
 		goto leave;							\
 	}G_STMT_END
 
+	MonoTypeEnum et = m_class_get_byval_arg (ec)->type;
+	MonoTypeEnum vt = m_class_get_byval_arg (vc)->type;
 	/* Check element (destination) type. */
-	switch (ec->byval_arg.type) {
+	switch (et) {
 	case MONO_TYPE_STRING:
-		switch (vc->byval_arg.type) {
+		switch (vt) {
 		case MONO_TYPE_STRING:
 			break;
 		default:
@@ -304,7 +307,7 @@ array_set_value_impl (MonoArrayHandle arr, MonoObjectHandle value, guint32 pos, 
 		}
 		break;
 	case MONO_TYPE_BOOLEAN:
-		switch (vc->byval_arg.type) {
+		switch (vt) {
 		case MONO_TYPE_BOOLEAN:
 			break;
 		case MONO_TYPE_CHAR:
@@ -331,7 +334,7 @@ array_set_value_impl (MonoArrayHandle arr, MonoObjectHandle value, guint32 pos, 
 	goto_if_nok (error, leave);
 	gboolean castOk = !MONO_HANDLE_IS_NULL (inst);
 
-	if (!ec->valuetype) {
+	if (!m_class_is_valuetype (ec)) {
 		if (!castOk)
 			INVALID_CAST;
 		MONO_HANDLE_ARRAY_SETREF (arr, pos, value);
@@ -340,7 +343,7 @@ array_set_value_impl (MonoArrayHandle arr, MonoObjectHandle value, guint32 pos, 
 
 	if (castOk) {
 		va = mono_object_handle_pin_unbox (value, &value_gchandle);
-		if (ec->has_references)
+		if (m_class_has_references (ec))
 			mono_value_copy (ea, va, ec);
 		else
 			mono_gc_memmove_atomic (ea, va, esize);
@@ -349,20 +352,18 @@ array_set_value_impl (MonoArrayHandle arr, MonoObjectHandle value, guint32 pos, 
 		goto leave;
 	}
 
-	if (!vc->valuetype)
+	if (!m_class_is_valuetype (vc))
 		INVALID_CAST;
 
 	va = mono_object_handle_pin_unbox (value, &value_gchandle);
 
 	vsize = mono_class_instance_size (vc) - sizeof (MonoObject);
 
-	et = ec->byval_arg.type;
-	if (et == MONO_TYPE_VALUETYPE && ec->byval_arg.data.klass->enumtype)
-		et = mono_class_enum_basetype (ec->byval_arg.data.klass)->type;
+	if (et == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_class_get_byval_arg (ec)->data.klass))
+		et = mono_class_enum_basetype (m_class_get_byval_arg (ec)->data.klass)->type;
 
-	vt = vc->byval_arg.type;
-	if (vt == MONO_TYPE_VALUETYPE && vc->byval_arg.data.klass->enumtype)
-		vt = mono_class_enum_basetype (vc->byval_arg.data.klass)->type;
+	if (vt == MONO_TYPE_VALUETYPE && m_class_is_enumtype (m_class_get_byval_arg (vc)->data.klass))
+		vt = mono_class_enum_basetype (m_class_get_byval_arg (vc)->data.klass)->type;
 
 #define ASSIGN_UNSIGNED(etype) G_STMT_START{\
 	switch (vt) { \
@@ -555,8 +556,8 @@ ves_icall_System_Array_SetValue (MonoArrayHandle arr, MonoObjectHandle value,
 	ic = mono_handle_class (idxs);
 	ac = mono_handle_class (arr);
 
-	g_assert (ic->rank == 1);
-	if (mono_handle_array_has_bounds (idxs) || MONO_HANDLE_GETVAL (idxs, max_length) != ac->rank) {
+	g_assert (m_class_get_rank (ic) == 1);
+	if (mono_handle_array_has_bounds (idxs) || MONO_HANDLE_GETVAL (idxs, max_length) != m_class_get_rank (ac)) {
 		mono_error_set_argument (error, "idxs", "");
 		return;
 	}
@@ -572,7 +573,8 @@ ves_icall_System_Array_SetValue (MonoArrayHandle arr, MonoObjectHandle value,
 		return;
 	}
 	
-	for (i = 0; i < ac->rank; i++) {
+	gint32 ac_rank = m_class_get_rank (ac);
+	for (i = 0; i < ac_rank; i++) {
 		mono_handle_array_get_bounds_dim (arr, i, &dim);
 		MONO_HANDLE_ARRAY_GETVAL (idx, idxs, gint32, i);
 		if ((idx < dim.lower_bound) ||
@@ -586,7 +588,7 @@ ves_icall_System_Array_SetValue (MonoArrayHandle arr, MonoObjectHandle value,
 	MONO_HANDLE_ARRAY_GETVAL  (idx, idxs, gint32, 0);
 	mono_handle_array_get_bounds_dim (arr, 0, &dim);
 	pos = idx - dim.lower_bound;
-	for (i = 1; i < ac->rank; i++) {
+	for (i = 1; i < ac_rank; i++) {
 		mono_handle_array_get_bounds_dim (arr, i, &dim);
 		MONO_HANDLE_ARRAY_GETVAL (idx, idxs, gint32, i);
 		pos = pos * dim.length + idx - dim.lower_bound;
@@ -623,7 +625,7 @@ ves_icall_System_Array_CreateInstanceImpl (MonoReflectionType *type, MonoArray *
 	if (mono_error_set_pending_exception (error))
 		return NULL;
 
-	if (klass->element_class->byval_arg.type == MONO_TYPE_VOID) {
+	if (m_class_get_byval_arg (m_class_get_element_class (klass))->type == MONO_TYPE_VOID) {
 		mono_set_pending_exception (mono_get_exception_not_supported ("Arrays of System.Void are not supported."));
 		return NULL;
 	}
@@ -636,16 +638,17 @@ ves_icall_System_Array_CreateInstanceImpl (MonoReflectionType *type, MonoArray *
 
 	aklass = mono_class_create_bounded_array (klass, mono_array_length (lengths), bounded);
 
-	sizes = (uintptr_t *)alloca (aklass->rank * sizeof(intptr_t) * 2);
-	for (i = 0; i < aklass->rank; ++i) {
+	uintptr_t aklass_rank = m_class_get_rank (aklass);
+	sizes = (uintptr_t *)alloca (aklass_rank * sizeof(intptr_t) * 2);
+	for (i = 0; i < aklass_rank; ++i) {
 		sizes [i] = mono_array_get (lengths, guint32, i);
 		if (bounds)
-			sizes [i + aklass->rank] = mono_array_get (bounds, gint32, i);
+			sizes [i + aklass_rank] = mono_array_get (bounds, gint32, i);
 		else
-			sizes [i + aklass->rank] = 0;
+			sizes [i + aklass_rank] = 0;
 	}
 
-	array = mono_array_new_full_checked (mono_object_domain (type), aklass, sizes, (intptr_t*)sizes + aklass->rank, error);
+	array = mono_array_new_full_checked (mono_object_domain (type), aklass, sizes, (intptr_t*)sizes + aklass_rank, error);
 	mono_error_set_pending_exception (error);
 
 	return array;
@@ -688,16 +691,18 @@ ves_icall_System_Array_CreateInstanceImpl64 (MonoReflectionType *type, MonoArray
 
 	aklass = mono_class_create_bounded_array (klass, mono_array_length (lengths), bounded);
 
-	sizes = (uintptr_t *)alloca (aklass->rank * sizeof(intptr_t) * 2);
-	for (i = 0; i < aklass->rank; ++i) {
+	uintptr_t aklass_rank = m_class_get_rank (aklass);
+
+	sizes = (uintptr_t *)alloca (aklass_rank * sizeof(intptr_t) * 2);
+	for (i = 0; i < aklass_rank; ++i) {
 		sizes [i] = mono_array_get (lengths, guint64, i);
 		if (bounds)
-			sizes [i + aklass->rank] = (mono_array_size_t) mono_array_get (bounds, guint64, i);
+			sizes [i + aklass_rank] = (mono_array_size_t) mono_array_get (bounds, guint64, i);
 		else
-			sizes [i + aklass->rank] = 0;
+			sizes [i + aklass_rank] = 0;
 	}
 
-	array = mono_array_new_full_checked (mono_object_domain (type), aklass, sizes, (intptr_t*)sizes + aklass->rank, error);
+	array = mono_array_new_full_checked (mono_object_domain (type), aklass, sizes, (intptr_t*)sizes + aklass_rank, error);
 	mono_error_set_pending_exception (error);
 
 	return array;
@@ -706,13 +711,13 @@ ves_icall_System_Array_CreateInstanceImpl64 (MonoReflectionType *type, MonoArray
 ICALL_EXPORT gint32 
 ves_icall_System_Array_GetRank (MonoObject *arr)
 {
-	return arr->vtable->klass->rank;
+	return m_class_get_rank (mono_object_class (arr));
 }
 
 ICALL_EXPORT gint32
 ves_icall_System_Array_GetLength (MonoArray *arr, gint32 dimension)
 {
-	gint32 rank = arr->obj.vtable->klass->rank;
+	gint32 rank = m_class_get_rank (mono_object_class (&arr->obj));
 	uintptr_t length;
 
 	if ((dimension < 0) || (dimension >= rank)) {
@@ -737,7 +742,7 @@ ves_icall_System_Array_GetLength (MonoArray *arr, gint32 dimension)
 ICALL_EXPORT gint64
 ves_icall_System_Array_GetLongLength (MonoArray *arr, gint32 dimension)
 {
-	gint32 rank = arr->obj.vtable->klass->rank;
+	gint32 rank = m_class_get_rank (mono_object_class (&arr->obj));
 
 	if ((dimension < 0) || (dimension >= rank)) {
 		mono_set_pending_exception (mono_get_exception_index_out_of_range ());
@@ -753,7 +758,7 @@ ves_icall_System_Array_GetLongLength (MonoArray *arr, gint32 dimension)
 ICALL_EXPORT gint32
 ves_icall_System_Array_GetLowerBound (MonoArray *arr, gint32 dimension)
 {
-	gint32 rank = arr->obj.vtable->klass->rank;
+	gint32 rank = m_class_get_rank (mono_object_class (&arr->obj));
 
 	if ((dimension < 0) || (dimension >= rank)) {
 		mono_set_pending_exception (mono_get_exception_index_out_of_range ());
@@ -799,8 +804,8 @@ ves_icall_System_Array_FastCopy (MonoArray *source, int source_idx, MonoArray* d
 		(source_idx + length > mono_array_length_fast (source)))
 		return FALSE;
 
-	src_class = src_vtable->klass->element_class;
-	dest_class = dest_vtable->klass->element_class;
+	src_class = m_class_get_element_class (src_vtable->klass);
+	dest_class = m_class_get_element_class (dest_vtable->klass);
 
 	/*
 	 * Handle common cases.
@@ -809,12 +814,13 @@ ves_icall_System_Array_FastCopy (MonoArray *source, int source_idx, MonoArray* d
 	/* Case1: object[] -> valuetype[] (ArrayList::ToArray) 
 	We fallback to managed here since we need to typecheck each boxed valuetype before storing them in the dest array.
 	*/
-	if (src_class == mono_defaults.object_class && dest_class->valuetype)
+	if (src_class == mono_defaults.object_class && m_class_is_valuetype (dest_class))
 		return FALSE;
 
 	/* Check if we're copying a char[] <==> (u)short[] */
 	if (src_class != dest_class) {
-		if (dest_class->valuetype || dest_class->enumtype || src_class->valuetype || src_class->enumtype)
+		if (m_class_is_valuetype (dest_class) || m_class_is_enumtype (dest_class) ||
+		 	m_class_is_valuetype (src_class) || m_class_is_valuetype (src_class))
 			return FALSE;
 
 		/* It's only safe to copy between arrays if we can ensure the source will always have a subtype of the destination. We bail otherwise. */
@@ -822,10 +828,10 @@ ves_icall_System_Array_FastCopy (MonoArray *source, int source_idx, MonoArray* d
 			return FALSE;
 	}
 
-	if (dest_class->valuetype) {
+	if (m_class_is_valuetype (dest_class)) {
 		element_size = mono_array_element_size (source->obj.vtable->klass);
 		source_addr = mono_array_addr_with_size_fast (source, element_size, source_idx);
-		if (dest_class->has_references) {
+		if (m_class_has_references (dest_class)) {
 			mono_value_copy_array (dest, dest_idx, source_addr, length);
 		} else {
 			dest_addr = mono_array_addr_with_size_fast (dest, element_size, dest_idx);
@@ -861,18 +867,18 @@ ves_icall_System_Array_SetGenericValueImpl (MonoArray *arr, guint32 pos, gpointe
 	gpointer *ea;
 
 	ac = (MonoClass *)arr->obj.vtable->klass;
-	ec = ac->element_class;
+	ec = m_class_get_element_class (ac);
 
 	esize = mono_array_element_size (ac);
 	ea = (gpointer*)((char*)arr->vector + (pos * esize));
 
-	if (MONO_TYPE_IS_REFERENCE (&ec->byval_arg)) {
+	if (MONO_TYPE_IS_REFERENCE (m_class_get_byval_arg (ec))) {
 		g_assert (esize == sizeof (gpointer));
 		mono_gc_wbarrier_generic_store (ea, *(MonoObject **)value);
 	} else {
-		g_assert (ec->inited);
+		g_assert (m_class_is_inited (ec));
 		g_assert (esize == mono_class_value_size (ec, NULL));
-		if (ec->has_references)
+		if (m_class_has_references (ec))
 			mono_gc_wbarrier_value_copy (ea, value, 1, ec);
 		else
 			mono_gc_memmove_atomic (ea, value, esize);
@@ -886,7 +892,7 @@ ves_icall_System_Runtime_CompilerServices_RuntimeHelpers_InitializeArray (MonoAr
 
 	MonoClass *klass = mono_handle_class (array);
 	guint32 size = mono_array_element_size (klass);
-	MonoType *type = mono_type_get_underlying_type (&klass->element_class->byval_arg);
+	MonoType *type = mono_type_get_underlying_type (m_class_get_byval_arg (m_class_get_element_class (klass)));
 	int align;
 	const char *field_data;
 
@@ -961,7 +967,7 @@ ves_icall_System_Runtime_CompilerServices_RuntimeHelpers_GetOffsetToStringData (
 ICALL_EXPORT MonoObject *
 ves_icall_System_Runtime_CompilerServices_RuntimeHelpers_GetObjectValue (MonoObject *obj)
 {
-	if ((obj == NULL) || (! (obj->vtable->klass->valuetype)))
+	if ((obj == NULL) || !m_class_is_valuetype (mono_object_class (obj)))
 		return obj;
 	else {
 		ERROR_DECL (error);
@@ -1157,7 +1163,7 @@ ves_icall_System_ValueType_Equals (MonoObject *this_obj, MonoObject *that, MonoA
 
 	klass = mono_object_class (this_obj);
 
-	if (klass->enumtype && mono_class_enum_basetype (klass) && mono_class_enum_basetype (klass)->type == MONO_TYPE_I4)
+	if (m_class_is_enumtype (klass) && mono_class_enum_basetype (klass) && mono_class_enum_basetype (klass)->type == MONO_TYPE_I4)
 		return (*(gint32*)((guint8*)this_obj + sizeof (MonoObject)) == *(gint32*)((guint8*)that + sizeof (MonoObject)));
 
 	/*
@@ -1224,6 +1230,7 @@ ves_icall_System_ValueType_Equals (MonoObject *this_obj, MonoObject *that, MonoA
 			if (*(gint64 *) this_field != *(gint64 *) that_field)
 				return FALSE;
 			break;
+
 		case MONO_TYPE_R4:
 #ifdef NO_UNALIGNED_ACCESS
 			if (G_UNLIKELY ((intptr_t) this_field & 3 || (intptr_t) that_field & 3))
@@ -1243,7 +1250,12 @@ ves_icall_System_ValueType_Equals (MonoObject *this_obj, MonoObject *that, MonoA
 				return FALSE;
 			break;
 		case MONO_TYPE_PTR:
-			if (*(gpointer*)((guint8*)this_obj + field->offset) != *(gpointer*)((guint8*)that + field->offset))
+#ifdef NO_UNALIGNED_ACCESS
+			if (G_UNLIKELY ((intptr_t) this_field & 7 || (intptr_t) that_field & 7))
+				UNALIGNED_COMPARE (gpointer);
+			else
+#endif
+			if (*(gpointer *) this_field != *(gpointer *) that_field)
 				return FALSE;
 			break;
 		case MONO_TYPE_STRING: {
@@ -1283,7 +1295,7 @@ ves_icall_System_ValueType_Equals (MonoObject *this_obj, MonoObject *that, MonoA
 
 #undef UNALIGNED_COMPARE
 
-		if (klass->enumtype)
+		if (m_class_is_enumtype (klass))
 			/* enums only have one non-static field */
 			break;
 	}
@@ -1317,12 +1329,12 @@ ves_icall_System_Object_GetType (MonoObjectHandle obj, MonoError *error)
 		 * is just MarshalByRefObject). */
 		MonoType *proxy_type =
 			mono_remote_class_is_interface_proxy (remote_class) ?
-			&remote_class->interfaces[0]->byval_arg :
-			&remote_class->proxy_class->byval_arg;
+			m_class_get_byval_arg (remote_class->interfaces[0]) :
+			m_class_get_byval_arg (remote_class->proxy_class);
 		return mono_type_get_object_handle (domain, proxy_type, error);
 	} else
 #endif
-		return mono_type_get_object_handle (domain, &klass->byval_arg, error);
+		return mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
 }
 
 static gboolean
@@ -1335,12 +1347,19 @@ get_executing (MonoMethod *m, gint32 no, gint32 ilo, gboolean managed, gpointer 
 		return FALSE;
 
 	if (!(*dest)) {
-		if (!strcmp (m->klass->name_space, "System.Reflection"))
+		if (!strcmp (m_class_get_name_space (m->klass), "System.Reflection"))
 			return FALSE;
 		*dest = m;
 		return TRUE;
 	}
 	return FALSE;
+}
+
+static gboolean
+in_corlib_name_space (MonoClass *klass, const char *name_space)
+{
+	return m_class_get_image (klass) == mono_defaults.corlib &&
+		!strcmp (m_class_get_name_space (klass), name_space);
 }
 
 static gboolean
@@ -1360,7 +1379,7 @@ get_caller_no_reflection (MonoMethod *m, gint32 no, gint32 ilo, gboolean managed
 		return FALSE;
 	}
 
-	if (m->klass->image == mono_defaults.corlib && !strcmp (m->klass->name_space, "System.Reflection"))
+	if (in_corlib_name_space (m->klass, "System.Reflection"))
 		return FALSE;
 
 	if (!(*dest)) {
@@ -1387,8 +1406,7 @@ get_caller_no_system_or_reflection (MonoMethod *m, gint32 no, gint32 ilo, gboole
 		return FALSE;
 	}
 
-	if (m->klass->image == mono_defaults.corlib && ((!strcmp (m->klass->name_space, "System.Reflection"))
-													|| (!strcmp (m->klass->name_space, "System"))))
+	if (in_corlib_name_space (m->klass, "System.Reflection") || in_corlib_name_space (m->klass, "System"))
 		return FALSE;
 
 	if (!(*dest)) {
@@ -1417,7 +1435,7 @@ type_from_parsed_name (MonoTypeNameParse *info, MonoBoolean ignoreCase, MonoAsse
 	 */
 	m = mono_method_get_last_managed ();
 	dest = m;
-	if (m && m->klass->image != mono_defaults.corlib) {
+	if (m && m_class_get_image (m->klass) != mono_defaults.corlib) {
 		/* Happens with inlining */
 	} else {
 		/* Ugly hack: type_from_parsed_name is called from
@@ -1444,7 +1462,7 @@ type_from_parsed_name (MonoTypeNameParse *info, MonoBoolean ignoreCase, MonoAsse
 	 */
 
 	if (dest) {
-		assembly = dest->klass->image->assembly;
+		assembly = m_class_get_image (dest->klass)->assembly;
 		type_resolve = TRUE;
 		rootimage = assembly->image;
 	} else {
@@ -1646,14 +1664,14 @@ handle_enum:
 	case MONO_TYPE_VALUETYPE: {
 		MonoClass *klass = type->data.klass;
 		
-		if (klass->enumtype) {
+		if (m_class_is_enumtype (klass)) {
 			t = mono_class_enum_basetype (klass)->type;
 			goto handle_enum;
-		} else if (mono_is_corlib_image (klass->image)) {
-			if (strcmp (klass->name_space, "System") == 0) {
-				if (strcmp (klass->name, "Decimal") == 0)
+		} else if (mono_is_corlib_image (m_class_get_image (klass))) {
+			if (strcmp (m_class_get_name_space (klass), "System") == 0) {
+				if (strcmp (m_class_get_name (klass), "Decimal") == 0)
 					return TYPECODE_DECIMAL;
-				else if (strcmp (klass->name, "DateTime") == 0)
+				else if (strcmp (m_class_get_name (klass), "DateTime") == 0)
 					return TYPECODE_DATETIME;
 			}
 		}
@@ -1671,8 +1689,8 @@ handle_enum:
 	case MONO_TYPE_CLASS:
 		{
 			MonoClass *klass =  type->data.klass;
-			if (klass->image == mono_defaults.corlib && strcmp (klass->name_space, "System") == 0) {
-				if (strcmp (klass->name, "DBNull") == 0)
+			if (m_class_get_image (klass) == mono_defaults.corlib && strcmp (m_class_get_name_space (klass), "System") == 0) {
+				if (strcmp (m_class_get_name (klass), "DBNull") == 0)
 					return TYPECODE_DBNULL;
 			}
 		}
@@ -1688,9 +1706,9 @@ handle_enum:
 static MonoType*
 mono_type_get_underlying_type_ignore_byref (MonoType *type)
 {
-	if (type->type == MONO_TYPE_VALUETYPE && type->data.klass->enumtype)
+	if (type->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (type->data.klass))
 		return mono_class_enum_basetype (type->data.klass);
-	if (type->type == MONO_TYPE_GENERICINST && type->data.generic_class->container_class->enumtype)
+	if (type->type == MONO_TYPE_GENERICINST && m_class_is_enumtype (type->data.generic_class->container_class))
 		return mono_class_enum_basetype (type->data.generic_class->container_class);
 	return type;
 }
@@ -1718,7 +1736,7 @@ ves_icall_RuntimeTypeHandle_type_is_assignable_from (MonoReflectionTypeHandle re
 		klassc = mono_class_from_mono_type (ot);
 
 		if (mono_type_is_primitive (t)) {
-			return mono_type_is_primitive (ot) && klass->instance_size == klassc->instance_size;
+			return mono_type_is_primitive (ot) && m_class_get_instance_size (klass) == m_class_get_instance_size (klassc);
 		} else if (t->type == MONO_TYPE_VAR || t->type == MONO_TYPE_MVAR) {
 			return t->type == ot->type && t->data.generic_param->num == ot->data.generic_param->num;
 		} else if (t->type == MONO_TYPE_PTR || t->type == MONO_TYPE_FNPTR) {
@@ -1727,9 +1745,9 @@ ves_icall_RuntimeTypeHandle_type_is_assignable_from (MonoReflectionTypeHandle re
 			 if (ot->type == MONO_TYPE_VAR || ot->type == MONO_TYPE_MVAR)
 				 return FALSE;
 
-			 if (klass->valuetype)
+			 if (m_class_is_valuetype (klass))
 				return klass == klassc;
-			return klass->valuetype == klassc->valuetype;
+			 return m_class_is_valuetype (klass) == m_class_is_valuetype (klassc);
 		}
 	}
 	return mono_class_is_assignable_from (klass, klassc);
@@ -1869,11 +1887,11 @@ ves_icall_System_Reflection_FieldInfo_GetTypeModifiers (MonoReflectionFieldHandl
 	if (!is_ok (error))
 		return MONO_HANDLE_CAST (MonoArray, NULL_HANDLE);
 
-	return type_array_from_modifiers (field->parent->image, type, optional, error);
+	return type_array_from_modifiers (m_class_get_image (field->parent), type, optional, error);
 }
 
 ICALL_EXPORT int
-vell_icall_get_method_attributes (MonoMethod *method)
+ves_icall_get_method_attributes (MonoMethod *method)
 {
 	return method->flags;
 }
@@ -1886,7 +1904,7 @@ ves_icall_get_method_info (MonoMethod *method, MonoMethodInfo *info, MonoError *
 	MonoMethodSignature* sig = mono_method_signature_checked (method, error);
 	return_if_nok (error);
 
-	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, &method->klass->byval_arg, error);
+	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (method->klass), error);
 	return_if_nok (error);
 
 	MONO_STRUCT_SETREF (info, parent, MONO_HANDLE_RAW (rt));
@@ -1972,7 +1990,7 @@ ves_icall_MonoField_GetParentType (MonoReflectionFieldHandle field, MonoBoolean 
 		parent = MONO_HANDLE_GETVAL (field, klass);
 	}
 
-	return mono_type_get_object_handle (domain, &parent->byval_arg, error);
+	return mono_type_get_object_handle (domain, m_class_get_byval_arg (parent), error);
 }
 
 ICALL_EXPORT MonoObject *
@@ -1983,7 +2001,7 @@ ves_icall_MonoField_GetValueInternal (MonoReflectionField *field, MonoObject *ob
 	MonoClassField *cf = field->field;
 	MonoDomain *domain = mono_object_domain (field);
 
-	if (fklass->image->assembly->ref_only) {
+	if (m_class_get_image (fklass)->assembly->ref_only) {
 		mono_set_pending_exception (mono_get_exception_invalid_operation (
 					"It is illegal to get the value on a field on a type loaded using the ReflectionOnly methods."));
 		return NULL;
@@ -2018,7 +2036,7 @@ ves_icall_MonoField_SetValueInternal (MonoReflectionFieldHandle field, MonoObjec
 	MonoClassField *cf = MONO_HANDLE_GETVAL (field, field);
 
 	MonoClass *field_klass = MONO_HANDLE_GETVAL (field, klass);
-	if (field_klass->image->assembly->ref_only) {
+	if (m_class_get_image (field_klass)->assembly->ref_only) {
 		mono_error_set_invalid_operation (error, "It is illegal to set the value on a field on a type loaded using the ReflectionOnly methods.");
 		return;
 	}
@@ -2090,7 +2108,7 @@ ves_icall_MonoField_SetValueInternal (MonoReflectionFieldHandle field, MonoObjec
 				 * This is complicated by the fact that Nullables have
 				 * a variable structure.
 				 */
-				MonoObjectHandle nullable = MONO_HANDLE_NEW (MonoObject, mono_object_new_checked (mono_domain_get (), nklass, error));
+				MonoObjectHandle nullable = mono_object_new_handle (mono_domain_get (), nklass, error);
 				return_if_nok (error);
 
 				uint32_t nullable_gchandle = 0;
@@ -2102,7 +2120,7 @@ ves_icall_MonoField_SetValueInternal (MonoReflectionFieldHandle field, MonoObjec
 				v = (gchar*)nval;
 			}
 			else {
-				isref = !gclass->container_class->valuetype;
+				isref = !m_class_is_valuetype (gclass->container_class);
 				if (!isref && !MONO_HANDLE_IS_NULL (value)) {
 					v = mono_object_handle_pin_unbox (value, &value_gchandle);
 				};
@@ -2146,9 +2164,25 @@ leave:
 		mono_gchandle_free (value_gchandle);
 }
 
+static MonoObjectHandle
+typed_reference_to_object (MonoTypedRef *tref, MonoError *error)
+{
+	HANDLE_FUNCTION_ENTER ();
+	MonoObjectHandle result;
+	if (MONO_TYPE_IS_REFERENCE (tref->type)) {
+		MonoObject** objp = (MonoObject **)tref->value;
+		result = MONO_HANDLE_NEW (MonoObject, *objp);
+	} else {
+		result = mono_value_box_handle (mono_domain_get (), tref->klass, tref->value, error);
+	}
+	HANDLE_FUNCTION_RETURN_REF (MonoObject, result);
+}
+
 ICALL_EXPORT void
 ves_icall_System_RuntimeFieldHandle_SetValueDirect (MonoReflectionField *field, MonoReflectionType *field_type, MonoTypedRef *obj, MonoObject *value, MonoReflectionType *context_type)
 {
+	ICALL_ENTRY ();
+
 	MonoClassField *f;
 
 	g_assert (field);
@@ -2156,15 +2190,19 @@ ves_icall_System_RuntimeFieldHandle_SetValueDirect (MonoReflectionField *field, 
 	g_assert (value);
 
 	f = field->field;
-	if (!MONO_TYPE_ISSTRUCT (&f->parent->byval_arg)) {
-		mono_set_pending_exception (mono_get_exception_not_implemented (NULL));
-		return;
-	}
-
-	if (MONO_TYPE_IS_REFERENCE (f->type))
+	if (!MONO_TYPE_ISSTRUCT (m_class_get_byval_arg (f->parent))) {
+		MonoReflectionFieldHandle fieldHandle = MONO_HANDLE_NEW (MonoReflectionField, field);
+		MonoObjectHandle objHandle = typed_reference_to_object (obj, error), 
+			valueHandle = MONO_HANDLE_NEW (MonoObject, value);
+		goto_if_nok (error, leave);
+		ves_icall_MonoField_SetValueInternal (fieldHandle, objHandle, valueHandle, error);
+	} else if (MONO_TYPE_IS_REFERENCE (f->type))
 		mono_copy_value (f->type, (guint8*)obj->value + f->offset - sizeof (MonoObject), value, FALSE);
 	else
 		mono_copy_value (f->type, (guint8*)obj->value + f->offset - sizeof (MonoObject), mono_object_unbox (value), FALSE);
+
+leave:
+	ICALL_RETURN ();
 }
 
 ICALL_EXPORT MonoObject *
@@ -2193,9 +2231,9 @@ ves_icall_MonoField_GetRawConstantValue (MonoReflectionField *rfield)
 		return NULL;
 	}
 
-	if (image_is_dynamic (field->parent->image)) {
+	if (image_is_dynamic (m_class_get_image (field->parent))) {
 		MonoClass *klass = field->parent;
-		int fidx = field - klass->fields;
+		int fidx = field - m_class_get_fields (klass);
 		MonoFieldDefaultValue *def_values = mono_class_get_field_def_values (klass);
 
 		g_assert (def_values);
@@ -2294,13 +2332,13 @@ ves_icall_MonoPropertyInfo_get_property_info (MonoReflectionPropertyHandle prope
 
 	if ((req_info & PInfo_ReflectedType) != 0) {
 		MonoClass *klass = MONO_HANDLE_GETVAL (property, klass);
-		MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, &klass->byval_arg, error);
+		MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
 		return_if_nok (error);
 
 		MONO_STRUCT_SETREF (info, parent, MONO_HANDLE_RAW (rt));
 	}
 	if ((req_info & PInfo_DeclaringType) != 0) {
-		MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, &pproperty->parent->byval_arg, error);
+		MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (pproperty->parent), error);
 		return_if_nok (error);
 
 		MONO_STRUCT_SETREF (info, declaring_type, MONO_HANDLE_RAW (rt));
@@ -2371,11 +2409,11 @@ ves_icall_MonoEventInfo_get_event_info (MonoReflectionMonoEventHandle ref_event,
 	MonoClass *klass = MONO_HANDLE_GETVAL (ref_event, klass);
 	MonoEvent *event = MONO_HANDLE_GETVAL (ref_event, event);
 
-	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, &klass->byval_arg, error);
+	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
 	return_if_nok (error);
 	MONO_STRUCT_SETREF (info, reflected_type, MONO_HANDLE_RAW (rt));
 
-	rt = mono_type_get_object_handle (domain, &event->parent->byval_arg, error);
+	rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (event->parent), error);
 	return_if_nok (error);
 	MONO_STRUCT_SETREF (info, declaring_type, MONO_HANDLE_RAW (rt));
 
@@ -2440,8 +2478,10 @@ collect_interfaces (MonoClass *klass, GHashTable *ifaces, MonoError *error)
 	if (!mono_error_ok (error))
 		return;
 
-	for (i = 0; i < klass->interface_count; i++) {
-		ic = klass->interfaces [i];
+	int klass_interface_count = m_class_get_interface_count (klass);
+	MonoClass **klass_interfaces = m_class_get_interfaces (klass);
+	for (i = 0; i < klass_interface_count; i++) {
+		ic = klass_interfaces [i];
 		g_hash_table_insert (ifaces, ic, ic);
 
 		collect_interfaces (ic, ifaces, error);
@@ -2464,7 +2504,7 @@ fill_iface_array (gpointer key, gpointer value, gpointer user_data)
 	HANDLE_FUNCTION_ENTER ();
 	FillIfaceArrayData *data = (FillIfaceArrayData *)user_data;
 	MonoClass *ic = (MonoClass *)key;
-	MonoType *ret = &ic->byval_arg, *inflated = NULL;
+	MonoType *ret = m_class_get_byval_arg (ic), *inflated = NULL;
 	MonoError *error = data->error;
 
 	goto_if_nok (error, leave);
@@ -2491,7 +2531,7 @@ get_interfaces_hash (gconstpointer v1)
 {
 	MonoClass *k = (MonoClass*)v1;
 
-	return k->type_token;
+	return m_class_get_type_token (k);
 }
 
 ICALL_EXPORT MonoArrayHandle
@@ -2509,7 +2549,7 @@ ves_icall_RuntimeType_GetInterfaces (MonoReflectionTypeHandle ref_type, MonoErro
 		klass = mono_class_get_generic_class (klass)->container_class;
 	}
 
-	for (MonoClass *parent = klass; parent; parent = parent->parent) {
+	for (MonoClass *parent = klass; parent; parent = m_class_get_parent (parent)) {
 		mono_class_setup_interfaces (parent, error);
 		goto_if_nok (error, fail);
 		collect_interfaces (parent, iface_hash, error);
@@ -2558,7 +2598,7 @@ set_interface_map_data_method_object (MonoDomain *domain, MonoMethod *method, Mo
 
 	MONO_HANDLE_ARRAY_SETREF (methods, i, member);
 
-	MONO_HANDLE_ASSIGN (member, mono_method_get_object_handle (domain, klass->vtable [i + ioffset], klass, error));
+	MONO_HANDLE_ASSIGN (member, mono_method_get_object_handle (domain, m_class_get_vtable (klass) [i + ioffset], klass, error));
 	goto_if_nok (error, leave);
 
 	MONO_HANDLE_ARRAY_SETREF (targets, i, member);
@@ -2619,12 +2659,12 @@ ves_icall_RuntimeType_GetPacking (MonoReflectionTypeHandle ref_type, guint32 *pa
 	if (!is_ok (error))
 		return;
 
-	if (image_is_dynamic (klass->image)) {
+	if (image_is_dynamic (m_class_get_image (klass))) {
 		MonoReflectionTypeBuilderHandle tb = MONO_HANDLE_CAST (MonoReflectionTypeBuilder, ref_type);
 		*packing = MONO_HANDLE_GETVAL (tb, packing_size);
 		*size = MONO_HANDLE_GETVAL (tb, class_size);
 	} else {
-		mono_metadata_packing_from_typedef (klass->image, klass->type_token, packing, size);
+		mono_metadata_packing_from_typedef (m_class_get_image (klass), m_class_get_type_token (klass), packing, size);
 	}
 }
 
@@ -2637,7 +2677,7 @@ ves_icall_RuntimeTypeHandle_GetElementType (MonoReflectionTypeHandle ref_type, M
 	MonoType *type = MONO_HANDLE_GETVAL (ref_type, type);
 
 	if (!type->byref && type->type == MONO_TYPE_SZARRAY) {
-		return mono_type_get_object_handle (domain, &type->data.klass->byval_arg, error);
+		return mono_type_get_object_handle (domain, m_class_get_byval_arg (type->data.klass), error);
 	}
 
 	MonoClass *klass = mono_class_from_mono_type (type);
@@ -2648,11 +2688,11 @@ ves_icall_RuntimeTypeHandle_GetElementType (MonoReflectionTypeHandle ref_type, M
 	// GetElementType should only return a type for:
 	// Array Pointer PassedByRef
 	if (type->byref)
-		return mono_type_get_object_handle (domain, &klass->byval_arg, error);
-	else if (klass->element_class && MONO_CLASS_IS_ARRAY (klass))
-		return mono_type_get_object_handle (domain, &klass->element_class->byval_arg, error);
-	else if (klass->element_class && type->type == MONO_TYPE_PTR)
-		return mono_type_get_object_handle (domain, &klass->element_class->byval_arg, error);
+		return mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
+	else if (m_class_get_element_class (klass) && MONO_CLASS_IS_ARRAY (klass))
+		return mono_type_get_object_handle (domain, m_class_get_byval_arg (m_class_get_element_class (klass)), error);
+	else if (m_class_get_element_class (klass) && type->type == MONO_TYPE_PTR)
+		return mono_type_get_object_handle (domain, m_class_get_byval_arg (m_class_get_element_class (klass)), error);
 	else
 		return MONO_HANDLE_CAST (MonoReflectionType, NULL_HANDLE);
 }
@@ -2669,10 +2709,10 @@ ves_icall_RuntimeTypeHandle_GetBaseType (MonoReflectionTypeHandle ref_type, Mono
 		return MONO_HANDLE_CAST (MonoReflectionType, NULL_HANDLE);
 
 	MonoClass *klass = mono_class_from_mono_type (type);
-	if (!klass->parent)
+	if (!m_class_get_parent (klass))
 		return MONO_HANDLE_CAST (MonoReflectionType, NULL_HANDLE);
 
-	return mono_type_get_object_handle (domain, &klass->parent->byval_arg, error);
+	return mono_type_get_object_handle (domain, m_class_get_byval_arg (m_class_get_parent (klass)), error);
 }
 
 ICALL_EXPORT MonoBoolean
@@ -2700,7 +2740,7 @@ ves_icall_RuntimeTypeHandle_HasReferences (MonoReflectionTypeHandle ref_type, Mo
 
 	klass = mono_class_from_mono_type (type);
 	mono_class_init (klass);
-	return klass->has_references;
+	return m_class_has_references (klass);
 }
 
 ICALL_EXPORT MonoBoolean
@@ -2738,7 +2778,7 @@ ves_icall_RuntimeTypeHandle_GetModule (MonoReflectionTypeHandle type, MonoError 
 	MonoDomain *domain = MONO_HANDLE_DOMAIN (type);
 	MonoType *t = MONO_HANDLE_GETVAL (type, type);
 	MonoClass *klass = mono_class_from_mono_type (t);
-	return mono_module_get_object_handle (domain, klass->image, error);
+	return mono_module_get_object_handle (domain, m_class_get_image (klass), error);
 }
 
 ICALL_EXPORT MonoReflectionAssemblyHandle
@@ -2748,7 +2788,7 @@ ves_icall_RuntimeTypeHandle_GetAssembly (MonoReflectionTypeHandle type, MonoErro
 	MonoDomain *domain = mono_domain_get (); 
 	MonoType *t = MONO_HANDLE_GETVAL (type, type);
 	MonoClass *klass = mono_class_from_mono_type (t);
-	return mono_assembly_get_object_handle (domain, klass->image->assembly, error);
+	return mono_assembly_get_object_handle (domain, m_class_get_image (klass)->assembly, error);
 }
 
 ICALL_EXPORT MonoReflectionTypeHandle
@@ -2768,13 +2808,13 @@ ves_icall_RuntimeType_get_DeclaringType (MonoReflectionTypeHandle ref_type, Mono
 		MonoGenericContainer *param = mono_type_get_generic_param_owner (type);
 		klass = param ? param->owner.method->klass : NULL;
 	} else {
-		klass = mono_class_from_mono_type (type)->nested_in;
+		klass = m_class_get_nested_in (mono_class_from_mono_type (type));
 	}
 
 	if (!klass)
 		return MONO_HANDLE_CAST (MonoReflectionType, NULL_HANDLE);
 
-	return mono_type_get_object_handle (domain, &klass->byval_arg, error);
+	return mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
 }
 
 ICALL_EXPORT MonoStringHandle
@@ -2785,14 +2825,14 @@ ves_icall_RuntimeType_get_Name (MonoReflectionTypeHandle reftype, MonoError *err
 	MonoClass *klass = mono_class_from_mono_type (type);
 
 	if (type->byref) {
-		char *n = g_strdup_printf ("%s&", klass->name);
+		char *n = g_strdup_printf ("%s&", m_class_get_name (klass));
 		MonoStringHandle res = mono_string_new_handle (domain, n, error);
 
 		g_free (n);
 
 		return res;
 	} else {
-		return mono_string_new_handle (domain, klass->name, error);
+		return mono_string_new_handle (domain, m_class_get_name (klass), error);
 	}
 }
 
@@ -2802,13 +2842,14 @@ ves_icall_RuntimeType_get_Namespace (MonoReflectionTypeHandle type, MonoError *e
 	MonoDomain *domain = mono_domain_get (); 
 	MonoClass *klass = mono_class_from_mono_type_handle (type);
 
-	while (klass->nested_in)
-		klass = klass->nested_in;
+	MonoClass *klass_nested_in;
+	while ((klass_nested_in = m_class_get_nested_in (klass)))
+		klass = klass_nested_in;
 
-	if (klass->name_space [0] == '\0')
+	if (m_class_get_name_space (klass) [0] == '\0')
 		return NULL_HANDLE_STRING;
 	else
-		return mono_string_new_handle (domain, klass->name_space, error);
+		return mono_string_new_handle (domain, m_class_get_name_space (klass), error);
 }
 
 ICALL_EXPORT gint32
@@ -2824,7 +2865,7 @@ ves_icall_RuntimeTypeHandle_GetArrayRank (MonoReflectionTypeHandle ref_type, Mon
 
 	MonoClass *klass = mono_class_from_mono_type (type);
 
-	return klass->rank;
+	return m_class_get_rank (klass);
 }
 
 static MonoArrayHandle
@@ -2864,7 +2905,7 @@ ves_icall_RuntimeType_GetGenericArguments (MonoReflectionTypeHandle ref_type, Mo
 		for (int i = 0; i < container->type_argc; ++i) {
 			MonoClass *pklass = mono_class_create_generic_parameter (mono_generic_container_get_param (container, i));
 
-			if (!set_type_object_in_array (domain, &pklass->byval_arg, res, i, error))
+			if (!set_type_object_in_array (domain, m_class_get_byval_arg (pklass), res, i, error))
 				goto leave;
 		}
 		
@@ -2921,13 +2962,13 @@ ves_icall_RuntimeTypeHandle_GetGenericTypeDefinition_impl (MonoReflectionTypeHan
 
 		guint32 ref_info_handle = mono_class_get_ref_info_handle (generic_class);
 		
-		if (generic_class->wastypebuilder && ref_info_handle) {
+		if (m_class_was_typebuilder (generic_class) && ref_info_handle) {
 			MonoObjectHandle tb = mono_gchandle_get_target_handle (ref_info_handle);
 			g_assert (!MONO_HANDLE_IS_NULL (tb));
 			MONO_HANDLE_ASSIGN (ret, tb);
 		} else {
 			MonoDomain *domain = MONO_HANDLE_DOMAIN (ref_type);
-			MONO_HANDLE_ASSIGN (ret, mono_type_get_object_handle (domain, &generic_class->byval_arg, error));
+			MONO_HANDLE_ASSIGN (ret, mono_type_get_object_handle (domain, m_class_get_byval_arg (generic_class), error));
 		}
 	}
 leave:
@@ -3092,7 +3133,7 @@ ves_icall_MonoMethod_GetPInvoke (MonoReflectionMethodHandle ref_method, int* fla
 {
 	MonoDomain *domain = mono_domain_get ();
 	MonoMethod *method = MONO_HANDLE_GETVAL (ref_method, method);
-	MonoImage *image = method->klass->image;
+	MonoImage *image = m_class_get_image (method->klass);
 	MonoMethodPInvoke *piinfo = (MonoMethodPInvoke *)method;
 	MonoTableInfo *tables = image->tables;
 	MonoTableInfo *im = &tables [MONO_TABLE_IMPLMAP];
@@ -3153,8 +3194,8 @@ ves_icall_MonoMethod_GetGenericMethodDefinition (MonoReflectionMethodHandle ref_
 	if (!result->is_generic)
 		return MONO_HANDLE_CAST (MonoReflectionMethod, NULL_HANDLE);
 
-	if (image_is_dynamic (method->klass->image)) {
-		MonoDynamicImage *image = (MonoDynamicImage*)method->klass->image;
+	if (image_is_dynamic (m_class_get_image (method->klass))) {
+		MonoDynamicImage *image = (MonoDynamicImage*)m_class_get_image (method->klass);
 
 		/*
 		 * FIXME: Why is this stuff needed at all ? Why can't the code below work for
@@ -3213,7 +3254,7 @@ set_array_generic_argument_handle_gparam (MonoDomain *domain, MonoGenericContain
 	error_init (error);
 	MonoGenericParam *param = mono_generic_container_get_param (container, i);
 	MonoClass *pklass = mono_class_create_generic_parameter (param);
-	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, &pklass->byval_arg, error);
+	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (pklass), error);
 	goto_if_nok (error, leave);
 	MONO_HANDLE_ARRAY_SETREF (arr, i, rt);
 leave:
@@ -3304,7 +3345,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this_arg, Mo
 			}
 			m = mono_object_get_virtual_method (this_arg, m);
 			/* must pass the pointer to the value for valuetype methods */
-			if (m->klass->valuetype)
+			if (m_class_is_valuetype (m->klass))
 				obj = mono_object_unbox (this_arg);
 		} else if (strcmp (m->name, ".ctor") && !m->wrapper_type) {
 			mono_gc_wbarrier_generic_store (exc, (MonoObject*) mono_exception_from_name_msg (mono_defaults.corlib, "System.Reflection", "TargetException", "Non-static method requires a target."));
@@ -3328,7 +3369,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this_arg, Mo
 		return NULL;
 	}
 
-	image = m->klass->image;
+	image = m_class_get_image (m->klass);
 	if (image->assembly->ref_only) {
 		mono_gc_wbarrier_generic_store (exc, (MonoObject*) mono_get_exception_invalid_operation ("It is illegal to invoke a method on a type loaded using the ReflectionOnly api."));
 		return NULL;
@@ -3339,7 +3380,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this_arg, Mo
 		return NULL;
 	}
 	
-	if (m->klass->rank && !strcmp (m->name, ".ctor")) {
+	if (m_class_get_rank (m->klass) && !strcmp (m->name, ".ctor")) {
 		MonoArray *arr;
 		int i;
 		uintptr_t *lengths;
@@ -3350,7 +3391,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this_arg, Mo
 		for (i = 0; i < pcount; ++i)
 			lengths [i] = *(int32_t*) ((char*)mono_array_get (params, gpointer, i) + sizeof (MonoObject));
 
-		if (m->klass->rank == 1 && sig->param_count == 2 && m->klass->element_class->rank) {
+		if (m_class_get_rank (m->klass) == 1 && sig->param_count == 2 && m_class_get_rank (m_class_get_element_class (m->klass))) {
 			/* This is a ctor for jagged arrays. MS creates an array of arrays. */
 			arr = mono_array_new_full_checked (mono_object_domain (params), m->klass, lengths, NULL, error);
 			if (!mono_error_ok (error)) {
@@ -3359,7 +3400,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this_arg, Mo
 			}
 
 			for (i = 0; i < mono_array_length (arr); ++i) {
-				MonoArray *subarray = mono_array_new_full_checked (mono_object_domain (params), m->klass->element_class, &lengths [1], NULL, error);
+				MonoArray *subarray = mono_array_new_full_checked (mono_object_domain (params), m_class_get_element_class (m->klass), &lengths [1], NULL, error);
 				if (!mono_error_ok (error)) {
 					mono_error_set_pending_exception (error);
 					return NULL;
@@ -3369,7 +3410,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this_arg, Mo
 			return (MonoObject*)arr;
 		}
 
-		if (m->klass->rank == pcount) {
+		if (m_class_get_rank (m->klass) == pcount) {
 			/* Only lengths provided. */
 			arr = mono_array_new_full_checked (mono_object_domain (params), m->klass, lengths, NULL, error);
 			if (!mono_error_ok (error)) {
@@ -3379,7 +3420,7 @@ ves_icall_InternalInvoke (MonoReflectionMethod *method, MonoObject *this_arg, Mo
 
 			return (MonoObject*)arr;
 		} else {
-			g_assert (pcount == (m->klass->rank * 2));
+			g_assert (pcount == (m_class_get_rank (m->klass) * 2));
 			/* The arguments are lower-bound-length pairs */
 			lower_bounds = (intptr_t *)g_alloca (sizeof (intptr_t) * pcount);
 
@@ -3430,7 +3471,7 @@ internal_execute_field_getter (MonoDomain *domain, MonoObject *this_arg, MonoArr
 			g_free (str);
 			MonoClass *field_klass =  mono_class_from_mono_type (field->type);
 			MonoObject *result;
-			if (field_klass->valuetype) {
+			if (m_class_is_valuetype (field_klass)) {
 				result = mono_value_box_checked (domain, field_klass, (char *)this_arg + field->offset, error);
 				return_if_nok (error);
 			} else 
@@ -3442,7 +3483,7 @@ internal_execute_field_getter (MonoDomain *domain, MonoObject *this_arg, MonoArr
 			mono_array_setref (out_args, 0, result);
 			return;
 		}
-		k = k->parent;
+		k = m_class_get_parent (k);
 	} while (k);
 
 	g_free (str);
@@ -3479,7 +3520,7 @@ internal_execute_field_setter (MonoDomain *domain, MonoObject *this_arg, MonoArr
 			MonoClass *field_klass =  mono_class_from_mono_type (field->type);
 			MonoObject *val = (MonoObject *)mono_array_get (params, gpointer, 2);
 
-			if (field_klass->valuetype) {
+			if (m_class_is_valuetype (field_klass)) {
 				size = mono_type_size (field->type, &align);
 				g_assert (size == mono_class_value_size (field_klass, NULL));
 				mono_gc_wbarrier_value_copy ((char *)this_arg + field->offset, (char*)val + sizeof (MonoObject), 1, field_klass);
@@ -3493,7 +3534,7 @@ internal_execute_field_setter (MonoDomain *domain, MonoObject *this_arg, MonoArr
 			return;
 		}
 				
-		k = k->parent;
+		k = m_class_get_parent (k);
 	} while (k);
 
 	g_free (str);
@@ -3537,7 +3578,7 @@ ves_icall_InternalExecute (MonoReflectionMethod *method, MonoObject *this_arg, M
 		g_assert (this_arg);
 
 	/* This can be called only on MBR objects, so no need to unbox for valuetypes. */
-	g_assert (!method->method->klass->valuetype);
+	g_assert (!m_class_is_valuetype (method->method->klass));
 	result = mono_runtime_invoke_array_checked (method->method, this_arg, params, error);
 	if (mono_error_set_pending_exception (error))
 		return NULL;
@@ -3619,110 +3660,104 @@ write_enum_value (char *mem, int type, guint64 value)
 	return;
 }
 
-ICALL_EXPORT MonoObject *
-ves_icall_System_Enum_ToObject (MonoReflectionType *enumType, guint64 value)
+ICALL_EXPORT MonoObjectHandle
+ves_icall_System_Enum_ToObject (MonoReflectionTypeHandle enumType, guint64 value, MonoError *error)
 {
-	ERROR_DECL (error);
 	MonoDomain *domain; 
 	MonoClass *enumc;
-	MonoObject *res;
+	MonoObjectHandle resultHandle;
 	MonoType *etype;
 
-	domain = mono_object_domain (enumType); 
-	enumc = mono_class_from_mono_type (enumType->type);
+	domain = MONO_HANDLE_DOMAIN (enumType);
+	enumc = mono_class_from_mono_type (MONO_HANDLE_GETVAL (enumType, type));
 
 	mono_class_init_checked (enumc, error);
-	if (mono_error_set_pending_exception (error))
-		return NULL;
+	goto_if_nok (error, return_null);
 
 	etype = mono_class_enum_basetype (enumc);
 
-	res = mono_object_new_checked (domain, enumc, error);
-	if (mono_error_set_pending_exception (error))
-		return NULL;
-	write_enum_value ((char *)res + sizeof (MonoObject), etype->type, value);
+	resultHandle = mono_object_new_handle (domain, enumc, error);
+	goto_if_nok (error, return_null);
 
-	return res;
+	write_enum_value (mono_handle_unbox_unsafe (resultHandle), etype->type, value);
+
+	return resultHandle;
+
+return_null:
+	return MONO_HANDLE_NEW (MonoObject, NULL);
 }
 
 ICALL_EXPORT MonoBoolean
-ves_icall_System_Enum_InternalHasFlag (MonoObject *a, MonoObject *b)
+ves_icall_System_Enum_InternalHasFlag (MonoObjectHandle a, MonoObjectHandle b, MonoError *error)
 {
-	int size = mono_class_value_size (a->vtable->klass, NULL);
+	int size = mono_class_value_size (mono_handle_class (a), NULL);
 	guint64 a_val = 0, b_val = 0;
 
-	memcpy (&a_val, mono_object_unbox (a), size);
-	memcpy (&b_val, mono_object_unbox (b), size);
+	memcpy (&a_val, mono_handle_unbox_unsafe (a), size);
+	memcpy (&b_val, mono_handle_unbox_unsafe (b), size);
 
 	return (a_val & b_val) == b_val;
 }
 
-ICALL_EXPORT MonoObject *
-ves_icall_System_Enum_get_value (MonoObject *eobj)
+ICALL_EXPORT MonoObjectHandle
+ves_icall_System_Enum_get_value (MonoObjectHandle ehandle, MonoError *error)
 {
-	ERROR_DECL (error);
-	MonoObject *res;
+	MonoObjectHandle resultHandle;
 	MonoClass *enumc;
-	gpointer dst;
-	gpointer src;
 	int size;
 
-	if (!eobj)
-		return NULL;
+	goto_if (MONO_HANDLE_IS_NULL (ehandle), return_null);
 
-	g_assert (eobj->vtable->klass->enumtype);
-	
-	enumc = mono_class_from_mono_type (mono_class_enum_basetype (eobj->vtable->klass));
-	res = mono_object_new_checked (mono_object_domain (eobj), enumc, error);
-	if (mono_error_set_pending_exception (error))
-		return NULL;
-	dst = (char *)res + sizeof (MonoObject);
-	src = (char *)eobj + sizeof (MonoObject);
+	g_assert (m_class_is_enumtype (mono_handle_class (ehandle)));
+
+	enumc = mono_class_from_mono_type (mono_class_enum_basetype (mono_handle_class (ehandle)));
+
+	resultHandle = mono_object_new_handle (MONO_HANDLE_DOMAIN (ehandle), enumc, error);
+	goto_if_nok (error, return_null);
 	size = mono_class_value_size (enumc, NULL);
 
-	memcpy (dst, src, size);
+	memcpy (mono_handle_unbox_unsafe (resultHandle), mono_handle_unbox_unsafe (ehandle), size);
 
-	return res;
+	return resultHandle;
+return_null:
+	return MONO_HANDLE_NEW (MonoObject, NULL);
 }
 
-ICALL_EXPORT MonoReflectionType *
-ves_icall_System_Enum_get_underlying_type (MonoReflectionType *type)
+ICALL_EXPORT MonoReflectionTypeHandle
+ves_icall_System_Enum_get_underlying_type (MonoReflectionTypeHandle type, MonoError *error)
 {
-	ERROR_DECL (error);
-	MonoReflectionType *ret;
 	MonoType *etype;
 	MonoClass *klass;
 
-	klass = mono_class_from_mono_type (type->type);
+	klass = mono_class_from_mono_type (MONO_HANDLE_GETVAL (type, type));
 	mono_class_init_checked (klass, error);
-	if (mono_error_set_pending_exception (error))
-		return NULL;
+	goto_if_nok (error, return_null);
 
 	etype = mono_class_enum_basetype (klass);
 	if (!etype) {
-		mono_set_pending_exception (mono_get_exception_argument ("enumType", "Type provided must be an Enum."));
-		return NULL;
+		mono_error_set_argument (error, "enumType", "Type provided must be an Enum.");
+		goto return_null;
 	}
 
-	ret = mono_type_get_object_checked (mono_object_domain (type), etype, error);
-	mono_error_set_pending_exception (error);
+	return mono_type_get_object_handle (MONO_HANDLE_DOMAIN (type), etype, error);
 
-	return ret;
+return_null:
+	return MONO_HANDLE_NEW (MonoReflectionType, NULL);
 }
 
 ICALL_EXPORT int
-ves_icall_System_Enum_compare_value_to (MonoObject *eobj, MonoObject *other)
+ves_icall_System_Enum_compare_value_to (MonoObjectHandle enumHandle, MonoObjectHandle otherHandle, MonoError *error)
 {
-	gpointer tdata = (char *)eobj + sizeof (MonoObject);
-	gpointer odata = (char *)other + sizeof (MonoObject);
-	MonoType *basetype = mono_class_enum_basetype (eobj->vtable->klass);
-	g_assert (basetype);
-
-	if (other == NULL)
+	if (MONO_HANDLE_IS_NULL (otherHandle))
 		return 1;
 
-	if (eobj->vtable->klass != other->vtable->klass)
+	if (MONO_HANDLE_GETVAL (enumHandle, vtable)->klass != MONO_HANDLE_GETVAL (otherHandle, vtable)->klass)
 		return 2;
+
+	gpointer tdata = mono_handle_unbox_unsafe (enumHandle);
+	gpointer odata = mono_handle_unbox_unsafe (otherHandle);
+	MonoType *basetype = mono_class_enum_basetype (MONO_HANDLE_GETVAL (enumHandle, vtable)->klass);
+	g_assert (basetype);
 
 #define COMPARE_ENUM_VALUES(ENUM_TYPE) do { \
 		ENUM_TYPE me = *((ENUM_TYPE*)tdata); \
@@ -3750,19 +3785,17 @@ ves_icall_System_Enum_compare_value_to (MonoObject *eobj, MonoObject *other)
 			COMPARE_ENUM_VALUES (guint64);
 		case MONO_TYPE_I8:
 			COMPARE_ENUM_VALUES (gint64);
-		default:
-			break;
 	}
 #undef COMPARE_ENUM_VALUES
-	/* indicates that the enum was of an unsupported unerlying type */
+	/* indicates that the enum was of an unsupported underlying type */
 	return 3;
 }
 
 ICALL_EXPORT int
-ves_icall_System_Enum_get_hashcode (MonoObject *eobj)
+ves_icall_System_Enum_get_hashcode (MonoObjectHandle enumHandle, MonoError *error)
 {
-	gpointer data = (char *)eobj + sizeof (MonoObject);
-	MonoType *basetype = mono_class_enum_basetype (eobj->vtable->klass);
+	gpointer data = mono_handle_unbox_unsafe (enumHandle);
+	MonoType *basetype = mono_class_enum_basetype (MONO_HANDLE_GETVAL (enumHandle, vtable)->klass);
 	g_assert (basetype);
 
 	switch (basetype->type) {
@@ -3845,7 +3878,7 @@ ves_icall_System_Enum_GetEnumValuesAndNames (MonoReflectionTypeHandle type, Mono
 	mono_class_init_checked (enumc, error);
 	return_val_if_nok (error, FALSE);
 
-	if (!enumc->enumtype) {
+	if (!m_class_is_enumtype (enumc)) {
 		mono_error_set_argument (error, "enumType", "Type provided must be an Enum.");
 		return TRUE;
 	}
@@ -3947,7 +3980,7 @@ handle_parent:
 
 		g_ptr_array_add (ptr_array, field);
 	}
-	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = klass->parent))
+	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = m_class_get_parent (klass)))
 		goto handle_parent;
 
 	return ptr_array;
@@ -3993,7 +4026,7 @@ mono_class_get_methods_by_name (MonoClass *klass, const char *name, guint32 bfla
 		compare_func = (ignore_case) ? mono_utf8_strcasecmp : strcmp;
 
 	/* An optimization for calls made from Delegate:CreateDelegate () */
-	if (klass->delegate && name && !strcmp (name, "Invoke") && (bflags == (BFLAGS_Public | BFLAGS_Static | BFLAGS_Instance))) {
+	if (m_class_is_delegate (klass) && name && !strcmp (name, "Invoke") && (bflags == (BFLAGS_Public | BFLAGS_Static | BFLAGS_Instance))) {
 		method = mono_get_delegate_invoke (klass);
 		g_assert (method);
 
@@ -4006,8 +4039,8 @@ mono_class_get_methods_by_name (MonoClass *klass, const char *name, guint32 bfla
 	if (mono_class_has_failure (klass))
 		goto loader_error;
 
-	if (is_generic_parameter (&klass->byval_arg))
-		nslots = mono_class_get_vtable_size (klass->parent);
+	if (is_generic_parameter (m_class_get_byval_arg (klass)))
+		nslots = mono_class_get_vtable_size (m_class_get_parent (klass));
 	else
 		nslots = MONO_CLASS_IS_INTERFACE (klass) ? mono_class_num_methods (klass) : mono_class_get_vtable_size (klass);
 	if (nslots >= sizeof (method_slots_default) * 8) {
@@ -4064,7 +4097,7 @@ handle_parent:
 		match = 0;
 		g_ptr_array_add (array, method);
 	}
-	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = klass->parent))
+	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = m_class_get_parent (klass)))
 		goto handle_parent;
 	if (method_slots != method_slots_default)
 		g_free (method_slots);
@@ -4287,7 +4320,7 @@ handle_parent:
 		
 		g_hash_table_insert (properties, prop, prop);
 	}
-	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = klass->parent))
+	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = m_class_get_parent (klass)))
 		goto handle_parent;
 
 	g_hash_table_destroy (properties);
@@ -4394,7 +4427,7 @@ handle_parent:
 
 		g_hash_table_insert (events, event, event);
 	}
-	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = klass->parent))
+	if (!(bflags & BFLAGS_DeclaredOnly) && (klass = m_class_get_parent (klass)))
 		goto handle_parent;
 
 	g_hash_table_destroy (events);
@@ -4450,10 +4483,10 @@ ves_icall_RuntimeType_GetNestedTypes_native (MonoReflectionTypeHandle ref_type, 
 		if (!match)
 			continue;
 
-		if (str != NULL && strcmp (nested->name, str))
+		if (str != NULL && strcmp (m_class_get_name (nested), str))
 				continue;
 
-		g_ptr_array_add (res_array, &nested->byval_arg);
+		g_ptr_array_add (res_array, m_class_get_byval_arg (nested));
 	}
 
 	return res_array;
@@ -5224,8 +5257,9 @@ mono_method_get_equivalent_method (MonoMethod *method, MonoClass *klass)
 	if (mono_class_has_failure (method->klass))
 		return NULL;
 	int mcount = mono_class_get_method_count (method->klass);
+	MonoMethod **method_klass_methods = m_class_get_methods (method->klass);
 	for (i = 0; i < mcount; ++i) {
-		if (method->klass->methods [i] == method) {
+		if (method_klass_methods [i] == method) {
 			offset = i;
 			break;
 		}	
@@ -5234,7 +5268,7 @@ mono_method_get_equivalent_method (MonoMethod *method, MonoClass *klass)
 	if (mono_class_has_failure (klass))
 		return NULL;
 	g_assert (offset >= 0 && offset < mono_class_get_method_count (klass));
-	return klass->methods [offset];
+	return m_class_get_methods (klass) [offset];
 }
 
 ICALL_EXPORT MonoReflectionMethodHandle
@@ -5274,7 +5308,7 @@ ves_icall_System_Reflection_Assembly_GetExecutingAssembly (MonoError *error)
 	MonoMethod *dest = NULL;
 	mono_stack_walk_no_il (get_executing, &dest);
 	g_assert (dest);
-	return mono_assembly_get_object_handle (mono_domain_get (), dest->klass->image->assembly, error);
+	return mono_assembly_get_object_handle (mono_domain_get (), m_class_get_image (dest->klass)->assembly, error);
 }
 
 
@@ -5308,7 +5342,7 @@ ves_icall_System_Reflection_Assembly_GetCallingAssembly (MonoError *error)
 		mono_error_set_not_supported (error, "Stack walks are not supported on this platform.");
 		return MONO_HANDLE_CAST (MonoReflectionAssembly, NULL_HANDLE);
 	}
-	return mono_assembly_get_object_handle (mono_domain_get (), dest->klass->image->assembly, error);
+	return mono_assembly_get_object_handle (mono_domain_get (), m_class_get_image (dest->klass)->assembly, error);
 }
 
 ICALL_EXPORT MonoStringHandle
@@ -5344,7 +5378,7 @@ ves_icall_System_RuntimeType_getFullName (MonoReflectionTypeHandle object, gbool
 }
 
 ICALL_EXPORT int
-vell_icall_RuntimeType_get_core_clr_security_level (MonoReflectionTypeHandle rfield, MonoError *error)
+ves_icall_RuntimeType_get_core_clr_security_level (MonoReflectionTypeHandle rfield, MonoError *error)
 {
 	error_init (error);
 	MonoType *type = MONO_HANDLE_GETVAL (rfield, type);
@@ -5504,7 +5538,7 @@ image_get_type (MonoDomain *domain, MonoImage *image, MonoTableInfo *tdef, int t
 	MonoClass *klass = mono_class_get_checked (image, table_idx | MONO_TOKEN_TYPE_DEF, &klass_error);
 
 	if (klass) {
-		MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, &klass->byval_arg, error);
+		MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
 		return_if_nok (error);
 
 		MONO_HANDLE_ARRAY_SETREF (res, count, rt);
@@ -5695,6 +5729,28 @@ ves_icall_Mono_RuntimeMarshal_FreeAssemblyName (MonoAssemblyName *aname, gboolea
 		g_free (aname);
 }
 
+ICALL_EXPORT void
+ves_icall_Mono_Runtime_DisableMicrosoftTelemetry (void)
+{
+#ifdef TARGET_OSX
+	mono_merp_disable ();
+#else
+	// Icall has platform check in managed too.
+	g_assert_not_reached ();
+#endif
+}
+
+ICALL_EXPORT void
+ves_icall_Mono_Runtime_EnableMicrosoftTelemetry (char *appBundleID, char *appSignature, char *appVersion, char *merpGUIPath)
+{
+#ifdef TARGET_OSX
+	mono_merp_enable (appBundleID, appSignature, appVersion, merpGUIPath);
+#else
+	// Icall has platform check in managed too.
+	g_assert_not_reached ();
+#endif
+}
+
 ICALL_EXPORT MonoBoolean
 ves_icall_System_Reflection_AssemblyName_ParseAssemblyName (const char *name, MonoAssemblyName *aname, MonoBoolean *is_version_defined_arg, MonoBoolean *is_token_defined_arg)
 {
@@ -5728,7 +5784,7 @@ ves_icall_System_Reflection_Module_GetGlobalType (MonoReflectionModuleHandle mod
 	klass = mono_class_get_checked (image, 1 | MONO_TOKEN_TYPE_DEF, error);
 	goto_if_nok (error, leave);
 
-	ret = mono_type_get_object_handle (domain, &klass->byval_arg, error);
+	ret = mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
 leave:
 	return ret;
 }
@@ -5900,7 +5956,7 @@ module_resolve_type_token (MonoImage *image, guint32 token, MonoArrayHandle type
 			ERROR_DECL_VALUE (inner_error);
 			klass = (MonoClass *)mono_lookup_dynamic_token_class (image, token, FALSE, NULL, NULL, &inner_error);
 			mono_error_cleanup (&inner_error);
-			result = klass ? &klass->byval_arg : NULL;
+			result = klass ? m_class_get_byval_arg (klass) : NULL;
 			goto leave;
 		}
 
@@ -5908,7 +5964,7 @@ module_resolve_type_token (MonoImage *image, guint32 token, MonoArrayHandle type
 		ERROR_DECL_VALUE (inner_error);
 		klass = (MonoClass *)mono_lookup_dynamic_token_class (image, token, FALSE, NULL, &context, &inner_error);
 		mono_error_cleanup (&inner_error);
-		result = klass ? &klass->byval_arg : NULL;
+		result = klass ? m_class_get_byval_arg (klass) : NULL;
 		goto leave;
 	}
 
@@ -5924,7 +5980,7 @@ module_resolve_type_token (MonoImage *image, guint32 token, MonoArrayHandle type
 	goto_if_nok (error, leave);
 
 	if (klass)
-		result = &klass->byval_arg;
+		result = m_class_get_byval_arg (klass);
 leave:
 	HANDLE_FUNCTION_RETURN_VAL (result);
 
@@ -6204,7 +6260,7 @@ check_for_invalid_type (MonoClass *klass, MonoError *error)
 
 	error_init (error);
 
-	if (klass->byval_arg.type != MONO_TYPE_TYPEDBYREF)
+	if (m_class_get_byval_arg (klass)->type != MONO_TYPE_TYPEDBYREF)
 		return;
 
 	name = mono_type_get_full_name (klass);
@@ -6234,7 +6290,7 @@ ves_icall_RuntimeType_make_array_type (MonoReflectionTypeHandle ref_type, int ra
 	}
 
 	MonoDomain *domain = MONO_HANDLE_DOMAIN (ref_type);
-	return mono_type_get_object_handle (domain, &aklass->byval_arg, error);
+	return mono_type_get_object_handle (domain, m_class_get_byval_arg (aklass), error);
 }
 
 ICALL_EXPORT MonoReflectionTypeHandle
@@ -6253,7 +6309,7 @@ ves_icall_RuntimeType_make_byref_type (MonoReflectionTypeHandle ref_type, MonoEr
 		return MONO_HANDLE_CAST (MonoReflectionType, NULL_HANDLE);
 
 	MonoDomain *domain = MONO_HANDLE_DOMAIN (ref_type);
-	return mono_type_get_object_handle (domain, &klass->this_arg, error);
+	return mono_type_get_object_handle (domain, m_class_get_this_arg (klass), error);
 }
 
 ICALL_EXPORT MonoReflectionTypeHandle
@@ -6273,7 +6329,7 @@ ves_icall_RuntimeType_MakePointerType (MonoReflectionTypeHandle ref_type, MonoEr
 
 	MonoClass *pklass = mono_class_create_ptr (type);
 
-	return mono_type_get_object_handle (domain, &pklass->byval_arg, error);
+	return mono_type_get_object_handle (domain, m_class_get_byval_arg (pklass), error);
 }
 
 ICALL_EXPORT MonoObjectHandle
@@ -6289,7 +6345,7 @@ ves_icall_System_Delegate_CreateDelegate_internal (MonoReflectionTypeHandle ref_
 	mono_class_init_checked (delegate_class, error);
 	return_val_if_nok (error, NULL_HANDLE);
 
-	if (!(delegate_class->parent == mono_defaults.multicastdelegate_class)) {
+	if (!(m_class_get_parent (delegate_class) == mono_defaults.multicastdelegate_class)) {
 		/* FIXME improve this exception message */
 		mono_error_set_execution_engine (error, "file %s: line %d (%s): assertion failed: (%s)", __FILE__, __LINE__,
 						 __func__,
@@ -6315,7 +6371,7 @@ ves_icall_System_Delegate_CreateDelegate_internal (MonoReflectionTypeHandle ref_
 		}
 	}
 
-	MonoObjectHandle delegate = MONO_HANDLE_NEW (MonoObject, mono_object_new_checked (MONO_HANDLE_DOMAIN (ref_type), delegate_class, error));
+	MonoObjectHandle delegate = mono_object_new_handle (MONO_HANDLE_DOMAIN (ref_type), delegate_class, error);
 	return_val_if_nok (error, NULL_HANDLE);
 
 	if (method_is_dynamic (method)) {
@@ -6345,7 +6401,7 @@ ves_icall_System_Delegate_AllocDelegateLike_internal (MonoDelegateHandle delegat
 	MonoClass *klass = mono_handle_class (delegate);
 	g_assert (mono_class_has_parent (klass, mono_defaults.multicastdelegate_class));
 
-	MonoMulticastDelegateHandle ret = MONO_HANDLE_NEW (MonoMulticastDelegate,  mono_object_new_checked (MONO_HANDLE_DOMAIN (delegate), klass, error));
+	MonoMulticastDelegateHandle ret = (MonoMulticastDelegateHandle)mono_object_new_handle (MONO_HANDLE_DOMAIN (delegate), klass, error);
 	return_val_if_nok (error, MONO_HANDLE_CAST (MonoMulticastDelegate, NULL_HANDLE));
 
 	MONO_HANDLE_SETVAL (MONO_HANDLE_CAST (MonoDelegate, ret), invoke_impl, gpointer, mono_runtime_create_delegate_trampoline (klass));
@@ -6379,11 +6435,12 @@ mono_array_get_byte_length (MonoArray *array)
 		length = array->max_length;
 	else {
 		length = 1;
-		for (i = 0; i < klass->rank; ++ i)
+		int klass_rank = m_class_get_rank (klass);
+		for (i = 0; i < klass_rank; ++ i)
 			length *= array->bounds [i].length;
 	}
 
-	switch (klass->element_class->byval_arg.type) {
+	switch (m_class_get_byval_arg (m_class_get_element_class (klass))->type) {
 	case MONO_TYPE_I1:
 	case MONO_TYPE_U1:
 	case MONO_TYPE_BOOLEAN:
@@ -6465,7 +6522,7 @@ ves_icall_Remoting_RealProxy_GetTransparentProxy (MonoObjectHandle this_obj, Mon
 	MonoDomain *domain = MONO_HANDLE_DOMAIN (this_obj);
 	MonoRealProxyHandle rp = MONO_HANDLE_CAST (MonoRealProxy, this_obj);
 
-	MonoObjectHandle res = MONO_HANDLE_NEW (MonoObject, mono_object_new_checked (domain, mono_defaults.transparent_proxy_class, error));
+	MonoObjectHandle res = mono_object_new_handle (domain, mono_defaults.transparent_proxy_class, error);
 	if (!is_ok (error))
 		return NULL_HANDLE;
 
@@ -6507,7 +6564,7 @@ ves_icall_Remoting_RealProxy_InternalGetProxyType (MonoTransparentProxy *tp)
 	ERROR_DECL (error);
 	g_assert (tp != NULL && mono_object_class (tp) == mono_defaults.transparent_proxy_class);
 	g_assert (tp->remote_class != NULL && tp->remote_class->proxy_class != NULL);
-	MonoReflectionType *ret = mono_type_get_object_checked (mono_object_domain (tp), &tp->remote_class->proxy_class->byval_arg, error);
+	MonoReflectionType *ret = mono_type_get_object_checked (mono_object_domain (tp), m_class_get_byval_arg (tp->remote_class->proxy_class), error);
 	mono_error_set_pending_exception (error);
 
 	return ret;
@@ -7057,7 +7114,7 @@ ves_icall_Remoting_RemotingServices_GetVirtualMethod (
 	}
 
 	mono_class_setup_vtable (klass);
-	MonoMethod **vtable = klass->vtable;
+	MonoMethod **vtable = m_class_get_vtable (klass);
 
 	MonoMethod *res = NULL;
 	if (mono_class_is_interface (method->klass)) {
@@ -7125,9 +7182,9 @@ ves_icall_System_Runtime_Activation_ActivationServices_AllocateUninitializedClas
 		return NULL_HANDLE;
 	}
 
-	if (klass->rank >= 1) {
-		g_assert (klass->rank == 1);
-		return MONO_HANDLE_CAST (MonoObject, mono_array_new_handle (domain, klass->element_class, 0, error));
+	if (m_class_get_rank (klass) >= 1) {
+		g_assert (m_class_get_rank (klass) == 1);
+		return MONO_HANDLE_CAST (MonoObject, mono_array_new_handle (domain, m_class_get_element_class (klass), 0, error));
 	} else {
 		MonoVTable *vtable = mono_class_vtable_checked (domain, klass, error);
 		return_val_if_nok (error, NULL_HANDLE);
@@ -7379,7 +7436,7 @@ ves_icall_System_Activator_CreateInstanceInternal (MonoReflectionTypeHandle ref_
 		/* No arguments -> null */
 		return NULL_HANDLE;
 
-	return MONO_HANDLE_NEW (MonoObject, mono_object_new_checked (domain, klass, error));
+	return mono_object_new_handle (domain, klass, error);
 }
 
 ICALL_EXPORT MonoReflectionMethodHandle
@@ -7522,16 +7579,10 @@ mono_ArgIterator_IntGetNextArgType (MonoArgIterator *iter)
 ICALL_EXPORT MonoObject*
 mono_TypedReference_ToObject (MonoTypedRef* tref)
 {
-	ERROR_DECL (error);
-	MonoObject *result = NULL;
-	if (MONO_TYPE_IS_REFERENCE (tref->type)) {
-		MonoObject** objp = (MonoObject **)tref->value;
-		return *objp;
-	}
-
-	result = mono_value_box_checked (mono_domain_get (), tref->klass, tref->value, error);
+	ICALL_ENTRY ();
+	MonoObjectHandle result = typed_reference_to_object (tref, error);
 	mono_error_set_pending_exception (error);
-	return result;
+	ICALL_RETURN_OBJ (result);
 }
 
 ICALL_EXPORT MonoTypedRef
@@ -7642,7 +7693,7 @@ add_modifier_to_array (MonoDomain *domain, MonoImage *image, MonoCustomMod *modi
 	MonoClass *klass = mono_class_get_checked (image, modifier->token, error);
 	goto_if_nok (error, leave);
 
-	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, &klass->byval_arg, error);
+	MonoReflectionTypeHandle rt = mono_type_get_object_handle (domain, m_class_get_byval_arg (klass), error);
 	goto_if_nok (error, leave);
 
 	MONO_HANDLE_ARRAY_SETREF (dest, dest_idx, rt);
@@ -7700,7 +7751,7 @@ ves_icall_ParameterInfo_GetTypeModifiers (MonoReflectionParameterHandle param, M
 
 	if (mono_class_is_reflection_method_or_constructor (member_class)) {
 		method = MONO_HANDLE_GETVAL (MONO_HANDLE_CAST (MonoReflectionMethod, member), method);
-	} else if (member_class->image == mono_defaults.corlib && !strcmp ("MonoProperty", member_class->name)) {
+	} else if (m_class_get_image (member_class) == mono_defaults.corlib && !strcmp ("MonoProperty", m_class_get_name (member_class))) {
 		MonoProperty *prop = MONO_HANDLE_GETVAL (MONO_HANDLE_CAST (MonoReflectionProperty, member), property);
 		if (!(method = prop->get))
 			method = prop->set;
@@ -7712,7 +7763,7 @@ ves_icall_ParameterInfo_GetTypeModifiers (MonoReflectionParameterHandle param, M
 		return MONO_HANDLE_CAST (MonoArray, NULL_HANDLE);
 	}
 
-	image = method->klass->image;
+	image = m_class_get_image (method->klass);
 	pos = MONO_HANDLE_GETVAL (param, PositionImpl);
 	sig = mono_method_signature (method);
 	if (pos == -1)
@@ -7744,7 +7795,7 @@ ves_icall_MonoPropertyInfo_GetTypeModifiers (MonoReflectionPropertyHandle proper
 	MonoProperty *prop = MONO_HANDLE_GETVAL (property, property);
 	MonoClass *klass = MONO_HANDLE_GETVAL (property, klass);
 	MonoType *type = get_property_type (prop);
-	MonoImage *image = klass->image;
+	MonoImage *image = m_class_get_image (klass);
 
 	if (!type)
 		return MONO_HANDLE_CAST (MonoArray, NULL_HANDLE);
@@ -7765,7 +7816,7 @@ mono_type_from_blob_type (MonoType *type, MonoTypeEnum blob_type, MonoType *real
 	type->data.klass = NULL;
 	if (blob_type == MONO_TYPE_CLASS)
 		type->data.klass = mono_defaults.object_class;
-	else if (real_type->type == MONO_TYPE_VALUETYPE && real_type->data.klass->enumtype) {
+	else if (real_type->type == MONO_TYPE_VALUETYPE && m_class_is_enumtype (real_type->data.klass)) {
 		/* For enums, we need to use the base type */
 		type->type = MONO_TYPE_VALUETYPE;
 		type->data.klass = mono_class_from_mono_type (real_type);
@@ -7774,7 +7825,7 @@ mono_type_from_blob_type (MonoType *type, MonoTypeEnum blob_type, MonoType *real
 }
 
 ICALL_EXPORT MonoObject*
-property_info_get_default_value (MonoReflectionProperty *property)
+ves_icall_property_info_get_default_value (MonoReflectionProperty *property)
 {
 	ERROR_DECL (error);
 	MonoType blob_type;
@@ -8061,15 +8112,15 @@ static int
 concat_class_name (char *buf, int bufsize, MonoClass *klass)
 {
 	int nspacelen, cnamelen;
-	nspacelen = strlen (klass->name_space);
-	cnamelen = strlen (klass->name);
+	nspacelen = strlen (m_class_get_name_space (klass));
+	cnamelen = strlen (m_class_get_name (klass));
 	if (nspacelen + cnamelen + 2 > bufsize)
 		return 0;
 	if (nspacelen) {
-		memcpy (buf, klass->name_space, nspacelen);
+		memcpy (buf, m_class_get_name_space (klass), nspacelen);
 		buf [nspacelen ++] = '.';
 	}
-	memcpy (buf + nspacelen, klass->name, cnamelen);
+	memcpy (buf + nspacelen, m_class_get_name (klass), cnamelen);
 	buf [nspacelen + cnamelen] = 0;
 	return nspacelen + cnamelen;
 }
@@ -8108,8 +8159,8 @@ mono_lookup_internal_call_full (MonoMethod *method, mono_bool *uses_handles)
 	if (method->is_inflated)
 		method = ((MonoMethodInflated *) method)->declaring;
 
-	if (method->klass->nested_in) {
-		int pos = concat_class_name (mname, sizeof (mname)-2, method->klass->nested_in);
+	if (m_class_get_nested_in (method->klass)) {
+		int pos = concat_class_name (mname, sizeof (mname)-2, m_class_get_nested_in (method->klass));
 		if (!pos)
 			return NULL;
 
@@ -8186,7 +8237,7 @@ mono_lookup_internal_call_full (MonoMethod *method, mono_bool *uses_handles)
 
 		g_warning ("cant resolve internal call to \"%s\" (tested without signature also)", mname);
 		g_print ("\nYour mono runtime and class libraries are out of sync.\n");
-		g_print ("The out of sync library is: %s\n", method->klass->image->name);
+		g_print ("The out of sync library is: %s\n", m_class_get_image (method->klass)->name);
 		g_print ("\nWhen you update one from git you need to update, compile and install\nthe other too.\n");
 		g_print ("Do not report this as a bug unless you're sure you have updated correctly:\nyou probably have a broken mono install.\n");
 		g_print ("If you see other errors or faults after this message they are probably related\n");
@@ -8270,7 +8321,7 @@ type_from_typename (char *type_name)
 		g_error ("%s", type_name);
 		g_assert_not_reached ();
 	}
-	return &klass->byval_arg;
+	return m_class_get_byval_arg (klass);
 }
 
 /**

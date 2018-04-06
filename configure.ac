@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 #AC_PREREQ([2.62])
 
-AC_INIT(mono, [5.13.0],
+AC_INIT(mono, [5.15.0],
         [https://github.com/mono/mono/issues/new])
 
 AC_CONFIG_SRCDIR([README.md])
@@ -40,7 +40,7 @@ MONO_VERSION_BUILD=`echo $VERSION | cut -d . -f 3`
 # This can be reset to 0 when Mono's version number is bumped
 # since it's part of the corlib version (the prefix '1' in the full
 # version number is to ensure the number isn't treated as octal in C)
-MONO_CORLIB_COUNTER=1
+MONO_CORLIB_COUNTER=3
 MONO_CORLIB_VERSION=`printf "1%02d%02d%02d%03d" $MONO_VERSION_MAJOR $MONO_VERSION_MINOR 0 $MONO_CORLIB_COUNTER`
 
 AC_DEFINE_UNQUOTED(MONO_CORLIB_VERSION,$MONO_CORLIB_VERSION,[Version of the corlib-runtime interface])
@@ -376,9 +376,9 @@ case "$host" in
 		;;
 	*-*-aix*|*-*-os400*)
 		dnl Set up a 64-bit build
-		CPPFLAGS="$CPPFLAGS -maix64 -DGC_AIX_THREADS -D_ALL_SOURCE -D_LARGE_FILES -D_REENTRANT"
+		CPPFLAGS="$CPPFLAGS -maix64 -DGC_AIX_THREADS -D_ALL_SOURCE -D_THREAD_SAFE -D_LARGE_FILES -D_REENTRANT"
 		LDFLAGS="-maix64"
-		libmono_cflags="-D_REENTRANT"
+		libmono_cflags="-D_THREAD_SAFE -D_REENTRANT"
 		dnl Would you believe GNU nm doesn't know how to process AIX libraries?
 		dnl Hardcode IBM binutils in case GNU ones end up on our path. Also
 		dnl specifiy 64-bit mode for tools.
@@ -518,8 +518,6 @@ AC_SUBST(export_ldflags)
 # Test whenever ld supports -version-script
 AC_PROG_LD
 AC_PROG_LD_GNU
-
-AM_ICONV()
 
 AC_CHECK_HEADERS(sys/filio.h sys/sockio.h netdb.h utime.h sys/utime.h semaphore.h sys/un.h linux/rtc.h sys/syscall.h sys/mkdev.h sys/uio.h sys/param.h sys/sysctl.h libproc.h sys/prctl.h)
 AC_CHECK_HEADERS(sys/param.h sys/socket.h sys/ipc.h sys/utsname.h alloca.h ucontext.h pwd.h sys/select.h netinet/tcp.h netinet/in.h unistd.h sys/types.h link.h asm/sigcontext.h sys/inotify.h arpa/inet.h complex.h unwind.h)
@@ -1074,7 +1072,7 @@ with_bitcode_default=no
 with_cooperative_gc_default=no
 mono_feature_disable_com=yes
 
-INVARIANT_AOT_OPTIONS=nimt-trampolines=2000,ntrampolines=9000,nrgctx-fetch-trampolines=256,ngsharedvt-trampolines=4000
+INVARIANT_AOT_OPTIONS=nimt-trampolines=2000,ntrampolines=10000,nrgctx-fetch-trampolines=256,ngsharedvt-trampolines=4000
 
 AOT_BUILD_ATTRS=$INVARIANT_AOT_OPTIONS
 
@@ -1354,7 +1352,7 @@ fi
 AC_ARG_ENABLE(minimal, [  --enable-minimal=LIST      drop support for LIST subsystems.
      LIST is a comma-separated list from: aot, profiler, decimal, pinvoke, debug, appdomains, verifier, 
      reflection_emit, reflection_emit_save, large_code, logging, com, ssa, generics, attach, jit, interpreter, simd, soft_debug, perfcounters, normalization, desktop_loader, shared_perfcounters, remoting,
-	 security, lldb, mdb, sgen_remset, sgen_marksweep_par, sgen_marksweep_fixed, sgen_marksweep_fixed_par, sgen_copying.],
+	 security, lldb, mdb, sgen_marksweep_conc, sgen_split_nursery, sgen_gc_bridge, sgen_debug_helpers.],
 [
 	for feature in `echo "$enable_minimal" | sed -e "s/,/ /g"`; do
 		eval "mono_feature_disable_$feature='yes'"
@@ -1462,6 +1460,12 @@ fi
 
 AM_CONDITIONAL(DISABLE_INTERPRETER, test x$mono_feature_disable_interpreter = xyes)
 
+if test "x$mono_feature_disable_interpreter" != "xyes" -o "x$mono_feature_disable_jit" != "xyes"; then
+	AC_DEFINE(ENABLE_ILGEN, 1, [Some VES is available at runtime])
+fi
+
+AM_CONDITIONAL(ENABLE_ILGEN, test x$mono_feature_disable_interpreter != xyes -o x$mono_feature_disable_jit != xyes)
+
 if test "x$mono_feature_disable_simd" = "xyes"; then
 	AC_DEFINE(DISABLE_SIMD, 1, [Disable SIMD intrinsics related optimizations.])
 	AC_MSG_NOTICE([Disabled SIMD support])
@@ -1517,29 +1521,25 @@ if test "x$mono_feature_disable_mdb" = "xyes"; then
 	AC_MSG_NOTICE([Disabled support for .mdb symbol files.])
 fi
 
-if test "x$mono_feature_disable_sgen_remset" = "xyes"; then
-	AC_DEFINE(DISABLE_SGEN_REMSET, 1, [Disable wbarrier=remset support in SGEN.])
-	AC_MSG_NOTICE([Disabled wbarrier=remset support in SGEN.])
+if test "x$mono_feature_disable_sgen_marksweep_conc" = "xyes"; then
+	AC_DEFINE(DISABLE_SGEN_MAJOR_MARKSWEEP_CONC, 1, [Disable concurrent gc support in SGEN.])
+	AC_MSG_NOTICE([Disabled concurrent gc support in SGEN.])
 fi
 
-if test "x$mono_feature_disable_sgen_marksweep_par" = "xyes"; then
-	AC_DEFINE(DISABLE_SGEN_MAJOR_MARKSWEEP_PAR, 1, [Disable major=marksweep-par support in SGEN.])
-	AC_MSG_NOTICE([Disabled major=marksweep-par support in SGEN.])
+
+if test "x$mono_feature_disable_sgen_split_nursery" = "xyes"; then
+	AC_DEFINE(DISABLE_SGEN_SPLIT_NURSERY, 1, [Disable minor=split support in SGEN.])
+	AC_MSG_NOTICE([Disabled minor=split support in SGEN.])
 fi
 
-if test "x$mono_feature_disable_sgen_marksweep_fixed" = "xyes"; then
-	AC_DEFINE(DISABLE_SGEN_MAJOR_MARKSWEEP_FIXED, 1, [Disable major=marksweep-fixed support in SGEN.])
-	AC_MSG_NOTICE([Disabled major=marksweep-fixed support in SGEN.])
+if test "x$mono_feature_disable_sgen_gc_bridge" = "xyes"; then
+	AC_DEFINE(DISABLE_SGEN_GC_BRIDGE, 1, [Disable gc bridge support in SGEN.])
+	AC_MSG_NOTICE([Disabled gc bridge support in SGEN.])
 fi
 
-if test "x$mono_feature_disable_sgen_marksweep_fixed_par" = "xyes"; then
-	AC_DEFINE(DISABLE_SGEN_MAJOR_MARKSWEEP_FIXED_PAR, 1, [Disable major=marksweep-fixed-par support in SGEN.])
-	AC_MSG_NOTICE([Disabled major=marksweep-fixed-par support in SGEN.])
-fi
-
-if test "x$mono_feature_disable_sgen_copying" = "xyes"; then
-	AC_DEFINE(DISABLE_SGEN_MAJOR_COPYING, 1, [Disable major=copying support in SGEN.])
-	AC_MSG_NOTICE([Disabled major=copying support in SGEN.])
+if test "x$mono_feature_disable_sgen_debug_helpers" = "xyes"; then
+	AC_DEFINE(DISABLE_SGEN_DEBUG_HELPERS, 1, [Disable debug helpers in SGEN.])
+	AC_MSG_NOTICE([Disabled debug helpers in SGEN.])
 fi
 
 AC_ARG_ENABLE(executables, [  --disable-executables disable the build of the runtime executables], enable_executables=$enableval, enable_executables=yes)
@@ -1715,6 +1715,33 @@ if test x$platform_android = xyes; then
 fi
 
 if test x$host_win32 = xno; then
+	dnl *************************************
+	dnl *** Checks for time capabilities ***
+	dnl *************************************
+
+	AC_MSG_CHECKING(for CLOCK_MONOTONIC)
+	AC_TRY_COMPILE([#include <time.h>], [
+		const int foo = CLOCK_MONOTONIC;
+	],[
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_CLOCK_MONOTONIC, 1, [CLOCK_MONOTONIC])
+	], [
+		AC_MSG_RESULT(no)
+	])
+
+	AC_MSG_CHECKING(for CLOCK_MONOTONIC_COARSE)
+	AC_TRY_COMPILE([#include <time.h>], [
+		const int foo = CLOCK_MONOTONIC_COARSE;
+	],[
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_CLOCK_MONOTONIC_COARSE, 1, [CLOCK_MONOTONIC_COARSE])
+	], [
+		AC_MSG_RESULT(no)
+	])
+
+	AC_CHECK_FUNC(mach_absolute_time, [AC_DEFINE(HAVE_MACH_ABSOLUTE_TIME, 1, [mach_absolute_time])])
+	AC_CHECK_FUNC(gethrtime, [AC_DEFINE(HAVE_GETHRTIME, 1, [gethrtime])])
+	AC_CHECK_FUNC(read_real_time, [AC_DEFINE(HAVE_READ_REAL_TIME, 1, [read_real_time])])
 
 	dnl hires monotonic clock support
 	AC_SEARCH_LIBS(clock_gettime, rt)
@@ -2666,6 +2693,21 @@ if test x$host_win32 = xno; then
 	], [
 		AC_MSG_RESULT(no)
 	])
+	dnl **********************************
+	dnl *** Check for access ***
+	dnl **********************************
+	AC_MSG_CHECKING(for access)
+		AC_TRY_LINK([
+		#include <unistd.h>
+	], [
+		access(NULL,0);
+	], [
+		# Yes, we have it...
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_ACCESS, 1, [Have access])
+	], [
+		AC_MSG_RESULT(no)
+	])
 			
 	dnl **********************************
 	dnl *** Checks for proclib         ***
@@ -3061,9 +3103,6 @@ try_dev_random=$enableval, try_dev_random=yes)
 AC_MSG_RESULT($try_dev_random)
 
 case "{$build}" in
-    *-openbsd*)
-    NAME_DEV_RANDOM="/dev/srandom"
-    ;;
 
 dnl IBM i does not have /dev/random, use unblocking only
 
@@ -3114,7 +3153,7 @@ if test "x$ac_cv_have_dev_random" = "xno" \
 *** will throw a NotImplemented exception.
 ***
 *** If you are seeing this message, and you know your system DOES have an
-*** entropy collection in place, please contact <crichton@gimp.org> and
+*** entropy collection in place, please report an issue on GitHub and
 *** provide information about the system and how to access the random device.
 ***
 *** Otherwise you can install either egd or prngd and set the environment
@@ -3517,13 +3556,17 @@ case "$host" in
 		arch_target=ppc;
 		case $host_os in
 		  aix*|os400*)
+			BTLS_SUPPORTED=yes
+			BTLS_PLATFORM=powerpc
 			dnl on AIX/PASE, shared libraries can be inside archives
 			dnl if they are, we specify them by lib.a(lib.so)
 			dnl we may hardcode 64-bit names at times, but we don't do 32-bit AIX, so
 			LIBC="libc.a(shr_64.o)"
-			INTL="libintl.a(libintl.so.9)"
+			INTL="libintl.a(libintl.so.8)"
 			;;
-		  linux*|darwin*)
+		  linux*)
+			BTLS_SUPPORTED=yes
+			BTLS_PLATFORM=powerpc
 			;;
 		esac
 		;;
@@ -3577,6 +3620,8 @@ case "$host" in
 		TARGET=S390X;
 		arch_target=s390x;
 		ACCESS_UNALIGNED="yes"
+		BTLS_SUPPORTED=yes
+		BTLS_PLATFORM=s390x
 		CFLAGS="$CFLAGS -mbackchain -D__USE_STRING_INLINES"
 		;;
 esac
@@ -4091,7 +4136,7 @@ AC_CHECK_FUNCS(strndup getpwuid_r)
 fi
 
 AM_CONDITIONAL(NEED_VASPRINTF, test x$ac_cv_func_vasprintf = xno || test x$with_overridable_allocators = xyes)
-AM_ICONV()
+
 AC_SEARCH_LIBS(sqrtf, m)
 
 # nanosleep may not be part of libc, also search it in other libraries
@@ -4133,7 +4178,7 @@ fi
 AC_SUBST(G_HAVE_ISO_VARARGS)
 
 AC_CHECK_HEADERS(getopt.h sys/select.h sys/time.h sys/wait.h pwd.h iconv.h localcharset.h sys/types.h sys/resource.h)
-AC_CHECK_LIB([iconv], [locale_charset],[],[AC_CHECK_LIB([charset], [locale_charset],[LIBS+="-liconv -lcharset"])])
+AC_CHECK_LIB([iconv], [locale_charset],[],[AC_CHECK_LIB([charset], [locale_charset],[LIBS+=" -liconv -lcharset"])])
 AC_CHECK_HEADER(alloca.h, [HAVE_ALLOCA_H=1], [HAVE_ALLOCA_H=0])
 AC_SUBST(HAVE_ALLOCA_H)
 
@@ -4568,9 +4613,14 @@ dnl ***  Btls  ***
 dnl **************
 
 AC_ARG_ENABLE(btls, [  --disable-btls             Disable the BoringTls provider], enable_btls=$enableval, enable_btls=$BTLS_SUPPORTED)
+AC_ARG_ENABLE(btls-lib, [  --disable-btls-lib             Disable building the BTLS native library], enable_btls_lib=$enableval, enable_btls_lib=$BTLS_SUPPORTED)
 AC_ARG_WITH(btls_android_ndk, [  --with-btls-android-ndk        Android NDK for BoringTls])
 
-AM_CONDITIONAL(BTLS, test x$enable_btls = xyes)
+if test "x$enable_btls" = "xno"; then
+   enable_btls_lib=no
+fi
+
+AM_CONDITIONAL(BTLS, test x$enable_btls_lib = xyes)
 
 btls_android=no
 if test "x$enable_btls" = "xyes"; then
@@ -4607,6 +4657,17 @@ if test "x$enable_btls" = "xyes"; then
 		;;
 	aarch64)
 		btls_arch=aarch64
+		;;
+	s390x)
+		btls_arch=s390x
+		;;
+	powerpc)
+		btls_arch=powerpc
+		case $host_os in
+			aix*|os400*)
+				btls_cflags="$btls_cflags -maix64 -mminimal-toc -pthread -D_ALL_SOURCE -D_THREAD_SAFE -D_REENTRANT"
+				BTLS_CMAKE_ARGS="-DCMAKE_AR=/usr/bin/ar -DCMAKE_C_ARCHIVE_CREATE=\"<CMAKE_AR> -X64 cr <TARGET> <LINK_FLAGS> <OBJECTS>\""
+		esac
 		;;
 	android-armv5)
 		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"armeabi\" -DANDROID_NATIVE_API_LEVEL=14"
@@ -4714,7 +4775,7 @@ AC_SUBST(mono_build_root)
 mono_runtime=mono/mini/mono
 AC_SUBST(mono_runtime)
 
-CSC_LOCATION=`cd $srcdir && pwd`/external/roslyn-binaries/Microsoft.Net.Compilers/Microsoft.Net.Compilers.2.6.0/tools/csc.exe
+CSC_LOCATION=`cd $srcdir && pwd`/external/roslyn-binaries/Microsoft.Net.Compilers/Microsoft.Net.Compilers.2.7.0/tools/csc.exe
 
 if test $csc_compiler = mcs; then
   CSC=$mcs_topdir/class/lib/build/mcs.exe

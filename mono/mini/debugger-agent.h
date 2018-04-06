@@ -31,13 +31,13 @@ mono_debugger_agent_single_step_event (void *sigctx);
 
 void
 #ifndef RUNTIME_IL2CPP
-debugger_agent_single_step_from_context (MonoContext *ctx);
+mono_debugger_agent_single_step_from_context (MonoContext *ctx);
 #else
-debugger_agent_single_step_from_context (MonoContext *ctx, int sequencePointId);
+mono_debugger_agent_single_step_from_context (MonoContext *ctx, int sequencePointId);
 #endif
 
 void
-debugger_agent_breakpoint_from_context (MonoContext *ctx);
+mono_debugger_agent_breakpoint_from_context (MonoContext *ctx);
 
 void
 mono_debugger_agent_free_domain_info (MonoDomain *domain);
