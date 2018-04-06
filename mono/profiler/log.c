@@ -4060,15 +4060,8 @@ runtime_initialized (MonoProfiler *profiler)
 	register_counter ("Event: Counter samples", &counter_samples_ctr);
 	register_counter ("Event: Performance counter descriptors", &perfcounter_descriptors_ctr);
 	register_counter ("Event: Performance counter samples", &perfcounter_samples_ctr);
-<<<<<<< HEAD
-=======
-	register_counter ("Event: Coverage methods", &coverage_methods_ctr);
-	register_counter ("Event: Coverage statements", &coverage_statements_ctr);
-	register_counter ("Event: Coverage classes", &coverage_classes_ctr);
-	register_counter ("Event: Coverage assemblies", &coverage_assemblies_ctr);
 	register_counter ("Event: File IO reads", &fileio_reads_ctr);
 	register_counter ("Event: File IO writes", &fileio_writes_ctr);
->>>>>>> unity-master
 
 	counters_init ();
 
