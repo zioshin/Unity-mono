@@ -307,7 +307,7 @@ typedef struct {
 #define HEADER_LENGTH 11
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 45
+#define MINOR_VERSION 46
 
 typedef enum {
 	CMD_SET_VM = 1,
@@ -323,7 +323,8 @@ typedef enum {
 	CMD_SET_TYPE = 23,
 	CMD_SET_MODULE = 24,
 	CMD_SET_FIELD = 25,
-	CMD_SET_EVENT = 64
+	CMD_SET_EVENT = 64,
+	CMD_SET_POINTER = 65
 } CommandSet;
 
 typedef enum {
@@ -528,7 +529,8 @@ typedef enum {
 	CMD_TYPE_GET_INTERFACES = 16,
 	CMD_TYPE_GET_INTERFACE_MAP = 17,
 	CMD_TYPE_IS_INITIALIZED = 18,
-	CMD_TYPE_CREATE_INSTANCE = 19
+	CMD_TYPE_CREATE_INSTANCE = 19,
+	CMD_TYPE_GET_VALUE_SIZE = 20
 } CmdType;
 
 typedef enum {
@@ -550,6 +552,10 @@ typedef enum {
 	CMD_STRING_REF_GET_LENGTH = 2,
 	CMD_STRING_REF_GET_CHARS = 3
 } CmdString;
+
+typedef enum {
+	CMD_POINTER_GET_VALUE = 1
+} CmdPointer;
 
 typedef enum {
 	CMD_OBJECT_REF_GET_TYPE = 1,
@@ -3451,18 +3457,18 @@ compute_frame_info (MonoInternalThread *thread, DebuggerTlsData *tls)
 	for (tmp = user_data.frames; tmp; tmp = tmp->next) {
 		f = (StackFrame *)tmp->data;
 
-#ifndef RUNTIME_IL2CPP
 		/* 
 		 * Reuse the id for already existing stack frames, so invokes don't invalidate
 		 * the still valid stack frames.
 		 */
 		for (i = 0; i < tls->frame_count; ++i) {
+#ifndef RUNTIME_IL2CPP
 			if (tls->frames [i]->frame_addr == f->frame_addr) {
 				f->id = tls->frames [i]->id;
 				break;
 			}
-		}
 #endif // !RUNTIME_IL2CPP
+		}
 
 		if (i >= tls->frame_count)
 			f->id = mono_atomic_inc_i32 (&frame_id);
@@ -5577,9 +5583,9 @@ process_breakpoint (DebuggerTlsData *tls, gboolean from_signal)
 	
 	if (ss_reqs->len > 0)
 		ss_events = create_event_list (EVENT_KIND_STEP, ss_reqs, ji, NULL, &suspend_policy);
-	if (bp_reqs->len > 0)
+	else if (bp_reqs->len > 0)
 		bp_events = create_event_list (EVENT_KIND_BREAKPOINT, bp_reqs, ji, NULL, &suspend_policy);
-	if (kind != EVENT_KIND_BREAKPOINT)
+	else if (kind != EVENT_KIND_BREAKPOINT)
 		enter_leave_events = create_event_list (kind, NULL, ji, NULL, &suspend_policy);
 
 	mono_loader_unlock ();
@@ -7216,6 +7222,8 @@ static void buffer_add_value_full (Buffer *buf, MonoType *t, void *addr, MonoDom
 		
 		buffer_add_byte (buf, t->type);
 		buffer_add_long (buf, val);
+		if (CHECK_PROTOCOL_VERSION(2, 46))
+			buffer_add_typeid (buf, domain, mono_class_from_mono_type (t));
 		break;
 	}
 	handle_ref:
@@ -9178,6 +9186,21 @@ event_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				return err;
 			}
 
+#if RUNTIME_IL2CPP
+            {
+                DebuggerTlsData* tls;
+                mono_loader_lock();
+                tls = (DebuggerTlsData *)mono_g_hash_table_lookup(thread_to_tls, THREAD_TO_INTERNAL(step_thread));
+                mono_loader_unlock();
+
+                if (tls->il2cpp_context.frameCount == 1 && depth == STEP_DEPTH_OUT)
+                {
+                    g_free(req);
+                    return ERR_NONE;
+                }
+            }
+#endif
+
 			err = ss_create (THREAD_TO_INTERNAL (step_thread), size, depth, filter, req);
 			if (err != ERR_NONE) {
 				g_free (req);
@@ -10188,6 +10211,13 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		obj = mono_object_new_checked (domain, klass, error);
 		mono_error_assert_ok (error);
 		buffer_add_objid (buf, obj);
+		break;
+	}
+	case CMD_TYPE_GET_VALUE_SIZE: {
+		int32_t value_size;
+
+		value_size = mono_class_value_size (klass, NULL);
+		buffer_add_int (buf, value_size);
 		break;
 	}
 	default:
@@ -11507,6 +11537,34 @@ string_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 }
 
 static ErrorCode
+pointer_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
+{
+	ErrorCode err;
+	gint64 addr;
+	MonoClass* klass;
+	MonoDomain* domain = NULL;
+
+	switch (command) {
+	case CMD_POINTER_GET_VALUE:
+		addr = decode_long (p, &p, end);
+		klass = decode_typeid (p, &p, end, &domain, &err);
+		if (err != ERR_NONE)
+			return err;
+
+		if (klass->byval_arg.type != MONO_TYPE_PTR)
+			return ERR_INVALID_ARGUMENT;
+
+		buffer_add_value (buf, &klass->element_class->byval_arg, (gpointer)addr, domain);
+
+		break;
+	default:
+		return ERR_NOT_IMPLEMENTED;
+	}
+
+	return ERR_NONE;
+}
+
+static ErrorCode
 object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 {
 	ERROR_DECL (error);
@@ -11712,6 +11770,8 @@ command_set_to_string (CommandSet command_set)
 		return "FIELD";
 	case CMD_SET_EVENT:
 		return "EVENT";
+	case CMD_SET_POINTER:
+		return "POINTER";
 	default:
 		return "";
 	}
@@ -11808,7 +11868,9 @@ static const char* type_cmds_str[] = {
 	"GET_METHODS_BY_NAME_FLAGS",
 	"GET_INTERFACES",
 	"GET_INTERFACE_MAP",
-	"IS_INITIALIZED"
+	"IS_INITIALIZED",
+	"CREATE_INSTANCE",
+	"GET_VALUE_SIZE"
 };
 
 static const char* stack_frame_cmds_str[] = {
@@ -11829,6 +11891,10 @@ static const char* string_cmds_str[] = {
 	"GET_VALUE",
 	"GET_LENGTH",
 	"GET_CHARS"
+};
+
+static const char* pointer_cmds_str[] = {
+	"GET_VALUE"
 };
 
 static const char* object_cmds_str[] = {
@@ -11903,6 +11969,10 @@ cmd_to_string (CommandSet set, int command)
 	case CMD_SET_EVENT:
 		cmds = event_cmds_str;
 		cmds_len = G_N_ELEMENTS (event_cmds_str);
+		break;
+	case CMD_SET_POINTER:
+		cmds = pointer_cmds_str;
+		cmds_len = G_N_ELEMENTS (pointer_cmds_str);
 		break;
 	default:
 		return NULL;
@@ -12011,17 +12081,21 @@ debugger_thread (void *arg)
 		/* This will break if the socket is closed during shutdown too */
 		if (res != HEADER_LENGTH) {
 			DEBUG_PRINTF (1, "[dbg] transport_recv () returned %d, expected %d.\n", res, HEADER_LENGTH);
-			break;
+			len = HEADER_LENGTH;
+			id = 0;
+			flags = 0;
+			command_set = CMD_SET_VM;
+			command = CMD_VM_DISPOSE;
+		} else {
+			p = header;
+			end = header + HEADER_LENGTH;
+
+			len = decode_int (p, &p, end);
+			id = decode_int (p, &p, end);
+			flags = decode_byte (p, &p, end);
+			command_set = (CommandSet)decode_byte (p, &p, end);
+			command = decode_byte (p, &p, end);
 		}
-
-		p = header;
-		end = header + HEADER_LENGTH;
-
-		len = decode_int (p, &p, end);
-		id = decode_int (p, &p, end);
-		flags = decode_byte (p, &p, end);
-		command_set = (CommandSet)decode_byte (p, &p, end);
-		command = decode_byte (p, &p, end);
 
 		g_assert (flags == 0);
 
@@ -12096,6 +12170,9 @@ debugger_thread (void *arg)
 			break;
 		case CMD_SET_STRING_REF:
 			err = string_commands (command, p, end, &buf);
+			break;
+		case CMD_SET_POINTER:
+			err = pointer_commands (command, p, end, &buf);
 			break;
 		case CMD_SET_OBJECT_REF:
 			err = object_commands (command, p, end, &buf);
@@ -12270,9 +12347,9 @@ unity_process_breakpoint_inner(DebuggerTlsData *tls, gboolean from_signal, Il2Cp
 
 	if (ss_reqs->len > 0)
 		ss_events = create_event_list(EVENT_KIND_STEP, ss_reqs, sequencePoint, NULL, &suspend_policy);
-	if (bp_reqs->len > 0)
+	else if (bp_reqs->len > 0)
 		bp_events = create_event_list(EVENT_KIND_BREAKPOINT, bp_reqs, sequencePoint, NULL, &suspend_policy);
-	if (kind != EVENT_KIND_BREAKPOINT)
+	else if (kind != EVENT_KIND_BREAKPOINT)
 		enter_leave_events = create_event_list(kind, NULL, sequencePoint, NULL, &suspend_policy);
 
 	mono_loader_unlock();
