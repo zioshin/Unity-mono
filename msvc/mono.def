@@ -802,6 +802,7 @@ mono_type_get_signature
 mono_type_get_type
 mono_type_get_underlying_type
 mono_type_is_byref
+mono_type_get_attrs
 mono_type_size
 mono_type_stack_size
 mono_type_to_unmanaged
