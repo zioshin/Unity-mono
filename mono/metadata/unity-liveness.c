@@ -31,7 +31,7 @@ void GC_start_world_external()
 }
 #endif
 #else
-#error need to implement liveness GC API
+//#error need to implement liveness GC API
 #endif
 
 custom_growable_array* array_create_and_initialize (guint capacity)
@@ -614,7 +614,7 @@ void mono_unity_liveness_stop_gc_world (LivenessState* state)
 #elif defined(HAVE_BOEHM_GC)
 	GC_stop_world_external ();
 #else
-#error need to implement liveness GC API
+//#error need to implement liveness GC API
 #endif
 }
 
@@ -625,7 +625,7 @@ void mono_unity_liveness_start_gc_world (LivenessState* state)
 #elif defined(HAVE_BOEHM_GC)
 	GC_start_world_external ();
 #else
-#error need to implement liveness GC API
+//#error need to implement liveness GC API
 #endif
 	state->onWorldStartCallback();
 }

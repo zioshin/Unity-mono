@@ -1475,7 +1475,7 @@ dnl
 AC_ARG_ENABLE(bdwgc, [  --disable-bdwgc            Disable the Bdwgc GC.], upport_bdwgc=$enableval,support_bdwgc=${support_bdwgc:-yes})
 AM_CONDITIONAL(SUPPORT_BDWGC, test x$support_bdwgc = xyes)
 bdwgc_dir=external/bdwgc
-BDWGC_DEFINES='-DHAVE_BOEHM_GC -DHAVE_BDWGC_GC'
+BDWGC_DEFINES='-DHAVE_BDWGC_GC'
 LIBGCBDWGC_CPPFLAGS='-I$(top_srcdir)/external/bdwgc/include -I$(top_srcdir)/external/bdwgc/libatomic_ops/src'
 AC_SUBST(bdwgc_dir)
 AC_SUBST(BDWGC_DEFINES)
@@ -1514,7 +1514,7 @@ if test "x$support_boehm" = "xyes"; then
 			LIBGC_LIBS='$(top_builddir)/libgc/libmonogc.la'
 			LIBGC_STATIC_LIBS='$(top_builddir)/libgc/libmonogc-static.la'
 
-			BOEHM_DEFINES="-DHAVE_BOEHM_GC"
+			BOEHM_DEFINES=""
 
 			if test x$target_win32 = xyes; then
 				BOEHM_DEFINES="$BOEHM_DEFINES -DGC_NOT_DLL"

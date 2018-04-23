@@ -37,14 +37,14 @@ my $clean=0;
 my $jobs=8;
 my $test=0;
 my $artifact=0;
-my $debug=0;
-my $disableMcs=0;
+my $debug=1;
+my $disableMcs=1;
 my $mcsOnly=0;
 my $buildUsAndBoo=0;
 my $artifactsCommon=0;
 my $artifactsRuntime=1;
-my $runRuntimeTests=1;
-my $runClasslibTests=1;
+my $runRuntimeTests=0;
+my $runClasslibTests=0;
 my $checkoutOnTheFly=0;
 my $forceDefaultBuildDeps=0;
 my $existingMonoRootPath = '';
@@ -1202,6 +1202,9 @@ if ($build)
 
 		# Add OSX specific autogen args
 		push @configureparams, "--host=$monoHostArch-apple-darwin12.2.0";
+
+		push @configureparams, "--with-libgc=none";
+		#push @configureparams, "--disable-bdwgc";
 
 		# Need to define because Apple's SIP gets in the way of us telling mono where to find this
 		push @configureparams, "--with-libgdiplus=$addtoresultsdistdir/lib/libgdiplus.dylib";
