@@ -6717,6 +6717,8 @@ mono_class_is_subclass_of (MonoClass *klass, MonoClass *klassc,
 {
 	if (!klass->inited)
 		mono_class_init(klass);
+	if (!klassc->inited)
+		mono_class_init (klassc);
 
 	g_assert (klassc->idepth > 0);
 	if (check_interfaces && MONO_CLASS_IS_INTERFACE (klassc) && !MONO_CLASS_IS_INTERFACE (klass)) {
