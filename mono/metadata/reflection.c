@@ -6657,7 +6657,10 @@ mono_param_get_objects_internal (MonoDomain *domain, MonoMethod *method, MonoCla
 		param->PositionImpl = i;
 		param->AttrsImpl = sig->params [i]->attrs;
 
-		if (!(param->AttrsImpl & PARAM_ATTRIBUTE_HAS_DEFAULT)) {
+		/* UNITY: check for wrappers avoids processing wrapper methods which have no token and assert/crash.
+		 * Wrapper methods should not be visible to managed code at all, but they seem to leak through
+		 * in some cases (call stacks). */
+		if (method->wrapper_type || !(param->AttrsImpl & PARAM_ATTRIBUTE_HAS_DEFAULT)) {
 			if (param->AttrsImpl & PARAM_ATTRIBUTE_OPTIONAL)
 				MONO_OBJECT_SETREF (param, DefaultValueImpl, get_reflection_missing (domain, &missing));
 			else
