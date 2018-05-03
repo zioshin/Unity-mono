@@ -136,7 +136,6 @@ function clean_build
 	make && echo "Build SUCCESS!" || exit 1
 
 	mkdir -p $3
-	cp mono/mini/.libs/libmono.a $3
 	cp mono/mini/.libs/libmono.so $3
 }
 
@@ -158,10 +157,10 @@ clean_build "$CCFLAGS_ARMv7_VFP" "$LDFLAGS_ARMv7" "$OUTDIR/armv7a"
 source ${BUILDSCRIPTSDIR}/build_runtime_android_x86.sh dontclean
 
 NUM_LIBS_BUILT=`ls -AlR $OUTDIR | grep libmono | wc -l`
-if [ $NUM_LIBS_BUILT -eq 8 ]; then
-	echo "Android STATIC/SHARED libraries are found here: $OUTDIR"
+if [ $NUM_LIBS_BUILT -eq 4 ]; then
+	echo "Android SHARED libraries are found here: $OUTDIR"
 else
-	echo "Build failed? Android STATIC/SHARED library cannot be found... Found $NUM_LIBS_BUILT libs under $OUTDIR"
+	echo "Build failed? Android SHARED library cannot be found... Found $NUM_LIBS_BUILT libs under $OUTDIR"
 	ls -Al $OUTDIR
 	exit 1
 fi
