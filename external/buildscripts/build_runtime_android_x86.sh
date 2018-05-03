@@ -110,7 +110,6 @@ function clean_build
 	make && echo "Build SUCCESS!" || exit 1
 
 	mkdir -p $3
-	cp mono/mini/.libs/libmono.a $3
 	cp mono/mini/.libs/libmono.so $3
 }
 
