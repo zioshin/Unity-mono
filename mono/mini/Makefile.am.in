@@ -548,6 +548,7 @@ common_sources = \
 	mixed_callstack_plugin.h	\
 	mixed_callstack_plugin.c	\
 	memory-access.c	\
+	intrinsics.c \
 	mini-profiler.c	\
 	interp-stubs.c \
 	aot-runtime.h	\
