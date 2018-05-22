@@ -278,6 +278,24 @@ mono_unity_class_get_generic_parameter_count (MonoClass* klass)
 	return klass->generic_container->type_argc;
 }
 
+MonoClass*
+mono_unity_class_get_generic_argument_at (MonoClass* klass, guint32 index)
+{
+	if (!klass->is_inflated || index >= klass->generic_class->context.class_inst->type_argc)
+		return NULL;
+
+	return mono_class_from_mono_type (klass->generic_class->context.class_inst->type_argv[index]);
+}
+
+guint32
+mono_unity_class_get_generic_argument_count (MonoClass* klass)
+{
+	if (!klass->is_inflated)
+		return 0;
+
+	return klass->generic_class->context.class_inst->type_argc;
+}
+
 static char* data_dir = NULL;
 void
 mono_unity_set_data_dir(const char* dir)
