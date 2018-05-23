@@ -560,21 +560,44 @@ check_policy_versions (MonoAssemblyBindingInfo *info, MonoAssemblyName *name)
 gboolean
 mono_assembly_names_equal (MonoAssemblyName *l, MonoAssemblyName *r)
 {
+	return mono_assembly_names_equal_flags (l, r, MONO_ANAME_EQ_NONE);
+}
+
+/**
+ * mono_assembly_names_equal_flags:
+ * \param l first assembly name
+ * \param r second assembly name
+ * \param flags flags that affect what is compared.
+ *
+ * Compares two \c MonoAssemblyName instances and returns whether they are equal.
+ *
+ * This compares the simple names and cultures and optionally the versions and
+ * public key tokens, depending on the \c flags.
+ *
+ * \returns TRUE if both assembly names are equal.
+ */
+gboolean
+mono_assembly_names_equal_flags (MonoAssemblyName *l, MonoAssemblyName *r, MonoAssemblyNameEqFlags  flags)
+{
 	if (!l->name || !r->name)
 		return FALSE;
 
-	if (strcmp (l->name, r->name))
+	if ((flags & MONO_ANAME_EQ_IGNORE_CASE) != 0 && g_strcasecmp (l->name, r->name))
+		return FALSE;
+
+	if ((flags & MONO_ANAME_EQ_IGNORE_CASE) == 0 && strcmp (l->name, r->name))
 		return FALSE;
 
 	if (l->culture && r->culture && strcmp (l->culture, r->culture))
 		return FALSE;
 
-	if (l->major != r->major || l->minor != r->minor ||
-			l->build != r->build || l->revision != r->revision)
+	if ((l->major != r->major || l->minor != r->minor ||
+	     l->build != r->build || l->revision != r->revision) &&
+	    (flags & MONO_ANAME_EQ_IGNORE_VERSION) == 0)
 		if (! ((l->major == 0 && l->minor == 0 && l->build == 0 && l->revision == 0) || (r->major == 0 && r->minor == 0 && r->build == 0 && r->revision == 0)))
 			return FALSE;
 
-	if (!l->public_key_token [0] || !r->public_key_token [0])
+	if (!l->public_key_token [0] || !r->public_key_token [0] || (flags & MONO_ANAME_EQ_IGNORE_PUBKEY) != 0)
 		return TRUE;
 
 	if (!mono_public_tokens_are_equal (l->public_key_token, r->public_key_token))
@@ -3360,7 +3383,6 @@ prevent_reference_assembly_from_running (MonoAssembly* candidate, gboolean refon
 	mono_error_cleanup (&refasm_error);
 	return candidate;
 }
-
 
 MonoAssembly*
 mono_assembly_load_full_nosearch (MonoAssemblyName *aname, 
