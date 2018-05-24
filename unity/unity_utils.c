@@ -13,6 +13,7 @@
 #include <mono/metadata/threads.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/utils/mono-string.h>
+#include <mono/mono/metadata/gc-internal.h>
 
 #include <glib.h>
 
@@ -322,4 +323,14 @@ MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token)
 void
 mono_unity_install_unitytls_interface(mono_unity_unitytls_interface* callbacks)
 {
+}
+
+void mono_unity_gc_enable()
+{
+	mono_gc_enable();
+}
+
+void mono_unity_gc_disable()
+{
+	mono_gc_disable();
 }
