@@ -13,7 +13,7 @@
 #include <mono/metadata/threads.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/utils/mono-string.h>
-#include <mono/mono/metadata/gc-internal.h>
+#include <mono/metadata/gc-internal.h>
 
 #include <glib.h>
 
