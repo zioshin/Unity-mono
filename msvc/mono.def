@@ -853,3 +853,4 @@ mono_profiler_create
 mono_unity_install_unitytls_interface
 mono_unity_gc_enable
 mono_unity_gc_disable
+mono_unity_gc_is_disabled
