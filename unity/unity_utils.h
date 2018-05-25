@@ -50,5 +50,6 @@ void mono_unity_install_unitytls_interface(mono_unity_unitytls_interface* callba
 // gc
 void mono_unity_gc_enable();
 void mono_unity_gc_disable();
+int mono_unity_gc_is_disabled();
 
 #endif
