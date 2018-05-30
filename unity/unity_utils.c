@@ -14,6 +14,10 @@
 #include <mono/metadata/tokentype.h>
 #include <mono/utils/mono-string.h>
 
+#if HAVE_BOEHM_GC	
+#include <libgc/include/gc.h>
+#endif
+
 #include <glib.h>
 
 #ifdef WIN32
@@ -322,4 +326,32 @@ MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token)
 void
 mono_unity_install_unitytls_interface(mono_unity_unitytls_interface* callbacks)
 {
+}
+
+void mono_unity_gc_enable()
+{
+#if HAVE_BOEHM_GC	
+	GC_enable ();
+#else
+	g_assert_not_reached ();
+#endif
+}
+
+void mono_unity_gc_disable()
+{
+#if HAVE_BOEHM_GC	
+	GC_disable ();
+#else
+	g_assert_not_reached ();
+#endif
+}
+
+int mono_unity_gc_is_disabled()
+{
+#if HAVE_BOEHM_GC
+	return GC_dont_gc != 0;
+#else
+	g_assert_not_reached ();
+	return 0;
+#endif
 }

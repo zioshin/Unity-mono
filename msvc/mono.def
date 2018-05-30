@@ -850,3 +850,6 @@ mono_unity_thread_fast_detach
 mono_profiler_set_profiler_events
 mono_profiler_create
 mono_unity_install_unitytls_interface
+mono_unity_gc_enable
+mono_unity_gc_disable
+mono_unity_gc_is_disabled

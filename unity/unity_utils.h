@@ -47,4 +47,9 @@ MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token);
 typedef struct mono_unity_unitytls_interface mono_unity_unitytls_interface;
 void mono_unity_install_unitytls_interface(mono_unity_unitytls_interface* callbacks);
 
+// gc
+void mono_unity_gc_enable();
+void mono_unity_gc_disable();
+int mono_unity_gc_is_disabled();
+
 #endif
