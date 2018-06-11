@@ -87,6 +87,8 @@ CONFIG_OPTS="\
 --enable-nls=no \
 mono_cv_uscore=yes"
 
+git submodule update --init --recursive --force
+
 function clean_build
 {
 	make clean && make distclean

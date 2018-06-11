@@ -11,6 +11,8 @@ my $root = getcwd();
 my $monodistro = "$root/builds/monodistribution";
 my $libmono = "$monodistro/lib/mono";
 
+system("git submodule update --init --recursive --force");
+
 sub AddDotNetFolderToPath() {
 
 	my @netFrameworkLocations = (

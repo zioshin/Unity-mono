@@ -30,6 +30,9 @@ GetOptions(
 ) or die ("illegal cmdline options");
 
 my $teamcity=0;
+
+system("git submodule update --init --recursive --force");
+
 if ($ENV{UNITY_THISISABUILDMACHINE})
 {
 	print "rmtree-ing $buildsroot because we're on a buildserver, and want to make sure we don't include old artifacts\n";

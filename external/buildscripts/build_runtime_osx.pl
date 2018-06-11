@@ -8,8 +8,8 @@ my $root = getcwd();
 my $skipbuild=0;
 my $debug = 0;
 my $minimal = 0;
-my $jobs = 4;
-my $externalBuildDeps = "$root/../../mono-build-deps/build";
+my $jobs = 1;
+my $externalBuildDeps = "$root/../mono-build-deps";
 
 GetOptions(
    "skipbuild=i"=>\$skipbuild,
@@ -17,6 +17,8 @@ GetOptions(
    "minimal=i"=>\$minimal,
    "j=i"=>\$jobs
 ) or die ("illegal cmdline options");
+
+system("git submodule update --init --recursive --force");
 
 if ($ENV{UNITY_THISISABUILDMACHINE})
 {

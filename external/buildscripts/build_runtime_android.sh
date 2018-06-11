@@ -11,6 +11,8 @@ CWD="$(pwd)"
 PREFIX="$CWD/builds/android"
 BUILDSCRIPTSDIR=external/buildscripts
 
+git submodule update --init --recursive --force
+
 perl ${BUILDSCRIPTSDIR}/PrepareAndroidSDK.pl -ndk=r10e -env=envsetup.sh && source envsetup.sh
 
 NDK_ROOT=`cd $ANDROID_NDK_ROOT && pwd`

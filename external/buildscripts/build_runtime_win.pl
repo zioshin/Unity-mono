@@ -5,6 +5,8 @@ use File::Copy;
 use File::Path;
 my $root = File::Spec->rel2abs( dirname($0) . '/../..' );
 
+system("git submodule update --init --recursive --force");
+
 if ($ENV{UNITY_THISISABUILDMACHINE})
 {
 	print "rmtree-ing $root/builds because we're on a buildserver, and want to make sure we don't include old artifacts\n";

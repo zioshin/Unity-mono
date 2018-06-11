@@ -26,6 +26,8 @@ ORIG_PATH=$PATH
 PRFX=$PWD/tmp 
 MAKE_JOBS=4
 
+git submodule update --init --recursive --force
+
 perl "external/buildscripts/prepare_osx_build.pl"
 
 PATH=$PWD/../../mono-build-deps/build/built-tools/bin:$PATH

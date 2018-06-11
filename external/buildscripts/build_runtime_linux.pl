@@ -34,6 +34,8 @@ GetOptions(
 
 die ("illegal cmdline options") if ($build64 and $build_armel);
 
+system("git submodule update --init --recursive --force");
+
 my $teamcity=0;
 if ($ENV{UNITY_THISISABUILDMACHINE})
 {
