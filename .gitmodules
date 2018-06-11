@@ -1,0 +1,3 @@
+[submodule "external/mono-unity"]
+	path = external/mono-unity
+	url = https://github.com/Unity-Technologies/mono-unity
