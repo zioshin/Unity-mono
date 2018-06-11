@@ -8,8 +8,8 @@ my $root = getcwd();
 my $skipbuild=0;
 my $debug = 0;
 my $minimal = 0;
-my $jobs = 1;
-my $externalBuildDeps = "$root/../mono-build-deps";
+my $jobs = 4;
+my $externalBuildDeps = "$root/../../mono-build-deps/build";
 
 GetOptions(
    "skipbuild=i"=>\$skipbuild,
