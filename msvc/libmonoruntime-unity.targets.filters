@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="win32_sources">
-    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\unity-liveness.c">
+    <ClCompile Include="$(MonoSourceLocation)external\mono-unity\unity-liveness.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\unity</Filter>
     </ClCompile>
-    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\unity-memory-info.c">
+    <ClCompile Include="$(MonoSourceLocation)\external\mono-unity\unity-memory-info.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\unity</Filter>
     </ClCompile>
-    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\unity-memory-info.h">
+    <ClInclude Include="$(MonoSourceLocation)\external\mono-unity\unity-memory-info.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\unity</Filter>
     </ClInclude>
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\unity-utils.c">

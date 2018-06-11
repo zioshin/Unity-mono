@@ -144,8 +144,8 @@ null_gc_sources = \
 	null-gc-handles.c
 
 unity_sources = \
-	unity-memory-info.c \
-	unity-memory-info.h \
+	../../external/mono-unity/unity-memory-info.c \
+	../../external/mono-unity/unity-memory-info.h \
 	unity-utils.c   \
 	unity-utils.h	\
 	unity-icall.c
@@ -321,7 +321,7 @@ gc_dependent_sources = \
 	monitor.c
 
 unity_gc_dependent_sources = \
-	unity-liveness.c
+	../../external/mono-unity/unity-liveness.c
 
 boehm_sources = \
 	boehm-gc.c
