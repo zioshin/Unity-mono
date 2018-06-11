@@ -63,7 +63,7 @@ null_sources = \
 libmonoruntime_la_SOURCES = \
 	$(platform_sources)	\
 	../../unity/unity_utils.c	\
-	../../unity/unity_liveness.c	\
+	../../external/mono-unity/unity_liveness.c	\
 	../../external/mono-unity/unity_memory_info.c \
 	../xamarin-android/logger.h	\
 	../xamarin-android/monodroid.h	\

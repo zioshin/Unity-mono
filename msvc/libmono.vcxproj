@@ -4274,7 +4274,7 @@
     <ClCompile Include="..\mono\xamarin-android\unity_getifaddrs.c" />
     <ClCompile Include="..\mono\xamarin-android\xamarin_getifaddrs.c" />
     <ClCompile Include="..\unity\unity_cross_utils.c" />
-    <ClCompile Include="..\unity\unity_liveness.c" />
+    <ClCompile Include="..\external\mono-unity\unity_liveness.c" />
     <ClCompile Include="..\external\mono-unity\unity_memory_info.c" />
     <ClCompile Include="..\unity\unity_utils.c" />
   </ItemGroup>
