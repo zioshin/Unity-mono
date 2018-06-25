@@ -373,6 +373,9 @@ struct _MonoImage {
 	/* dll map entries */
 	MonoDllMap *dll_map;
 
+	/* used to track native modules */
+	GHashTable *module_map;
+
 	/* interfaces IDs from this image */
 	/* protected by the classes lock */
 	MonoBitSet *interface_bitset;

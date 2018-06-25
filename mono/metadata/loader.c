@@ -75,7 +75,6 @@ static gint32 signatures_size;
 MonoNativeTlsKey loader_lock_nest_id;
 
 static void dllmap_cleanup (void);
-static void cached_module_cleanup(void);
 
 /* Class lazy loading functions */
 GENERATE_GET_CLASS_WITH_CACHE (appdomain_unloaded_exception, "System", "AppDomainUnloadedException")
@@ -122,7 +121,6 @@ void
 mono_loader_cleanup (void)
 {
 	dllmap_cleanup ();
-	cached_module_cleanup ();
 
 	mono_native_tls_free (loader_lock_nest_id);
 
@@ -1109,10 +1107,8 @@ dllmap_cleanup (void)
 	global_dll_map = NULL;
 }
 
-static GHashTable *global_module_map;
-
 static MonoDl*
-cached_module_load (const char *name, int flags, char **err)
+cached_module_load (MonoImage* image, const char *name, int flags, char **err)
 {
 	MonoDl *res;
 	const char *name_remap;
@@ -1122,9 +1118,9 @@ cached_module_load (const char *name, int flags, char **err)
 	if (name_remap = mono_unity_remap_path (name))
 		name = name_remap;
 	global_loader_data_lock ();
-	if (!global_module_map)
-		global_module_map = g_hash_table_new (g_str_hash, g_str_equal);
-	res = (MonoDl *)g_hash_table_lookup (global_module_map, name);
+	if (!image->module_map)
+		image->module_map = g_hash_table_new (g_str_hash, g_str_equal);
+	res = (MonoDl *)g_hash_table_lookup (image->module_map, name);
 	if (res) {
 		global_loader_data_unlock ();
 		g_free((void*)name_remap);
@@ -1132,35 +1128,10 @@ cached_module_load (const char *name, int flags, char **err)
 	}
 	res = mono_dl_open (name, flags, err);
 	if (res)
-		g_hash_table_insert (global_module_map, g_strdup (name), res);
+		g_hash_table_insert (image->module_map, g_strdup (name), res);
 	global_loader_data_unlock ();
 	g_free((void*)name_remap);
 	return res;
-}
-
-void
-mono_loader_register_module (const char *name, MonoDl *module)
-{
-	if (!global_module_map)
-		global_module_map = g_hash_table_new (g_str_hash, g_str_equal);
-	g_hash_table_insert (global_module_map, g_strdup (name), module);
-}
-
-static void
-remove_cached_module(gpointer key, gpointer value, gpointer user_data)
-{
-	mono_dl_close((MonoDl*)value);
-}
-
-static void
-cached_module_cleanup(void)
-{
-	if (global_module_map != NULL) {
-		g_hash_table_foreach(global_module_map, remove_cached_module, NULL);
-
-		g_hash_table_destroy(global_module_map);
-		global_module_map = NULL;
-	}
 }
 
 static MonoDl *internal_module;
@@ -1347,7 +1318,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 		}
 		
 		if (!module && is_absolute) {
-			module = cached_module_load (file_name, MONO_DL_LAZY, &error_msg);
+			module = cached_module_load (image, file_name, MONO_DL_LAZY, &error_msg);
 			if (!module) {
 				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 						"DllImport error loading library '%s': '%s'.",
@@ -1419,7 +1390,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 					continue;
 
 				while ((full_name = mono_dl_build_path (mdirname, file_name, &iter))) {
-					module = cached_module_load (full_name, MONO_DL_LAZY, &error_msg);
+					module = cached_module_load (image, full_name, MONO_DL_LAZY, &error_msg);
 					if (!module) {
 						mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 							"DllImport error loading library '%s': '%s'.",
@@ -1444,7 +1415,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 			void *iter = NULL;
 			char *file_or_base = is_absolute ? base_name : file_name;
 			while ((full_name = mono_dl_build_path (dir_name, file_or_base, &iter))) {
-				module = cached_module_load (full_name, MONO_DL_LAZY, &error_msg);
+				module = cached_module_load (image, full_name, MONO_DL_LAZY, &error_msg);
 				if (!module) {
 					mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 							"DllImport error loading library '%s': '%s'.",
@@ -1460,7 +1431,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 		}
 
 		if (!module) {
-			module = cached_module_load (file_name, MONO_DL_LAZY, &error_msg);
+			module = cached_module_load (image, file_name, MONO_DL_LAZY, &error_msg);
 			if (!module) {
 				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 						"DllImport error loading library '%s': '%s'.",
