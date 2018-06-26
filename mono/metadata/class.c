@@ -6413,7 +6413,7 @@ mono_ptr_class_get (MonoType *type)
 	return result;
 }
 
-static MonoClass *
+MonoClass *
 mono_fnptr_class_get (MonoMethodSignature *sig)
 {
 	MonoClass *result, *cached;

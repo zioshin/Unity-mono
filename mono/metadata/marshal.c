@@ -7635,6 +7635,9 @@ signature_param_uses_handles (MonoMethodSignature *sig, int param)
 
 
 #ifdef ENABLE_ILGEN
+
+MonoClass * mono_fnptr_class_get (MonoMethodSignature *sig);
+
 /**
  * mono_marshal_emit_native_wrapper:
  * \param image the image to use for looking up custom marshallers
@@ -7649,7 +7652,8 @@ signature_param_uses_handles (MonoMethodSignature *sig, int param)
  * generates IL code for the pinvoke wrapper, the generated code calls \p func .
  */
 void
-mono_marshal_emit_native_wrapper (MonoImage *image, MonoMethodBuilder *mb, MonoMethodSignature *sig, MonoMethodPInvoke *piinfo, MonoMarshalSpec **mspecs, gpointer func, gboolean aot, gboolean check_exceptions, gboolean func_param)
+mono_marshal_emit_native_wrapper (MonoImage *image, MonoMethodBuilder *mb, MonoMethodSignature *sig, MonoMethodPInvoke *piinfo, 
+									MonoMarshalSpec **mspecs, gpointer func, gboolean aot, gboolean check_exceptions, gboolean func_param, gboolean func_is_pointer_to_func)
 {
 	EmitMarshalContext m;
 	MonoMethodSignature *csig;
@@ -7796,8 +7800,14 @@ mono_marshal_emit_native_wrapper (MonoImage *image, MonoMethodBuilder *mb, MonoM
 			mono_mb_emit_byte (mb, MONO_CUSTOM_PREFIX);
 			mono_mb_emit_op (mb, CEE_MONO_ICALL_ADDR, &piinfo->method);
 			mono_mb_emit_calli (mb, csig);
-		} else {			
-			mono_mb_emit_native_call (mb, csig, func);
+		} else {
+			if (func_is_pointer_to_func == TRUE) {	
+				mono_mb_emit_ptr (mb, func);
+				mono_mb_emit_byte (mb, CEE_LDIND_REF);
+				mono_mb_emit_calli (mb, sig);
+			} else {
+				mono_mb_emit_native_call (mb, csig, func);
+			}
 		}
 	}
 
@@ -8336,7 +8346,7 @@ mono_marshal_get_native_wrapper (MonoMethod *method, gboolean check_exceptions, 
 	mspecs = g_new (MonoMarshalSpec*, sig->param_count + 1);
 	mono_method_get_marshal_info (method, mspecs);
 
-	mono_marshal_emit_native_wrapper (mb->method->klass->image, mb, sig, piinfo, mspecs, piinfo->addr, aot, check_exceptions, FALSE);
+	mono_marshal_emit_native_wrapper (mb->method->klass->image, mb, sig, piinfo, mspecs, &piinfo->addr, aot, check_exceptions, FALSE, TRUE);
 #endif
 	info = mono_wrapper_info_create (mb, WRAPPER_SUBTYPE_PINVOKE);
 	info->d.managed_to_native.method = method;
@@ -8396,7 +8406,7 @@ mono_marshal_get_native_func_wrapper (MonoImage *image, MonoMethodSignature *sig
 	mb->method->save_lmf = 1;
 
 #ifdef ENABLE_ILGEN
-	mono_marshal_emit_native_wrapper (image, mb, sig, piinfo, mspecs, func, FALSE, TRUE, FALSE);
+	mono_marshal_emit_native_wrapper (image, mb, sig, piinfo, mspecs, func, FALSE, TRUE, FALSE, FALSE);
 #endif
 
 	csig = mono_metadata_signature_dup_full (image, sig);
@@ -8461,7 +8471,7 @@ mono_marshal_get_native_func_wrapper_aot (MonoClass *klass)
 	mb->method->save_lmf = 1;
 
 #ifdef ENABLE_ILGEN
-	mono_marshal_emit_native_wrapper (image, mb, sig, piinfo, mspecs, NULL, FALSE, TRUE, TRUE);
+	mono_marshal_emit_native_wrapper (image, mb, sig, piinfo, mspecs, NULL, FALSE, TRUE, TRUE, FALSE);
 #endif
 
 	info = mono_wrapper_info_create (mb, WRAPPER_SUBTYPE_NATIVE_FUNC_AOT);
