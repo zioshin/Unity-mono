@@ -173,6 +173,7 @@ MONO_API char* mono_unity_get_data_dir();
 MONO_API MonoClass* mono_unity_class_get(MonoImage* image, guint32 type_token);
 MONO_API gpointer mono_unity_alloc(gsize size);
 MONO_API void mono_unity_g_free (void *ptr);
+MONO_API void mono_unity_rebind_pinvoke_methods(MonoImage* image);
 
 MONO_API MonoClass* mono_custom_attrs_get_attrs (MonoCustomAttrInfo *ainfo, gpointer *iter);
 

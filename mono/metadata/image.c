@@ -1938,6 +1938,12 @@ remove_cached_module(gpointer key, gpointer value, gpointer user_data)
 	mono_dl_close((MonoDl*)value);
 }
 
+static void
+remove_pinvoke_refs(gpointer key, gpointer value, gpointer user_data)
+{
+	g_list_free((GList *)value);
+}
+
 /*
  * Returns whether mono_image_close_finish() must be called as well.
  * We must unload images in two steps because clearing the domain in
@@ -2082,6 +2088,8 @@ mono_image_close_except_pools (MonoImage *image)
 		g_hash_table_foreach (image->module_map, remove_cached_module, NULL);
 		g_hash_table_destroy (image->module_map);
 	}
+	if (image->pinvoke_refs)
+		g_list_free(image->pinvoke_refs);
 
 	free_hash (image->delegate_bound_static_invoke_cache);
 	free_hash (image->runtime_invoke_vcall_cache);

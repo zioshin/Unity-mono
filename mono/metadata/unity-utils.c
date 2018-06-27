@@ -20,6 +20,7 @@
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/object-internals.h>
+#include <mono/metadata/loader.h>
 #include <mono/metadata/marshal.h>
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/profiler-private.h>
@@ -144,6 +145,11 @@ MONO_API void
 mono_unity_g_free(void *ptr)
 {
 	g_free (ptr);
+}
+
+MONO_API void mono_unity_rebind_pinvoke_methods(MonoImage* image)
+{
+	mono_rebind_pinvoke_methods(image);
 }
 
 

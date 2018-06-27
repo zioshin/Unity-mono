@@ -74,6 +74,9 @@ MONO_API void*
 mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char **exc_arg);
 
 MONO_API void
+mono_rebind_pinvoke_methods (MonoImage* image);
+
+MONO_API void
 mono_method_get_param_names (MonoMethod *method, const char **names);
 
 MONO_API uint32_t

@@ -1150,8 +1150,8 @@ is_absolute_path (const char *path)
 /**
  * mono_lookup_pinvoke_call:
  */
-gpointer
-mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char **exc_arg)
+static gpointer
+loader_bind_pinvoke_call(MonoMethod *method, gboolean rebind, char **exc_class, const char **exc_arg)
 {
 	MonoImage *image = method->klass->image;
 	MonoMethodPInvoke *piinfo = (MonoMethodPInvoke *)method;
@@ -1177,7 +1177,7 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 		*exc_arg = NULL;
 	}
 
-	if (piinfo->addr)
+	if (!rebind && piinfo->addr)
 		return piinfo->addr;
 
 	if (image_is_dynamic (method->klass->image)) {
@@ -1477,7 +1477,6 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 
 	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 				"DllImport searching in: '%s' ('%s').", new_scope, found_name);
-	g_free (found_name);
 
 #ifdef TARGET_WIN32
 	if (import && import [0] == '#' && isdigit (import [1])) {
@@ -1595,9 +1594,33 @@ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char
 		}
 		return NULL;
 	}
+
 	piinfo->addr = addr;
+
+	mono_image_lock(image);
+	image->pinvoke_refs = g_list_append(image->pinvoke_refs, piinfo);
+	mono_image_unlock(image);
+
 	return addr;
 }
+
+gpointer
+mono_lookup_pinvoke_call(MonoMethod *method, const char **exc_class, const char **exc_arg)
+{
+	return loader_bind_pinvoke_call(method, FALSE, exc_class, exc_arg);
+}
+
+static void loader_rebind_pinvoke_call(MonoMethod *method, void* user_data)
+{
+	loader_bind_pinvoke_call(method, TRUE, NULL, NULL);
+}
+
+void
+mono_rebind_pinvoke_methods(MonoImage* image)
+{
+	g_list_foreach(image->pinvoke_refs, loader_rebind_pinvoke_call, NULL);
+}
+
 
 /*
  * LOCKING: assumes the loader lock to be taken.
