@@ -1177,8 +1177,10 @@ loader_bind_pinvoke_call(MonoMethod *method, gboolean rebind, char **exc_class, 
 		*exc_arg = NULL;
 	}
 
-	if (!rebind && piinfo->addr)
+	gboolean previously_resolved_pinvoke = piinfo->addr == NULL ? FALSE : TRUE;
+	if (!rebind && previously_resolved_pinvoke) {
 		return piinfo->addr;
+	}
 
 	if (image_is_dynamic (method->klass->image)) {
 		MonoReflectionMethodAux *method_aux = 
@@ -1597,9 +1599,11 @@ loader_bind_pinvoke_call(MonoMethod *method, gboolean rebind, char **exc_class, 
 
 	piinfo->addr = addr;
 
-	mono_image_lock(image);
-	image->pinvoke_refs = g_list_append(image->pinvoke_refs, piinfo);
-	mono_image_unlock(image);
+	if (!previously_resolved_pinvoke) {
+		mono_image_lock(image);
+		image->pinvoke_refs = g_list_append(image->pinvoke_refs, piinfo);
+		mono_image_unlock(image);
+	}
 
 	return addr;
 }
