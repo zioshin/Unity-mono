@@ -133,7 +133,8 @@ SIG_HANDLER_SIGNATURE (mono_chain_signal)
 			saved_handler->sa_handler (signal);
 		} else {
 #ifdef MONO_ARCH_USE_SIGACTION
-			saved_handler->sa_sigaction (signal, info, ctx);
+			if (saved_handler->sa_sigaction != NULL)
+			    saved_handler->sa_sigaction (signal, info, ctx);
 #endif /* MONO_ARCH_USE_SIGACTION */
 		}
 		return TRUE;
