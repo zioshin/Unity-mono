@@ -84,6 +84,7 @@ struct _LivenessState
 	custom_growable_array* all_objects;
 
 	MonoClass*          filter;
+	gboolean            filter_has_intptr_field;
 
 	custom_growable_array* process_array;
 	guint               initial_alloc_count;
@@ -93,6 +94,11 @@ struct _LivenessState
 	register_object_callback filter_callback;
 	WorldStateChanged        onWorldStartCallback;
 	WorldStateChanged        onWorldStopCallback;
+};
+
+enum
+{
+	UNITY_OBJECT_INTPTR_FIELD_OFFSET = sizeof(void*) * 2
 };
 
 /* Liveness calculation */
@@ -153,11 +159,39 @@ void array_safe_grow(LivenessState* state, custom_growable_array* array)
 	}
 }
 
-static gboolean should_process_value (MonoObject* val, MonoClass* filter)
+inline static gboolean should_add_object(MonoObject* object, MonoClass* filter)
 {
-	MonoClass* val_class = GET_VTABLE(val)->klass;
+	MonoClass* klass = GET_VTABLE(object)->klass;
 	if (filter && 
-		!mono_class_has_parent (val_class, filter))
+		!mono_class_has_parent (klass, filter))
+		return FALSE;
+
+	return TRUE;
+}
+
+inline static gboolean should_process_object(MonoObject* object, LivenessState* state)
+{
+	if (!state->filter || !state->filter_has_intptr_field)
+		return TRUE;
+
+	MonoClass* klass = GET_VTABLE(object)->klass;
+	if (!mono_class_has_parent(klass, state->filter))
+		return TRUE;
+
+	void* val = *(void**)((char*)object + UNITY_OBJECT_INTPTR_FIELD_OFFSET);
+	return val != NULL ? TRUE : FALSE;
+}
+
+static gboolean class_has_intptr_field(MonoClass* klass)
+{
+	if (!mono_class_get_field_count(klass))
+		return FALSE;
+
+	MonoClassField* field = &klass->fields[0];
+	if (field->type->type != MONO_TYPE_I)
+		return FALSE;
+
+	if (field->offset != UNITY_OBJECT_INTPTR_FIELD_OFFSET)
 		return FALSE;
 
 	return TRUE;
@@ -190,15 +224,19 @@ static void mono_add_process_object (MonoObject* object, LivenessState* state)
 	if (object && !IS_MARKED(object))
 	{
 		gboolean has_references = GET_VTABLE(object)->klass->has_references;
-		if(has_references || should_process_value(object,state->filter))
+		// Objects with references are added to the all_objects and marked
+		// to avoid visiting them circularly. Thus filtering is also done later in mono_filter_objects.
+		if(has_references || should_add_object(object,state->filter))
 		{
 			if (array_is_full(state->all_objects))
 				array_safe_grow(state, state->all_objects);
 			array_push_back(state->all_objects, object);
 			MARK_OBJ(object);
 		}
-		// Check if klass has further references - if not skip adding
-		if (has_references)
+		// Check if klass has further references - if not skip adding.
+		// If filter contains IntPtr field, we check if it is not NULL to avoid traversing destroyed
+		// native objects.
+		if (has_references && should_process_object(object,state))
 		{
 			if(array_is_full(state->process_array))
 				array_safe_grow(state, state->process_array);
@@ -368,7 +406,7 @@ void mono_filter_objects(LivenessState* state)
 	for ( ; i < state->all_objects->len; i++)
 	{
 		MonoObject* object = state->all_objects->pdata[i];
-		if (should_process_value (object, state->filter))
+		if (should_add_object (object, state->filter))
 			filtered_objects[num_objects++] = object;
 		if (num_objects == 64)
 		{
@@ -579,6 +617,7 @@ LivenessState* mono_unity_liveness_allocate_struct (MonoClass* filter, guint max
 
 	state->first_index_in_all_objects = 0; 
 	state->filter = filter;
+	state->filter_has_intptr_field = class_has_intptr_field(filter);
 
 	state->callback_userdata = callback_userdata;
 	state->filter_callback = callback;
