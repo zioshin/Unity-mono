@@ -134,6 +134,11 @@ gint32 read_dword(const void* address)
 GList* read_glist_next(GList* list) { return (GList*) read_pointer(OFFSET_MEMBER(GList, list, next)); }
 gpointer read_glist_data(GList* list) { return read_pointer(OFFSET_MEMBER(GList, list, data)); }
 
+#ifdef _M_X64
+typedef BOOLEAN (WINAPI *pTryAcquireSRWLockExclusive) (PSRWLOCK SRWLock);
+static pTryAcquireSRWLockExclusive s_pTryAcquireSRWLockExclusive;
+#endif
+
 MONO_API void
 mono_unity_oop_init(
     ReadMemoryCallback rmcb, 
@@ -143,6 +148,12 @@ mono_unity_oop_init(
     g_oop.readMemory = rmcb;
     g_oop.readException = recb;
     g_oop.userData = userdata;
+
+	MessageBoxA (NULL, "Jon", "Hey", 0);
+
+	HMODULE hKernel = LoadLibraryW (L"Kernel32.dll");
+	s_pTryAcquireSRWLockExclusive = (pTryAcquireSRWLockExclusive)
+		GetProcAddress (hKernel, "TryAcquireSRWLockExclusive");
 }
 
 MONO_API void
@@ -154,9 +165,11 @@ mono_unity_oop_shutdown(void)
 #ifdef _M_X64
 gboolean TryAcquireSpinWait(PSRWLOCK lock, unsigned int spinWait)
 {
+	if (!s_pTryAcquireSRWLockExclusive)
+		return FALSE;
     do
     {
-        if (TryAcquireSRWLockExclusive(&g_dynamic_function_table_lock))
+        if (s_pTryAcquireSRWLockExclusive (&g_dynamic_function_table_lock))
             return TRUE;
     } while (spinWait--);
 
