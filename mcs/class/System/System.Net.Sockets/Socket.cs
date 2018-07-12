@@ -1160,24 +1160,19 @@ namespace System.Net.Sockets
 			// while skipping entries that do not match the address family
 			DnsEndPoint dep = e.RemoteEndPoint as DnsEndPoint;
 			if (dep != null) {
-				if (dep.AddressFamily == AddressFamily.Unspecified)
-				{
-					addresses = Dns.GetHostAddresses(dep.Host);
-				} else {
-					var possibleAddresses = Dns.GetHostAddresses (dep.Host);
-					var numberOfAddresses = 0;
-					int[] addressIndices = new int[possibleAddresses.Length];
-					for (var i = 0; i < possibleAddresses.Length; i++) {
-						if (possibleAddresses[i].AddressFamily == dep.AddressFamily) {
-							addressIndices[numberOfAddresses] = i;
-							numberOfAddresses++;
-						}
+				var possibleAddresses = Dns.GetHostAddresses (dep.Host);
+				var numberOfAddresses = 0;
+				int[] addressIndices = new int[possibleAddresses.Length];
+				for (var i = 0; i < possibleAddresses.Length; i++) {
+					if (possibleAddresses[i].AddressFamily == dep.AddressFamily) {
+						addressIndices[numberOfAddresses] = i;
+						numberOfAddresses++;
 					}
-
-					addresses = new IPAddress[numberOfAddresses];
-					for (var i = 0; i < numberOfAddresses; i++)
-						addresses[i] = possibleAddresses[addressIndices[i]];
 				}
+				addresses = new IPAddress[numberOfAddresses];
+				for (var i = 0; i < numberOfAddresses; i++)
+					addresses[i] = possibleAddresses[addressIndices[i]];
+
 				return true;
 			} else {
 				e.ConnectByNameError = null;
