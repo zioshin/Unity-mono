@@ -1935,6 +1935,7 @@ mono_image_close_except_pools_all (MonoImage**images, int image_count)
 static void
 remove_cached_module(gpointer key, gpointer value, gpointer user_data)
 {
+	g_free(key);
 	mono_dl_close((MonoDl*)value);
 }
 

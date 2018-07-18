@@ -1167,6 +1167,7 @@ mono_loader_register_embedded_module (const char *name, MonoDl *module)
 static void
 remove_embedded_module (gpointer key, gpointer value, gpointer user_data)
 {
+	g_free(key);
 	mono_dl_close((MonoDl*)value);
 }
 
