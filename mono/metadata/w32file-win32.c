@@ -60,6 +60,7 @@ mono_w32file_create(const gunichar2 *name, guint32 fileaccess, guint32 sharemode
 	MONO_ENTER_GC_SAFE;
 	res = CreateFile (name, fileaccess, sharemode, NULL, createmode, attrs, NULL);
 	MONO_EXIT_GC_SAFE;
+
 	return res;
 }
 
@@ -101,7 +102,6 @@ mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *
 		guint32 last_error;
 		MONO_ENTER_GC_SAFE;
 		res = ReadFile (handle, buffer, numbytes, bytesread, NULL);
-		MONO_PROFILER_RAISE (fileio, (1, *bytesread));
 		MONO_EXIT_GC_SAFE;
 
 		/* need to save and restore since clients expect error code set for
@@ -109,6 +109,8 @@ mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *
 		last_error = mono_w32error_get_last ();
 		mono_thread_info_uninstall_interrupt (&interrupted);
 		mono_w32error_set_last (last_error);
+
+        MONO_PROFILER_RAISE (fileio_read, (FILEIO_EVENT_READ_END, *bytesread));
 	}
 
 	return res;
@@ -126,7 +128,6 @@ mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, gui
 		guint32 last_error;
 		MONO_ENTER_GC_SAFE;
 		res = WriteFile (handle, buffer, numbytes, byteswritten, NULL);
-		MONO_PROFILER_RAISE (fileio, (0, *byteswritten));
 		MONO_EXIT_GC_SAFE;
 
 		/* need to save and restore since clients expect error code set for
@@ -134,6 +135,8 @@ mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, gui
 		last_error = mono_w32error_get_last ();
 		mono_thread_info_uninstall_interrupt (&interrupted);
 		mono_w32error_set_last (last_error);
+
+        MONO_PROFILER_RAISE (fileio_write, (FILEIO_EVENT_WRITE_END, *byteswritten));
 	}
 
 	return res;

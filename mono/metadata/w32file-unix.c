@@ -1038,7 +1038,6 @@ file_read(FileHandle *filehandle, gpointer buffer, guint32 numbytes, guint32 *by
 		
 	if (bytesread != NULL) {
 		*bytesread = ret;
-		MONO_PROFILER_RAISE (fileio, (1, *bytesread));
 	}
 		
 	return(TRUE);
@@ -1106,7 +1105,6 @@ file_write(FileHandle *filehandle, gconstpointer buffer, guint32 numbytes, guint
 	}
 	if (byteswritten != NULL) {
 		*byteswritten = ret;
-		MONO_PROFILER_RAISE (fileio, (0, *byteswritten));
 	}
 	return(TRUE);
 }
@@ -2652,6 +2650,7 @@ mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *
 	switch (((MonoFDHandle*) filehandle)->type) {
 	case MONO_FDTYPE_FILE:
 		ret = file_read(filehandle, buffer, numbytes, bytesread);
+        MONO_PROFILER_RAISE (fileio_read, (FILEIO_EVENT_READ_END, *bytesread));
 		break;
 	case MONO_FDTYPE_CONSOLE:
 		ret = console_read(filehandle, buffer, numbytes, bytesread);
@@ -2683,6 +2682,7 @@ mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, gui
 	switch (((MonoFDHandle*) filehandle)->type) {
 	case MONO_FDTYPE_FILE:
 		ret = file_write(filehandle, buffer, numbytes, byteswritten);
+        MONO_PROFILER_RAISE (fileio_write, (FILEIO_EVENT_WRITE_END, *byteswritten));
 		break;
 	case MONO_FDTYPE_CONSOLE:
 		ret = console_write(filehandle, buffer, numbytes, byteswritten);

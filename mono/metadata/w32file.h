@@ -367,6 +367,15 @@ typedef struct {
 
 #endif /* !defined(HOST_WIN32) */
 
+typedef enum {
+    FILEIO_EVENT_START = 0,
+    FILEIO_EVENT_END = 3,
+    FILEIO_EVENT_READ_START = 4,
+    FILEIO_EVENT_READ_END = 5,
+    FILEIO_EVENT_WRITE_START = 6,
+    FILEIO_EVENT_WRITE_END = 7
+} FileIO_EventType;
+
 void
 mono_w32file_init (void);
 

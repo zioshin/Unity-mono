@@ -1662,32 +1662,36 @@ finalize_object_end (MonoProfiler *prof, MonoObject *obj)
 static void
 fileio (MonoProfiler *prof, uint64_t kind, uint64_t size)
 {
-	if (kind == 0)
-	{
-		ENTER_LOG (&fileio_writes_ctr, buf,
-            EVENT_SIZE /* event */ +
-			LEB128_SIZE /* kind */ +
-			LEB128_SIZE /* size */
-        );
-		emit_event (buf, TYPE_FILEIO);
-		emit_value (buf, kind);
-		emit_value (buf, size);
+    switch (kind) {
+        case 7:
+            ENTER_LOG (&fileio_writes_ctr, buf,
+                       EVENT_SIZE /* event */ +
+                       LEB128_SIZE /* kind */ +
+                       LEB128_SIZE /* size */
+                       );
+            emit_event (buf, TYPE_FILEIO);
+            emit_value (buf, kind);
+            emit_value (buf, size);
 
-		EXIT_LOG;
-	}
-	else
-	{
-		ENTER_LOG (&fileio_reads_ctr, buf,
-			EVENT_SIZE /* event */ +
-			LEB128_SIZE /* kind */ +
-			LEB128_SIZE /* size */
-        );
-		emit_event (buf, TYPE_FILEIO);
-		emit_value (buf, kind);
-		emit_value (buf, size);
+            EXIT_LOG;
+            break;
 
-		EXIT_LOG;
-	}
+        case 5:
+            ENTER_LOG (&fileio_reads_ctr, buf,
+                       EVENT_SIZE /* event */ +
+                       LEB128_SIZE /* kind */ +
+                       LEB128_SIZE /* size */
+                       );
+            emit_event (buf, TYPE_FILEIO);
+            emit_value (buf, kind);
+            emit_value (buf, size);
+
+            EXIT_LOG;
+            break;
+
+        default:
+            break;
+    }
 }
 
 static char*
@@ -4463,10 +4467,12 @@ proflog_icall_SetFileIOEvents (MonoBoolean value)
 
 	if (value) {
 		ENABLE (PROFLOG_FILEIO_EVENTS);
-		mono_profiler_set_fileio_callback (log_profiler.handle, fileio);
+		mono_profiler_set_fileio_read_callback (log_profiler.handle, fileio);
+        mono_profiler_set_fileio_write_callback (log_profiler.handle, fileio);
 	} else {
 		DISABLE (PROFLOG_FILEIO_EVENTS);
-		mono_profiler_set_fileio_callback (log_profiler.handle, NULL);
+		mono_profiler_set_fileio_read_callback (log_profiler.handle, NULL);
+        mono_profiler_set_fileio_write_callback (log_profiler.handle, NULL);
 	}
 
 	mono_coop_mutex_unlock (&log_profiler.api_mutex);
@@ -4906,8 +4912,10 @@ mono_profiler_init_log (const char *desc)
 		mono_profiler_set_gc_finalizing_object_callback (handle, finalize_object_begin);
 	}
 
-	if (ENABLED (PROFLOG_FILEIO_EVENTS))
-		mono_profiler_set_fileio_callback (handle, fileio);
+    if (ENABLED (PROFLOG_FILEIO_EVENTS)) {
+		mono_profiler_set_fileio_read_callback (handle, fileio);
+        mono_profiler_set_fileio_write_callback (handle, fileio);
+    }
 
 	//On Demand heapshot uses the finalizer thread to force a collection and thus a heapshot
 	mono_profiler_set_gc_finalized_callback (handle, finalize_end);
@@ -4931,6 +4939,7 @@ mono_profiler_init_log (const char *desc)
 	}
 
 	mono_profiler_enable_allocations ();
+    mono_profiler_enable_fileio();
 	mono_profiler_enable_sampling (handle);
 
 	/*

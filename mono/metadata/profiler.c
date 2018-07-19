@@ -969,7 +969,8 @@ struct _MonoProfiler {
 	MonoLegacyProfileGCResizeFunc gc_heap_resize;
 	MonoLegacyProfileJitResult jit_end2;
 	MonoLegacyProfileAllocFunc allocation;
-	MonoLegacyProfileFileIOFunc fileio;
+	MonoLegacyProfileFileIOFunc fileio_read;
+    MonoLegacyProfileFileIOFunc fileio_write;
 	MonoLegacyProfileMethodFunc enter;
 	MonoLegacyProfileMethodFunc leave;
 	MonoLegacyProfileExceptionFunc throw_callback;
@@ -986,7 +987,7 @@ MONO_API void mono_profiler_install_jit_end (MonoLegacyProfileJitResult end);
 MONO_API void mono_profiler_set_events (int flags);
 MONO_API void mono_profiler_install_allocation (MonoLegacyProfileAllocFunc callback);
 MONO_API void mono_profiler_install_enter_leave (MonoLegacyProfileMethodFunc enter, MonoLegacyProfileMethodFunc fleave);
-MONO_API void mono_profiler_install_fileio (MonoLegacyProfileFileIOFunc callback);
+MONO_API void mono_profiler_install_fileio (MonoLegacyProfileFileIOFunc read_callback, MonoLegacyProfileFileIOFunc write_callback);
 MONO_API void mono_profiler_install_exception (MonoLegacyProfileExceptionFunc throw_callback, MonoLegacyProfileMethodFunc exc_method_leave, MonoLegacyProfileExceptionClauseFunc clause_callback);
 
 static void
@@ -1141,18 +1142,27 @@ mono_profiler_install_allocation (MonoLegacyProfileAllocFunc callback)
 }
 
 static void
-fileio_cb (MonoProfiler *prof, uint64_t kind, uint64_t size)
+fileio_read_cb (MonoProfiler *prof, uint64_t kind, uint64_t size)
 {
-	prof->fileio (prof->profiler, kind, size);
+	prof->fileio_read (prof->profiler, kind, size);
+}
+
+static void
+fileio_write_cb (MonoProfiler *prof, uint64_t kind, uint64_t size)
+{
+    prof->fileio_write (prof->profiler, kind, size);
 }
 
 void
-mono_profiler_install_fileio (MonoLegacyProfileFileIOFunc callback)
+mono_profiler_install_fileio (MonoLegacyProfileFileIOFunc read_callback, MonoLegacyProfileFileIOFunc write_callback)
 {
-	current->fileio = callback;
+	current->fileio_read = read_callback;
+    current->fileio_write = write_callback;
 
-	if (callback)
-		mono_profiler_set_fileio_callback (current->handle, fileio_cb);
+	if (read_callback)
+		mono_profiler_set_fileio_read_callback (current->handle, fileio_read_cb);
+    if (write_callback)
+        mono_profiler_set_fileio_write_callback (current->handle, fileio_write_cb);
 }
 
 static void
