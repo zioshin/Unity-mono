@@ -400,7 +400,7 @@ static gboolean file_read(gpointer handle, gpointer buffer,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (1, ret);
+		mono_profiler_fileio (MONO_PROFILE_FILEIO_READ, ret);
 
 	return(TRUE);
 }
@@ -488,7 +488,7 @@ static gboolean file_write(gpointer handle, gconstpointer buffer,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (0, ret);
+		mono_profiler_fileio (MONO_PROFILE_FILEIO_WRITE, ret);
 
 	return(TRUE);
 }
@@ -1667,7 +1667,7 @@ gpointer CreateFile(const gunichar2 *name, guint32 fileaccess,
 #ifdef DEBUG
 	g_message("%s: returning handle %p", __func__, handle);
 #endif
-	
+
 	return(handle);
 }
 
@@ -2276,7 +2276,7 @@ gboolean ReadFile(gpointer handle, gpointer buffer, guint32 numbytes,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (1, numbytes);
+		mono_profiler_fileio (MONO_PROFILE_FILEIO_READ, numbytes);
 
 	return(io_ops[type].readfile (handle, buffer, numbytes, bytesread,
 				      overlapped));
@@ -2320,7 +2320,7 @@ gboolean WriteFile(gpointer handle, gconstpointer buffer, guint32 numbytes,
 	}
 
 	if (mono_profiler_get_events () & MONO_PROFILE_FILEIO)
-		mono_profiler_fileio (0, numbytes);
+		mono_profiler_fileio (MONO_PROFILE_FILEIO_WRITE, numbytes);
 
 	return(io_ops[type].writefile (handle, buffer, numbytes, byteswritten,
 				       overlapped));
@@ -3027,7 +3027,7 @@ gboolean FindClose (gpointer handle)
 	pthread_cleanup_pop (0);
 	
 	_wapi_handle_unref (handle);
-	
+
 	return(TRUE);
 }
 

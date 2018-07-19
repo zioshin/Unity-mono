@@ -37,6 +37,11 @@ typedef enum {
 } MonoProfileResult;
 
 typedef enum {
+    MONO_PROFILE_FILEIO_WRITE = 5,
+    MONO_PROFILE_FILEIO_READ = 7
+} MonoFileIOKind;
+
+typedef enum {
 	MONO_GC_EVENT_START,
 	MONO_GC_EVENT_MARK_START,
 	MONO_GC_EVENT_MARK_END,
@@ -177,7 +182,7 @@ void mono_profiler_install_thread      (MonoProfileThreadFunc start, MonoProfile
 void mono_profiler_install_thread_fast_attach_detach (MonoProfileThreadFunc fast_attach, MonoProfileThreadFunc fast_detach);
 void mono_profiler_install_transition  (MonoProfileMethodResult callback);
 void mono_profiler_install_allocation  (MonoProfileAllocFunc callback);
-void mono_profiler_install_fileio      (MonoProfileFileIOFunc callback);
+void mono_profiler_install_fileio      (MonoProfileFileIOFunc read_callback, MonoProfileFileIOFunc write_callback);
 void mono_profiler_install_monitor     (MonoProfileMonitorFunc callback);
 void mono_profiler_install_statistical (MonoProfileStatFunc callback);
 void mono_profiler_install_statistical_call_chain (MonoProfileStatCallChainFunc callback, int call_chain_depth, MonoProfilerCallChainStrategy call_chain_strategy);

@@ -70,7 +70,8 @@ struct _ProfilerDesc {
 	MonoProfileMethodFunc   method_end_invoke;
 	MonoProfileMethodResult man_unman_transition;
 	MonoProfileAllocFunc    allocation_cb;
-	MonoProfileFileIOFunc   fileio_cb;
+	MonoProfileFileIOFunc   fileio_read;
+	MonoProfileFileIOFunc   fileio_write;
 	MonoProfileMonitorFunc  monitor_event_cb;
 	MonoProfileStatFunc     statistical_cb;
 	MonoProfileStatCallChainFunc statistical_call_chain_cb;
@@ -290,11 +291,12 @@ mono_profiler_install_allocation (MonoProfileAllocFunc callback)
 }
 
 void
-mono_profiler_install_fileio (MonoProfileFileIOFunc callback)
+mono_profiler_install_fileio (MonoProfileFileIOFunc read_callback, MonoProfileFileIOFunc write_callback)
 {
 	if (!prof_list)
 		return;
-	prof_list->fileio_cb = callback;
+	prof_list->fileio_read = read_callback;
+	prof_list->fileio_write = write_callback;
 }
 
 void
@@ -551,8 +553,10 @@ mono_profiler_fileio (int kind, int count)
 {
 	ProfilerDesc *prof;
 	for (prof = prof_list; prof; prof = prof->next) {
-		if ((prof->events & MONO_PROFILE_FILEIO) && prof->fileio_cb)
-			prof->fileio_cb (prof->profiler, kind, count);
+		if ((prof->events & MONO_PROFILE_FILEIO) && kind == MONO_PROFILE_FILEIO_READ && prof->fileio_read)
+			prof->fileio_read (prof->profiler, kind, count);
+		else if ((prof->events & MONO_PROFILE_FILEIO) && kind == MONO_PROFILE_FILEIO_WRITE && prof->fileio_write)
+			prof->fileio_write (prof->profiler, kind, count);
     }
 }
 
