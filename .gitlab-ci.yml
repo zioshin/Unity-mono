@@ -1,0 +1,49 @@
+stages:
+- build
+- collate
+
+# Build
+build_osx:
+  stage: build
+  when: manual
+  tags:
+    - buildfarm
+    - darwin
+  script:
+  - perl external/buildscripts/build_runtime_osx.pl
+  artifacts:
+    paths:
+    - builds
+    expire_in: 1 week
+# Important! Do not remove this after_script!!  
+  after_script:
+    - /opt/post_build_script.sh
+
+build_win:
+  stage: build
+  when: manual
+  tags:
+  - buildfarm
+  - windows
+  script:
+  - perl external/buildscripts\build_runtime_win64.pl
+  artifacts:
+    paths:
+    - builds
+    expire_in: 1 week
+# Important! Do not remove this after_script!!
+  after_script:
+    - C:\Users\builduser\post_build_script.bat
+
+collate_builds:
+  image: ubuntu:latest
+  stage: collate
+  when: manual
+  dependencies:
+  - build_osx
+  - build_win
+  before_script:
+  - apt-get update -qy && apt-get -qy upgrade
+  script:
+  - perl --version
+
