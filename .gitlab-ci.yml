@@ -21,6 +21,24 @@ build_osx:
   after_script:
     - /opt/post_build_script.sh
 
+build_osx_classlibs:
+  stage: build
+  when: manual
+  tags:
+    - buildfarm
+    - darwin
+  script:
+  - git submodule update --init --recursive
+  - echo -e "[auth]\nono.schemes=https\nono.prefix=ono.unity3d.com\nono.username=$GITLAB_UNITY_META_ONO_USER\nono.password=$GITLAB_UNITY_META_ONO_PASS\n" >> ~/.hgrc
+  - perl external/buildscripts/build_classlibs_osx.pl
+  artifacts:
+    paths:
+    - builds
+    expire_in: 1 week
+# Important! Do not remove this after_script!!  
+  after_script:
+    - /opt/post_build_script.sh
+
 build_win:
   stage: build
   when: manual
@@ -38,15 +56,73 @@ build_win:
   after_script:
     - C:\Users\builduser\post_build_script.bat
 
+build_win_x86:
+  stage: build
+  when: manual
+  tags:
+  - buildfarm
+  - windows
+  script:
+  - git submodule update --init --recursive
+  - perl external/buildscripts\build_runtime_win.pl
+  artifacts:
+    paths:
+    - builds
+    expire_in: 1 week
+# Important! Do not remove this after_script!!
+  after_script:
+    - C:\Users\builduser\post_build_script.bat
+
+build_linux_x64:
+  stage: build
+  when: manual
+  tags:
+    - buildfarm
+    - linux
+  script:
+  - git submodule update --init --recursive
+  - echo -e "[auth]\nono.schemes=https\nono.prefix=ono.unity3d.com\nono.username=$GITLAB_UNITY_META_ONO_USER\nono.password=$GITLAB_UNITY_META_ONO_PASS\n" >> ~/.hgrc
+  - perl external/buildscripts/build_runtime_linux.pl -build64=1
+  artifacts:
+    paths:
+    - builds
+    expire_in: 1 week
+# Important! Do not remove this after_script!!  
+  after_script:
+    - /opt/post_build_script.sh
+
+build_linux_x86:
+  stage: build
+  when: manual
+  tags:
+    - buildfarm
+    - linux
+  script:
+  - git submodule update --init --recursive
+  - echo -e "[auth]\nono.schemes=https\nono.prefix=ono.unity3d.com\nono.username=$GITLAB_UNITY_META_ONO_USER\nono.password=$GITLAB_UNITY_META_ONO_PASS\n" >> ~/.hgrc
+  - perl external/buildscripts/build_runtime_linux.pl
+  artifacts:
+    paths:
+    - builds
+    expire_in: 1 week
+# Important! Do not remove this after_script!!  
+  after_script:
+    - /opt/post_build_script.sh
+
+
 collate_builds:
   image: ubuntu:latest
   stage: collate
   when: manual
   dependencies:
   - build_osx
+  - build_osx_classlibs
   - build_win
+  - build_win_x86
+  - build_linux_x86
+  - build_linux_x64
   before_script:
   - apt-get update -qy && apt-get -qy upgrade
   script:
-  - perl --version
+  - perl external/buildscripts/collect_allbuilds.pl
 
