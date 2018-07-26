@@ -10,6 +10,7 @@ build_osx:
     - buildfarm
     - darwin
   script:
+  - echo -e "[auth]\nono.schemes=https\nono.prefix=ono.unity3d.com\nono.username=$GITLAB_UNITY_META_ONO_USER\nono.password=$GITLAB_UNITY_META_ONO_PASS\n" >> ~/.hgrc
   - perl external/buildscripts/build_runtime_osx.pl
   artifacts:
     paths:
