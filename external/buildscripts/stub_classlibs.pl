@@ -11,7 +11,7 @@ if($^O ne "darwin")
 
 my $monoroot = File::Spec->rel2abs(dirname(__FILE__) . "/../..");
 my $monoroot = abs_path($monoroot);
-my $extraBuildTools = "$monoroot/../../mono-build-tools-extra/build";
+my $extraBuildTools = "$monoroot/mono-build-tools-extra/build";
 
 print ">>> Building the ProfileStubber utility\n";
 
