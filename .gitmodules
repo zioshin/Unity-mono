@@ -61,3 +61,6 @@
 [submodule "external/bdwgc"]
 	path = external/bdwgc
 	url = git://github.com/Unity-Technologies/bdwgc.git
+[submodule "external/baselib"]
+	path = external/baselib
+	url = git@gitlab.internal.unity3d.com:platforms/baselib.git
