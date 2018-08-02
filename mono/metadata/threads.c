@@ -80,8 +80,9 @@ extern int tkill (pid_t tid, int signal);
 #endif
 #endif
 
-/*#define THREAD_DEBUG(a) do { a; } while (0)*/
-#define THREAD_DEBUG(a)
+//#define THREAD_DEBUG(a) do { a; } while (0)
+#define THREAD_DEBUG(a) a;
+//#define THREAD_DEBUG(a)
 /*#define THREAD_WAIT_DEBUG(a) do { a; } while (0)*/
 #define THREAD_WAIT_DEBUG(a)
 /*#define LIBGC_DEBUG(a) do { a; } while (0)*/
@@ -736,7 +737,7 @@ mono_thread_attach_internal (MonoThread *thread, gboolean force_attach, gboolean
 
 	set_current_thread_for_domain (domain, internal, thread);
 
-	THREAD_DEBUG (g_message ("%s: Attached thread ID %"G_GSIZE_FORMAT" (handle %p)", __func__, internal->tid, internal->handle));
+	THREAD_DEBUG (g_message ("%s: Attached thread ID %"G_GSIZE_FORMAT" (handle %p)", __func__, internal->tid, thread));
 
 	return TRUE;
 }
@@ -1445,7 +1446,7 @@ ves_icall_System_Threading_Thread_Thread_internal (MonoThread *this_obj,
 
 	internal->state &= ~ThreadState_Unstarted;
 
-	THREAD_DEBUG (g_message ("%s: Started thread ID %"G_GSIZE_FORMAT" (handle %p)", __func__, tid, thread));
+	THREAD_DEBUG (g_message ("%s: Started thread ID %"G_GSIZE_FORMAT" (handle %p)", __func__, internal->tid, internal->handle));
 
 	UNLOCK_THREAD (internal);
 	return internal->handle;
@@ -1457,7 +1458,7 @@ ves_icall_System_Threading_Thread_Thread_internal (MonoThread *this_obj,
 void
 ves_icall_System_Threading_InternalThread_Thread_free_internal (MonoInternalThread *this_obj)
 {
-	THREAD_DEBUG (g_message ("%s: Closing thread %p, handle %p", __func__, this, this_obj->handle));
+	THREAD_DEBUG (g_message ("%s: Closing thread %p, handle %p", __func__, this_obj, this_obj->handle));
 
 	/*
 	 * Since threads keep a reference to their thread object while running, by

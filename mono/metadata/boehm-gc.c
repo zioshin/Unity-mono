@@ -1883,6 +1883,8 @@ handle_data_grow (HandleData *handles, gboolean track)
 	handles->size = new_size;
 }
 
+static guint32 freedHandles [10000];
+
 static guint32
 alloc_handle (HandleData *handles, MonoObject *obj, gboolean track)
 {
@@ -1917,6 +1919,14 @@ alloc_handle (HandleData *handles, MonoObject *obj, gboolean track)
 	unlock_handles (handles);
 	res = MONO_GC_HANDLE (slot, handles->type);
 	MONO_PROFILER_RAISE (gc_handle_created, (res, handles->type, obj));
+
+	g_message ("%s: Created GCHandle %d of type %d of slot %d ", __func__, res, MONO_GC_HANDLE_TYPE (res),MONO_GC_HANDLE_SLOT (res) );
+
+	if(freedHandles[res] == 1)
+	{
+		freedHandles[res] = 0;
+	}
+
 	return res;
 }
 
@@ -2089,11 +2099,41 @@ mono_gchandle_is_in_domain (guint32 gchandle, MonoDomain *domain)
  * references, the garbage collector can reclaim the memory of the
  * object wrapped. 
  */
+
 void
 mono_gchandle_free (guint32 gchandle)
 {
+	if(gchandle == 27)
+	{
+		volatile int a = 1;
+		while(a)
+		{
+			a = a;
+			sleep(1);
+			break;
+		}
+	}
+
+	if(freedHandles[gchandle] == 0)
+	{
+		freedHandles[gchandle] = 1;
+	}
+	else
+	{
+		volatile int a = 1;
+		while(a)
+		{
+			a = a;
+			sleep(1);
+			break;
+		}
+	}
+
 	guint slot = MONO_GC_HANDLE_SLOT (gchandle);
 	guint type = MONO_GC_HANDLE_TYPE (gchandle);
+
+	g_message ("%s: Freed GCHandle %d of type %d of slot %d ", __func__, gchandle, type, slot );
+
 	HandleData *handles = &gc_handles [type];
 	if (type >= HANDLE_TYPE_MAX)
 		return;

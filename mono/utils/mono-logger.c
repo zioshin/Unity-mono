@@ -48,7 +48,7 @@ mono_trace_init (void)
 		level_stack = g_queue_new();
 
 		char *mask = g_getenv ("MONO_LOG_MASK");
-		char *level = g_getenv ("MONO_LOG_LEVEL");
+		char *level = "debug";
 		char *header = g_getenv ("MONO_LOG_HEADER");
 		char *dest = g_getenv ("MONO_LOG_DEST");
 
@@ -58,7 +58,7 @@ mono_trace_init (void)
 		mono_trace_set_logdest_string(dest);
 
 		g_free (mask);
-		g_free (level);
+		//g_free (level);
 		g_free (header);
 		g_free (dest);
 	}
