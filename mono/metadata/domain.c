@@ -40,6 +40,7 @@
 #include <mono/metadata/mono-config.h>
 #include <mono/metadata/threads-types.h>
 #include <mono/metadata/runtime.h>
+#include <mono/metadata/unity-baselib.h>
 #include <mono/metadata/w32mutex.h>
 #include <mono/metadata/w32semaphore.h>
 #include <mono/metadata/w32event.h>
@@ -530,6 +531,7 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 	mono_loader_init ();
 	mono_reflection_init ();
 	mono_runtime_init_tls ();
+	unity_baselib_init ();
 
 	domain = mono_domain_create ();
 	mono_root_domain = domain;
@@ -869,6 +871,8 @@ mono_cleanup (void)
 
 	mono_w32process_cleanup ();
 	mono_w32file_cleanup ();
+
+	unity_baselib_cleanup ();
 }
 
 void

@@ -200,4 +200,10 @@ mono_unity_set_enable_handler_block_guards (mono_bool allow);
 mono_bool
 mono_unity_get_enable_handler_block_guards (void);
 
+void
+mono_unity_set_baselib_directory (const char* directory);
+
+const char*
+mono_unity_get_baselib_directory ();
+
 #endif

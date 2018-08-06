@@ -117,8 +117,8 @@ ICALL(KPAIR_5, "_ProtectUser", ves_icall_Mono_Security_Cryptography_KeyPairPersi
 ICALL_TYPE(UNITYTLS, "Mono.Unity.UnityTls", UNITYTLS_1)
 ICALL(UNITYTLS_1, "GetUnityTlsInterface", mono_unity_get_unitytls_interface)
 
-ICALL_TYPE(UNITY, "Mono.Unity.Utils", UNITY_1)
-HANDLES(ICALL(UNITY_1, "GetUnityPlatformID", GetUnityPlatformID))
+ICALL_TYPE(UNITY, "Mono.Unity.UnityUtils", UNITY_1)
+HANDLES(ICALL(UNITY_1, "GetUnityPlatformName", GetUnityPlatformName))
 
 ICALL_TYPE(APPDOM, "System.AppDomain", APPDOM_23)
 HANDLES(ICALL(APPDOM_23, "DoUnhandledException", ves_icall_System_AppDomain_DoUnhandledException))

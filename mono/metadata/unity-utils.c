@@ -14,6 +14,7 @@
 #ifdef WIN32
 #include <fcntl.h>
 #endif
+#include <mono/metadata/assembly.h>
 #include <mono/metadata/exception.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/metadata.h>
@@ -1371,4 +1372,21 @@ mono_bool
 mono_unity_get_enable_handler_block_guards (void)
 {
 	return enable_handler_block_guards;
+}
+
+static const char* baselib_directory = NULL;
+
+void
+mono_unity_set_baselib_directory (const char* directory)
+{
+	baselib_directory = directory;
+}
+
+const char*
+mono_unity_get_baselib_directory ()
+{
+	if (baselib_directory == NULL)
+		return mono_native_getrootdir ();
+
+	return baselib_directory;
 }

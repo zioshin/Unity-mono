@@ -1641,9 +1641,16 @@ if ($artifact)
 			print "Hardlinking libMonoPosixHelper.dylib\n";
 			system("ln","-f", "$monoroot/support/.libs/libMonoPosixHelper.dylib","$embedDirArchDestination/libMonoPosixHelper.dylib") eq 0 or die ("failed symlinking $libtarget/libMonoPosixHelper.dylib\n");
 
+			my $baselibTarget = $arch32	 ? "mac32" : "mac64";
+			system("perl", "$buildscriptsdir/build_baselib.pl", "--target=$baselibTarget") eq 0 or die ("Failed building baselib for $baselibTarget");
+
+			print "Hardlinking baselib.dylib\n";
+			system("ln","-f", "$monoroot/support/.libs/baselib.dylib","$embedDirArchDestination/baselib.dylib") eq 0 or die ("failed symlinking $libtarget/baselib.dylib\n");
+
 			InstallNameTool("$embedDirArchDestination/libmonobdwgc-2.0.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/libmonobdwgc-2.0.dylib");
 			InstallNameTool("$embedDirArchDestination/libmonosgen-2.0.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/libmonosgen-2.0.dylib");
 			InstallNameTool("$embedDirArchDestination/libMonoPosixHelper.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/libMonoPosixHelper.dylib");
+			InstallNameTool("$embedDirArchDestination/baselib.dylib", "\@executable_path/../Frameworks/MonoEmbedRuntime/osx/baselib.dylib");
 
 			print ">>> Copying mono public headers\n";
 			system("mkdir -p $includesroot/mono");

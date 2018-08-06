@@ -90,7 +90,7 @@ if ($artifact)
 		die("Expected source directory not found : $embedDirSource64\n");
 	}
 
-	for my $file ('libmonobdwgc-2.0.dylib','libmonosgen-2.0.dylib','libMonoPosixHelper.dylib')
+	for my $file ('libmonobdwgc-2.0.dylib','libmonosgen-2.0.dylib','libMonoPosixHelper.dylib', 'baselib.dylib')
 	{
 		print(">>> cp $embedDirSource64/$file $embedDirDestination/$file\n\n");
 		system ('cp', "$embedDirSource64/$file", "$embedDirDestination/$file");
@@ -99,7 +99,7 @@ if ($artifact)
 	if (not $buildMachine)
 	{
 		print(">>> Doing non-build machine stuff...\n");
-		for my $file ('libmonobdwgc-2.0.dylib','libmonosgen-2.0.dylib','libMonoPosixHelper.dylib')
+		for my $file ('libmonobdwgc-2.0.dylib','libmonosgen-2.0.dylib','libMonoPosixHelper.dylib', 'baselib.dylib')
 		{
 			print(">>> Removing $embedDirDestination/$file.dSYM\n");
 			rmtree ("$embedDirDestination/$file.dSYM");
@@ -145,7 +145,7 @@ if ($artifact)
 		system ('lipo', "$distDirSourceBin32/$file", "$distDirSourceBin64/$file", '-create', '-output', "$distDirDestinationBin/$file");
 	}
 
-	for my $file ('libMonoPosixHelper.dylib')
+	for my $file ('libMonoPosixHelper.dylib', 'baselib.dylib')
 	{
 		print(">>> cp $embedDirSource64/$file $distDirDestinationLib/$file\n\n");
 		system ('cp', "$embedDirSource64/$file", "$distDirDestinationLib/$file");

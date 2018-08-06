@@ -7,6 +7,7 @@
 */
 #include <config.h>
 #include <glib.h>
+#include "mono/metadata/icall-internals.h"
 #include "mono/utils/mono-compiler.h"
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/domain-internals.h>
@@ -14,6 +15,7 @@
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/object-internals.h>
+#include <mono/metadata/unity-baselib.h>
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -225,17 +227,7 @@ ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData (guint32 year, MonoArray 
 }
 
 MonoStringHandle
-GetUnityPlatformID(MonoError *error)
+GetUnityPlatformName(MonoError *error)
 {
-#if defined(PLATFORM_WIN32)
-	return mono_string_new_handle(mono_domain_get(), "Windows", error);
-#elif defined(PLATFORM_ANDROID)
-	return mono_string_new_handle(mono_domain_get(), "Android", error);
-#elif defined (TARGET_OSX)
-	return mono_string_new_handle(mono_domain_get(), "MacOS", error);
-#elif defined(__linux__)
-	return mono_string_new_handle(mono_domain_get(), "Linux", error);
-#else
-	return mono_string_new_handle(mono_domain_get(), "Unknown", error);
-#endif
+	return mono_string_new_handle(mono_domain_get(), PAL_Identification_GetPlatformName(), error);
 }
