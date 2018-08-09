@@ -792,6 +792,13 @@ mono_thread_info_set_flags (MonoThreadInfoFlags flags)
 }
 
 void
+mono_thread_info_cleanup ()
+{
+	mono_native_tls_free (thread_info_key);
+	mono_native_tls_free (thread_exited_key);
+}
+
+void
 mono_thread_info_init (size_t info_size)
 {
 	gboolean res;

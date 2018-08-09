@@ -453,6 +453,8 @@ mono_runtime_cleanup (MonoDomain *domain)
 
 	mono_thread_cleanup ();
 
+	mono_thread_info_cleanup ();
+
 #ifndef DISABLE_SOCKETS
 	mono_network_cleanup ();
 #endif
