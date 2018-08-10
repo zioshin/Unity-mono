@@ -12,11 +12,10 @@ build_osx:
   script:
   - git submodule update --init --recursive
   - echo -e "[auth]\nono.schemes=https\nono.prefix=ono.unity3d.com\nono.username=$GITLAB_UNITY_META_ONO_USER\nono.password=$GITLAB_UNITY_META_ONO_PASS\n" >> ~/.hgrc
-  - perl external/buildscripts/build_runtime_osx.pl > build_logs/stdout.txt 2> build_logs/stderr.txt
+  - perl external/buildscripts/build_runtime_osx.pl
   artifacts:
     paths:
     - builds
-    - build_logs
     expire_in: 1 week
 # Important! Do not remove this after_script!!  
   after_script:
@@ -31,11 +30,10 @@ build_osx_classlibs:
   script:
   - git submodule update --init --recursive
   - echo -e "[auth]\nono.schemes=https\nono.prefix=ono.unity3d.com\nono.username=$GITLAB_UNITY_META_ONO_USER\nono.password=$GITLAB_UNITY_META_ONO_PASS\n" >> ~/.hgrc
-  - perl external/buildscripts/build_classlibs_osx.pl > build_logs/stdout.txt 2> build_logs/stderr.txt
+  - perl external/buildscripts/build_classlibs_osx.pl
   artifacts:
     paths:
     - builds
-    - build_logs
     expire_in: 1 week
 # Important! Do not remove this after_script!!  
   after_script:
