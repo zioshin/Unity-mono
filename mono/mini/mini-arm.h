@@ -93,7 +93,6 @@
 #endif
 
 #define MONO_ARCH_USE_FPSTACK FALSE
-#define MONO_ARCH_FPSTACK_SIZE 0
 
 #define MONO_ARCH_INST_SREG2_MASK(ins) (0)
 
@@ -223,6 +222,19 @@ typedef struct {
 	ArgInfo args [1];
 } CallInfo;
 
+#define PARAM_REGS 4
+#define FP_PARAM_REGS 8
+
+typedef struct {
+	/* General registers */
+	mgreg_t gregs [PARAM_REGS];
+	/* Floating registers */
+	float fregs [FP_PARAM_REGS * 2];
+	/* Stack usage, used for passing params on stack */
+	guint32 stack_size;
+	guint8 *stack;
+} CallContext;
+
 /* Structure used by the sequence points in AOTed code */
 typedef struct {
 	gpointer ss_trigger_page;
@@ -230,10 +242,6 @@ typedef struct {
 	gpointer ss_tramp_addr;
 	guint8* bp_addrs [MONO_ZERO_LEN_ARRAY];
 } SeqPointInfo;
-
-
-#define PARAM_REGS 4
-#define FP_PARAM_REGS 8
 
 typedef struct {
 	double fpregs [FP_PARAM_REGS];
@@ -323,12 +331,16 @@ typedef struct MonoCompileArch {
 #define MONO_ARCH_HAVE_FULL_AOT_TRAMPOLINES 1
 #define MONO_ARCH_HAVE_DECOMPOSE_LONG_OPTS 1
 
+#define MONO_ARCH_INTERPRETER_SUPPORTED 1
 #define MONO_ARCH_AOT_SUPPORTED 1
 #define MONO_ARCH_LLVM_SUPPORTED 1
 
 #define MONO_ARCH_GSHARED_SUPPORTED 1
 #define MONO_ARCH_DYN_CALL_SUPPORTED 1
 #define MONO_ARCH_DYN_CALL_PARAM_AREA 0
+
+#define MONO_ARCH_HAVE_OP_TAILCALL_MEMBASE 1
+#define MONO_ARCH_HAVE_OP_TAILCALL_REG 1
 
 #if !(defined(TARGET_ANDROID) && defined(MONO_CROSS_COMPILE))
 #define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
@@ -346,11 +358,15 @@ typedef struct MonoCompileArch {
 #define MONO_ARCH_HAVE_GENERAL_RGCTX_LAZY_FETCH_TRAMPOLINE 1
 #define MONO_ARCH_HAVE_OPCODE_NEEDS_EMULATION 1
 #define MONO_ARCH_HAVE_OBJC_GET_SELECTOR 1
-#define MONO_ARCH_HAVE_OP_TAIL_CALL 1
-#define MONO_ARCH_HAVE_DUMMY_INIT 1
 #define MONO_ARCH_HAVE_SDB_TRAMPOLINES 1
 #define MONO_ARCH_HAVE_PATCH_CODE_NEW 1
 #define MONO_ARCH_HAVE_OP_GENERIC_CLASS_INIT 1
+#define MONO_ARCH_FLOAT32_SUPPORTED 1
+
+#define MONO_ARCH_HAVE_INTERP_ENTRY_TRAMPOLINE 1
+#define MONO_ARCH_HAVE_FTNPTR_ARG_TRAMPOLINE 1
+#define MONO_ARCH_HAVE_INTERP_PINVOKE_TRAMP 1
+#define MONO_ARCH_HAVE_INTERP_NATIVE_TO_MANAGED 1
 
 #if defined(TARGET_WATCHOS) || (defined(__linux__) && !defined(TARGET_ANDROID))
 #define MONO_ARCH_DISABLE_HW_TRAPS 1
@@ -362,7 +378,10 @@ typedef struct MonoCompileArch {
 #define MONO_ARCH_IMT_REG MONO_ARCH_RGCTX_REG
 /* First argument reg */
 #define MONO_ARCH_VTABLE_REG ARMREG_R0
-#define MONO_ARCH_EXC_REG ARMREG_R0
+
+// Does the ABI have a volatile non-parameter register, so tailcall
+// can pass context to generics or interfaces?
+#define MONO_ARCH_HAVE_VOLATILE_NON_PARAM_REGISTER 0
 
 #define MONO_CONTEXT_SET_LLVM_EXC_REG(ctx, exc) do { (ctx)->regs [0] = (gsize)exc; } while (0)
 

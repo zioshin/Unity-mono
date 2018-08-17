@@ -11,12 +11,19 @@ endif
 REFERENCE_SOURCES_FLAGS = -d:FEATURE_PAL,PFX_LEGACY_3_5,FEATURE_NETCORE
 LIB_REFS = System
 LIB_MCS_FLAGS = $(REFERENCE_SOURCES_FLAGS) -d:INSIDE_SYSCORE -d:LIBC -unsafe -nowarn:436
-TXT_RESOURCE_STRINGS = ../referencesource/System.Core/System.Core.txt
+TXT_RESOURCE_STRINGS = 
 RESX_RESOURCE_STRING = \
 	../../../external/corefx/src/System.Linq.Expressions/src/Resources/Strings.resx \
 	../../../external/corefx/src/System.Linq/src/Resources/Strings.resx \
 	../../../external/corefx/src/System.Linq.Parallel/src/Resources/Strings.resx \
-	../../../external/corefx/src/System.Linq.Queryable/src/Resources/Strings.resx
+	../../../external/corefx/src/System.Linq.Queryable/src/Resources/Strings.resx \
+	../../../external/corefx/src/System.IO.Pipes/src/Resources/Strings.resx \
+	../../../external/corefx/src/System.Net.Sockets/src/Resources/Strings.resx \
+	../../../external/corefx/src/System.Security.Cryptography.Algorithms/src/Resources/Strings.resx \
+	../../../external/corefx/src/System.Security.Cryptography.Cng/src/Resources/Strings.resx \
+	../../../external/corefx/src/System.Threading/src/Resources/Strings.resx \
+	../../../external/corefx/src/System.Collections/src/Resources/Strings.resx \
+	../../../external/corefx/src/System.IO.MemoryMappedFiles/src/Resources/Strings.resx
 
 LIBRARY_WARN_AS_ERROR = yes
 
@@ -52,6 +59,10 @@ BUILT_SOURCES = \
 endif
 
 TEST_MCS_FLAGS = $(LIB_MCS_FLAGS)
+XTEST_LIB_REFS = System Facades/System.Threading.Tasks Microsoft.CSharp Facades/System.Text.RegularExpressions Facades/System.Reflection Facades/System.Reflection.Extensions Facades/System.Runtime.InteropServices.RuntimeInformation Facades/System.Reflection.Emit
+# FEATURE_INTERPRET, FEATURE_COMPILE, NO_FEATURE_STATIC_DELEGATE
+XTEST_LIB_FLAGS = -unsafe -d:FEATURE_COMPILE
+XTEST_RESX_RESOURCE_STRING = ../../../external/corefx/src/System.Collections.Immutable/src/Resources/Strings.resx
 
 include ../../build/library.make
 

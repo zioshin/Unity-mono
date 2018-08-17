@@ -525,7 +525,7 @@ namespace MonoTests.System.Reflection.Emit
 
 			var field = type.DefineField ("field", t, FieldAttributes.Public);
 
-			type.CreateType ();
+			var tc = type.CreateType ();
 
 			var resolved_field = (FieldInfo) module.ResolveMember (0x04000001, new [] { typeof (string) }, Type.EmptyTypes);
 			Assert.IsNotNull (resolved_field);
@@ -1062,5 +1062,178 @@ namespace MonoTests.System.Reflection.Emit
 			Assert.AreEqual (0, module.MetadataToken);
 		}
 
+		[Test]
+		public void SaveMemberRefGtd () {
+			// Ensure that the a memberref token is emitted for a
+			// field or for a method of a gtd in the same dynamic assembly.
+			// Regression test for GitHub #6192
+
+			// class T {
+			//   public string F () {
+			//      int i = new C<int>().Foo (42).field1;
+			//      return i.ToString();
+			//   }
+			//   public string F2 () {
+			//     int i = new C<int>().Bar (42);
+			//     return i.ToString ();
+			//   }
+			// }
+			// class C<X> {
+			//    public X field1;
+			//    public C<X> Foo (X x) {
+			//       this.field1 = x;
+			//       return this;
+		        //    }
+			//    public X Bar (X x) {
+			//       return this.Foo (x).field1;
+			//    }
+			//}
+
+			AssemblyName an = genAssemblyName ();
+			AssemblyBuilder ab = Thread.GetDomain ().DefineDynamicAssembly (an, AssemblyBuilderAccess.RunAndSave, tempDir);
+			ModuleBuilder modulebuilder = ab.DefineDynamicModule (an.Name, an.Name + ".dll");
+
+			var tb = modulebuilder.DefineType ("T", TypeAttributes.Public);
+			var il_gen = tb.DefineMethod ("F", MethodAttributes.Public, typeof(string), null).GetILGenerator ();
+			var il_gen2 = tb.DefineMethod ("F2", MethodAttributes.Public, typeof(string), null).GetILGenerator ();
+
+			var cbuilder = modulebuilder.DefineType ("C", TypeAttributes.Public);
+			var genericParams = cbuilder.DefineGenericParameters ("X");
+
+			var field1builder = cbuilder.DefineField ("field1", genericParams[0], FieldAttributes.Public);
+
+			var cOfX = cbuilder.MakeGenericType(genericParams);
+
+			var fooBuilder = cbuilder.DefineMethod ("Foo",
+								MethodAttributes.Public,
+								cOfX,
+								new Type [] { genericParams[0] });
+			var cdefaultCtor = cbuilder.DefineDefaultConstructor (MethodAttributes.Public);
+
+			var fooIL = fooBuilder.GetILGenerator ();
+
+			fooIL.Emit (OpCodes.Ldarg_0);
+			fooIL.Emit (OpCodes.Ldarg_1);
+			// Emit (Stfld, field1builder) must generate a memberref token, not fielddef.
+			fooIL.Emit (OpCodes.Stfld, field1builder);
+			fooIL.Emit (OpCodes.Ldarg_0);
+			fooIL.Emit (OpCodes.Ret);
+
+			var barBuilder = cbuilder.DefineMethod ("Bar",
+								MethodAttributes.Public,
+								genericParams [0],
+								new Type [] { genericParams [0] });
+			var barIL = barBuilder.GetILGenerator ();
+
+			barIL.Emit (OpCodes.Ldarg_0);
+			barIL.Emit (OpCodes.Ldarg_1);
+			// Emit (Call, fooBuilder) must generate a memberref token, not a methoddef.
+			barIL.Emit (OpCodes.Call, fooBuilder);
+			barIL.Emit (OpCodes.Ldfld, field1builder);
+			barIL.Emit (OpCodes.Ret);
+
+			var cOfInt32 = cbuilder.MakeGenericType (new Type [] { typeof (int) });
+			var fooOfInt32 = TypeBuilder.GetMethod (cOfInt32, fooBuilder);
+			var cfield1OfInt32 = TypeBuilder.GetField (cOfInt32, field1builder);
+			var intToString = typeof(int).GetMethod ("ToString", Type.EmptyTypes);
+
+			var ilocal = il_gen.DeclareLocal (typeof(int));
+			il_gen.Emit (OpCodes.Newobj, TypeBuilder.GetConstructor (cOfInt32, cdefaultCtor));
+			il_gen.Emit (OpCodes.Ldc_I4, 42);
+			il_gen.Emit (OpCodes.Call, fooOfInt32);
+			il_gen.Emit (OpCodes.Ldfld, cfield1OfInt32);
+			il_gen.Emit (OpCodes.Stloc, ilocal);
+			il_gen.Emit (OpCodes.Ldloca, ilocal);
+			il_gen.Emit (OpCodes.Call, intToString);
+			il_gen.Emit (OpCodes.Ret);
+
+
+			var i2local = il_gen2.DeclareLocal (typeof (int));
+			var barOfInt32 = TypeBuilder.GetMethod (cOfInt32, barBuilder);
+			il_gen2.Emit (OpCodes.Newobj, TypeBuilder.GetConstructor (cOfInt32, cdefaultCtor));
+			il_gen2.Emit (OpCodes.Ldc_I4, 17);
+			il_gen2.Emit (OpCodes.Call, barOfInt32);
+			il_gen2.Emit (OpCodes.Stloc, i2local);
+			il_gen2.Emit (OpCodes.Ldloca, i2local);
+			il_gen2.Emit (OpCodes.Call, intToString);
+			il_gen2.Emit (OpCodes.Ret);
+
+			cbuilder.CreateType ();
+			tb.CreateType ();
+
+			ab.Save (an.Name + ".dll");
+
+			/* Yes the test really needs to roundtrip through SRE.Save().
+			 * The regression is in the token fixup code on the saving codepath.
+			 */
+
+			var assm = Assembly.LoadFrom (Path.Combine (tempDir, an.Name + ".dll"));
+			
+			var baked = assm.GetType ("T");
+
+			var x = Activator.CreateInstance (baked);
+			var m = baked.GetMethod ("F");
+
+			var s = m.Invoke (x, null);
+
+			Assert.AreEqual ("42", s);
+
+			var m2 = baked.GetMethod ("F2");
+
+			var s2 = m2.Invoke (x, null);
+
+			Assert.AreEqual ("17", s2);
+		}
+
+		[Test]
+		public void FieldBuilder_DistinctTokens ()
+		{
+			// Regression test for #33208
+			// Fields of distinct classes in the same
+			// module should have distinct tokens.
+
+			AssemblyBuilder ab = genAssembly ();
+			ModuleBuilder module = ab.DefineDynamicModule ("foo.dll", "foo.dll");
+
+			var tb1 = module.DefineType ("T1", TypeAttributes.Public);
+
+			var tb2 = module.DefineType ("T2", TypeAttributes.Public);
+
+			FieldBuilder fbX1 = tb1.DefineField ("X", typeof (Object), FieldAttributes.Public);
+
+			FieldBuilder fbX2 = tb2.DefineField ("X", typeof (Object), FieldAttributes.Public);
+
+			FieldBuilder fbY1 = tb1.DefineField ("Y", typeof (int), FieldAttributes.Public);
+
+			Assert.AreNotEqual (fbX1.GetToken (), fbX2.GetToken (), "GetToken() T1.X != T2.X");
+			Assert.AreNotEqual (fbX1.GetToken (), fbY1.GetToken (), "GetToken() T1.X != T1.Y");
+			Assert.AreNotEqual (fbY1.GetToken (), fbX2.GetToken (), "GetToken() T1.Y != T2.X");
+
+			// .NET throws NotSupportedException for
+			// FieldBuilder.MetadataToken, Mono doesn't.
+			// We'll check that the metadata tokens are
+			// distinct, but it's also okay to take these
+			// assertions out if we start following .NET
+			// behavior.
+			Assert.AreNotEqual (fbX1.MetadataToken, fbX2.MetadataToken, "MetadataToken T1.X != T2.X");
+			Assert.AreNotEqual (fbX1.MetadataToken, fbY1.MetadataToken, "MetadataToken T1.X != T1.Y");
+			Assert.AreNotEqual (fbY1.MetadataToken, fbX2.MetadataToken, "MetadataToken T1.Y != T2.X");
+
+			var t1 = tb1.CreateType ();
+			var t2 = tb2.CreateType ();
+
+			FieldInfo fX1 = t1.GetField ("X");
+			FieldInfo fX2 = t2.GetField ("X");
+
+			FieldInfo fY1 = t1.GetField ("Y");
+
+			Assert.AreNotEqual (fX1.MetadataToken, fX2.MetadataToken, "T1.X != T2.X");
+			Assert.AreNotEqual (fX1.MetadataToken, fY1.MetadataToken, "T1.X != T1.Y");
+			Assert.AreNotEqual (fY1.MetadataToken, fX2.MetadataToken, "T1.Y != T2.X");
+
+			Assert.AreEqual (module.ResolveField (fX1.MetadataToken), fX1, "resolve T1.X");
+			Assert.AreEqual (module.ResolveField (fX2.MetadataToken), fX2, "resolve T2.X");
+			Assert.AreEqual (module.ResolveField (fY1.MetadataToken), fY1, "resolve T1.Y");
+		}
 	}
 }

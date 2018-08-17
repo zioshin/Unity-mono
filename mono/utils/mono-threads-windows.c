@@ -52,7 +52,6 @@ mono_threads_suspend_begin_async_suspend (MonoThreadInfo *info, gboolean interru
 
 	/* We're in the middle of a self-suspend, resume and register */
 	if (!mono_threads_transition_finish_async_suspend (info)) {
-		mono_threads_add_to_pending_operation_set (info);
 		result = ResumeThread (handle);
 		g_assert (result == 1);
 		THREADS_SUSPEND_DEBUG ("FAILSAFE RESUME/1 %p -> %d\n", (void*)id, 0);
@@ -82,7 +81,7 @@ mono_threads_suspend_check_suspend_result (MonoThreadInfo *info)
 void
 mono_threads_suspend_abort_syscall (MonoThreadInfo *info)
 {
-    DWORD id = mono_thread_info_get_tid(info);
+	DWORD id = mono_thread_info_get_tid(info);
 	g_assert (info->native_handle);
 	mono_win32_abort_wait (info, info->native_handle, id);
 }
@@ -125,7 +124,7 @@ mono_threads_suspend_begin_async_resume (MonoThreadInfo *info)
 		}
 	}
 #else
-	g_assert(0 && "Not implemented due to lack of SetThreadContext");	
+	g_error ("Not implemented due to lack of SetThreadContext");	
 #endif
 
 	result = ResumeThread (handle);
@@ -140,8 +139,8 @@ mono_threads_suspend_register (MonoThreadInfo *info)
 	BOOL success;
 	HANDLE currentThreadHandle = NULL;
 
-	success = DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &currentThreadHandle, 0, FALSE, DUPLICATE_SAME_ACCESS);
-	g_assert(success && "Failed to duplicate current thread handle");
+	success = DuplicateHandle (GetCurrentProcess (), GetCurrentThread (), GetCurrentProcess (), &currentThreadHandle, 0, FALSE, DUPLICATE_SAME_ACCESS);
+	g_assertf (success, "Failed to duplicate current thread handle");
 
 	info->native_handle = currentThreadHandle;
 }
@@ -149,7 +148,7 @@ mono_threads_suspend_register (MonoThreadInfo *info)
 void
 mono_threads_suspend_free (MonoThreadInfo *info)
 {
-	CloseHandle(info->native_handle);
+	CloseHandle (info->native_handle);
 	info->native_handle = NULL;
 }
 
@@ -364,7 +363,7 @@ mono_threads_platform_exit (gsize exit_code)
 }
 
 int
-mono_threads_get_max_stack_size (void)
+mono_thread_info_get_system_max_stack_size (void)
 {
 	//FIXME
 	return INT_MAX;

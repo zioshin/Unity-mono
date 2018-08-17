@@ -47,7 +47,7 @@ using System.Text;
 using System.Timers;
 using System.Net.NetworkInformation;
 
-namespace System.Net.Sockets 
+namespace System.Net.Sockets
 {
 	public partial class Socket : IDisposable
 	{
@@ -91,7 +91,14 @@ namespace System.Net.Sockets
 		int m_IntCleanedUp;
 		internal bool connect_in_progress;
 
-#region Constructors
+#if MONO_WEB_DEBUG
+		static int nextId;
+		internal readonly int ID = ++nextId;
+#else
+		internal readonly int ID;
+#endif
+
+		#region Constructors
 
 
 		public Socket (SocketInformation socketInformation)
@@ -384,6 +391,11 @@ namespace System.Net.Sockets
 		/* Returns the remote endpoint details in addr and port */
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		extern static SocketAddress RemoteEndPoint_internal (IntPtr socket, int family, out int error);
+
+		internal SafeHandle SafeHandle
+		{
+			get { return m_Handle; }
+		}
 
 #endregion
 
@@ -1039,6 +1051,10 @@ namespace System.Net.Sockets
 				sockares.EndPoint = remoteEP = sockares.socket.RemapIPEndPoint (ep);
 			}
 
+			if (!sockares.socket.CanTryAddressFamily(sockares.EndPoint.AddressFamily)) {
+				throw new ArgumentException(SR.net_invalidAddressList);
+			}
+
 			int error = 0;
 
 			if (sockares.socket.connect_in_progress) {
@@ -1160,24 +1176,21 @@ namespace System.Net.Sockets
 			// while skipping entries that do not match the address family
 			DnsEndPoint dep = e.RemoteEndPoint as DnsEndPoint;
 			if (dep != null) {
-				if (dep.AddressFamily == AddressFamily.Unspecified)
-				{
-					addresses = Dns.GetHostAddresses(dep.Host);
-				} else {
-					var possibleAddresses = Dns.GetHostAddresses (dep.Host);
-					var numberOfAddresses = 0;
-					int[] addressIndices = new int[possibleAddresses.Length];
-					for (var i = 0; i < possibleAddresses.Length; i++) {
-						if (possibleAddresses[i].AddressFamily == dep.AddressFamily) {
-							addressIndices[numberOfAddresses] = i;
-							numberOfAddresses++;
-						}
-					}
+				addresses = Dns.GetHostAddresses (dep.Host);
 
-					addresses = new IPAddress[numberOfAddresses];
-					for (var i = 0; i < numberOfAddresses; i++)
-						addresses[i] = possibleAddresses[addressIndices[i]];
+				if (dep.AddressFamily == AddressFamily.Unspecified)
+					return true;
+
+				int last_valid = 0;
+				for (int i = 0; i < addresses.Length; ++i) {
+					if (addresses [i].AddressFamily != dep.AddressFamily)
+						continue;
+
+					addresses [last_valid++] = addresses [i];
 				}
+
+				if (last_valid != addresses.Length)
+					Array.Resize (ref addresses, last_valid);
 				return true;
 			} else {
 				e.ConnectByNameError = null;
@@ -1367,6 +1380,14 @@ namespace System.Net.Sockets
 
 			errorCode = (SocketError) nativeError;
 
+			return ret;
+		}
+
+		public int Receive (Span<byte> buffer, SocketFlags socketFlags)
+		{
+			byte[] tempBuffer = new byte[buffer.Length];
+			int ret = Receive (tempBuffer, SocketFlags.None);
+			tempBuffer.CopyTo (buffer);
 			return ret;
 		}
 
@@ -1854,6 +1875,11 @@ namespace System.Net.Sockets
 			errorCode = (SocketError)nativeError;
 
 			return ret;
+		}
+
+		public int Send (ReadOnlySpan<byte> buffer, SocketFlags socketFlags)
+		{
+			return Send (buffer.ToArray(), socketFlags);
 		}
 
 		public bool SendAsync (SocketAsyncEventArgs e)

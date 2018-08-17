@@ -11,16 +11,16 @@ markup_test (const char *s)
 {
 	GMarkupParser *parser = g_new0 (GMarkupParser, 1);
 	GMarkupParseContext *context;
-	GError *error = NULL;
+	GError *gerror = NULL;
 	
 	context = g_markup_parse_context_new (parser, 0, 0, 0);
 
-	g_markup_parse_context_parse (context, s, strlen (s), &error);
+	g_markup_parse_context_parse (context, s, strlen (s), &gerror);
 	g_markup_parse_context_free (context);
 
-	if (error != NULL){
-		char *msg = g_strdup (error->message);
-		g_error_free (error);
+	if (gerror != NULL){
+		char *msg = g_strdup (gerror->message);
+		g_error_free (gerror);
 
 		g_free (parser);
 		return msg;
@@ -29,7 +29,7 @@ markup_test (const char *s)
 	return NULL;
 }
 
-RESULT
+static RESULT
 invalid_documents (void)
 {
 	/* These should fail */
@@ -43,7 +43,7 @@ invalid_documents (void)
 	return OK;
 }
 
-RESULT
+static RESULT
 valid_documents (void)
 {
 	/* These should fail */
@@ -83,7 +83,7 @@ start_element (GMarkupParseContext *context,
 	       const gchar        **attribute_names,
 	       const gchar        **attribute_values,
 	       gpointer             user_data,
-	       GError             **error)
+	       GError             **gerror)
 {
         AppConfigInfo* app_config = (AppConfigInfo*) user_data;
 
@@ -111,7 +111,7 @@ static void
 end_element   (GMarkupParseContext *context,
 	       const gchar         *element_name,
 	       gpointer             user_data,
-	       GError             **error)
+	       GError             **gerror)
 {
         AppConfigInfo* app_config = (AppConfigInfo*) user_data;
 	
@@ -131,8 +131,8 @@ mono_parser = {
         NULL
 };
 
-AppConfigInfo *
-domain_test (char *text)
+static AppConfigInfo *
+domain_test (const char *text)
 {
 	AppConfigInfo *app_config = g_new0 (AppConfigInfo, 1);
 	GMarkupParseContext *context;
@@ -146,7 +146,7 @@ domain_test (char *text)
 	return app_config;
 }
 
-void
+static void
 domain_free (AppConfigInfo *info)
 {
 	GSList *l;
@@ -159,7 +159,7 @@ domain_free (AppConfigInfo *info)
 	g_free (info);
 }
 
-RESULT
+static RESULT
 mono_domain (void)
 {
 	AppConfigInfo *info;
@@ -194,20 +194,20 @@ mono_domain (void)
 	return NULL;
 }
 
-RESULT
+static RESULT
 mcs_config (void)
 {
 	return markup_test ("<configuration>\r\n  <system.diagnostics>\r\n    <trace autoflush=\"true\" indentsize=\"4\">\r\n      <listeners>\r\n        <add name=\"compilerLogListener\" type=\"System.Diagnostics.TextWriterTraceListener,System\"/>      </listeners>    </trace>   </system.diagnostics> </configuration>");
 
 }
 
-RESULT
+static RESULT
 xml_parse (void)
 {
 	return markup_test ("<?xml version=\"1.0\" encoding=\"utf-8\"?><a></a>");
 }
 
-RESULT
+static RESULT
 machine_config (void)
 {
 	char *data;
@@ -231,4 +231,3 @@ static Test markup_tests [] = {
 };
 
 DEFINE_TEST_GROUP_INIT(markup_tests_init, markup_tests)
-

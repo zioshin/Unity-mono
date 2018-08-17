@@ -172,7 +172,7 @@ namespace System.Reflection.Emit {
 
 			CreateDynMethod ();
 
-			deleg = Delegate.CreateDelegate (delegateType, this);
+			deleg = Delegate.CreateDelegate (delegateType, null, this);
 			return deleg;
 		}
 
@@ -296,7 +296,7 @@ namespace System.Reflection.Emit {
 				if (method == null)
 					method = new MonoMethod (mhandle);
 
-				return method.Invoke (obj, parameters);
+				return method.Invoke (obj, invokeAttr, binder, parameters, culture);
 			}
 			catch (MethodAccessException mae) {
 				throw new TargetInvocationException ("Method cannot be invoked.", mae);

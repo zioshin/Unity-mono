@@ -277,6 +277,8 @@ namespace System.Reflection {
 		/*
 		 * InternalInvoke() receives the parameters correctly converted by the 
 		 * binder to match the types of the method signature.
+		 * The exc argument is used to capture exceptions thrown by the icall.
+		 * Exceptions thrown by the called method propagate normally.
 		 */
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		internal extern Object InternalInvoke (Object obj, Object[] parameters, out Exception exc);
@@ -298,19 +300,22 @@ namespace System.Reflection {
 			Exception exc;
 			object o = null;
 
-			try {
-				// The ex argument is used to distinguish exceptions thrown by the icall
-				// from the exceptions thrown by the called method (which need to be
-				// wrapped in TargetInvocationException).
-				o = InternalInvoke (obj, parameters, out exc);
-			} catch (ThreadAbortException) {
-				throw;
+			if ((invokeAttr & BindingFlags.DoNotWrapExceptions) == 0) {
+				try {
+					o = InternalInvoke (obj, parameters, out exc);
+				} catch (ThreadAbortException) {
+					throw;
 #if MOBILE
-			} catch (MethodAccessException) {
-				throw;
+				} catch (MethodAccessException) {
+					throw;
 #endif
-			} catch (Exception e) {
-				throw new TargetInvocationException (e);
+				} catch (Exception e) {
+					throw new TargetInvocationException (e);
+				}
+			}
+			else
+			{
+				o = InternalInvoke (obj, parameters, out exc);
 			}
 
 			if (exc != null)
@@ -420,6 +425,37 @@ namespace System.Reflection {
 			}
 
 			return attrs;
+		}
+
+		internal CustomAttributeData[] GetPseudoCustomAttributesData ()
+		{
+			int count = 0;
+
+			/* MS.NET doesn't report MethodImplAttribute */
+
+			MonoMethodInfo info = MonoMethodInfo.GetMethodInfo (mhandle);
+			if ((info.iattrs & MethodImplAttributes.PreserveSig) != 0)
+				count++;
+			if ((info.attrs & MethodAttributes.PinvokeImpl) != 0)
+				count++;
+
+			if (count == 0)
+				return null;
+			CustomAttributeData[] attrsData = new CustomAttributeData [count];
+			count = 0;
+
+			if ((info.iattrs & MethodImplAttributes.PreserveSig) != 0)
+				attrsData [count++] = new CustomAttributeData ((typeof (PreserveSigAttribute)).GetConstructor (Type.EmptyTypes));
+			if ((info.attrs & MethodAttributes.PinvokeImpl) != 0) {
+				this.GetPInvoke (out PInvokeAttributes flags, out string entryPoint, out string dllName);
+				var ctorArgs = new CustomAttributeTypedArgument[] { new CustomAttributeTypedArgument(typeof(string), dllName) };
+				attrsData [count++] = new CustomAttributeData (
+					(typeof (FieldOffsetAttribute)).GetConstructor (new[] { typeof (string) }),
+					ctorArgs,
+					EmptyArray<CustomAttributeNamedArgument>.Value); //FIXME Get named params
+			}
+
+			return attrsData;
 		}
 
 		public override MethodInfo MakeGenericMethod (Type [] methodInstantiation)
@@ -649,22 +685,26 @@ namespace System.Reflection {
 				throw new MemberAccessException (String.Format ("Cannot create an instance of {0} because it is an abstract class", DeclaringType));
 			}
 
-			return InternalInvoke (obj, parameters);
+			return InternalInvoke (obj, parameters, (invokeAttr & BindingFlags.DoNotWrapExceptions) == 0);
 		}
 
-		public object InternalInvoke (object obj, object[] parameters)
+		public object InternalInvoke (object obj, object[] parameters, bool wrapExceptions)
 		{
 			Exception exc;
 			object o = null;
 
-			try {
-				o = InternalInvoke (obj, parameters, out exc);
+			if (wrapExceptions) {
+				try {
+					o = InternalInvoke (obj, parameters, out exc);
 #if MOBILE
-			} catch (MethodAccessException) {
-				throw;
+				} catch (MethodAccessException) {
+					throw;
 #endif
-			} catch (Exception e) {
-				throw new TargetInvocationException (e);
+				} catch (Exception e) {
+					throw new TargetInvocationException (e);
+				}
+			} else {
+				o = InternalInvoke (obj, parameters, out exc);
 			}
 
 			if (exc != null)

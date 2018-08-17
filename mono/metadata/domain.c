@@ -32,6 +32,7 @@
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/domain-internals.h>
 #include <mono/metadata/class-internals.h>
+#include <mono/metadata/class-init.h>
 #include <mono/metadata/debug-internals.h>
 #include <mono/metadata/assembly-internals.h>
 #include <mono/metadata/exception.h>
@@ -45,8 +46,8 @@
 #include <mono/metadata/w32event.h>
 #include <mono/metadata/w32process.h>
 #include <mono/metadata/w32file.h>
-#include <metadata/threads.h>
-#include <metadata/profiler-private.h>
+#include <mono/metadata/threads.h>
+#include <mono/metadata/profiler-private.h>
 #include <mono/metadata/coree.h>
 
 //#define DEBUG_DOMAIN_UNLOAD 1
@@ -123,8 +124,8 @@ get_runtimes_from_exe (const char *exe_file, MonoImage **exe_image, const MonoRu
 static const MonoRuntimeInfo*
 get_runtime_by_version (const char *version);
 
-#define ALIGN_TO(val,align) ((((guint64)val) + ((align) - 1)) & ~((align) - 1))
-#define ALIGN_PTR_TO(ptr,align) (gpointer)((((gssize)(ptr)) + (align - 1)) & (~(align - 1)))
+MonoAssembly *
+mono_domain_assembly_open_internal (MonoDomain *domain, const char *name);
 
 static LockFreeMempool*
 lock_free_mempool_new (void)
@@ -429,7 +430,7 @@ mono_domain_create (void)
 	domain->proxy_vtable_hash = g_hash_table_new ((GHashFunc)mono_ptrarray_hash, (GCompareFunc)mono_ptrarray_equal);
 	mono_jit_code_hash_init (&domain->jit_code_hash);
 	domain->ldstr_table = mono_g_hash_table_new_type ((GHashFunc)mono_string_hash, (GCompareFunc)mono_string_equal, MONO_HASH_KEY_VALUE_GC, MONO_ROOT_SOURCE_DOMAIN, domain, "Domain String Pool Table");
-	domain->num_jit_info_tables = 1;
+	domain->num_jit_info_table_duplicates = 0;
 	domain->jit_info_table = mono_jit_info_table_new (domain);
 	domain->jit_info_free_queue = NULL;
 	domain->finalizable_objects_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
@@ -440,8 +441,6 @@ mono_domain_create (void)
 	mono_os_mutex_init_recursive (&domain->assemblies_lock);
 	mono_os_mutex_init_recursive (&domain->jit_code_hash_lock);
 	mono_os_mutex_init_recursive (&domain->finalizable_objects_hash_lock);
-
-	domain->method_rgctx_hash = NULL;
 
 	mono_appdomains_lock ();
 	domain_id_alloc (domain);
@@ -478,6 +477,7 @@ mono_domain_create (void)
 static MonoDomain *
 mono_init_internal (const char *filename, const char *exe_filename, const char *runtime_version)
 {
+	ERROR_DECL (error);
 	static MonoDomain *domain = NULL;
 	MonoAssembly *ass = NULL;
 	MonoImageOpenStatus status = MONO_IMAGE_OK;
@@ -598,7 +598,7 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 		
 		exit (1);
 	}
-	mono_defaults.corlib = mono_assembly_get_image (ass);
+	mono_defaults.corlib = mono_assembly_get_image_internal (ass);
 
 	mono_defaults.object_class = mono_class_load_from_name (
                 mono_defaults.corlib, "System", "Object");
@@ -771,12 +771,18 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 	        mono_defaults.corlib, "System.Collections.Generic", "IList`1");
 	mono_defaults.generic_ireadonlylist_class = mono_class_load_from_name (
 	        mono_defaults.corlib, "System.Collections.Generic", "IReadOnlyList`1");
+	mono_defaults.generic_ienumerator_class = mono_class_load_from_name (
+	        mono_defaults.corlib, "System.Collections.Generic", "IEnumerator`1");
 
 	mono_defaults.threadpool_wait_callback_class = mono_class_load_from_name (
 		mono_defaults.corlib, "System.Threading", "_ThreadPoolWaitCallback");
 
-	mono_defaults.threadpool_perform_wait_callback_method = mono_class_get_method_from_name (
-		mono_defaults.threadpool_wait_callback_class, "PerformWaitCallback", 0);
+	mono_defaults.threadpool_perform_wait_callback_method = mono_class_get_method_from_name_checked (
+		mono_defaults.threadpool_wait_callback_class, "PerformWaitCallback", 0, 0, error);
+	mono_error_assert_ok (error);
+
+	mono_defaults.console_class = mono_class_try_load_from_name (
+		mono_defaults.corlib, "System", "Console");
 
 	domain->friendly_name = g_path_get_basename (filename);
 
@@ -916,6 +922,7 @@ mono_domain_unset (void)
 void
 mono_domain_set_internal_with_options (MonoDomain *domain, gboolean migrate_exception)
 {
+	MONO_REQ_GC_UNSAFE_MODE;
 	MonoInternalThread *thread;
 
 	if (mono_domain_get () == domain)
@@ -961,6 +968,7 @@ mono_domain_set_internal (MonoDomain *domain)
 void
 mono_domain_foreach (MonoDomainFunc func, gpointer user_data)
 {
+	MONO_ENTER_GC_UNSAFE;
 	int i, size;
 	MonoDomain **copy;
 
@@ -981,6 +989,7 @@ mono_domain_foreach (MonoDomainFunc func, gpointer user_data)
 	}
 
 	gc_free_fixed_non_heap_list (copy);
+	MONO_EXIT_GC_UNSAFE;
 }
 
 MONO_API void
@@ -1013,9 +1022,21 @@ mono_domain_assembly_foreach (MonoDomain* domain, MonoDomainAssemblyFunc func, v
 MonoAssembly *
 mono_domain_assembly_open (MonoDomain *domain, const char *name)
 {
+	MonoAssembly *result;
+	MONO_ENTER_GC_UNSAFE;
+	result = mono_domain_assembly_open_internal (domain, name);
+	MONO_EXIT_GC_UNSAFE;
+	return result;
+}
+
+MonoAssembly *
+mono_domain_assembly_open_internal (MonoDomain *domain, const char *name)
+{
 	MonoDomain *current;
 	MonoAssembly *ass;
 	GSList *tmp;
+
+	MONO_REQ_GC_UNSAFE_MODE;
 
 	mono_domain_assemblies_lock (domain);
 	for (tmp = domain->domain_assemblies; tmp; tmp = tmp->next) {
@@ -1031,10 +1052,10 @@ mono_domain_assembly_open (MonoDomain *domain, const char *name)
 		current = mono_domain_get ();
 
 		mono_domain_set (domain, FALSE);
-		ass = mono_assembly_open_predicate (name, FALSE, FALSE, NULL, NULL, NULL);
+		ass = mono_assembly_open_predicate (name, MONO_ASMCTX_DEFAULT, NULL, NULL, NULL, NULL);
 		mono_domain_set (current, FALSE);
 	} else {
-		ass = mono_assembly_open_predicate (name, FALSE, FALSE, NULL, NULL, NULL);
+		ass = mono_assembly_open_predicate (name, MONO_ASMCTX_DEFAULT, NULL, NULL, NULL, NULL);
 	}
 
 	return ass;
@@ -1195,7 +1216,7 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 	mono_thread_hazardous_try_free_all ();
 	if (domain->aot_modules)
 		mono_jit_info_table_free (domain->aot_modules);
-	g_assert (domain->num_jit_info_tables == 1);
+	g_assert (domain->num_jit_info_table_duplicates == 0);
 	mono_jit_info_table_free (domain->jit_info_table);
 	domain->jit_info_table = NULL;
 	g_assert (!domain->jit_info_free_queue);
@@ -1224,10 +1245,6 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 
 	g_hash_table_destroy (domain->finalizable_objects_hash);
 	domain->finalizable_objects_hash = NULL;
-	if (domain->method_rgctx_hash) {
-		g_hash_table_destroy (domain->method_rgctx_hash);
-		domain->method_rgctx_hash = NULL;
-	}
 	if (domain->generic_virtual_cases) {
 		g_hash_table_destroy (domain->generic_virtual_cases);
 		domain->generic_virtual_cases = NULL;
@@ -1280,13 +1297,14 @@ mono_domain_get_by_id (gint32 domainid)
 {
 	MonoDomain * domain;
 
+	MONO_ENTER_GC_UNSAFE;
 	mono_appdomains_lock ();
 	if (domainid < appdomain_list_size)
 		domain = appdomains_list [domainid];
 	else
 		domain = NULL;
 	mono_appdomains_unlock ();
-
+	MONO_EXIT_GC_UNSAFE;
 	return domain;
 }
 
@@ -1752,7 +1770,7 @@ static void start_element (GMarkupParseContext *context,
 			   const gchar        **attribute_names,
 			   const gchar        **attribute_values,
 			   gpointer             user_data,
-			   GError             **error)
+			   GError             **gerror)
 {
 	AppConfigInfo* app_config = (AppConfigInfo*) user_data;
 	
@@ -1779,7 +1797,7 @@ static void start_element (GMarkupParseContext *context,
 static void end_element   (GMarkupParseContext *context,
                            const gchar         *element_name,
 			   gpointer             user_data,
-			   GError             **error)
+			   GError             **gerror)
 {
 	AppConfigInfo* app_config = (AppConfigInfo*) user_data;
 	
@@ -1996,7 +2014,8 @@ mono_domain_get_assemblies (MonoDomain *domain, gboolean refonly)
 	mono_domain_assemblies_lock (domain);
 	for (tmp = domain->domain_assemblies; tmp; tmp = tmp->next) {
 		ass = (MonoAssembly *)tmp->data;
-		if (refonly != ass->ref_only)
+		gboolean ass_ref_only = mono_asmctx_get_kind (&ass->context) == MONO_ASMCTX_REFONLY;
+		if (refonly != ass_ref_only)
 			continue;
 		if (ass->corlib_internal)
 			continue;

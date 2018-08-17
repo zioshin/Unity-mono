@@ -13,15 +13,15 @@
 #define close _close
 #endif
 
-RESULT
-test_spawn_sync ()
+static RESULT
+test_spawn_sync (void)
 {
 	gchar *out;
 	gchar *err;
 	gint status = -1;
-	GError *error = NULL;
+	GError *gerror = NULL;
 
-	if (!g_spawn_command_line_sync ("ls", &out, &err, &status, &error))
+	if (!g_spawn_command_line_sync ("ls", &out, &err, &status, &gerror))
 		return FAILED ("Error executing 'ls'");
 
 	if (status != 0)
@@ -35,8 +35,8 @@ test_spawn_sync ()
 	return OK;
 }
 
-RESULT
-test_spawn_async ()
+static RESULT
+test_spawn_async (void)
 {
 	/*
 gboolean
@@ -50,14 +50,14 @@ g_spawn_async_with_pipes (const gchar *working_directory,
 			gint *standard_input,
 			gint *standard_output,
 			gint *standard_error,
-			GError **error) */
+			GError **gerror) */
 	char *argv [15];
 	int stdout_fd = -1;
 	char buffer [512];
 	pid_t child_pid = 0;
 
 	memset (argv, 0, 15 * sizeof (char *));
-	argv [0] = "ls";
+	argv [0] = (char*)"ls";
 	if (!g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &child_pid, NULL, &stdout_fd, NULL, NULL))
 		return FAILED ("1 Failed to run ls");
 	if (child_pid == 0)
@@ -78,5 +78,3 @@ static Test spawn_tests [] = {
 };
 
 DEFINE_TEST_GROUP_INIT(spawn_tests_init, spawn_tests)
-
-

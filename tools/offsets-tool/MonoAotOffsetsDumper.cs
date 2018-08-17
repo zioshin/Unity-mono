@@ -23,6 +23,7 @@ namespace CppSharp
 
         static List<string> Abis = new List<string> ();
         static string OutputDir;
+        static string OutputFile;
 
         static string MonodroidDir = @"";
         static string AndroidNdkPath = @"";
@@ -35,6 +36,7 @@ namespace CppSharp
             Android,
             iOS,
             WatchOS,
+            OSX
         }
 
         public class Target
@@ -73,7 +75,8 @@ namespace CppSharp
             get
             {
                 return Targets.Where ((t) => t.Platform == TargetPlatform.iOS ||
-                    t.Platform == TargetPlatform.WatchOS);
+                    t.Platform == TargetPlatform.WatchOS ||
+                                      t.Platform == TargetPlatform.OSX);
             }
         }
 
@@ -169,6 +172,26 @@ namespace CppSharp
             }
         }
 
+        public static void SetupOtherTargets()
+        {
+            if (Abis.Count != 1) {
+                Console.WriteLine ("Exactly --abi= argument is required.");
+                Environment.Exit (1);
+            }
+            string abi = Abis [0];
+            if (abi == "i386-apple-darwin11.2.0") {
+                Targets.Add(new Target {
+                        Platform = TargetPlatform.OSX,
+                        Triple = "i386-apple-darwin11.2.0",
+                        Build = "",
+                        Defines = { "TARGET_X86" },
+                });
+            } else {
+                Console.WriteLine ($"Unsupported abi: {abi}.");
+                Environment.Exit (1);
+            }
+        }
+
         static bool GetParentSubDirectoryPath(string parent, out string subdir)
         {
             var directory = Directory.GetParent(Directory.GetCurrentDirectory());
@@ -209,6 +232,9 @@ namespace CppSharp
 
             if (Directory.Exists(MaccoreDir) || GenIOS)
                 SetupiOSTargets();
+
+            if (Targets.Count == 0)
+                SetupOtherTargets ();
 
             foreach (var target in Targets)
              {
@@ -271,6 +297,7 @@ namespace CppSharp
             var options = new Mono.Options.OptionSet () {
                 { "abi=", "ABI triple to generate", v => Abis.Add(v) },
                 { "o|out=", "output directory", v => OutputDir = v },
+                { "outfile=", "output directory", v => OutputFile = v },
                 { "maccore=", "include directory", v => MaccoreDir = v },
                 { "monodroid=", "top monodroid directory", v => MonodroidDir = v },
                 { "android-ndk=", "Path to Android NDK", v => AndroidNdkPath = v },
@@ -351,6 +378,13 @@ namespace CppSharp
                 }
                 break;
             }
+            case TargetPlatform.OSX:
+                if (MonoDir == "") {
+                    Console.Error.WriteLine ("The --mono= option is required when targeting osx.");
+                    Environment.Exit (1);
+                }
+                targetBuild = ".";
+                break;
             default:
                 throw new ArgumentOutOfRangeException ();
             }
@@ -408,6 +442,7 @@ namespace CppSharp
                 break;
             case TargetPlatform.iOS:
             case TargetPlatform.WatchOS:
+            case TargetPlatform.OSX:
                 SetupXcode(driver, target);
                 break;
             default:
@@ -484,6 +519,20 @@ namespace CppSharp
             return Path.Combine(sdkPath, "usr/include");
         }
 
+        static string GetXcodeOSXIncludesFolder()
+        {
+            var toolchainPath = GetXcodeToolchainPath();
+
+            var sdkPaths = Directory.EnumerateDirectories(Path.Combine(toolchainPath,
+                "Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs")).ToList();
+            var sdkPath = sdkPaths.LastOrDefault();
+
+            if (sdkPath == null)
+                throw new Exception("Could not find a valid OSX SDK");
+
+            return Path.Combine(sdkPath, "usr/include");
+        }
+
         static string GetXcodeWatchOSIncludesFolder()
         {
             var toolchainPath = GetXcodeToolchainPath();
@@ -511,6 +560,9 @@ namespace CppSharp
                 break;
             case TargetPlatform.WatchOS:
                 includePath = GetXcodeWatchOSIncludesFolder();
+                break;
+            case TargetPlatform.OSX:
+                includePath = GetXcodeOSXIncludesFolder();
                 break;
             default:
                 throw new ArgumentOutOfRangeException ();
@@ -643,6 +695,8 @@ namespace CppSharp
                 return "TARGET_IOS";
             case TargetPlatform.WatchOS:
                 return "TARGET_WATCHOS";
+            case TargetPlatform.OSX:
+                return "TARGET_OSX";
             default:
                 throw new ArgumentOutOfRangeException ();
             }
@@ -650,12 +704,18 @@ namespace CppSharp
 
         static void Dump(ASTContext ctx, ParserTargetInfo targetInfo, Target target)
         {
-            var targetFile = target.Triple;
+            string targetFile;
 
-            if (!string.IsNullOrEmpty (OutputDir))
-                targetFile = Path.Combine (OutputDir, targetFile);
+            if (!string.IsNullOrEmpty (OutputFile)) {
+                targetFile = OutputFile;
+            } else {
+                targetFile = target.Triple;
 
-            targetFile += ".h";
+                if (!string.IsNullOrEmpty (OutputDir))
+                    targetFile = Path.Combine (OutputDir, targetFile);
+
+                targetFile += ".h";
+            }
 
             using (var writer = new StreamWriter(targetFile))
             //using (var writer = Console.Out)
@@ -818,7 +878,8 @@ namespace CppSharp
                 "SeqPointInfo",
                 "DynCallArgs", 
                 "MonoLMFTramp",
-                "InterpMethodArguments",
+                "CallContext",
+                "MonoFtnDesc"
             };
 
             DumpClasses(writer, ctx, optionalTypes, optional: true);
@@ -831,6 +892,8 @@ namespace CppSharp
             var name = @class.Name;
             if (name.StartsWith ("_", StringComparison.Ordinal))
                 name = name.Substring (1);
+
+            writer.WriteLine ("DECL_SIZE2({0},{1})", name, @class.Layout.Size);
 
             foreach (var field in @class.Fields)
             {

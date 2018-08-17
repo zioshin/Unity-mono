@@ -12,6 +12,7 @@
 
 #include <config.h>
 #include <mono/metadata/assembly.h>
+#include <mono/metadata/assembly-internals.h>
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/metadata/appdomain.h>
@@ -26,8 +27,6 @@
 #include <mono/metadata/exception-internals.h>
 #include <mono/metadata/runtime.h>
 #include <string.h>
-
-#define ALIGN_TO(val,align) ((((guint64)val) + ((align) - 1)) & ~((align) - 1))
 
 #if NO_UNALIGNED_ACCESS
 #define WRITE_UNALIGNED(type, addr, val) \
@@ -159,10 +158,13 @@ mono_debug_init (MonoDebugFormat format)
 void
 mono_debug_open_image_from_memory (MonoImage *image, const guint8 *raw_contents, int size)
 {
+	MONO_ENTER_GC_UNSAFE;
 	if (!mono_debug_initialized)
-		return;
+		goto leave;
 
 	mono_debug_open_image (image, raw_contents, size);
+leave:
+	MONO_EXIT_GC_UNSAFE;
 }
 
 void
@@ -250,6 +252,12 @@ mono_debug_close_image (MonoImage *image)
 	mono_debugger_unlock ();
 }
 
+MonoDebugHandle *
+mono_debug_get_handle (MonoImage *image)
+{
+    return mono_debug_open_image (image, NULL, 0);
+}
+
 static MonoDebugHandle *
 mono_debug_open_image (MonoImage *image, const guint8 *raw_contents, int size)
 {
@@ -291,7 +299,7 @@ mono_debug_add_assembly (MonoAssembly *assembly, gpointer user_data)
 	MonoImage *image;
 
 	mono_debugger_lock ();
-	image = mono_assembly_get_image (assembly);
+	image = mono_assembly_get_image_internal (assembly);
 	handle = open_symfile_from_bundle (image);
 	if (!handle)
 		mono_debug_open_image (image, NULL, 0);
@@ -996,7 +1004,7 @@ mono_debug_print_stack_frame (MonoMethod *method, guint32 native_offset, MonoDom
 		if (offset < 0)
 			res = g_strdup_printf ("at %s <0x%05x>", fname, native_offset);
 		else {
-			char *mvid = mono_guid_to_string_minimal ((uint8_t*)method->klass->image->heap_guid.data);
+			char *mvid = mono_guid_to_string_minimal ((uint8_t*)m_class_get_image (method->klass)->heap_guid.data);
 			char *aotid = mono_runtime_get_aotid ();
 			if (aotid)
 				res = g_strdup_printf ("at %s [0x%05x] in <%s#%s>:0" , fname, offset, mvid, aotid);

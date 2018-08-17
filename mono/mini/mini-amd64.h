@@ -63,6 +63,17 @@ typedef struct {
 
 #define MONO_UNWIND_INFO_RT_FUNC_SIZE 128
 
+typedef BOOLEAN (WINAPI* RtlInstallFunctionTableCallbackPtr)(
+	DWORD64 TableIdentifier,
+	DWORD64 BaseAddress,
+	DWORD Length,
+	PGET_RUNTIME_FUNCTION_CALLBACK Callback,
+	PVOID Context,
+	PCWSTR OutOfProcessCallbackDll);
+
+typedef BOOLEAN (WINAPI* RtlDeleteFunctionTablePtr)(
+	PRUNTIME_FUNCTION FunctionTable);
+
 // On Win8/Win2012Server and later we can use dynamic growable function tables
 // instead of RtlInstallFunctionTableCallback. This gives us the benefit to
 // include all needed unwind upon registration.
@@ -126,8 +137,6 @@ struct sigcontext {
 #define MONO_ARCH_SIGNAL_STACK_SIZE (16 * 1024)
 #endif
 
-#define MONO_ARCH_HAVE_RESTORE_STACK_SUPPORT 1
-
 #define MONO_ARCH_CPU_SPEC mono_amd64_desc
 
 #define MONO_MAX_IREGS 16
@@ -159,7 +168,6 @@ struct sigcontext {
 #define MONO_ARCH_CALLEE_SAVED_REGS AMD64_CALLEE_SAVED_REGS
 
 #define MONO_ARCH_USE_FPSTACK FALSE
-#define MONO_ARCH_FPSTACK_SIZE 0
 
 #define MONO_ARCH_INST_FIXED_REG(desc) ((desc == '\0') ? -1 : ((desc == 'i' ? -1 : ((desc == 'a') ? AMD64_RAX : ((desc == 's') ? AMD64_RCX : ((desc == 'd') ? AMD64_RDX : ((desc == 'A') ? MONO_AMD64_ARG_REG1 : -1)))))))
 
@@ -206,10 +214,9 @@ typedef struct MonoCompileArch {
 	gint32 async_point_count;
 	gpointer vret_addr_loc;
 #ifdef HOST_WIN32
-	gpointer unwindinfo;
+	struct _UNWIND_INFO* unwindinfo;
 #endif
 	gpointer seq_point_info_var;
-	gpointer ss_trigger_page_var;
 	gpointer ss_tramp_var;
 	gpointer bp_tramp_var;
 	gpointer lmf_var;
@@ -217,13 +224,13 @@ typedef struct MonoCompileArch {
 
 #ifdef TARGET_WIN32
 
-static AMD64_Reg_No param_regs [] = { AMD64_RCX, AMD64_RDX, AMD64_R8, AMD64_R9 };
+static const AMD64_Reg_No param_regs [] = { AMD64_RCX, AMD64_RDX, AMD64_R8, AMD64_R9 };
 
-static AMD64_XMM_Reg_No float_param_regs [] = { AMD64_XMM0, AMD64_XMM1, AMD64_XMM2, AMD64_XMM3 };
+static const AMD64_XMM_Reg_No float_param_regs [] = { AMD64_XMM0, AMD64_XMM1, AMD64_XMM2, AMD64_XMM3 };
 
-static AMD64_Reg_No return_regs [] = { AMD64_RAX };
+static const AMD64_Reg_No return_regs [] = { AMD64_RAX };
 
-static AMD64_XMM_Reg_No float_return_regs [] = { AMD64_XMM0 };
+static const AMD64_XMM_Reg_No float_return_regs [] = { AMD64_XMM0 };
 
 #define PARAM_REGS G_N_ELEMENTS(param_regs)
 #define FLOAT_PARAM_REGS G_N_ELEMENTS(float_param_regs)
@@ -233,9 +240,15 @@ static AMD64_XMM_Reg_No float_return_regs [] = { AMD64_XMM0 };
 #else
 #define PARAM_REGS 6
 #define FLOAT_PARAM_REGS 8
+#define RETURN_REGS 2
+#define FLOAT_RETURN_REGS 2
 
 static const AMD64_Reg_No param_regs [] = {AMD64_RDI, AMD64_RSI, AMD64_RDX,
 					   AMD64_RCX, AMD64_R8,  AMD64_R9};
+
+static const AMD64_XMM_Reg_No float_param_regs[] = {AMD64_XMM0, AMD64_XMM1, AMD64_XMM2,
+						     AMD64_XMM3, AMD64_XMM4, AMD64_XMM5,
+						     AMD64_XMM6, AMD64_XMM7};
 
 static const AMD64_Reg_No return_regs [] = {AMD64_RAX, AMD64_RDX};
 #endif
@@ -326,6 +339,15 @@ typedef struct {
 	ArgInfo args [1];
 } CallInfo;
 
+typedef struct {
+	/* General registers */
+	mgreg_t gregs [AMD64_NREG];
+	/* Floating registers */
+	double fregs [AMD64_XMM_NREG];
+	/* Stack usage, used for passing params on stack */
+	size_t stack_size;
+	gpointer *stack;
+} CallContext;
 
 #define MONO_CONTEXT_SET_LLVM_EXC_REG(ctx, exc) do { (ctx)->gregs [AMD64_RAX] = (gsize)exc; } while (0)
 #define MONO_CONTEXT_SET_LLVM_EH_SELECTOR_REG(ctx, sel) do { (ctx)->gregs [AMD64_RDX] = (gsize)(sel); } while (0)
@@ -411,14 +433,13 @@ typedef struct {
  * clobbered across method call boundaries.
  */
 #define MONO_ARCH_RGCTX_REG MONO_ARCH_IMT_REG
-#define MONO_ARCH_EXC_REG AMD64_RAX
 #define MONO_ARCH_HAVE_CMOV_OPS 1
 #define MONO_ARCH_HAVE_EXCEPTIONS_INIT 1
 #define MONO_ARCH_HAVE_GENERALIZED_IMT_TRAMPOLINE 1
-#define MONO_ARCH_HAVE_LIVERANGE_OPS 1
 #define MONO_ARCH_HAVE_SIGCTX_TO_MONOCTX 1
 #define MONO_ARCH_HAVE_GET_TRAMPOLINES 1
 
+#define MONO_ARCH_INTERPRETER_SUPPORTED 1
 #define MONO_ARCH_AOT_SUPPORTED 1
 #define MONO_ARCH_SOFT_DEBUG_SUPPORTED 1
 
@@ -435,13 +456,16 @@ typedef struct {
 #define MONO_ARCH_HAVE_CONTEXT_SET_INT_REG 1
 #define MONO_ARCH_HAVE_SETUP_ASYNC_CALLBACK 1
 #define MONO_ARCH_HAVE_CREATE_LLVM_NATIVE_THUNK 1
-#define MONO_ARCH_HAVE_OP_TAIL_CALL 1
-#define MONO_ARCH_HAVE_TRANSLATE_TLS_OFFSET 1
-#define MONO_ARCH_HAVE_DUMMY_INIT 1
+#define MONO_ARCH_HAVE_OP_TAILCALL_MEMBASE 1
+#define MONO_ARCH_HAVE_OP_TAILCALL_REG 1
 #define MONO_ARCH_HAVE_SDB_TRAMPOLINES 1
 #define MONO_ARCH_HAVE_PATCH_CODE_NEW 1
 #define MONO_ARCH_HAVE_OP_GENERIC_CLASS_INIT 1
 #define MONO_ARCH_HAVE_GENERAL_RGCTX_LAZY_FETCH_TRAMPOLINE 1
+#define MONO_ARCH_FLOAT32_SUPPORTED 1
+
+#define MONO_ARCH_HAVE_INTERP_PINVOKE_TRAMP
+#define MONO_ARCH_HAVE_INTERP_NATIVE_TO_MANAGED 1
 
 #if defined(TARGET_OSX) || defined(__linux__)
 #define MONO_ARCH_HAVE_UNWIND_BACKTRACE 1
@@ -467,6 +491,10 @@ typedef struct {
             MONO_ADD_INS ((cfg)->cbb, inst); \
             MONO_EMIT_NEW_COND_EXC (cfg, LE_UN, "IndexOutOfRangeException"); \
        } while (0)
+
+// Does the ABI have a volatile non-parameter register, so tailcall
+// can pass context to generics or interfaces?
+#define MONO_ARCH_HAVE_VOLATILE_NON_PARAM_REGISTER 1
 
 void 
 mono_amd64_patch (unsigned char* code, gpointer target);
@@ -497,7 +525,6 @@ mono_amd64_get_tls_gs_offset (void) MONO_LLVM_INTERNAL;
 
 #if defined(TARGET_WIN32) && !defined(DISABLE_JIT)
 
-#if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT)
 #define MONO_ARCH_HAVE_UNWIND_TABLE 1
 #define MONO_ARCH_HAVE_CODE_CHUNK_TRACKING 1
 
@@ -571,7 +598,7 @@ guint
 mono_arch_unwindinfo_init_method_unwind_info (gpointer cfg);
 
 void
-mono_arch_unwindinfo_install_method_unwind_info (gpointer *monoui, gpointer code, guint code_size);
+mono_arch_unwindinfo_install_method_unwind_info (PUNWIND_INFO *monoui, gpointer code, guint code_size);
 
 void
 mono_arch_unwindinfo_install_tramp_unwind_info (GSList *unwind_ops, gpointer code, guint code_size);
@@ -582,7 +609,6 @@ mono_arch_code_chunk_new (void *chunk, int size);
 void
 mono_arch_code_chunk_destroy (void *chunk);
 
-#endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT) */
 #endif /* defined(TARGET_WIN32) && !defined(DISABLE_JIT) */
 
 #ifdef MONO_ARCH_HAVE_UNWIND_TABLE

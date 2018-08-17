@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="common_sources">
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\appdomain.c">
@@ -28,6 +28,9 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\class.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClCompile>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\class-getters.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\class-internals.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
@@ -37,6 +40,15 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\class-accessors.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\class-init.c">
+      <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClCompile>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\class-init.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\class-private-definition.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\cominterop.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClCompile>
@@ -73,12 +85,6 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\debug-mono-ppdb.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClCompile>
-    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\decimal-ms.c">
-      <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
-    </ClCompile>
-    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\decimal-ms.h">
-      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
-    </ClInclude>
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\domain-internals.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
@@ -154,6 +160,12 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\marshal.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
+    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\marshal-ilgen.c">
+      <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClCompile>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\marshal-ilgen.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\marshal-internals.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
@@ -178,7 +190,19 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\method-builder.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\method-builder-internals.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\method-builder.c">
+      <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClCompile>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\method-builder-ilgen.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\method-builder-ilgen-internals.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
+    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\method-builder-ilgen.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClCompile>
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\mono-basic-block.c">
@@ -247,9 +271,6 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\number-formatter.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
-    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\number-ms.c">
-      <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
-    </ClCompile>
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\number-ms.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
@@ -409,6 +430,9 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\abi-details.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClInclude>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\class-abi-details.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common</Filter>
+    </ClInclude>
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\metadata-cross-helpers.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common</Filter>
     </ClCompile>
@@ -550,6 +574,15 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\sgen-mono.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common\sgen</Filter>
     </ClCompile>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\sgen-mono.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common\sgen</Filter>
+    </ClInclude>
+    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\sgen-mono-ilgen.c">
+      <Filter>Source Files$(MonoRuntimeFilterSubFolder)\common\sgen</Filter>
+    </ClCompile>
+    <ClInclude Include="$(MonoSourceLocation)\mono\metadata\sgen-mono-ilgen.h">
+      <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common\sgen</Filter>
+    </ClInclude>
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\sgen-client-mono.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\common\sgen</Filter>
     </ClInclude>

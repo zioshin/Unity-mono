@@ -10,43 +10,46 @@ endif
 
 # The minimal set of csc dependencies
 basic_SUBDIRS := \
+	Mono.Cecil \
+	$(MCS_MODE_dirs) \
+	../tools/cil-stringreplacer \
 	corlib \
 	Mono.Security \
 	System \
 	System.XML \
+	System.Security \
 	System.Core \
 	System.ComponentModel.Composition.4.5 \
 	System.Numerics \
 	System.Xml.Linq \
-	Mono.Cecil \
-	$(MCS_MODE_dirs) \
 	Mono.CompilerServices.SymbolWriter	\
 	PEAPI \
-	../tools/cil-stringreplacer \
 	../ilasm \
 	corlib/il
 
 build_SUBDIRS :=  \
+	Mono.Cecil \
+	$(MCS_MODE_dirs) \
+	../tools/cil-stringreplacer \
 	corlib \
 	Mono.Security \
 	System \
 	System.XML \
+	System.Security \
 	Mono.Posix \
 	System.Core \
+	System.Configuration \
 	System.ComponentModel.Composition.4.5 \
 	System.Numerics \
 	System.Xml.Linq \
 	System.IO.Compression \
 	System.Drawing			\
-	Mono.Cecil \
-	$(MCS_MODE_dirs) \
 	Mono.CompilerServices.SymbolWriter	\
-	PEAPI \
-	../tools/cil-stringreplacer
+	PEAPI
 
 ifdef MCS_MODE
-basic_PARALLEL_SUBDIRS := ../mcs
-build_PARALLEL_SUBDIRS := ../mcs
+basic_PARALLEL_SUBDIRS := ../mcs $(pcl_facade_dirs)
+build_PARALLEL_SUBDIRS := ../mcs $(pcl_facade_dirs)
 else
 basic_PARALLEL_SUBDIRS := $(pcl_facade_dirs)
 build_PARALLEL_SUBDIRS := $(pcl_facade_dirs)
@@ -57,8 +60,8 @@ mobile_common_dirs := \
 	Mono.Security \
 	System	\
 	System.Core	\
-	System.Security	\
 	System.XML	\
+	System.Security	\
 	I18N		\
 	System.ServiceModel.Internals	\
 	System.Runtime.Serialization	\
@@ -154,10 +157,11 @@ xammac_4_5_dirs := \
 	corlib	\
 	Mono.Security \
 	System	\
-	Mono.Posix			\
-	System.Core	\
+	System.XML			\
 	System.Security			\
-	System.XML	\
+	Mono.Posix	\
+	System.Core	\
+	System.Configuration	\
 	I18N		\
 	System.ServiceModel.Internals	\
 	SMDiagnostics	\
@@ -204,10 +208,10 @@ net_4_x_dirs := \
 	Mono.Security \
 	System				\
 	System.XML			\
+	System.Security			\
 	Mono.CompilerServices.SymbolWriter \
 	Mono.Posix			\
 	System.Core			\
-	System.Security			\
 	System.Configuration	\
 	System.Drawing			\
 	System.IO.Compression 		\
@@ -227,9 +231,9 @@ net_4_x_dirs := \
 	System.Web.ApplicationServices	\
 	Novell.Directory.Ldap		\
 	System.DirectoryServices	\
-	System.Web			\
-	System.Web.Services		\
 	System.Design			\
+	System.Web.Services		\
+	System.Web			\
 	System.Runtime.Remoting		\
 	System.Configuration.Install 	\
 	System.Management		\
@@ -429,9 +433,15 @@ DISTFILES = \
 	doc/TemplateTest.cs	\
 	notes/BitVecto32.txt	\
 	MicrosoftAjaxLibrary/License.htm	\
-	test-helpers/NetworkHelpers.cs	\
-	test-helpers/SocketResponder.cs	\
-	$(foreach HOST_PLATFORM,darwin linux win32,lib/$(monolite_dir)/mcs.exe $(monolite_files))
+	test-helpers/AdminHelper.cs \
+	test-helpers/Configuration.Http.cs \
+	test-helpers/NetworkHelpers.cs \
+	test-helpers/NunitHelpers.cs \
+	test-helpers/PlatformDetection.cs \
+	test-helpers/RemoteExecutorTestBase.Mobile.cs \
+	test-helpers/RemoteExecutorTestBase.Mono.cs \
+	test-helpers/SocketResponder.cs \
+	$(foreach HOST_PLATFORM,macos linux win32 unix,lib/$(monolite_dir)/mcs.exe $(monolite_files))
 
 .PHONY: all-local $(STD_TARGETS:=-local)
 all-local $(STD_TARGETS:=-local):
@@ -441,9 +451,9 @@ all-local-aot:
 
 monolite_dir = monolite-$(HOST_PLATFORM)/$(MONO_CORLIB_VERSION)
 
-# Files needed to bootstrap C# compiler
-build_files = mscorlib.dll System.dll System.Xml.dll Mono.Security.dll System.Core.dll System.Security.dll System.Configuration.dll \
-	System.Numerics.dll System.Xml.Linq.dll \
+# Files needed to bootstrap C# compiler and cil-stringreplacer
+build_files := mscorlib.dll System.dll System.Xml.dll Mono.Security.dll System.Core.dll System.Security.dll System.Configuration.dll \
+	System.Numerics.dll System.Xml.Linq.dll System.IO.Compression.dll \
 	Facades/System.Collections.Concurrent.dll Facades/System.Linq.dll Facades/System.Runtime.dll Facades/System.Collections.dll	\
 	Facades/System.Reflection.Extensions.dll Facades/System.Text.Encoding.Extensions.dll Facades/System.Diagnostics.Debug.dll \
 	Facades/System.Reflection.Primitives.dll Facades/System.Text.Encoding.dll Facades/System.Diagnostics.Tools.dll Facades/System.Reflection.dll \
@@ -452,7 +462,8 @@ build_files = mscorlib.dll System.dll System.Xml.dll Mono.Security.dll System.Co
 	Facades/System.IO.dll Facades/System.Runtime.InteropServices.dll Facades/System.Xml.ReaderWriter.dll Facades/System.Linq.Expressions.dll \
 	Facades/System.Runtime.Numerics.dll Facades/System.Xml.XDocument.dll Facades/System.IO.FileSystem.Primitives.dll Facades/System.IO.FileSystem.dll \
 	Facades/System.Diagnostics.FileVersionInfo.dll Facades/System.Security.Cryptography.Primitives.dll Facades/System.Security.Cryptography.Algorithms.dll \
-	Facades/System.ValueTuple.dll Facades/System.Text.Encoding.CodePages.dll
+	Facades/System.ValueTuple.dll Facades/System.Text.Encoding.CodePages.dll \
+	Mono.Cecil.dll
 
 monolite_files = $(build_files:%=lib/$(monolite_dir)/%)
 
@@ -475,9 +486,10 @@ $(build_files:%=lib/build-$(HOST_PLATFORM)/%):
 dist-monolite: $(monolite_files) lib/$(monolite_dir)/mcs.exe
 
 dist-monolite-all-platforms:
-	$(MAKE) dist-monolite HOST_PLATFORM=darwin
+	$(MAKE) dist-monolite HOST_PLATFORM=macos
 	$(MAKE) dist-monolite HOST_PLATFORM=linux
 	$(MAKE) dist-monolite HOST_PLATFORM=win32
+	$(MAKE) dist-monolite HOST_PLATFORM=unix
 
 package-monolite-latest:
 	MONOLITE=monolite-$(HOST_PLATFORM)-$(MONO_CORLIB_VERSION)-latest; \
@@ -485,9 +497,10 @@ package-monolite-latest:
 	tar zcvpf $$MONOLITE.tar.gz --directory=lib $$MONOLITE/
 
 package-monolite-latest-all-platforms:
-	$(MAKE) package-monolite-latest HOST_PLATFORM=darwin
+	$(MAKE) package-monolite-latest HOST_PLATFORM=macos
 	$(MAKE) package-monolite-latest HOST_PLATFORM=linux
 	$(MAKE) package-monolite-latest HOST_PLATFORM=win32
+	$(MAKE) package-monolite-latest HOST_PLATFORM=unix
 
 monolite_url = https://download.mono-project.com/monolite/monolite-$(BUILD_PLATFORM)-$(MONO_CORLIB_VERSION)-latest.tar.gz
 

@@ -31,9 +31,14 @@ using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 
-namespace Xamarin.ApiDiff {
+namespace Mono.ApiTools {
 
-	public class FieldComparer : MemberComparer {
+	class FieldComparer : MemberComparer {
+
+		public FieldComparer (State state)
+			: base (state)
+		{
+		}
 
 		public override string GroupName {
 			get { return "fields"; }
@@ -97,7 +102,7 @@ namespace Xamarin.ApiDiff {
 			var name = source.GetAttribute ("name");
 			var srcValue = source.GetAttribute ("value");
 			var tgtValue = target.GetAttribute ("value");
-			var change = new ApiChange ();
+			var change = new ApiChange (GetDescription (source), State);
 			change.Header = "Modified " + GroupName;
 
 			if (State.BaseType == "System.Enum") {
@@ -110,8 +115,8 @@ namespace Xamarin.ApiDiff {
 			} else {
 				RenderFieldAttributes (source.GetFieldAttributes (), target.GetFieldAttributes (), change);
 
-				var srcType = source.GetTypeName ("fieldtype");
-				var tgtType = target.GetTypeName ("fieldtype");
+				var srcType = source.GetTypeName ("fieldtype", State);
+				var tgtType = target.GetTypeName ("fieldtype", State);
 
 				if (srcType != tgtType) {
 					change.AppendModified (srcType, tgtType, true);
@@ -172,7 +177,7 @@ namespace Xamarin.ApiDiff {
 						sb.Append ("const ");
 				}
 
-				string ftype = e.GetTypeName ("fieldtype");
+				string ftype = e.GetTypeName ("fieldtype", State);
 				sb.Append (ftype).Append (' ');
 				sb.Append (name);
 				if (ftype == "string" && e.Attribute ("value") != null) {
@@ -185,29 +190,6 @@ namespace Xamarin.ApiDiff {
 			}
 
 			return sb.ToString ();
-		}
-
-		public override void BeforeAdding (IEnumerable<XElement> list)
-		{
-			first = true;
-			if (State.BaseType == "System.Enum") {
-				Output.WriteLine ("<div>");
-				Output.WriteLine ("<p>Added value{0}:</p>", list.Count () > 1 ? "s" : String.Empty);
-				Output.WriteLine ("<pre class='added' data-is-non-breaking>");
-			} else {
-				base.BeforeAdding (list);
-			}
-		}
-
-		public override void BeforeRemoving (IEnumerable<XElement> list)
-		{
-			first = true;
-			if (State.BaseType == "System.Enum") {
-				Output.WriteLine ("<p>Removed value{0}:</p>", list.Count () > 1 ? "s" : String.Empty);
-				Output.WriteLine ("<pre class='removed' data-is-breaking>");
-			} else {
-				base.BeforeRemoving (list);
-			}
 		}
 	}
 }

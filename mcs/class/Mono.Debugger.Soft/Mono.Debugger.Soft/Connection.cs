@@ -420,7 +420,7 @@ namespace Mono.Debugger.Soft
 		 * with newer runtimes, and vice versa.
 		 */
 		internal const int MAJOR_VERSION = 2;
-		internal const int MINOR_VERSION = 46;
+		internal const int MINOR_VERSION = 47;
 
 		enum WPSuspendPolicy {
 			NONE = 0,
@@ -534,7 +534,12 @@ namespace Mono.Debugger.Soft
 			GET_OBJECT = 4,
 			GET_TYPE = 5,
 			GET_NAME = 6,
-			GET_DOMAIN = 7
+			GET_DOMAIN = 7,
+			GET_METADATA_BLOB = 8,
+			GET_IS_DYNAMIC = 9,
+			GET_PDB_BLOB = 10,
+			GET_TYPE_FROM_TOKEN = 11,
+			GET_METHOD_FROM_TOKEN = 12
 		}
 
 		enum CmdModule {
@@ -586,6 +591,11 @@ namespace Mono.Debugger.Soft
 		[Flags]
 		enum BindingFlagsExtensions {
 			BINDING_FLAGS_IGNORE_CASE = 0x70000000,
+		}
+
+		enum MemberListTypeExtensions {
+			CaseSensitive = 1,
+			CaseInsensitive = 2
 		}
 
 		enum CmdStackFrame {
@@ -646,6 +656,17 @@ namespace Mono.Debugger.Soft
 
 		static int decode_byte (byte[] packet, ref int offset) {
 			return packet [offset++];
+		}
+
+		static byte[] decode_bytes (byte[] packet, ref int offset, int length)
+		{
+			if (length + offset > packet.Length)
+				throw new ArgumentOutOfRangeException ();
+
+			var bytes = new byte[length];
+			Array.Copy (packet, offset, bytes, 0, length);
+			offset += length;
+			return bytes;
 		}
 
 		static int decode_short (byte[] packet, ref int offset) {
@@ -894,6 +915,15 @@ namespace Mono.Debugger.Soft
 				for (int i = 0; i < n; ++i)
 					res [i] = ReadId ();
 				return res;
+			}
+			
+			public byte[] ReadByteArray () {
+				var length = ReadInt ();
+				return decode_bytes (packet, ref offset, length);
+			}
+
+			public bool ReadBool () {
+				return ReadByte () != 0;
 			}
 		}
 
@@ -2135,6 +2165,26 @@ namespace Mono.Debugger.Soft
 		internal long Assembly_GetIdDomain (long id) {
 			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.GET_DOMAIN, new PacketWriter ().WriteId (id)).ReadId ();
 		}
+		
+		internal byte[] Assembly_GetMetadataBlob (long id) {
+			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.GET_METADATA_BLOB, new PacketWriter ().WriteId (id)).ReadByteArray ();
+		}
+
+		internal bool Assembly_IsDynamic (long id) {
+			return SendReceive (CommandSet.ASSEMBLY, (int) CmdAssembly.GET_IS_DYNAMIC, new PacketWriter ().WriteId (id)).ReadBool ();
+		}
+		
+		internal byte[] Assembly_GetPdbBlob (long id) {
+			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.GET_PDB_BLOB, new PacketWriter ().WriteId (id)).ReadByteArray ();
+		}
+
+		internal long Assembly_GetType (long id, uint token) {
+			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.GET_TYPE_FROM_TOKEN, new PacketWriter ().WriteId (id).WriteInt ((int)token)).ReadId ();
+		}
+
+		internal long Assembly_GetMethod (long id, uint token) {
+			return SendReceive (CommandSet.ASSEMBLY, (int)CmdAssembly.GET_METHOD_FROM_TOKEN, new PacketWriter ().WriteId (id).WriteInt ((int)token)).ReadId ();
+		}
 
 		/*
 		 * TYPE
@@ -2274,7 +2324,8 @@ namespace Mono.Debugger.Soft
 
 		public long[] Type_GetMethodsByNameFlags (long id, string name, int flags, bool ignoreCase) {
 			flags |= ignoreCase ? (int)BindingFlagsExtensions.BINDING_FLAGS_IGNORE_CASE : 0;
-			PacketReader r = SendReceive (CommandSet.TYPE, (int)CmdType.CMD_TYPE_GET_METHODS_BY_NAME_FLAGS, new PacketWriter ().WriteId (id).WriteString (name).WriteInt (flags));
+			int listType = ignoreCase ? (int)MemberListTypeExtensions.CaseInsensitive : (int)MemberListTypeExtensions.CaseSensitive;
+			PacketReader r = SendReceive (CommandSet.TYPE, (int)CmdType.CMD_TYPE_GET_METHODS_BY_NAME_FLAGS, new PacketWriter ().WriteId (id).WriteString (name).WriteInt (flags).WriteInt (listType));
 			int len = r.ReadInt ();
 			long[] res = new long [len];
 			for (int i = 0; i < len; ++i)

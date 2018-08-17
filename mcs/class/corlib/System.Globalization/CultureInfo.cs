@@ -115,6 +115,8 @@ namespace System.Globalization
 		internal const int InvariantCultureId = 0x7F;
 		const int CalendarTypeBits = 8;
 
+		internal const int LOCALE_INVARIANT = 0x007F;
+
 		const string MSG_READONLY = "This instance is read only";
 
 		static volatile CultureInfo s_DefaultThreadCurrentUICulture;
@@ -144,17 +146,26 @@ namespace System.Globalization
 			}
 		}
 
+		private static string current_culture_name;
+
 		internal static CultureInfo ConstructCurrentCulture ()
 		{
 			if (default_current_culture != null)
 				return default_current_culture;
 
-			var locale_name = get_current_locale_name ();
+			string locale_name;
+			if (current_culture_name != null)
+				locale_name = current_culture_name;
+			else
+				locale_name = get_current_locale_name ();
+
 			CultureInfo ci = null;
 
 			if (locale_name != null) {
 				try {
 					ci = CreateSpecificCulture (locale_name);
+					if (current_culture_name == null)
+						current_culture_name = locale_name;
 				} catch {
 				}
 			}
@@ -179,6 +190,8 @@ namespace System.Globalization
 		internal string Territory {
 			get { return territory; }
 		}
+
+		internal string _name => m_name;
 
 		// FIXME: It is implemented, but would be hell slow.
 		[ComVisible (false)]

@@ -11,7 +11,7 @@
 #include "mini.h"
 
 /* Version number of the AOT file format */
-#define MONO_AOT_FILE_VERSION 142
+#define MONO_AOT_FILE_VERSION 147
 
 #define MONO_AOT_TRAMP_PAGE_SIZE 16384
 
@@ -57,7 +57,8 @@ typedef enum {
 	MONO_AOT_TRAMP_STATIC_RGCTX = 1,
 	MONO_AOT_TRAMP_IMT = 2,
 	MONO_AOT_TRAMP_GSHAREDVT_ARG = 3,
-	MONO_AOT_TRAMP_NUM = 4
+	MONO_AOT_TRAMP_FTNPTR_ARG = 4,
+	MONO_AOT_TRAMP_NUM = 5
 } MonoAotTrampoline;
 
 typedef enum {
@@ -69,6 +70,7 @@ typedef enum {
 	MONO_AOT_FILE_FLAG_SAFEPOINTS = 32,
 	MONO_AOT_FILE_FLAG_SEPARATE_DATA = 64,
 	MONO_AOT_FILE_FLAG_EAGER_LOAD = 128,
+	MONO_AOT_FILE_FLAG_INTERP = 256,
 } MonoAotFileFlags;
 
 typedef enum {
@@ -82,6 +84,7 @@ typedef enum {
 	MONO_AOT_TABLE_LLVM_GOT_INFO_OFFSETS,
 	MONO_AOT_TABLE_EXTRA_METHOD_INFO_OFFSETS,
 	MONO_AOT_TABLE_EXTRA_METHOD_TABLE,
+	MONO_AOT_TABLE_WEAK_FIELD_INDEXES,
 	MONO_AOT_TABLE_NUM
 } MonoAotFileTable;
 
@@ -109,6 +112,11 @@ typedef struct MonoAotFileInfo
 	gpointer jit_code_start;
 	gpointer jit_code_end;
 	gpointer method_addresses;
+
+	/*
+	 * Data tables.
+	 * One pointer for each entry in MonoAotFileTable.
+	 */
 	/* Data blob */
 	gpointer blob;
 	gpointer class_name_table;
@@ -120,6 +128,9 @@ typedef struct MonoAotFileInfo
 	gpointer got_info_offsets;
 	gpointer llvm_got_info_offsets;
 	gpointer image_table;
+	/* Points to an array of weak field indexes */
+	gpointer weak_field_indexes;
+
 	gpointer mem_end;
 	/* The GUID of the assembly which the AOT image was generated from */
 	gpointer assembly_guid;
@@ -133,6 +144,7 @@ typedef struct MonoAotFileInfo
 	gpointer static_rgctx_trampolines;
 	gpointer imt_trampolines;
 	gpointer gsharedvt_arg_trampolines;
+	gpointer ftnptr_arg_trampolines;
 	/* In static mode, points to a table of global symbols for trampolines etc */
 	gpointer globals;
 	/* Points to a string containing the assembly name*/
@@ -148,9 +160,7 @@ typedef struct MonoAotFileInfo
 	gpointer unbox_trampolines_end;
 	/* Points to a table of unbox trampoline addresses/offsets */
 	gpointer unbox_trampoline_addresses;
-	/* Points to an array of weak field indexes */
-	gpointer weak_field_indexes;
-#define MONO_AOT_FILE_INFO_LAST_SYMBOL weak_field_indexes
+#define MONO_AOT_FILE_INFO_LAST_SYMBOL unbox_trampoline_addresses
 
 	/* Scalars */
 	/* The index of the first GOT slot used by the PLT */
@@ -161,6 +171,8 @@ typedef struct MonoAotFileInfo
 	guint32 plt_size;
 	/* Number of methods */
 	guint32 nmethods;
+	/* Number of extra methods */
+	guint32 nextra_methods;
 	/* A union of MonoAotFileFlags */
 	guint32 flags;
 	/* Optimization flags used to compile the module */
@@ -170,8 +182,8 @@ typedef struct MonoAotFileInfo
 	/* Index of the blob entry holding the GC used by this module */
 	gint32 gc_name_index;
 	guint32 num_rgctx_fetch_trampolines;
-	/* These are used for sanity checking object layout problems when cross-compiling */
-	guint32 double_align, long_align, generic_tramp_num;
+	/* These are used for sanity checking when cross-compiling */
+	guint32 double_align, long_align, generic_tramp_num, card_table_shift_bits, card_table_mask;
 	/* The page size used by trampoline pages */
 	guint32 tramp_page_size;
 	/*
@@ -203,7 +215,7 @@ typedef struct MonoAotFileInfo
 
 void      mono_aot_init                     (void);
 void      mono_aot_cleanup                  (void);
-gpointer  mono_aot_get_method_checked       (MonoDomain *domain,
+gpointer  mono_aot_get_method               (MonoDomain *domain,
 											 MonoMethod *method, MonoError *error);
 gpointer  mono_aot_get_method_from_token    (MonoDomain *domain, MonoImage *image, guint32 token, MonoError *error);
 gboolean  mono_aot_is_got_entry             (guint8 *code, guint8 *addr);
@@ -223,6 +235,7 @@ gpointer mono_aot_get_lazy_fetch_trampoline (guint32 slot);
 gpointer mono_aot_get_static_rgctx_trampoline (gpointer ctx, gpointer addr);
 gpointer mono_aot_get_imt_trampoline        (MonoVTable *vtable, MonoDomain *domain, MonoIMTCheckItem **imt_entries, int count, gpointer fail_tramp);
 gpointer mono_aot_get_gsharedvt_arg_trampoline(gpointer arg, gpointer addr);
+gpointer mono_aot_get_ftnptr_arg_trampoline (gpointer arg, gpointer addr);
 guint8*  mono_aot_get_unwind_info           (MonoJitInfo *ji, guint32 *unwind_info_len);
 guint32  mono_aot_method_hash               (MonoMethod *method);
 gboolean mono_aot_can_dedup                 (MonoMethod *method);

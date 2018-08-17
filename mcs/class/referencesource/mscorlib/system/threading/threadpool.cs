@@ -675,7 +675,9 @@ namespace System.Threading
                     }
                 }
             }
-
+#if MONO
+            ThreadPool.NotifyWorkItemQueued();
+#endif
             EnsureThreadRequested();
         }
 
@@ -1380,7 +1382,7 @@ namespace System.Threading
     }
 
     [HostProtection(Synchronization=true, ExternalThreading=true)]
-    public static class ThreadPool
+    public static partial class ThreadPool
     {
         #if FEATURE_CORECLR
         [System.Security.SecurityCritical] // auto-generated
@@ -1896,6 +1898,13 @@ namespace System.Threading
         [ResourceExposure(ResourceScope.None)]
         [MethodImplAttribute(MethodImplOptions.InternalCall)]
         internal static extern void NotifyWorkItemProgressNative();
+
+#if MONO
+        [System.Security.SecurityCritical]
+        [ResourceExposure(ResourceScope.None)]
+        [MethodImplAttribute(MethodImplOptions.InternalCall)]
+        internal static extern void NotifyWorkItemQueued();
+#endif
 
         [System.Security.SecurityCritical]  // auto-generated
         [ResourceExposure(ResourceScope.None)]

@@ -170,6 +170,7 @@
 		<type fullname="System.Exception" preserve="fields">
 			<!-- used in mini-exceptions.c (if trace is enabled) -->
 			<method name="get_Message" />
+			<method name="FixRemotingException" feature="remoting" />
 		</type>
 		
 		<!-- exception.c (mono_get_exception_execution_engine) -->
@@ -228,6 +229,9 @@
 			<method signature="System.Void .ctor(System.String)" />
 		</type>
 
+		<!-- reflection.c mono_get_reflection_missing_object -->
+		<type fullname="System.Reflection.Missing" preserve="fields" />
+
 		<type fullname="System.MarshalByRefObject" preserve="fields" feature="remoting" />
 
 		<type fullname="System.MethodAccessException">
@@ -247,10 +251,6 @@
 		<type fullname="System.MissingMethodException">
 			<!-- mini.c (mono_jit_compiler_method_inner) mono_exception_from_name_msg -->
 			<method signature="System.Void .ctor(System.String)" />
-			<!-- exception.c (mono_get_exception_type_load) mono_exception_from_name_two_strings -->
-			<method signature="System.Void .ctor(System.String,System.String)" />
-			<!-- exception.c  mono_exception_from_name_four_strings -->
-			<method signature="System.Void .ctor(System.String,System.String,System.String,System.String)" />
 		</type>
 		
 		<!-- threadpool.c: mono_thread_pool_init (assert) -->
@@ -291,6 +291,9 @@
 			<method name="Box" />
 			<!-- method-to-ir.c (handle_unbox_nullable) -->
 			<method name="Unbox" />
+			<!-- method-to-ir.c (handle_unbox_nullable) -->
+			<method name="UnboxExact" />
+
 		</type>
 		
 		<!-- domain.c: mono_defaults.object_class -->
@@ -318,9 +321,6 @@
 			<!-- mono_exception_from_name -->
 			<method signature="System.Void .ctor()" />
 		</type>
-
-		<!-- reflection.c: mono_get_reflection_missing_object -->
-		<type fullname="System.Reflection.Missing" preserve="field" />
 
 		<!-- domain.c: mono_defaults.argumenthandle_class -->		
 		<type fullname="System.RuntimeArgumentHandle" preserve="fields" />
@@ -352,8 +352,6 @@
 		
 		<!-- domain.c: mono_defaults.string_class -->
 		<type fullname="System.String" preserve="fields">
-			<!-- marshal.c mono_marshal_get_native_wrapper -->
-			<method name="CreateString" />
 			<!-- method-to-ir.c: mini_redirect_call -->
 			<method name="InternalAllocateStr" />
 			<!-- method-to-it.c: mini_emit_initobj -->
@@ -463,6 +461,11 @@
 			<method name=".ctor" />
 		</type>
 
+		<!-- console-unix.c: do_console_cancel_event -->
+		<type fullname="System.Console">
+			<method name="DoConsoleCancelEventInBackground" />
+		</type>
+
 		<!-- icalls - but (at least parts of them) are used thru interfaces at runtime and cannot be linked out -->
 		<type fullname="System.Globalization.DateTimeFormatInfo" preserve="fields" />
 		<type fullname="System.Globalization.CompareInfo" preserve="fields" />
@@ -548,11 +551,6 @@
 		<type fullname="System.Reflection.MonoEvent" preserve="fields" />
 		<type fullname="System.Reflection.MonoEventInfo" preserve="fields" />
 		<type fullname="System.Reflection.MonoField" preserve="fields" />
-		
-		<!-- reflection.c: mono_method_get_object uses both MonoGeneric[C]Method / will crash for ves_icall_Type_GetConstructors_internal -->
-		<type fullname="System.Reflection.MonoGenericMethod" preserve="fields" />
-		<type fullname="System.Reflection.MonoGenericCMethod" preserve="fields" />
-		
 		<type fullname="System.Reflection.MonoMethod" preserve="fields" />
 		<type fullname="System.Reflection.MonoMethodInfo" preserve="fields" />
 		<type fullname="System.Reflection.MonoPropertyInfo" preserve="fields" />
@@ -747,9 +745,6 @@
 			<method signature="System.Void .ctor(System.String)" />
 		</type>
 
-		<!-- domain.c: mono_defaults.runtimesecurityframe_class -->		
-		<type fullname="System.Security.RuntimeSecurityFrame" preserve="fields" />
-		
 		<!-- domain.c: mono_defaults.executioncontext_class -->
 		<type fullname="System.Threading.ExecutionContext">
 			<!-- security-manager.c: mono_get_context_capture_method (can likely be removed) -->

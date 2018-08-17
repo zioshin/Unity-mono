@@ -1,5 +1,22 @@
 #include "mini.h"
+#include "mini-runtime.h"
+#include <mono/metadata/mono-debug.h>
+#include <mono/metadata/assembly.h>
+#include <mono/metadata/metadata.h>
+#include <mono/metadata/seq-points-data.h>
+#include <mono/mini/aot-runtime.h>
+#include <mono/mini/seq-points.h>
 
+//XXX This is dirty, extend ee.h to support extracting info from MonoInterpFrameHandle
+#include <mono/mini/interp/interp-internals.h>
+
+#include <emscripten.h>
+
+//functions exported to be used by JS
+EMSCRIPTEN_KEEPALIVE void mono_set_timeout_exec (int id);
+
+//JS functions imported that we use
+extern void mono_set_timeout (int t, int d);
 
 gpointer
 mono_arch_get_this_arg_from_call (mgreg_t *regs, guint8 *code)
@@ -154,9 +171,65 @@ mono_thread_state_init_from_handle (MonoThreadUnwindState *tctx, MonoThreadInfo 
 }
 
 
+EMSCRIPTEN_KEEPALIVE void
+mono_set_timeout_exec (int id)
+{
+	ERROR_DECL (error);
+	MonoClass *klass = mono_class_load_from_name (mono_defaults.corlib, "System.Threading", "WasmRuntime");
+	g_assert (klass);
+
+	MonoMethod *method = mono_class_get_method_from_name_checked (klass, "TimeoutCallback", -1, 0, error);
+	mono_error_assert_ok (error);
+	g_assert (method);
+
+	gpointer params[1] = { &id };
+	MonoObject *exc = NULL;
+
+	mono_runtime_try_invoke (method, NULL, params, &exc, error);
+
+	//YES we swallow exceptions cuz there's nothing much we can do from here.
+	//FIXME Maybe call the unhandled exception function?
+	if (!is_ok (error)) {
+		printf ("timeout callback failed due to %s\n", mono_error_get_message (error));
+		mono_error_cleanup (error);
+	}
+
+	if (exc) {
+		char *type_name = mono_type_get_full_name (mono_object_get_class (exc));
+		printf ("timeout callback threw a %s\n", type_name);
+		g_free (type_name);
+	}
+}
+
+void
+mono_wasm_set_timeout (int timeout, int id)
+{
+	mono_set_timeout (timeout, id);
+}
+
+void
+mono_arch_register_icall (void)
+{
+	mono_add_internal_call ("System.Threading.WasmRuntime::SetTimeout", mono_wasm_set_timeout);
+}
+
+void
+mono_arch_patch_code_new (MonoCompile *cfg, MonoDomain *domain, guint8 *code, MonoJumpInfo *ji, gpointer target)
+{
+	g_error ("mono_arch_patch_code_new");
+}
+
 /*
 The following functions don't belong here, but are due to laziness.
 */
+gboolean mono_w32file_get_volume_information (const gunichar2 *path, gunichar2 *volumename, gint volumesize, gint *outserial, gint *maxcomp, gint *fsflags, gunichar2 *fsbuffer, gint fsbuffersize);
+void * getgrnam (const char *name);
+void * getgrgid (gid_t gid);
+int inotify_init (void);
+int inotify_rm_watch (int fd, int wd);
+int inotify_add_watch (int fd, const char *pathname, uint32_t mask);
+int sem_timedwait (sem_t *sem, const struct timespec *abs_timeout);
+
 
 //w32file-wasm.c
 gboolean

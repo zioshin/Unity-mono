@@ -251,12 +251,9 @@ g_find_program_in_path (const gchar *program)
 		
 		x = NULL;
 		probe_path = g_build_path (G_DIR_SEPARATOR_S, l, program, NULL);
-#if !defined(NO_HAVE_ACCESS)
-#ifdef G_OS_WIN32
-		if (_access (probe_path, X_OK) == 0){ /* FIXME: on windows this is just a read permissions test */
-#else
-		if (access(probe_path, X_OK) == 0) {
-#endif
+
+#ifdef HAVE_ACCESS
+		if (g_access (probe_path, X_OK) == 0){ /* FIXME: on windows this is just a read permissions test */
 			g_free (curdir);
 			g_free (p);
 			return probe_path;
@@ -271,8 +268,8 @@ g_find_program_in_path (const gchar *program)
 			while (suffix_list[listx]) {
 				program_exe = g_strjoin(NULL,program,suffix_list[listx],NULL);
 				probe_path = g_build_path (G_DIR_SEPARATOR_S, l, program_exe, NULL);
-#if !defined(NO_HAVE_ACCESS)
-				if (_access (probe_path, X_OK) == 0){ /* FIXME: on windows this is just a read permissions test */
+#ifdef HAVE_ACCESS
+				if (g_access (probe_path, X_OK) == 0){ /* FIXME: on windows this is just a read permissions test */
 					g_free (curdir);
 					g_free (p);
 					g_free (program_exe);

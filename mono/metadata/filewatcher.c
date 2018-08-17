@@ -59,19 +59,28 @@ static int (*FAMNextEvent) (gpointer, gpointer);
 gint
 ves_icall_System_IO_FSW_SupportsFSW (void)
 {
-#if HAVE_KQUEUE
-	return 3;
+#if defined(__APPLE__)
+	if (getenv ("MONO_DARWIN_USE_KQUEUE_FSW"))
+		return 3; /* kqueue */
+	else
+		return 6; /* CoreFX */
+#elif defined(HAVE_SYS_INOTIFY_H) && !defined(TARGET_ANDROID)
+	return 6; /* CoreFX */
+#elif HAVE_KQUEUE
+	return 3; /* kqueue */
 #else
 	MonoDl *fam_module;
 	int lib_used = 4; /* gamin */
 	int inotify_instance;
 	char *err;
 
+#if defined (TARGET_ANDROID)
 	inotify_instance = ves_icall_System_IO_InotifyWatcher_GetInotifyInstance ();
 	if (inotify_instance != -1) {
 		close (inotify_instance);
 		return 5; /* inotify */
 	}
+#endif
 
 	fam_module = mono_dl_open ("libgamin-1.so", MONO_DL_LAZY, NULL);
 	if (fam_module == NULL) {
@@ -80,14 +89,14 @@ ves_icall_System_IO_FSW_SupportsFSW (void)
 	}
 
 	if (fam_module == NULL)
-		return 0;
+		return 0; /* DefaultWatcher */
 
 	err = mono_dl_symbol (fam_module, "FAMNextEvent", (gpointer *) &FAMNextEvent);
 	g_free (err);
 	if (FAMNextEvent == NULL)
 		return 0;
 
-	return lib_used;
+	return lib_used; /* DefaultWatcher */
 #endif
 }
 
@@ -111,14 +120,14 @@ ves_icall_System_IO_FAMW_InternalFAMNextEvent (gpointer conn,
 					       gint *code,
 					       gint *reqnum)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	FAMEvent ev;
 
 	if (FAMNextEvent (conn, &ev) == 1) {
-		*filename = mono_string_new_checked (mono_domain_get (), ev.filename, &error);
+		*filename = mono_string_new_checked (mono_domain_get (), ev.filename, error);
 		*code = ev.code;
 		*reqnum = ev.fr.reqnum;
-		if (mono_error_set_pending_exception (&error))
+		if (mono_error_set_pending_exception (error))
 			return FALSE;
 		return TRUE;
 	}
@@ -127,6 +136,7 @@ ves_icall_System_IO_FAMW_InternalFAMNextEvent (gpointer conn,
 }
 #endif
 
+#if defined(TARGET_ANDROID)
 #ifndef HAVE_SYS_INOTIFY_H
 int ves_icall_System_IO_InotifyWatcher_GetInotifyInstance ()
 {
@@ -155,15 +165,15 @@ ves_icall_System_IO_InotifyWatcher_GetInotifyInstance ()
 int
 ves_icall_System_IO_InotifyWatcher_AddWatch (int fd, MonoString *name, gint32 mask)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	char *str, *path;
 	int retval;
 
 	if (name == NULL)
 		return -1;
 
-	str = mono_string_to_utf8_checked (name, &error);
-	if (mono_error_set_pending_exception (&error))
+	str = mono_string_to_utf8_checked (name, error);
+	if (mono_error_set_pending_exception (error))
 		return -1;
 	path = mono_portability_find_file (str, TRUE);
 	if (!path)
@@ -207,6 +217,7 @@ ves_icall_System_IO_InotifyWatcher_RemoveWatch (int fd, gint32 watch_descriptor)
 {
 	return inotify_rm_watch (fd, watch_descriptor);
 }
+#endif
 #endif
 
 #if HAVE_KQUEUE
@@ -260,3 +271,17 @@ ves_icall_System_IO_KqueueMonitor_kevent_notimeout (int *kq_ptr, gpointer change
 
 #endif /* #if HAVE_KQUEUE */
 
+#ifdef HOST_IOS
+
+MONO_API char* SystemNative_RealPath(const char* path)
+{
+    g_assert(path != NULL);
+    return realpath(path, NULL);
+}
+
+MONO_API void SystemNative_Sync(void)
+{
+    sync();
+}
+
+#endif // HOST_IOS

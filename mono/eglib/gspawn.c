@@ -68,9 +68,9 @@
 #define pipe(x) _pipe(x, 256, 0)
 #endif
 
-#define set_error(msg, ...) do { if (error != NULL) *error = g_error_new (G_LOG_DOMAIN, 1, msg, __VA_ARGS__); } while (0)
-#define set_error_cond(cond,msg, ...) do { if ((cond) && error != NULL) *error = g_error_new (G_LOG_DOMAIN, 1, msg, __VA_ARGS__); } while (0)
-#define set_error_status(status,msg, ...) do { if (error != NULL) *error = g_error_new (G_LOG_DOMAIN, status, msg, __VA_ARGS__); } while (0)
+#define set_error(msg, ...) do { if (gerror != NULL) *gerror = g_error_new (G_LOG_DOMAIN, 1, msg, __VA_ARGS__); } while (0)
+#define set_error_cond(cond,msg, ...) do { if ((cond) && gerror != NULL) *gerror = g_error_new (G_LOG_DOMAIN, 1, msg, __VA_ARGS__); } while (0)
+#define set_error_status(status,msg, ...) do { if (gerror != NULL) *gerror = g_error_new (G_LOG_DOMAIN, status, msg, __VA_ARGS__); } while (0)
 #define NO_INTR(var,cmd) do { (var) = (cmd); } while ((var) == -1 && errno == EINTR)
 #define CLOSE_PIPE(p) do { close (p [0]); close (p [1]); } while (0)
 
@@ -80,7 +80,9 @@
  * arm-apple-darwin9.  We'll manually define the symbol on Apple as it does
  * in fact exist on all implementations (so far) 
  */
+G_BEGIN_DECLS
 gchar ***_NSGetEnviron(void);
+G_END_DECLS
 #define environ (*_NSGetEnviron())
 #else
 static char *mono_environ[1] = { NULL };
@@ -89,12 +91,14 @@ static char *mono_environ[1] = { NULL };
 #elif defined(_MSC_VER)
 /* MS defines this in stdlib.h */
 #else
+G_BEGIN_DECLS
 extern char **environ;
+G_END_DECLS
 #endif
 
 #ifndef G_OS_WIN32
 static int
-safe_read (int fd, gchar *buffer, gint count, GError **error)
+safe_read (int fd, gchar *buffer, gint count, GError **gerror)
 {
 	int res;
 
@@ -104,7 +108,7 @@ safe_read (int fd, gchar *buffer, gint count, GError **error)
 }
 
 static int
-read_pipes (int outfd, gchar **out_str, int errfd, gchar **err_str, GError **error)
+read_pipes (int outfd, gchar **out_str, int errfd, gchar **err_str, GError **gerror)
 {
 	fd_set rfds;
 	int res;
@@ -151,7 +155,7 @@ read_pipes (int outfd, gchar **out_str, int errfd, gchar **err_str, GError **err
 			if (buffer == NULL)
 				buffer = g_malloc (1024);
 			if (!out_closed && FD_ISSET (outfd, &rfds)) {
-				nread = safe_read (outfd, buffer, 1024, error);
+				nread = safe_read (outfd, buffer, 1024, gerror);
 				if (nread < 0) {
 					close (errfd);
 					close (outfd);
@@ -165,7 +169,7 @@ read_pipes (int outfd, gchar **out_str, int errfd, gchar **err_str, GError **err
 			}
 
 			if (!err_closed && FD_ISSET (errfd, &rfds)) {
-				nread = safe_read (errfd, buffer, 1024, error);
+				nread = safe_read (errfd, buffer, 1024, gerror);
 				if (nread < 0) {
 					close (errfd);
 					close (outfd);
@@ -191,7 +195,7 @@ read_pipes (int outfd, gchar **out_str, int errfd, gchar **err_str, GError **err
 }
 
 static gboolean
-create_pipe (int *fds, GError **error)
+create_pipe (int *fds, GError **gerror)
 {
 	if (pipe (fds) == -1) {
 		set_error ("%s", "Error creating pipe.");
@@ -250,7 +254,7 @@ g_spawn_command_line_sync (const gchar *command_line,
 				gchar **standard_output,
 				gchar **standard_error,
 				gint *exit_status,
-				GError **error)
+				GError **gerror)
 {
 #ifdef G_OS_WIN32
 #elif !defined (HAVE_FORK) || !defined (HAVE_EXECV)
@@ -265,13 +269,13 @@ g_spawn_command_line_sync (const gchar *command_line,
 	int status;
 	int res;
 	
-	if (!g_shell_parse_argv (command_line, &argc, &argv, error))
+	if (!g_shell_parse_argv (command_line, &argc, &argv, gerror))
 		return FALSE;
 
-	if (standard_output && !create_pipe (stdout_pipe, error))
+	if (standard_output && !create_pipe (stdout_pipe, gerror))
 		return FALSE;
 
-	if (standard_error && !create_pipe (stderr_pipe, error)) {
+	if (standard_error && !create_pipe (stderr_pipe, gerror)) {
 		if (standard_output) {
 			CLOSE_PIPE (stdout_pipe);
 		}
@@ -317,7 +321,7 @@ g_spawn_command_line_sync (const gchar *command_line,
 		close (stderr_pipe [1]);
 
 	if (standard_output || standard_error) {
-		res = read_pipes (stdout_pipe [0], standard_output, stderr_pipe [0], standard_error, error);
+		res = read_pipes (stdout_pipe [0], standard_output, stderr_pipe [0], standard_error, gerror);
 		if (res) {
 			waitpid (pid, &status, WNOHANG); /* avoid zombie */
 			return FALSE;
@@ -349,7 +353,7 @@ g_spawn_async_with_pipes (const gchar *working_directory,
 			gint *standard_input,
 			gint *standard_output,
 			gint *standard_error,
-			GError **error)
+			GError **gerror)
 {
 #ifdef G_OS_WIN32
 #elif !defined (HAVE_FORK) || !defined (HAVE_EXECVE)
@@ -365,21 +369,21 @@ g_spawn_async_with_pipes (const gchar *working_directory,
 
 	g_return_val_if_fail (argv != NULL, FALSE); /* Only mandatory arg */
 
-	if (!create_pipe (info_pipe, error))
+	if (!create_pipe (info_pipe, gerror))
 		return FALSE;
 
-	if (standard_output && !create_pipe (out_pipe, error)) {
+	if (standard_output && !create_pipe (out_pipe, gerror)) {
 		CLOSE_PIPE (info_pipe);
 		return FALSE;
 	}
 
-	if (standard_error && !create_pipe (err_pipe, error)) {
+	if (standard_error && !create_pipe (err_pipe, gerror)) {
 		CLOSE_PIPE (info_pipe);
 		CLOSE_PIPE (out_pipe);
 		return FALSE;
 	}
 
-	if (standard_input && !create_pipe (in_pipe, error)) {
+	if (standard_input && !create_pipe (in_pipe, gerror)) {
 		CLOSE_PIPE (info_pipe);
 		CLOSE_PIPE (out_pipe);
 		CLOSE_PIPE (err_pipe);
@@ -477,7 +481,8 @@ g_spawn_async_with_pipes (const gchar *working_directory,
 			}
 
 			execve (arg0, actual_args, envp);
-			write_all (info_pipe [1], &errno, sizeof (int));
+			int const err = errno;
+			write_all (info_pipe [1], &err, sizeof (int));
 			exit (0);
 		}
 	} else if ((flags & G_SPAWN_DO_NOT_REAP_CHILD) == 0) {

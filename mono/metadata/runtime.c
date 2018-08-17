@@ -54,12 +54,12 @@ mono_runtime_is_shutting_down (void)
 static void
 fire_process_exit_event (MonoDomain *domain, gpointer user_data)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoClassField *field;
 	gpointer pa [2];
 	MonoObject *delegate, *exc;
 
-	field = mono_class_get_field_from_name (mono_defaults.appdomain_class, "ProcessExit");
+	field = mono_class_get_field_from_name_full (mono_defaults.appdomain_class, "ProcessExit", NULL);
 	g_assert (field);
 
 	delegate = *(MonoObject **)(((char *)domain->domain) + field->offset);
@@ -68,8 +68,8 @@ fire_process_exit_event (MonoDomain *domain, gpointer user_data)
 
 	pa [0] = domain;
 	pa [1] = NULL;
-	mono_runtime_delegate_try_invoke (delegate, pa, &exc, &error);
-	mono_error_cleanup (&error);
+	mono_runtime_delegate_try_invoke (delegate, pa, &exc, error);
+	mono_error_cleanup (error);
 }
 
 static void

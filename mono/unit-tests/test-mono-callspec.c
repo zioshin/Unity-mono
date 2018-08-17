@@ -14,6 +14,7 @@
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/debug-helpers.h>
 #include <mono/mini/jit.h>
+#include <mono/utils/mono-error-internals.h>
 
 #define TESTPROG "callspec.exe"
 
@@ -141,11 +142,11 @@ static MonoClass *test_mono_class_from_name (MonoImage *image,
 					     const char *name_space,
 					     const char *name)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoClass *klass;
 
-	klass = mono_class_from_name_checked (image, name_space, name, &error);
-	mono_error_cleanup (&error); /* FIXME Don't swallow the error */
+	klass = mono_class_from_name_checked (image, name_space, name, error);
+	mono_error_cleanup (error); /* FIXME Don't swallow the error */
 
 	return klass;
 }
@@ -182,7 +183,7 @@ main (void)
 
 	mono_callspec_set_assembly(assembly);
 
-	prog_image = mono_assembly_get_image (assembly);
+	prog_image = mono_assembly_get_image_internal (assembly);
 
 	prog_klass = test_mono_class_from_name (prog_image, "Baz", "Foo");
 	if (!prog_klass) {

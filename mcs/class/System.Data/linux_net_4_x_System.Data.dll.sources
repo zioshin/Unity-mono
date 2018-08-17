@@ -1,4 +1,1 @@
-#include corefx.unix.sources
-#include net_4_x_System.Data.dll.sources
-
-../../../external/corefx/src/System.Data.Odbc/src/Common/System/Data/Common/ExternDll.Linux.cs
+#include unix_net_4_x_System.Data.dll.sources

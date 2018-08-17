@@ -1,5 +1,22 @@
 #ifndef __GLIB_H
 #define __GLIB_H
+
+// Ask stdint.h and inttypes.h for the full C99 features for CentOS 6 g++ 4.4, Android, etc.
+// See for example:
+// $HOME/android-toolchain/toolchains/armeabi-v7a-clang/sysroot/usr/include/inttypes.h
+// $HOME/android-toolchain/toolchains/armeabi-v7a-clang/sysroot/usr/include/stdint.h
+#ifdef __cplusplus
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS
+#endif
+#ifndef __STDC_CONSTANT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+#endif // __cplusplus
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +38,16 @@
 #endif
 
 #include <eglib-config.h>
+
+// - Pointers should only be converted to or from pointer-sized integers.
+// - Any size integer can be converted to any other size integer.
+// - Therefore a pointer-sized integer is the intermediary between
+//   a pointer and any integer type.
+#define GPOINTER_TO_INT(ptr)   ((gint)(gssize)(ptr))
+#define GPOINTER_TO_UINT(ptr)  ((guint)(gsize)(ptr))
+#define GINT_TO_POINTER(v)     ((gpointer)(gssize)(v))
+#define GUINT_TO_POINTER(v)    ((gpointer)(gsize)(v))
+
 #ifndef EGLIB_NO_REMAP
 #include <eglib-remap.h>
 #endif
@@ -81,7 +108,14 @@ typedef float          gfloat;
 typedef double         gdouble;
 typedef int32_t        gboolean;
 
+#if defined (HOST_WIN32) || defined (_WIN32)
+G_END_DECLS
+#include <wchar.h>
+typedef wchar_t gunichar2;
+G_BEGIN_DECLS
+#else
 typedef guint16 gunichar2;
+#endif
 typedef guint32 gunichar;
 
 /*
@@ -97,6 +131,12 @@ typedef guint32 gunichar;
 #define G_MAXUSHORT          USHRT_MAX
 #define G_MAXINT             INT_MAX
 #define G_MININT             INT_MIN
+#define G_MAXINT8            INT8_MAX
+#define G_MAXUINT8           UINT8_MAX
+#define G_MININT8            INT8_MIN
+#define G_MAXINT16           INT16_MAX
+#define G_MAXUINT16          UINT16_MAX
+#define G_MININT16           INT16_MIN
 #define G_MAXINT32           INT32_MAX
 #define G_MAXUINT32          UINT32_MAX
 #define G_MININT32           INT32_MIN
@@ -113,6 +153,14 @@ typedef guint32 gunichar;
 
 #ifndef ABS
 #define ABS(a)         ((a) > 0 ? (a) : -(a))
+#endif
+
+#ifndef ALIGN_TO
+#define ALIGN_TO(val,align) ((((gssize)val) + ((align) - 1)) & ~((align) - 1))
+#endif
+
+#ifndef ALIGN_PTR_TO
+#define ALIGN_PTR_TO(ptr,align) (gpointer)((((gssize)(ptr)) + (align - 1)) & (~(align - 1)))
 #endif
 
 #define G_STRUCT_OFFSET(p_type,field) offsetof(p_type,field)
@@ -144,7 +192,7 @@ gpointer g_try_realloc (gpointer obj, gsize size);
 #define g_newa(type,size)       ((type *) alloca (sizeof (type) * (size)))
 
 #define g_memmove(dest,src,len) memmove (dest, src, len)
-#define g_renew(struct_type, mem, n_structs) g_realloc (mem, sizeof (struct_type) * n_structs)
+#define g_renew(struct_type, mem, n_structs) ((struct_type*)g_realloc (mem, sizeof (struct_type) * n_structs))
 #define g_alloca(size)		alloca (size)
 
 gpointer g_memdup (gconstpointer mem, guint byte_size);
@@ -193,8 +241,8 @@ typedef struct {
 	gchar   *message;
 } GError;
 
-void    g_clear_error (GError **error);
-void    g_error_free (GError *error);
+void    g_clear_error (GError **gerror);
+void    g_error_free (GError *gerror);
 GError *g_error_new  (gpointer domain, gint code, const char *format, ...);
 void    g_set_error  (GError **err, gpointer domain, gint code, const gchar *format, ...);
 void    g_propagate_error (GError **dest, GError *src);
@@ -225,8 +273,8 @@ gchar       *g_strnfill       (gsize length, gchar fill_char);
 gchar       *g_strdelimit     (gchar *string, const gchar *delimiters, gchar new_delimiter);
 gchar       *g_strescape      (const gchar *source, const gchar *exceptions);
 
-gchar       *g_filename_to_uri   (const gchar *filename, const gchar *hostname, GError **error);
-gchar       *g_filename_from_uri (const gchar *uri, gchar **hostname, GError **error);
+gchar       *g_filename_to_uri   (const gchar *filename, const gchar *hostname, GError **gerror);
+gchar       *g_filename_from_uri (const gchar *uri, gchar **hostname, GError **gerror);
 
 gint         g_printf          (gchar const *format, ...);
 gint         g_fprintf         (FILE *file, gchar const *format, ...);
@@ -253,6 +301,8 @@ gint    g_ascii_xdigit_value (gchar c);
 #define g_ascii_isalpha(c)   (isalpha (c) != 0)
 #define g_ascii_isprint(c)   (isprint (c) != 0)
 #define g_ascii_isxdigit(c)  (isxdigit (c) != 0)
+gboolean g_utf16_ascii_equal (const gunichar2 *utf16, size_t ulen, const char *ascii, size_t alen);
+gboolean g_utf16_asciiz_equal (const gunichar2 *utf16, const char *ascii);
 
 /* FIXME: g_strcasecmp supports utf8 unicode stuff */
 #ifdef _MSC_VER
@@ -292,10 +342,7 @@ GString     *g_string_append_c      (GString *string, gchar c);
 GString     *g_string_append        (GString *string, const gchar *val);
 GString     *g_string_append_len    (GString *string, const gchar *val, gssize len);
 GString     *g_string_truncate      (GString *string, gsize len);
-GString     *g_string_prepend       (GString *string, const gchar *val);
-GString     *g_string_insert        (GString *string, gssize pos, const gchar *val);
 GString     *g_string_set_size      (GString *string, gsize len);
-GString     *g_string_erase         (GString *string, gssize pos, gssize len);
 
 #define g_string_sprintfa g_string_append_printf
 
@@ -575,6 +622,7 @@ typedef enum {
 	G_LOG_LEVEL_MASK              = ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL)
 } GLogLevelFlags;
 
+void           g_printv               (const gchar *format, va_list args);
 void           g_print                (const gchar *format, ...);
 void           g_printerr             (const gchar *format, ...);
 GLogLevelFlags g_log_set_always_fatal (GLogLevelFlags fatal_mask);
@@ -582,6 +630,7 @@ GLogLevelFlags g_log_set_fatal_mask   (const gchar *log_domain, GLogLevelFlags f
 void           g_logv                 (const gchar *log_domain, GLogLevelFlags log_level, const gchar *format, va_list args);
 void           g_log                  (const gchar *log_domain, GLogLevelFlags log_level, const gchar *format, ...);
 void           g_assertion_message    (const gchar *format, ...) G_GNUC_NORETURN;
+const char *   g_get_assertion_message (void);
 
 #ifdef HAVE_C99_SUPPORT
 /* The for (;;) tells gc thats g_error () doesn't return, avoiding warnings */
@@ -727,8 +776,33 @@ GUnicodeBreakType   g_unichar_break_type (gunichar c);
 #define  eg_unreachable()
 #endif
 
-#define  g_assert(x)     G_STMT_START { if (G_UNLIKELY (!(x))) g_assertion_message ("* Assertion at %s:%d, condition `%s' not met\n", __FILE__, __LINE__, #x);  } G_STMT_END
+/* g_assert is a boolean expression; the precise value is not preserved, just true or false. */
+#define g_assert(x) (G_LIKELY((x)) ? 1 : (g_assertion_message ("* Assertion at %s:%d, condition `%s' not met\n", __FILE__, __LINE__, #x), 0))
+
 #define  g_assert_not_reached() G_STMT_START { g_assertion_message ("* Assertion: should not be reached at %s:%d\n", __FILE__, __LINE__); eg_unreachable(); } G_STMT_END
+
+/* f is format -- like printf and scanf
+ * Where you might have said:
+ * 	if (!(expr))
+ * 		g_error("%s invalid bar:%d", __func__, bar)
+ * 
+ * You can say:
+ * 	g_assertf(expr, "bar:%d", bar);
+ * 
+ * The usual assertion text of file/line/expr/newline are builtin, and __func__.
+ * 
+ * g_assertf is a boolean expression -- the precise value is not preserved, just true or false.
+ * 
+ * Other than expr, the parameters are not evaluated unless expr is false.
+ * 
+ * format must be a string literal, in order to be concatenated.
+ * If this is too restrictive, g_error remains.
+ */
+#if defined(_MSC_VER) && (_MSC_VER < 1910)
+#define g_assertf(x, format, ...) (G_LIKELY((x)) ? 1 : (g_assertion_message ("* Assertion at %s:%d, condition `%s' not met, function:%s, " format "\n", __FILE__, __LINE__, #x, __func__, __VA_ARGS__), 0))
+#else
+#define g_assertf(x, format, ...) (G_LIKELY((x)) ? 1 : (g_assertion_message ("* Assertion at %s:%d, condition `%s' not met, function:%s, " format "\n", __FILE__, __LINE__, #x, __func__, ##__VA_ARGS__), 0))
+#endif
 
 /*
  * Unicode conversion
@@ -752,6 +826,7 @@ gunichar  *g_utf8_to_ucs4_fast (const gchar *str, glong len, glong *items_writte
 gunichar  *g_utf8_to_ucs4 (const gchar *str, glong len, glong *items_read, glong *items_written, GError **err);
 gunichar2 *g_utf8_to_utf16 (const gchar *str, glong len, glong *items_read, glong *items_written, GError **err);
 gunichar2 *eg_utf8_to_utf16_with_nuls (const gchar *str, glong len, glong *items_read, glong *items_written, GError **err);
+gunichar2 *eg_wtf8_to_utf16 (const gchar *str, glong len, glong *items_read, glong *items_written, GError **err);
 gchar     *g_utf16_to_utf8 (const gunichar2 *str, glong len, glong *items_read, glong *items_written, GError **err);
 gunichar  *g_utf16_to_ucs4 (const gunichar2 *str, glong len, glong *items_read, glong *items_written, GError **err);
 gchar     *g_ucs4_to_utf8  (const gunichar *str, glong len, glong *items_read, glong *items_written, GError **err);
@@ -788,8 +863,8 @@ gboolean g_ensure_directory_exists (const gchar *filename);
  * Shell
  */
 
-gboolean  g_shell_parse_argv (const gchar *command_line, gint *argcp, gchar ***argvp, GError **error);
-gchar    *g_shell_unquote    (const gchar *quoted_string, GError **error);
+gboolean  g_shell_parse_argv (const gchar *command_line, gint *argcp, gchar ***argvp, GError **gerror);
+gchar    *g_shell_unquote    (const gchar *quoted_string, GError **gerror);
 gchar    *g_shell_quote      (const gchar *unquoted_string);
 
 /*
@@ -807,9 +882,9 @@ typedef enum {
 
 typedef void (*GSpawnChildSetupFunc) (gpointer user_data);
 
-gboolean g_spawn_command_line_sync (const gchar *command_line, gchar **standard_output, gchar **standard_error, gint *exit_status, GError **error);
+gboolean g_spawn_command_line_sync (const gchar *command_line, gchar **standard_output, gchar **standard_error, gint *exit_status, GError **gerror);
 gboolean g_spawn_async_with_pipes  (const gchar *working_directory, gchar **argv, gchar **envp, GSpawnFlags flags, GSpawnChildSetupFunc child_setup,
-				gpointer user_data, GPid *child_pid, gint *standard_input, gint *standard_output, gint *standard_error, GError **error);
+				gpointer user_data, GPid *child_pid, gint *standard_input, gint *standard_output, gint *standard_error, GError **gerror);
 
 int eg_getdtablesize (void);
 
@@ -880,19 +955,38 @@ typedef enum {
 } GFileTest;
 
 
-gboolean   g_file_set_contents (const gchar *filename, const gchar *contents, gssize length, GError **error);
-gboolean   g_file_get_contents (const gchar *filename, gchar **contents, gsize *length, GError **error);
+gboolean   g_file_set_contents (const gchar *filename, const gchar *contents, gssize length, GError **gerror);
+gboolean   g_file_get_contents (const gchar *filename, gchar **contents, gsize *length, GError **gerror);
 GFileError g_file_error_from_errno (gint err_no);
-gint       g_file_open_tmp (const gchar *tmpl, gchar **name_used, GError **error);
+gint       g_file_open_tmp (const gchar *tmpl, gchar **name_used, GError **gerror);
 gboolean   g_file_test (const gchar *filename, GFileTest test);
 
+#ifdef G_OS_WIN32
+#define g_open _open
+#else
 #define g_open open
+#endif
 #define g_rename rename
 #define g_stat stat
+#ifdef G_OS_WIN32
+#define g_access _access
+#else
+#define g_access access
+#endif
+#ifdef G_OS_WIN32
+#define g_mktemp _mktemp
+#else
+#define g_mktemp mktemp
+#endif
 #ifdef G_OS_WIN32
 #define g_unlink _unlink
 #else
 #define g_unlink unlink
+#endif
+#ifdef G_OS_WIN32
+#define g_write _write
+#else
+#define g_write write
 #endif
 #define g_fopen fopen
 #define g_lstat lstat
@@ -916,7 +1010,7 @@ gboolean       g_pattern_match_string (GPatternSpec *pspec, const gchar *string)
  * Directory
  */
 typedef struct _GDir GDir;
-GDir        *g_dir_open (const gchar *path, guint flags, GError **error);
+GDir        *g_dir_open (const gchar *path, guint flags, GError **gerror);
 const gchar *g_dir_read_name (GDir *dir);
 void         g_dir_rewind (GDir *dir);
 void         g_dir_close (GDir *dir);
@@ -941,26 +1035,26 @@ typedef struct {
 				const gchar **attribute_names,
 				const gchar **attribute_values,
 				gpointer user_data,
-				GError **error);
+				GError **gerror);
 
 	void (*end_element)    (GMarkupParseContext *context,
 				const gchar         *element_name,
 				gpointer             user_data,
-				GError             **error);
+				GError             **gerror);
 	
 	void (*text)           (GMarkupParseContext *context,
 				const gchar         *text,
 				gsize                text_len,  
 				gpointer             user_data,
-				GError             **error);
+				GError             **gerror);
 	
 	void (*passthrough)    (GMarkupParseContext *context,
 				const gchar         *passthrough_text,
 				gsize                text_len,  
 				gpointer             user_data,
-				GError             **error);
+				GError             **gerror);
 	void (*error)          (GMarkupParseContext *context,
-				GError              *error,
+				GError              *gerror,
 				gpointer             user_data);
 } GMarkupParser;
 
@@ -971,9 +1065,9 @@ GMarkupParseContext *g_markup_parse_context_new   (const GMarkupParser *parser,
 void                 g_markup_parse_context_free  (GMarkupParseContext *context);
 gboolean             g_markup_parse_context_parse (GMarkupParseContext *context,
 						   const gchar *text, gssize text_len,
-						   GError **error);
+						   GError **gerror);
 gboolean         g_markup_parse_context_end_parse (GMarkupParseContext *context,
-						   GError **error);
+						   GError **gerror);
 
 /*
  * Character set conversion
@@ -987,14 +1081,14 @@ int g_iconv_close (GIConv cd);
 gboolean  g_get_charset        (G_CONST_RETURN char **charset);
 gchar    *g_locale_to_utf8     (const gchar *opsysstring, gssize len,
 				gsize *bytes_read, gsize *bytes_written,
-				GError **error);
+				GError **gerror);
 gchar    *g_locale_from_utf8   (const gchar *utf8string, gssize len, gsize *bytes_read,
-				gsize *bytes_written, GError **error);
+				gsize *bytes_written, GError **gerror);
 gchar    *g_filename_from_utf8 (const gchar *utf8string, gssize len, gsize *bytes_read,
-				gsize *bytes_written, GError **error);
+				gsize *bytes_written, GError **gerror);
 gchar    *g_convert            (const gchar *str, gssize len,
 				const gchar *to_codeset, const gchar *from_codeset,
-				gsize *bytes_read, gsize *bytes_written, GError **error);
+				gsize *bytes_read, gsize *bytes_written, GError **gerror);
 
 /*
  * Unicode manipulation
@@ -1087,6 +1181,3 @@ glong     g_utf8_pointer_to_offset (const gchar *str, const gchar *pos);
 G_END_DECLS
 
 #endif
-
-
-

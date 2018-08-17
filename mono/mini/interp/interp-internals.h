@@ -8,7 +8,6 @@
 #include <mono/metadata/domain-internals.h>
 #include <mono/metadata/class-internals.h>
 #include <mono/metadata/debug-internals.h>
-#include "config.h"
 #include "interp.h"
 
 #define MINT_TYPE_I1 0
@@ -25,6 +24,7 @@
 
 #define BOX_NOT_CLEAR_VT_SP 0x4000
 
+#define MINT_VT_ALIGNMENT 8
 
 enum {
 	VAL_I32     = 0,
@@ -61,6 +61,7 @@ typedef struct {
 		} pair;
 		double f;
 		/* native size integer and pointer types */
+		MonoObject *o;
 		gpointer p;
 		mono_u nati;
 		gpointer vt;
@@ -88,11 +89,13 @@ typedef struct _InterpMethod
 	MonoMethod *method;
 	struct _InterpMethod *next_jit_code_hash;
 	guint32 locals_size;
+	guint32 total_locals_size;
 	guint32 args_size;
 	guint32 stack_size;
 	guint32 vt_stack_size;
 	guint32 alloca_size;
 	unsigned int init_locals : 1;
+	unsigned int vararg : 1;
 	unsigned short *code;
 	unsigned short *new_body_start; /* after all STINARG instrs */
 	MonoPIFunc func;
@@ -119,9 +122,9 @@ typedef struct _InterpMethod
 struct _InterpFrame {
 	InterpFrame *parent; /* parent */
 	InterpMethod  *imethod; /* parent */
-	MonoMethod     *method; /* parent */
 	stackval       *retval; /* parent */
 	char           *args;
+	char           *varargs;
 	stackval       *stack_args; /* parent */
 	stackval       *stack;
 	stackval       *sp; /* For GC stack marking */
@@ -137,21 +140,21 @@ struct _InterpFrame {
 typedef struct {
 	MonoDomain *original_domain;
 	InterpFrame *current_frame;
-	unsigned char search_for_handler;
-
 	/* Resume state for resuming execution in mixed mode */
 	gboolean       has_resume_state;
 	/* Frame to resume execution at */
 	InterpFrame *handler_frame;
 	/* IP to resume execution at */
 	gpointer handler_ip;
+	/* Clause that we are resuming to */
+	MonoJitExceptionInfo *handler_ei;
 } ThreadContext;
 
 extern int mono_interp_traceopt;
-extern GSList *jit_classes;
+extern GSList *mono_interp_jit_classes;
 
-MonoException *
-mono_interp_transform_method (InterpMethod *imethod, ThreadContext *context, InterpFrame *frame);
+void
+mono_interp_transform_method (InterpMethod *imethod, ThreadContext *context, MonoError *error);
 
 void
 mono_interp_transform_init (void);
@@ -203,7 +206,7 @@ enum_type:
 	case MONO_TYPE_ARRAY:
 		return MINT_TYPE_O;
 	case MONO_TYPE_VALUETYPE:
-		if (type->data.klass->enumtype) {
+		if (m_class_is_enumtype (type->data.klass)) {
 			type = mono_class_enum_basetype (type->data.klass);
 			goto enum_type;
 		} else
@@ -211,7 +214,7 @@ enum_type:
 	case MONO_TYPE_TYPEDBYREF:
 		return MINT_TYPE_VT;
 	case MONO_TYPE_GENERICINST:
-		type = &type->data.generic_class->container_class->byval_arg;
+		type = m_class_get_byval_arg (type->data.generic_class->container_class);
 		goto enum_type;
 	default:
 		g_warning ("got type 0x%02x", type->type);

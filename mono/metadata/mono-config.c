@@ -59,7 +59,7 @@
 #elif defined(sparc) || defined(__sparc__)
 #define CONFIG_CPU "sparc"
 #define CONFIG_WORDSIZE "32"
-#elif defined(__ppc64__) || defined(__powerpc64__) || defined(TARGET_POWERPC)
+#elif defined(__ppc64__) || defined(__powerpc64__) || defined(_ARCH_64) || defined(TARGET_POWERPC)
 #define CONFIG_WORDSIZE "64"
 #ifdef __mono_ppc_ilp32__ 
 #   define CONFIG_CPU "ppc64ilp32"
@@ -92,6 +92,8 @@
 #define CONFIG_CPU "unknownCPU"
 #endif
 #endif
+
+static void mono_config_for_assembly_internal (MonoImage *assembly);
 
 /**
  * mono_config_get_os:
@@ -131,27 +133,27 @@ static void start_element (GMarkupParseContext *context,
 			   const gchar        **attribute_names,
 			   const gchar        **attribute_values,
 			   gpointer             user_data,
-			   GError             **error);
+			   GError             **gerror);
 
 static void end_element   (GMarkupParseContext *context,
                            const gchar         *element_name,
 			   gpointer             user_data,
-			   GError             **error);
+			   GError             **gerror);
 
 static void parse_text    (GMarkupParseContext *context,
                            const gchar         *text,
 			   gsize                text_len,
 			   gpointer             user_data,
-			   GError             **error);
+			   GError             **gerror);
 
 static void passthrough   (GMarkupParseContext *context,
                            const gchar         *text,
 			   gsize                text_len,
 			   gpointer             user_data,
-			   GError             **error);
+			   GError             **gerror);
 
 static void parse_error   (GMarkupParseContext *context,
-                           GError              *error,
+                           GError              *gerror,
 			   gpointer             user_data);
 
 static const GMarkupParser 
@@ -192,16 +194,16 @@ typedef struct {
 	void *user_data;
 	MonoImage *assembly;
 	int inited;
-} ParseState;
+} MonoConfigParseState;
 
 static void start_element (GMarkupParseContext *context, 
                            const gchar         *element_name,
 			   const gchar        **attribute_names,
 			   const gchar        **attribute_values,
 			   gpointer             user_data,
-			   GError             **error)
+			   GError             **gerror)
 {
-	ParseState *state = (ParseState *)user_data;
+	MonoConfigParseState *state = (MonoConfigParseState *)user_data;
 	if (!state->current) {
 		state->current = (MonoParseHandler *)g_hash_table_lookup (config_handlers, element_name);
 		if (state->current && state->current->init)
@@ -214,9 +216,9 @@ static void start_element (GMarkupParseContext *context,
 static void end_element   (GMarkupParseContext *context,
                            const gchar         *element_name,
 			   gpointer             user_data,
-			   GError             **error)
+			   GError             **gerror)
 {
-	ParseState *state = (ParseState *)user_data;
+	MonoConfigParseState *state = (MonoConfigParseState *)user_data;
 	if (state->current) {
 		if (state->current->end)
 			state->current->end (state->user_data, element_name);
@@ -233,9 +235,9 @@ static void parse_text    (GMarkupParseContext *context,
                            const gchar         *text,
 			   gsize                text_len,
 			   gpointer             user_data,
-			   GError             **error)
+			   GError             **gerror)
 {
-	ParseState *state = (ParseState *)user_data;
+	MonoConfigParseState *state = (MonoConfigParseState *)user_data;
 	if (state->current && state->current->text)
 		state->current->text (state->user_data, text, text_len);
 }
@@ -244,21 +246,21 @@ static void passthrough   (GMarkupParseContext *context,
                            const gchar         *text,
 			   gsize                text_len,
 			   gpointer             user_data,
-			   GError             **error)
+			   GError             **gerror)
 {
 	/* do nothing */
 }
 
 static void parse_error   (GMarkupParseContext *context,
-                           GError              *error,
+                           GError              *gerror,
 			   gpointer             user_data)
 {
-	ParseState *state = (ParseState *)user_data;
+	MonoConfigParseState *state = (MonoConfigParseState *)user_data;
 	const gchar *msg;
 	const gchar *filename;
 
 	filename = state && state->user_data ? (gchar *) state->user_data : "<unknown>";
-	msg = error && error->message ? error->message : "";
+	msg = gerror && gerror->message ? gerror->message : "";
 	g_warning ("Error parsing %s: %s", filename, msg);
 }
 
@@ -480,7 +482,7 @@ mono_config_cleanup (void)
 /* FIXME: error handling */
 
 static void
-mono_config_parse_xml_with_context (ParseState *state, const char *text, gsize len)
+mono_config_parse_xml_with_context (MonoConfigParseState *state, const char *text, gsize len)
 {
 	GMarkupParseContext *context;
 
@@ -496,7 +498,7 @@ mono_config_parse_xml_with_context (ParseState *state, const char *text, gsize l
 
 /* If assembly is NULL, parse in the global context */
 static int
-mono_config_parse_file_with_context (ParseState *state, const char *filename)
+mono_config_parse_file_with_context (MonoConfigParseState *state, const char *filename)
 {
 	gchar *text;
 	gsize len;
@@ -526,7 +528,7 @@ mono_config_parse_file_with_context (ParseState *state, const char *filename)
 void
 mono_config_parse_memory (const char *buffer)
 {
-	ParseState state = {NULL};
+	MonoConfigParseState state = {NULL};
 
 	state.user_data = (gpointer) "<buffer>";
 	mono_config_parse_xml_with_context (&state, buffer, strlen (buffer));
@@ -535,7 +537,7 @@ mono_config_parse_memory (const char *buffer)
 static void
 mono_config_parse_file (const char *filename)
 {
-	ParseState state = {NULL};
+	MonoConfigParseState state = {NULL};
 	state.user_data = (gpointer) filename;
 	mono_config_parse_file_with_context (&state, filename);
 }
@@ -606,7 +608,17 @@ mono_config_string_for_assembly_file (const char *filename)
 void 
 mono_config_for_assembly (MonoImage *assembly)
 {
-	ParseState state = {NULL};
+	MONO_ENTER_GC_UNSAFE;
+	mono_config_for_assembly_internal (assembly);
+	MONO_EXIT_GC_UNSAFE;
+}
+
+void
+mono_config_for_assembly_internal (MonoImage *assembly)
+{
+	MONO_REQ_GC_UNSAFE_MODE;
+
+	MonoConfigParseState state = {NULL};
 	int got_it = 0, i;
 	char *aname, *cfg, *cfg_name;
 	const char *bundled_config;
@@ -871,7 +883,7 @@ mono_config_parse_publisher_policy (const gchar *filename, MonoAssemblyBindingIn
 		NULL,
 		NULL
 	};
-	ParseState state = {
+	MonoConfigParseState state = {
 		&publisher_policy_parser, /* MonoParseHandler */
 		&user_data, /* user_data */
 		NULL, /* MonoImage (we don't need it right now)*/
@@ -896,7 +908,7 @@ mono_config_parse_assembly_bindings (const char *filename, int amajor, int amino
 {
 	MonoAssemblyBindingInfo info;
 	ParserUserData pud;
-	ParseState state;
+	MonoConfigParseState state;
 
 	info.major = amajor;
 	info.minor = aminor;

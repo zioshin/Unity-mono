@@ -42,7 +42,7 @@ struct _GDir {
 };
 
 GDir *
-g_dir_open (const gchar *path, guint flags, GError **error)
+g_dir_open (const gchar *path, guint flags, GError **gerror)
 {
 	GDir *dir;
 	gunichar2* path_utf16;
@@ -50,19 +50,19 @@ g_dir_open (const gchar *path, guint flags, GError **error)
 	WIN32_FIND_DATAW find_data;
 
 	g_return_val_if_fail (path != NULL, NULL);
-	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+	g_return_val_if_fail (gerror == NULL || *gerror == NULL, NULL);
 
 	dir = g_new0 (GDir, 1);
 	path_utf16 = u8to16 (path);
-	path_utf16_search = g_malloc ((wcslen((wchar_t *) path_utf16) + 3)*sizeof(gunichar2));
+	path_utf16_search = g_malloc ((wcslen(path_utf16) + 3)*sizeof(gunichar2));
 	wcscpy (path_utf16_search, path_utf16);
 	wcscat (path_utf16_search, L"\\*");
 
 	dir->handle = FindFirstFileW (path_utf16_search, &find_data);
 	if (dir->handle == INVALID_HANDLE_VALUE) {
-		if (error) {
+		if (gerror) {
 			gint err = errno;
-			*error = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (err), strerror (err));
+			*gerror = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (err), strerror (err));
 		}
 		g_free (path_utf16_search);
 		g_free (path_utf16);
@@ -72,11 +72,11 @@ g_dir_open (const gchar *path, guint flags, GError **error)
 	g_free (path_utf16_search);
 	g_free (path_utf16);
 
-	while ((wcscmp ((wchar_t *) find_data.cFileName, L".") == 0) || (wcscmp ((wchar_t *) find_data.cFileName, L"..") == 0)) {
+	while ((wcscmp (find_data.cFileName, L".") == 0) || (wcscmp (find_data.cFileName, L"..") == 0)) {
 		if (!FindNextFileW (dir->handle, &find_data)) {
-			if (error) {
+			if (gerror) {
 				gint err = errno;
-				*error = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (err), strerror (err));
+				*gerror = g_error_new (G_LOG_DOMAIN, g_file_error_from_errno (err), strerror (err));
 			}
 			g_free (dir);
 			return NULL;
@@ -111,7 +111,7 @@ g_dir_read_name (GDir *dir)
 			dir->next = NULL;
 			return dir->current;
 		}
-	} while ((wcscmp ((wchar_t *) find_data.cFileName, L".") == 0) || (wcscmp ((wchar_t *) find_data.cFileName, L"..") == 0));
+	} while ((wcscmp (find_data.cFileName, L".") == 0) || (wcscmp (find_data.cFileName, L"..") == 0));
 
 	dir->next = u16to8 (find_data.cFileName);
 	return dir->current;

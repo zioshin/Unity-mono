@@ -146,9 +146,26 @@ namespace MonoTests.System.IO
 			}
 		}
 
+		internal const string LIBC = "libc";
+		// geteuid(2)
+		//    uid_t geteuid(void);
+		[DllImport (LIBC, SetLastError=true)]
+		static extern uint geteuid ();
+
+		static bool RunningAsRoot // FIXME?
+		{
+			get {
+				//return RunningOnUnix && System.Security.WindowsIdentity.GetCurrentToken () == IntPtr.Zero;
+				return RunningOnUnix && geteuid () == 0;
+			}
+		}
+
 		[Test]
 		public void Create_Path_ReadOnly ()
 		{
+			if (RunningAsRoot) // FIXME?
+				Assert.Ignore ("Setting readonly in Mono does not block root writes.");
+
 			string path = Path.Combine (tmpFolder, "foo");
 			File.Create (path).Close ();
 			File.SetAttributes (path, FileAttributes.ReadOnly);
@@ -169,6 +186,8 @@ namespace MonoTests.System.IO
 		[Test]
 		public void Create_Path_Whitespace ()
 		{
+			// FIXME? This is valid on Unix and can work on Windows.
+			// This test and Mono have in mind an incorrect low common denominator.
 			try {
 				File.Create (" ");
 				Assert.Fail ("#1");
@@ -619,6 +638,9 @@ namespace MonoTests.System.IO
 		[Test]
 		public void GetAttributes_ReadOnly ()
 		{
+			if (RunningAsRoot) // FIXME?
+				Assert.Ignore ("Setting readonly in Mono does not block root writes.");
+
 			FileAttributes attrs;
 
 			string path = Path.Combine (tmpFolder, "GetAttributes.tmp");
@@ -1261,6 +1283,61 @@ namespace MonoTests.System.IO
 				if (stream != null)
 					stream.Close ();
 				DeleteFile (path);
+			}
+		}
+
+		/* regression test for https://github.com/mono/mono/issues/7646 */
+		[Test]
+		public void LastWriteTimeSubMs ()
+		{
+			string path = tmpFolder + Path.DirectorySeparatorChar + "lastWriteTimeSubMs";
+			if (File.Exists (path))
+				File.Delete (path);
+			try {
+				var fmt = "HH:mm:ss:fffffff";
+				for (var i = 0; i < 200; i++) {
+					File.WriteAllText (path, "");
+					var untouched = File.GetLastWriteTimeUtc (path);
+					var now = DateTime.UtcNow;
+					var diff = now - untouched;
+					// sanity check
+					Assert.IsTrue (diff.TotalSeconds >= 0 && diff.TotalSeconds < 2.0, $"Iteration #{i} failed, diff.TotalSeconds: {diff.TotalSeconds}, untouched: {untouched.ToString (fmt)}, now: {now.ToString (fmt)}");
+					File.SetLastWriteTimeUtc (path, now);
+					var touched = File.GetLastWriteTimeUtc (path);
+
+					Assert.IsTrue (touched >= untouched, $"Iteration #{i} failed, untouched: {untouched.ToString (fmt)} touched: {touched.ToString (fmt)}");
+				}
+			} finally {
+				DeleteFile (path);
+			}
+		}
+
+		/* regression test from https://github.com/xamarin/xamarin-macios/issues/3929 */
+		[Test]
+		public void LastWriteTimeSubMsCopy ()
+		{
+			string path = tmpFolder + Path.DirectorySeparatorChar + "lastWriteTimeSubMs";
+			if (File.Exists (path))
+				File.Delete (path);
+
+			string path_copy = tmpFolder + Path.DirectorySeparatorChar + "LastWriteTimeSubMs_copy";
+			if (File.Exists (path_copy))
+				File.Delete (path_copy);
+
+			try {
+				var fmt = "HH:mm:ss:fffffff";
+				for (var i = 0; i < 200; i++) {
+					File.WriteAllText (path, "");
+					var untouched = File.GetLastWriteTimeUtc (path);
+					File.Copy (path, path_copy);
+					var copy_touched = File.GetLastWriteTimeUtc (path_copy);
+
+					Assert.IsTrue (copy_touched >= untouched, $"Iteration #{i} failed, untouched: {untouched.ToString (fmt)} copy_touched: {copy_touched.ToString (fmt)}");
+					File.Delete (path_copy);
+				}
+			} finally {
+				DeleteFile (path);
+				DeleteFile (path_copy);
 			}
 		}
 

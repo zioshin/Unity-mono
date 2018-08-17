@@ -46,8 +46,6 @@
 #include "aot-runtime.h"
 #include "tasklets.h"
 
-#define ALIGN_TO(val,align) (((val) + ((align) - 1)) & ~((align) - 1))
-
 #ifdef TARGET_WIN32
 static void (*restore_stack) (void);
 static MonoW32ExceptionHandler fpe_handler;
@@ -382,20 +380,20 @@ mono_amd64_throw_exception (guint64 dummy1, guint64 dummy2, guint64 dummy3, guin
 							guint64 dummy5, guint64 dummy6,
 							MonoContext *mctx, MonoObject *exc, gboolean rethrow)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoContext ctx;
 
 	/* mctx is on the caller's stack */
 	memcpy (&ctx, mctx, sizeof (MonoContext));
 
-	if (mono_object_isinst_checked (exc, mono_defaults.exception_class, &error)) {
+	if (mono_object_isinst_checked (exc, mono_defaults.exception_class, error)) {
 		MonoException *mono_ex = (MonoException*)exc;
 		if (!rethrow) {
 			mono_ex->stack_trace = NULL;
 			mono_ex->trace_ips = NULL;
 		}
 	}
-	mono_error_assert_ok (&error);
+	mono_error_assert_ok (error);
 
 	/* adjust eip so that it point into the call instruction */
 	ctx.gregs [AMD64_RIP] --;
@@ -413,7 +411,7 @@ mono_amd64_throw_corlib_exception (guint64 dummy1, guint64 dummy2, guint64 dummy
 	guint32 ex_token = MONO_TOKEN_TYPE_DEF | ex_token_index;
 	MonoException *ex;
 
-	ex = mono_exception_from_token (mono_defaults.exception_class->image, ex_token);
+	ex = mono_exception_from_token (m_class_get_image (mono_defaults.exception_class), ex_token);
 
 	mctx->gregs [AMD64_RIP] -= pc_offset;
 
@@ -932,7 +930,7 @@ mono_arch_exceptions_init (void)
 	GSList *tramps, *l;
 	gpointer tramp;
 
-	if (mono_aot_only) {
+	if (mono_ee_features.use_aot_trampolines) {
 		tramp = mono_aot_get_trampoline ("llvm_throw_corlib_exception_trampoline");
 		mono_register_jit_icall (tramp, "llvm_throw_corlib_exception_trampoline", NULL, TRUE);
 		tramp = mono_aot_get_trampoline ("llvm_throw_corlib_exception_abs_trampoline");
@@ -1086,8 +1084,8 @@ GList *g_dynamic_function_table_end;
 // SRW lock (lightweight read/writer lock) protecting dynamic function table.
 SRWLOCK g_dynamic_function_table_lock = SRWLOCK_INIT;
 
-// Module handle used when explicit loading ntdll.
-static HMODULE g_ntdll;
+static RtlInstallFunctionTableCallbackPtr g_rtl_install_function_table_callback;
+static RtlDeleteFunctionTablePtr g_rtl_delete_function_table;
 
 // If Win8 or Win2012Server or later, use growable function tables instead
 // of callbacks. Callback solution will still be fallback on older systems.
@@ -1098,9 +1096,9 @@ static RtlDeleteGrowableFunctionTablePtr g_rtl_delete_growable_function_table;
 // When using function table callback solution an out of proc module is needed by
 // debuggers in order to read unwind info from debug target.
 #ifdef _MSC_VER
-#define MONO_DAC_MODULE TEXT("mono-2.0-dac-sgen.dll")
+#define MONO_DAC_MODULE L"mono-2.0-dac-sgen.dll"
 #else
-#define MONO_DAC_MODULE TEXT("mono-2.0-sgen.dll")
+#define MONO_DAC_MODULE L"mono-2.0-sgen.dll"
 #endif
 
 #define MONO_DAC_MODULE_MAX_PATH 1024
@@ -1111,17 +1109,28 @@ init_table_no_lock (void)
 	if (g_dyn_func_table_inited == FALSE) {
 		g_assert_checked (g_dynamic_function_table_begin == NULL);
 		g_assert_checked (g_dynamic_function_table_end == NULL);
+		g_assert_checked (g_rtl_install_function_table_callback == NULL);
+		g_assert_checked (g_rtl_delete_function_table == NULL);
 		g_assert_checked (g_rtl_add_growable_function_table == NULL);
 		g_assert_checked (g_rtl_grow_function_table == NULL);
 		g_assert_checked (g_rtl_delete_growable_function_table == NULL);
-		g_assert_checked (g_ntdll == NULL);
 
 		// Load functions available on Win8/Win2012Server or later. If running on earlier
 		// systems the below GetProceAddress will fail, this is expected behavior.
-		if (GetModuleHandleEx (0, TEXT("ntdll.dll"), &g_ntdll) == TRUE) {
-			g_rtl_add_growable_function_table = (RtlAddGrowableFunctionTablePtr)GetProcAddress (g_ntdll, "RtlAddGrowableFunctionTable");
-			g_rtl_grow_function_table = (RtlGrowFunctionTablePtr)GetProcAddress (g_ntdll, "RtlGrowFunctionTable");
-			g_rtl_delete_growable_function_table = (RtlDeleteGrowableFunctionTablePtr)GetProcAddress (g_ntdll, "RtlDeleteGrowableFunctionTable");
+		HMODULE ntdll;
+		if (GetModuleHandleEx (0, L"ntdll.dll", &ntdll)) {
+			g_rtl_add_growable_function_table = (RtlAddGrowableFunctionTablePtr)GetProcAddress (ntdll, "RtlAddGrowableFunctionTable");
+			g_rtl_grow_function_table = (RtlGrowFunctionTablePtr)GetProcAddress (ntdll, "RtlGrowFunctionTable");
+			g_rtl_delete_growable_function_table = (RtlDeleteGrowableFunctionTablePtr)GetProcAddress (ntdll, "RtlDeleteGrowableFunctionTable");
+		}
+
+		// Fallback on systems not having RtlAddGrowableFunctionTable.
+		if (g_rtl_add_growable_function_table == NULL) {
+			HMODULE kernel32dll;
+			if (GetModuleHandleEx (0, L"kernel32.dll", &kernel32dll)) {
+				g_rtl_install_function_table_callback = (RtlInstallFunctionTableCallbackPtr)GetProcAddress (kernel32dll, "RtlInstallFunctionTableCallback");
+				g_rtl_delete_function_table = (RtlDeleteFunctionTablePtr)GetProcAddress (kernel32dll, "RtlDeleteFunctionTable");
+			}
 		}
 
 		g_dyn_func_table_inited = TRUE;
@@ -1164,10 +1173,8 @@ terminate_table_no_lock (void)
 		g_rtl_grow_function_table = NULL;
 		g_rtl_add_growable_function_table = NULL;
 
-		if (g_ntdll != NULL) {
-			FreeLibrary (g_ntdll);
-			g_ntdll = NULL;
-		}
+		g_rtl_delete_function_table = NULL;
+		g_rtl_install_function_table_callback = NULL;
 
 		g_dyn_func_table_inited = FALSE;
 	}
@@ -1394,7 +1401,7 @@ mono_arch_unwindinfo_insert_range_in_table (const gpointer code_block, gsize blo
 										new_entry->rt_funcs, new_entry->rt_funcs_current_count,
 										new_entry->rt_funcs_max_count, new_entry->begin_range, new_entry->end_range);
 					g_assert (!result);
-				} else {
+				} else if (g_rtl_install_function_table_callback != NULL) {
 					WCHAR buffer [MONO_DAC_MODULE_MAX_PATH] = { 0 };
 					WCHAR *path = buffer;
 
@@ -1412,10 +1419,12 @@ mono_arch_unwindinfo_insert_range_in_table (const gpointer code_block, gsize blo
 
 					// Register function table callback + out of proc module.
 					new_entry->handle = (PVOID)((DWORD64)(new_entry->begin_range) | 3);
-					BOOLEAN result = RtlInstallFunctionTableCallback ((DWORD64)(new_entry->handle),
-										(DWORD64)(new_entry->begin_range), (DWORD)(new_entry->end_range - new_entry->begin_range),
-										MONO_GET_RUNTIME_FUNCTION_CALLBACK, new_entry, path);
+					BOOLEAN result = g_rtl_install_function_table_callback ((DWORD64)(new_entry->handle),
+									(DWORD64)(new_entry->begin_range), (DWORD)(new_entry->end_range - new_entry->begin_range),
+									MONO_GET_RUNTIME_FUNCTION_CALLBACK, new_entry, path);
 					g_assert(result);
+				} else {
+					g_assert_not_reached ();
 				}
 
 				// Only included in checked builds. Validates the structure of table after insert.
@@ -1449,8 +1458,10 @@ remove_range_in_table_no_lock (GList *entry)
 		if (removed_entry->handle != NULL) {
 			if (g_rtl_delete_growable_function_table != NULL) {
 				g_rtl_delete_growable_function_table (removed_entry->handle);
+			} else if (g_rtl_delete_function_table != NULL) {
+				g_rtl_delete_function_table ((PRUNTIME_FUNCTION)removed_entry->handle);
 			} else {
-				RtlDeleteFunctionTable ((PRUNTIME_FUNCTION)removed_entry->handle);
+				g_assert_not_reached ();
 			}
 		}
 
@@ -1774,7 +1785,7 @@ mono_arch_unwindinfo_init_method_unwind_info (gpointer cfg)
 }
 
 void
-mono_arch_unwindinfo_install_method_unwind_info (gpointer *monoui, gpointer code, guint code_size)
+mono_arch_unwindinfo_install_method_unwind_info (PUNWIND_INFO *monoui, gpointer code, guint code_size)
 {
 	PUNWIND_INFO unwindinfo, targetinfo;
 	guchar codecount;
@@ -1782,7 +1793,7 @@ mono_arch_unwindinfo_install_method_unwind_info (gpointer *monoui, gpointer code
 	if (!*monoui)
 		return;
 
-	unwindinfo = (PUNWIND_INFO)*monoui;
+	unwindinfo = *monoui;
 	targetlocation = (guint64)&(((guchar*)code)[code_size]);
 	targetinfo = (PUNWIND_INFO) ALIGN_TO(targetlocation, sizeof (mgreg_t));
 
@@ -1964,3 +1975,9 @@ mono_tasklets_arch_restore (void)
 	return NULL;
 }
 #endif /* !MONO_SUPPORT_TASKLETS || defined(DISABLE_JIT) */
+
+void
+mono_arch_undo_ip_adjustment (MonoContext *ctx)
+{
+	ctx->gregs [AMD64_RIP]++;
+}

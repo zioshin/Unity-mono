@@ -39,6 +39,9 @@
 #if defined(__HAIKU__)
 #include <os/kernel/OS.h>
 #endif
+#if defined(_AIX)
+#include <procinfo.h>
+#endif
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #include <sys/proc.h>
 #if defined(__APPLE__)
@@ -176,6 +179,44 @@ mono_process_list (int *size)
 	*size = i;
 
 	return buf;
+#elif defined(_AIX)
+	void **buf = NULL;
+	struct procentry64 *procs = NULL;
+	int count = 0;
+	int i = 0;
+	pid_t pid = 1; // start at 1, 0 is a null process (???)
+
+	// count number of procs + compensate for new ones forked in while we do it.
+	// (it's not an atomic operation) 1000000 is the limit IBM ps seems to use
+	// when I inspected it under truss. the second call we do to getprocs64 will
+	// then only allocate what we need, instead of allocating some obscenely large
+	// array on the heap.
+	count = getprocs64(NULL, sizeof (struct procentry64), NULL, 0, &pid, 1000000);
+	if (count < 1)
+		goto cleanup;
+	count += 10;
+	pid = 1; // reset the pid cookie
+
+	// 5026 bytes is the ideal size for the C struct. you may not like it, but
+	// this is what peak allocation looks like
+	procs = g_calloc (count, sizeof (struct procentry64));
+	// the man page recommends you do this in a loop, but you can also just do it
+	// in one shot; again, like what ps does. let the returned count (in case it's
+	// less) be what we then allocate the array of pids from (in case of ANOTHER
+	// system-wide race condition with processes)
+	count = getprocs64 (procs, sizeof (struct procentry64), NULL, 0, &pid, count);
+	if (count < 1 || procs == NULL)
+		goto cleanup;
+	buf = g_calloc (count, sizeof (void*));
+	for (i = 0; i < count; i++) {
+		buf[i] = GINT_TO_POINTER (procs[i].pi_pid);
+	}
+	*size = i;
+
+cleanup:
+	if (procs)
+		g_free (procs);
+	return buf;
 #else
 	const char *name;
 	void **buf = NULL;
@@ -308,6 +349,14 @@ mono_process_get_name (gpointer pid, char *buf, int len)
 	if (sysctl_kinfo_proc (pid, &processi))
 		memcpy (buf, processi.kinfo_name_member, len - 1);
 
+	return buf;
+#elif defined(_AIX)
+	struct procentry64 proc;
+	pid_t newpid = GPOINTER_TO_INT (pid);
+
+	if (getprocs64 (&proc, sizeof (struct procentry64), NULL, 0, &newpid, 1) == 1) {
+		g_strlcpy (buf, proc.pi_comm, len - 1);
+	}
 	return buf;
 #else
 	char fname [128];
@@ -550,8 +599,8 @@ get_pid_status_item (int pid, const char *item, MonoProcessError *error, int mul
 	
 	gint64 ret;
 	task_t task;
-	struct task_basic_info t_info;
-	mach_msg_type_number_t th_count = TASK_BASIC_INFO_COUNT;
+	task_vm_info_data_t t_info;
+	mach_msg_type_number_t info_count = TASK_VM_INFO_COUNT;
 	kern_return_t mach_ret;
 
 	if (pid == getpid ()) {
@@ -567,7 +616,7 @@ get_pid_status_item (int pid, const char *item, MonoProcessError *error, int mul
 	}
 
 	do {
-		mach_ret = task_info (task, TASK_BASIC_INFO, (task_info_t)&t_info, &th_count);
+		mach_ret = task_info (task, TASK_VM_INFO, (task_info_t)&t_info, &info_count);
 	} while (mach_ret == KERN_ABORTED);
 
 	if (mach_ret != KERN_SUCCESS) {
@@ -576,12 +625,29 @@ get_pid_status_item (int pid, const char *item, MonoProcessError *error, int mul
 		RET_ERROR (MONO_PROCESS_ERROR_OTHER);
 	}
 
-	if (strcmp (item, "VmRSS") == 0 || strcmp (item, "VmHWM") == 0 || strcmp (item, "VmData") == 0)
+	if(strcmp (item, "VmData") == 0)
+		ret = t_info.internal + t_info.compressed;
+	else if (strcmp (item, "VmRSS") == 0)
 		ret = t_info.resident_size;
+	else if(strcmp (item, "VmHWM") == 0)
+		ret = t_info.resident_size_peak;
 	else if (strcmp (item, "VmSize") == 0 || strcmp (item, "VmPeak") == 0)
 		ret = t_info.virtual_size;
-	else if (strcmp (item, "Threads") == 0)
+	else if (strcmp (item, "Threads") == 0) {
+		struct task_basic_info t_info;
+		mach_msg_type_number_t th_count = TASK_BASIC_INFO_COUNT;
+		do {
+			mach_ret = task_info (task, TASK_BASIC_INFO, (task_info_t)&t_info, &th_count);
+		} while (mach_ret == KERN_ABORTED);
+
+		if (mach_ret != KERN_SUCCESS) {
+			if (pid != getpid ())
+				mach_port_deallocate (mach_task_self (), task);
+			RET_ERROR (MONO_PROCESS_ERROR_OTHER);
+		}
 		ret = th_count;
+	} else if (strcmp (item, "VmSwap") == 0)
+		ret = t_info.compressed;
 	else
 		ret = 0;
 
@@ -811,13 +877,13 @@ get_cpu_times (int cpu_id, gint64 *user, gint64 *systemt, gint64 *irq, gint64 *s
 {
 	char buf [256];
 	char *s;
-	int hz = get_user_hz ();
+	int uhz = get_user_hz ();
 	guint64	user_ticks = 0, nice_ticks = 0, system_ticks = 0, idle_ticks = 0, irq_ticks = 0, sirq_ticks = 0;
 	FILE *f = fopen ("/proc/stat", "r");
 	if (!f)
 		return;
 	if (cpu_id < 0)
-		hz *= mono_cpu_count ();
+		uhz *= mono_cpu_count ();
 	while ((s = fgets (buf, sizeof (buf), f))) {
 		char *data = NULL;
 		if (cpu_id < 0 && strncmp (s, "cpu", 3) == 0 && g_ascii_isspace (s [3])) {
@@ -842,15 +908,15 @@ get_cpu_times (int cpu_id, gint64 *user, gint64 *systemt, gint64 *irq, gint64 *s
 	fclose (f);
 
 	if (user)
-		*user = (user_ticks + nice_ticks) * 10000000 / hz;
+		*user = (user_ticks + nice_ticks) * 10000000 / uhz;
 	if (systemt)
-		*systemt = (system_ticks) * 10000000 / hz;
+		*systemt = (system_ticks) * 10000000 / uhz;
 	if (irq)
-		*irq = (irq_ticks) * 10000000 / hz;
+		*irq = (irq_ticks) * 10000000 / uhz;
 	if (sirq)
-		*sirq = (sirq_ticks) * 10000000 / hz;
+		*sirq = (sirq_ticks) * 10000000 / uhz;
 	if (idle)
-		*idle = (idle_ticks) * 10000000 / hz;
+		*idle = (idle_ticks) * 10000000 / uhz;
 }
 
 /**

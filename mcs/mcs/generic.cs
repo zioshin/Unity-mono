@@ -693,6 +693,11 @@ namespace Mono.CSharp {
 					GetSignatureForError (), mc.GetSignatureForError (), input_variance, gtype_variance, parameters);
 		}
 
+		public TypeSpec GetAsyncMethodBuilder ()
+		{
+			return null;
+		}
+
 		public TypeSpec GetAttributeCoClass ()
 		{
 			return null;
@@ -3376,7 +3381,7 @@ namespace Mono.CSharp {
 					continue;
 
 				var bound = candidates [ci];
-				if (bound.Type == best_candidate)
+				if (TypeSpecComparer.IsEqual (bound.Type, best_candidate))
 					continue;
 
 				int cii = 0;

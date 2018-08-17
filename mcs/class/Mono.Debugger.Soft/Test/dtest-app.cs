@@ -13,7 +13,9 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+#if !MOBILE
 using MonoTests.Helpers;
+#endif
 
 public class TestsBase
 {
@@ -266,6 +268,8 @@ public class Tests : TestsBase, ITest2
 	public static bool is_attached = Debugger.IsAttached;
 	public NestedStruct nested_struct;
 
+	static string arg;
+
 #pragma warning restore 0414
 
 	public class NestedClass {
@@ -299,6 +303,9 @@ public class Tests : TestsBase, ITest2
 	}
 
 	public static int Main (String[] args) {
+		if (args.Length == 0)
+			args = new String [] { Tests.arg };
+
 		tls_i = 42;
 
 		if (args.Length > 0 && args [0] == "suspend-test")
@@ -321,11 +328,21 @@ public class Tests : TestsBase, ITest2
 			return 0;
 		}
 		if (args.Length >0 && args [0] == "threadpool-io") {
+#if !MOBILE
 			threadpool_io ();
+#else
+			throw new Exception ("Can't run threadpool-io test on mobile");
+#endif
 			return 0;
 		}
 		if (args.Length > 0 && args [0] == "attach") {
 			new Tests ().attach ();
+			return 0;
+		}
+		if (args.Length > 0 && args [0] == "step-out-void-async") {
+			var wait = new ManualResetEvent (false);
+			step_out_void_async (wait);
+			wait.WaitOne ();//Don't exist until step_out_void_async is executed...
 			return 0;
 		}
 		assembly_load ();
@@ -344,7 +361,9 @@ public class Tests : TestsBase, ITest2
 		threads ();
 		dynamic_methods ();
 		user ();
+#if !MOBILE
 		type_load ();
+#endif
 		regress ();
 		gc_suspend ();
 		set_ip ();
@@ -364,6 +383,7 @@ public class Tests : TestsBase, ITest2
 		if (args.Length > 0 && args [0] == "invoke-abort")
 			new Tests ().invoke_abort ();
 		new Tests ().evaluate_method ();
+		Bug59649 ();
 		return 3;
 	}
 
@@ -434,6 +454,7 @@ public class Tests : TestsBase, ITest2
 		}
 		ss7 ();
 		ss_nested ();
+		ss_nested_with_two_args_wrapper ();        
 		ss_regress_654694 ();
 		ss_step_through ();
 		ss_non_user_code ();
@@ -548,6 +569,21 @@ public class Tests : TestsBase, ITest2
 		ss_nested_1 (ss_nested_2 ());
 		ss_nested_1 (ss_nested_2 ());
 		ss_nested_3 ();
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static void ss_nested_with_two_args_wrapper () {
+		ss_nested_with_two_args(ss_nested_arg (), ss_nested_arg ());
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static int ss_nested_with_two_args (int a1, int a2) {
+		return a1 + a2;
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static int ss_nested_arg () {
+		return 0;
 	}
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
@@ -1538,6 +1574,7 @@ public class Tests : TestsBase, ITest2
 		Debugger.Log (5, Debugger.IsLogging () ? "A" : "", "B");
 	}
 
+#if !MOBILE
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void type_load () {
 		type_load_2 ();
@@ -1552,6 +1589,7 @@ public class Tests : TestsBase, ITest2
 		var c2 = new TypeLoadClass2 ();
 		c2.ToString ();
 	}
+#endif
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void regress () {
@@ -1668,6 +1706,7 @@ public class Tests : TestsBase, ITest2
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void threadpool_bp () { }
 
+#if !MOBILE
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public static void threadpool_io () {
 		// Start a threadpool task that blocks on I/O.
@@ -1707,6 +1746,7 @@ public class Tests : TestsBase, ITest2
 		streamOut.Close ();
 		var bsIn = t.Result;
 	}
+#endif
 
 	[MethodImplAttribute (MethodImplOptions.NoInlining)]
 	public void attach_break () {
@@ -1726,6 +1766,24 @@ public class Tests : TestsBase, ITest2
 			Thread.Sleep (200);
 			attach_break ();
 		}
+	}
+
+	public static void Bug59649 ()
+	{
+		UninitializedClass.Call();//Breakpoint here and step in
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	static async void step_out_void_async (ManualResetEvent wait)
+	{
+		await Task.Yield ();
+		step_out_void_async_2 ();
+		wait.Set ();
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	static void step_out_void_async_2 ()
+	{
 	}
 
 	public static unsafe void pointer_arguments (int* a, BlittableStruct* s) {
@@ -1817,5 +1875,23 @@ public class LineNumbers
 	}
 }
 
+class UninitializedClass
+{
+	static string DummyCall()
+	{
+		//Should NOT step into this method
+		//if StepFilter.StaticCtor is set
+		//because this is part of static class initilization
+		return String.Empty;
+	}
+
+	static string staticField = DummyCall();
+
+	public static void Call()
+	{
+		//Should step into this method
+		//Console.WriteLine ("Call called");
+	}
+}
 
 

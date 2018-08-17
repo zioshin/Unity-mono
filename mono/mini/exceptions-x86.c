@@ -92,7 +92,7 @@ mono_win32_get_handle_stackoverflow (void)
 	x86_mov_reg_membase (code, X86_EBX, X86_ESP, 4, 4);
 
 	/* move current stack into edi for later restore */
-	x86_mov_reg_reg (code, X86_EDI, X86_ESP, 4);
+	x86_mov_reg_reg (code, X86_EDI, X86_ESP);
 
 	/* use the new freed stack from sigcontext */
 	/* XXX replace usage of struct sigcontext with MonoContext so we can use MONO_STRUCT_OFFSET */
@@ -110,7 +110,7 @@ mono_win32_get_handle_stackoverflow (void)
 	x86_call_code (code, mono_arch_handle_exception);
 
 	/* restore the SEH handler stack */
-	x86_mov_reg_reg (code, X86_ESP, X86_EDI, 4);
+	x86_mov_reg_reg (code, X86_ESP, X86_EDI);
 
 	/* return */
 	x86_ret (code);
@@ -387,7 +387,7 @@ mono_arch_get_call_filter (MonoTrampInfo **info, gboolean aot)
 	start = code = mono_global_codeman_reserve (kMaxCodeSize);
 
 	x86_push_reg (code, X86_EBP);
-	x86_mov_reg_reg (code, X86_EBP, X86_ESP, 4);
+	x86_mov_reg_reg (code, X86_EBP, X86_ESP);
 	x86_push_reg (code, X86_EBX);
 	x86_push_reg (code, X86_EDI);
 	x86_push_reg (code, X86_ESI);
@@ -407,7 +407,7 @@ mono_arch_get_call_filter (MonoTrampInfo **info, gboolean aot)
 	x86_mov_reg_membase (code, X86_EDI, X86_EAX,  MONO_STRUCT_OFFSET (MonoContext, edi), 4);
 
 	/* align stack and save ESP */
-	x86_mov_reg_reg (code, X86_EDX, X86_ESP, 4);
+	x86_mov_reg_reg (code, X86_EDX, X86_ESP);
 	x86_alu_reg_imm (code, X86_AND, X86_ESP, -MONO_ARCH_FRAME_ALIGNMENT);
 	g_assert (MONO_ARCH_FRAME_ALIGNMENT >= 8);
 	x86_alu_reg_imm (code, X86_SUB, X86_ESP, MONO_ARCH_FRAME_ALIGNMENT - 8);
@@ -455,7 +455,7 @@ void
 mono_x86_throw_exception (mgreg_t *regs, MonoObject *exc, 
 						  mgreg_t eip, gboolean rethrow)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoContext ctx;
 
 	ctx.esp = regs [X86_ESP];
@@ -473,14 +473,14 @@ mono_x86_throw_exception (mgreg_t *regs, MonoObject *exc,
 	g_assert ((ctx.esp % MONO_ARCH_FRAME_ALIGNMENT) == 0);
 #endif
 
-	if (mono_object_isinst_checked (exc, mono_defaults.exception_class, &error)) {
+	if (mono_object_isinst_checked (exc, mono_defaults.exception_class, error)) {
 		MonoException *mono_ex = (MonoException*)exc;
 		if (!rethrow) {
 			mono_ex->stack_trace = NULL;
 			mono_ex->trace_ips = NULL;
 		}
 	}
-	mono_error_assert_ok (&error);
+	mono_error_assert_ok (error);
 
 	/* adjust eip so that it point into the call instruction */
 	ctx.eip -= 1;
@@ -499,7 +499,7 @@ mono_x86_throw_corlib_exception (mgreg_t *regs, guint32 ex_token_index,
 	guint32 ex_token = MONO_TOKEN_TYPE_DEF | ex_token_index;
 	MonoException *ex;
 
-	ex = mono_exception_from_token (mono_defaults.exception_class->image, ex_token);
+	ex = mono_exception_from_token (m_class_get_image (mono_defaults.exception_class), ex_token);
 
 	eip -= pc_offset;
 
@@ -798,7 +798,7 @@ mono_arch_unwind_frame (MonoDomain *domain, MonoJitTlsData *jit_tls,
 	*new_ctx = *ctx;
 
 	if (ji != NULL) {
-		gssize regs [MONO_MAX_IREGS + 1];
+		mgreg_t regs [MONO_MAX_IREGS + 1];
 		guint8 *cfa;
 		guint32 unwind_info_len;
 		guint8 *unwind_info;
@@ -843,7 +843,7 @@ mono_arch_unwind_frame (MonoDomain *domain, MonoJitTlsData *jit_tls,
 
 		return TRUE;
 	} else if (*lmf) {
-		g_assert ((((guint64)(*lmf)->previous_lmf) & 2) == 0);
+		g_assert ((((gsize)(*lmf)->previous_lmf) & 2) == 0);
 
 		if ((ji = mini_jit_info_table_find (domain, (gpointer)(*lmf)->eip, NULL))) {
 			frame->ji = ji;
@@ -865,7 +865,7 @@ mono_arch_unwind_frame (MonoDomain *domain, MonoJitTlsData *jit_tls,
 		frame->type = FRAME_TYPE_MANAGED_TO_NATIVE;
 
 		/* Check if we are in a trampoline LMF frame */
-		if ((guint32)((*lmf)->previous_lmf) & 1) {
+		if ((gsize)((*lmf)->previous_lmf) & 1) {
 			/* lmf->esp is set by the trampoline code */
 			new_ctx->esp = (*lmf)->esp;
 		}
@@ -888,6 +888,9 @@ mono_arch_ip_from_context (void *sigctx)
 #if defined(HOST_WATCHOS)
 	printf("WARNING: mono_arch_ip_from_context() called!\n");
 	return (NULL);
+#elif defined(MONO_CROSS_COMPILE)
+	g_assert_not_reached ();
+	return NULL;
 #elif defined(MONO_ARCH_USE_SIGACTION)
 	ucontext_t *ctx = (ucontext_t*)sigctx;
 	return (gpointer)UCONTEXT_REG_EIP (ctx);
@@ -1088,7 +1091,7 @@ altstack_handle_and_restore (MonoContext *ctx, gpointer obj, gboolean stack_ovf)
 void
 mono_arch_handle_altstack_exception (void *sigctx, MONO_SIG_HANDLER_INFO_TYPE *siginfo, gpointer fault_addr, gboolean stack_ovf)
 {
-#ifdef MONO_ARCH_USE_SIGACTION
+#if defined(MONO_ARCH_USE_SIGACTION) && !defined(MONO_CROSS_COMPILE)
 	MonoException *exc = NULL;
 	ucontext_t *ctx = (ucontext_t*)sigctx;
 	MonoJitInfo *ji = mini_jit_info_table_find (mono_domain_get (), (gpointer)UCONTEXT_REG_EIP (ctx), NULL);
@@ -1177,7 +1180,11 @@ mono_tasklets_arch_restore (void)
 	x86_mov_membase_reg (code, X86_ECX, 0, X86_EDX, 4);*/
 
 	x86_jump_membase (code, X86_EDX, MONO_STRUCT_OFFSET (MonoContinuation, return_ip));
+
+	mono_arch_flush_icache (start, code - start);
+	MONO_PROFILER_RAISE (jit_code_buffer, (start, code - start, MONO_PROFILER_CODE_BUFFER_EXCEPTION_HANDLING, NULL));
 	g_assert ((code - start) <= 48);
+
 	saved = start;
 	return (MonoContinuationRestore)saved;
 }

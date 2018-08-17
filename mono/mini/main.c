@@ -16,6 +16,9 @@
  */
 #include <config.h>
 #include <fcntl.h>
+#ifndef HOST_WIN32
+#include <dirent.h>
+#endif
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/mono-config.h>
 #include <mono/utils/mono-mmap.h>
@@ -185,6 +188,47 @@ save_library (int fd, uint64_t offset, uint64_t size, const char *destfname)
 	g_free (buffer);
 }
 
+#ifndef HOST_WIN32
+static gboolean
+search_directories(const char *envPath, const char *program, char **new_program)
+{
+	gchar **paths = NULL;
+	gint i;
+
+	paths = g_strsplit (envPath, G_SEARCHPATH_SEPARATOR_S, 0);
+	g_assert (paths);
+
+	for (i = 0; paths [i]; ++i) {
+		gchar *path = paths [i];
+		gint path_len = strlen (path);
+		DIR *dir;
+		struct dirent *ent;
+
+		if (path_len == 0)
+			continue;
+
+		dir = opendir (path);
+		if (!dir)
+			continue;
+
+		while ((ent = readdir (dir))){
+			if (!strcmp (ent->d_name, program)){
+				*new_program = g_strdup_printf ("%s%s%s", path, path [path_len - 1] == '/' ? "" : "/", program);
+				closedir (dir);
+				g_strfreev (paths);
+				return TRUE;
+			}
+		}
+
+		closedir (dir);
+	}
+
+	*new_program = NULL;
+	g_strfreev (paths);
+	return FALSE;
+}
+#endif
+
 static gboolean
 probe_embedded (const char *program, int *ref_argc, char **ref_argv [])
 {
@@ -204,6 +248,20 @@ probe_embedded (const char *program, int *ref_argc, char **ref_argv [])
 	int j;
 
 	int fd = open (program, O_RDONLY);
+#ifndef HOST_WIN32
+	if (fd == -1){
+		// Also search through the PATH in case the program was run from a different directory
+		gchar* envPath = getenv ("PATH");
+		if (envPath){
+			gchar *new_program = NULL;
+			if (search_directories (envPath, program, &new_program)){
+				fd = open (new_program, O_RDONLY);
+				g_free (new_program);
+				new_program = NULL;
+			}
+		}
+	}
+#endif
 	if (fd == -1)
 		return FALSE;
 	if ((sigstart = lseek (fd, -24, SEEK_END)) == -1)
@@ -237,10 +295,15 @@ probe_embedded (const char *program, int *ref_argc, char **ref_argv [])
 		item_size = STREAM_INT (p);
 		p += 4;
 		
-		if (mapaddress == NULL){
-			mapaddress = mono_file_map (directory_location-offset, MONO_MMAP_READ | MONO_MMAP_PRIVATE, fd, offset, &maphandle);
-			if (mapaddress == NULL){
-				perror ("Error mapping file");
+		if (mapaddress == NULL) {
+			char *error_message = NULL;
+			mapaddress = mono_file_map_error (directory_location - offset, MONO_MMAP_READ | MONO_MMAP_PRIVATE,
+				fd, offset, &maphandle, program, &error_message);
+			if (mapaddress == NULL) {
+				if (error_message)
+					fprintf (stderr, "Error mapping file: %s\n", error_message);
+				else
+					perror ("Error mapping file");
 				exit (1);
 			}
 			baseline = offset;
@@ -263,7 +326,9 @@ probe_embedded (const char *program, int *ref_argc, char **ref_argv [])
 		} else if (strncmp (kind, "options:", strlen ("options:")) == 0){
 			mono_parse_options_from (load_from_region (fd, offset, item_size), ref_argc, ref_argv);
 		} else if (strncmp (kind, "config_dir:", strlen ("config_dir:")) == 0){
-			mono_set_dirs (getenv ("MONO_PATH"), load_from_region (fd, offset, item_size));
+			char *mono_path_value = g_getenv ("MONO_PATH");
+			mono_set_dirs (mono_path_value, load_from_region (fd, offset, item_size));
+			g_free (mono_path_value);
 		} else if (strncmp (kind, "machineconfig:", strlen ("machineconfig:")) == 0) {
 			mono_register_machine_config (load_from_region (fd, offset, item_size));
 		} else if (strncmp (kind, "env:", strlen ("env:")) == 0){

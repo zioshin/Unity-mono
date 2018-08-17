@@ -928,8 +928,7 @@ namespace Mono.CSharp {
 		public override Reachability MarkReachable (Reachability rc)
 		{
 			base.MarkReachable (rc);
-			expr.MarkReachable (rc);
-			return rc;
+			return expr.MarkReachable (rc);
 		}
 
 		public override bool Resolve (BlockContext ec)
@@ -1160,7 +1159,8 @@ namespace Mono.CSharp {
 				//
 				if (ec.CurrentAnonymousMethod is AsyncInitializer) {
 					var storey = (AsyncTaskStorey) ec.CurrentAnonymousMethod.Storey;
-					if (storey.ReturnType == ec.Module.PredefinedTypes.Task.TypeSpec) {
+					var s_return_type = storey.ReturnType;
+					if (s_return_type == ec.Module.PredefinedTypes.Task.TypeSpec) {
 						//
 						// Extra trick not to emit ret/leave inside awaiter body
 						//
@@ -1168,8 +1168,8 @@ namespace Mono.CSharp {
 						return true;
 					}
 
-					if (storey.ReturnType.IsGenericTask)
-						block_return_type = storey.ReturnType.TypeArguments[0];
+					if (s_return_type.IsGenericTask || (s_return_type.Arity == 1 && s_return_type.IsCustomTaskType ()))
+					    block_return_type = s_return_type.TypeArguments[0];
 				}
 
 				if (ec.CurrentIterator != null) {
@@ -1220,7 +1220,7 @@ namespace Mono.CSharp {
 							return false;
 						}
 
-						if (!async_type.IsGenericTask) {
+						if (!async_type.IsGeneric) {
 							if (this is ContextualReturn)
 								return true;
 
@@ -2412,14 +2412,15 @@ namespace Mono.CSharp {
 			AddressTaken = 1 << 2,
 			CompilerGenerated = 1 << 3,
 			Constant = 1 << 4,
-			ForeachVariable = 1 << 5,
-			FixedVariable = 1 << 6,
-			UsingVariable = 1 << 7,
+			ForeachVariable = 1 << 5 | ReadonlyMask,
+			FixedVariable = 1 << 6 | ReadonlyMask,
+			UsingVariable = 1 << 7 | ReadonlyMask,
 			IsLocked = 1 << 8,
 			SymbolFileHidden = 1 << 9,
 			ByRef = 1 << 10,
+			PointerByRef = 1 << 11,
 
-			ReadonlyMask = ForeachVariable | FixedVariable | UsingVariable
+			ReadonlyMask = 1 << 20
 		}
 
 		TypeSpec type;
@@ -2539,7 +2540,7 @@ namespace Mono.CSharp {
 
 		public bool IsFixed {
 			get {
-				return (flags & Flags.FixedVariable) != 0;
+				return (flags & Flags.FixedVariable) == Flags.FixedVariable;
 			}
 			set {
 				flags = value ? flags | Flags.FixedVariable : flags & ~Flags.FixedVariable;
@@ -2608,20 +2609,22 @@ namespace Mono.CSharp {
 
 			if (IsByRef) {
 				builder = ec.DeclareLocal (ReferenceContainer.MakeType (ec.Module, Type), IsFixed);
+			} else if ((flags & Flags.PointerByRef) != 0) {
+				builder = ec.DeclareLocal (ReferenceContainer.MakeType (ec.Module, ((PointerContainer) Type).Element), IsFixed);
 			} else {
 				//
 				// All fixed variabled are pinned, a slot has to be alocated
 				//
-				builder = ec.DeclareLocal(Type, IsFixed);
+				builder = ec.DeclareLocal (Type, IsFixed);
 			}
 
 			if ((flags & Flags.SymbolFileHidden) == 0)
 				ec.DefineLocalVariable (name, builder);
 		}
 
-		public static LocalVariable CreateCompilerGenerated (TypeSpec type, Block block, Location loc, bool writeToSymbolFile = false)
+		public static LocalVariable CreateCompilerGenerated (TypeSpec type, Block block, Location loc, bool writeToSymbolFile = false, Flags additionalFlags = 0)
 		{
-			LocalVariable li = new LocalVariable (block, GetCompilerGeneratedName (block), Flags.CompilerGenerated | Flags.Used, loc);
+			LocalVariable li = new LocalVariable (block, GetCompilerGeneratedName (block), Flags.CompilerGenerated | Flags.Used | additionalFlags, loc);
 			if (!writeToSymbolFile)
 				li.flags |= Flags.SymbolFileHidden;
 			
@@ -2677,7 +2680,7 @@ namespace Mono.CSharp {
 
 		public string GetReadOnlyContext ()
 		{
-			switch (flags & Flags.ReadonlyMask) {
+			switch (flags & (Flags.ForeachVariable | Flags.FixedVariable | Flags.UsingVariable)) {
 			case Flags.FixedVariable:
 				return "fixed variable";
 			case Flags.ForeachVariable:
@@ -2722,6 +2725,11 @@ namespace Mono.CSharp {
 		public void SetIsUsed ()
 		{
 			flags |= Flags.Used;
+		}
+
+		public void SetIsPointerByRef ()
+		{
+			flags |= Flags.PointerByRef;
 		}
 
 		public void SetHasAddressTaken ()
@@ -6561,18 +6569,26 @@ namespace Mono.CSharp {
 
 				// TODO: Should use Binary::Add
 				pinned_string.Emit (ec);
-				ec.Emit (OpCodes.Conv_I);
+				ec.Emit (OpCodes.Conv_U);
 
 				var m = ec.Module.PredefinedMembers.RuntimeHelpersOffsetToStringData.Resolve (loc);
 				if (m == null)
 					return;
 
+				var null_value = ec.DefineLabel ();
+				vi.EmitAssign (ec);
+				vi.Emit (ec);
+				ec.Emit (OpCodes.Brfalse_S, null_value);
+
+				vi.Emit (ec);
 				PropertyExpr pe = new PropertyExpr (m, pinned_string.Location);
 				//pe.InstanceExpression = pinned_string;
 				pe.Resolve (new ResolveContext (ec.MemberContext)).Emit (ec);
 
 				ec.Emit (OpCodes.Add);
 				vi.EmitAssign (ec);
+
+				ec.MarkLabel (null_value);
 			}
 
 			public override void EmitExit (EmitContext ec)
@@ -6659,30 +6675,93 @@ namespace Mono.CSharp {
 					return new ExpressionEmitter (res, li);
 				}
 
-				bool already_fixed = true;
-
 				//
 				// Case 4: & object.
 				//
 				Unary u = res as Unary;
 				if (u != null) {
+					bool already_fixed = true;
+
 					if (u.Oper == Unary.Operator.AddressOf) {
 						IVariableReference vr = u.Expr as IVariableReference;
 						if (vr == null || !vr.IsFixed) {
 							already_fixed = false;
 						}
 					}
-				} else if (initializer is Cast) {
+
+					if (already_fixed) {
+						bc.Report.Error (213, loc, "You cannot use the fixed statement to take the address of an already fixed expression");
+						return null;
+					}
+
+					res = Convert.ImplicitConversionRequired (bc, res, li.Type, loc);
+					return new ExpressionEmitter (res, li);
+				}
+
+				if (initializer is Cast) {
 					bc.Report.Error (254, initializer.Location, "The right hand side of a fixed statement assignment may not be a cast expression");
 					return null;
 				}
 
-				if (already_fixed) {
-					bc.Report.Error (213, loc, "You cannot use the fixed statement to take the address of an already fixed expression");
+				//
+				// Case 5: by-ref GetPinnableReference method on the rhs expression
+				//
+				var method = GetPinnableReference (bc, res);
+				if (method == null) {
+					bc.Report.Error (8385, initializer.Location, "The given expression cannot be used in a fixed statement");
+					return null;
 				}
 
-				res = Convert.ImplicitConversionRequired (bc, res, li.Type, loc);
+				var compiler = bc.Module.Compiler;
+				if (compiler.Settings.Version < LanguageVersion.V_7_3) {
+					bc.Report.FeatureIsNotAvailable (compiler, initializer.Location, "extensible fixed statement");
+				}
+
+				method.InstanceExpression = res;
+				res = new Invocation.Predefined (method, null).ResolveLValue (bc, EmptyExpression.OutAccess);
+				if (res == null)
+					return null;
+
+				ReferenceContainer rType = (ReferenceContainer)method.BestCandidateReturnType;
+				PointerContainer lType = li.Type as PointerContainer;
+				if (rType.Element != lType?.Element) {
+					// CSC: Should be better error code
+					res.Error_ValueCannotBeConverted (bc, lType, false);
+					return null;
+				}
+
+				li.SetIsPointerByRef ();
 				return new ExpressionEmitter (res, li);
+			}
+
+			MethodGroupExpr GetPinnableReference (BlockContext bc, Expression expr)
+			{
+				TypeSpec type = expr.Type;
+				var mexpr = Expression.MemberLookup (bc, false, type,
+					"GetPinnableReference", 0, Expression.MemberLookupRestrictions.ExactArity, loc);
+
+				if (mexpr == null)
+					return null;
+
+				var mg = mexpr as MethodGroupExpr;
+				if (mg == null)
+					return null;
+
+				mg.InstanceExpression = expr;
+
+				// TODO: handle extension methods
+				Arguments args = new Arguments (0);
+				mg = mg.OverloadResolve (bc, ref args, null, OverloadResolver.Restrictions.None);
+
+				if (mg == null || mg.BestCandidate.IsStatic || !mg.BestCandidate.IsPublic || mg.BestCandidateReturnType.Kind != MemberKind.ByRef || !mg.BestCandidate.Parameters.IsEmpty) {
+					if (bc.Module.Compiler.Settings.Version > LanguageVersion.V_7_2) {
+						bc.Report.Warning (280, 2, expr.Location, "`{0}' has the wrong signature to be used in extensible fixed statement", mg.GetSignatureForError ());
+					}
+
+					return null;
+				}
+
+				return mg;
 			}
 		}
 

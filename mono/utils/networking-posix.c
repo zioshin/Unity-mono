@@ -17,6 +17,9 @@
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
 #ifdef HAVE_NET_IF_H
 #include <net/if.h>
 #endif
@@ -72,7 +75,7 @@ mono_get_address_info (const char *hostname, int port, int flags, MonoAddressInf
 /* Some ancient libc don't define AI_ADDRCONFIG */
 #ifdef AI_ADDRCONFIG
 	if (flags & MONO_HINT_CONFIGURED_ONLY)
-		hints.ai_flags = AI_ADDRCONFIG;
+		hints.ai_flags |= AI_ADDRCONFIG;
 #endif
 	sprintf (service_name, "%d", port);
 

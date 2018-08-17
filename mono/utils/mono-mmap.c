@@ -19,6 +19,9 @@
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
+#ifdef HAVE_SYS_SYSCTL_H
+#include <sys/sysctl.h>
+#endif
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
 #endif
@@ -61,7 +64,7 @@ typedef struct {
 } SAreaHeader;
 
 void*
-malloc_shared_area (int pid)
+mono_malloc_shared_area (int pid)
 {
 	int size = mono_pagesize ();
 	SAreaHeader *sarea = (SAreaHeader *) g_malloc0 (size);
@@ -74,7 +77,7 @@ malloc_shared_area (int pid)
 }
 
 char*
-aligned_address (char *mem, size_t size, size_t alignment)
+mono_aligned_address (char *mem, size_t size, size_t alignment)
 {
 	char *aligned = (char*)((size_t)(mem + (alignment - 1)) & ~(alignment - 1));
 	g_assert (aligned >= mem && aligned + size <= mem + size + alignment && !((size_t)aligned & (alignment - 1)));
@@ -86,7 +89,7 @@ static size_t total_allocation_count;
 static size_t alloc_limit;
 
 void
-account_mem (MonoMemAccountType type, ssize_t size)
+mono_account_mem (MonoMemAccountType type, ssize_t size)
 {
 	mono_atomic_fetch_add_word (&allocation_count [type], size);
 	mono_atomic_fetch_add_word (&total_allocation_count, size);
@@ -197,6 +200,29 @@ prot_from_flags (int flags)
 	return prot;
 }
 
+#if defined(__APPLE__)
+
+#define DARWIN_VERSION_MOJAVE 18
+
+static guint32
+get_darwin_version (void)
+{
+	static guint32 version;
+
+	/* This doesn't need locking */
+	if (!version) {
+		char str[256] = {0};
+		size_t size = sizeof(str);
+		int err = sysctlbyname("kern.osrelease", str, &size, NULL, 0);
+		g_assert (err == 0);
+		err = sscanf (str, "%d", &version);
+		g_assert (err == 1);
+		g_assert (version > 0);
+	}
+	return version;
+}
+#endif
+
 /**
  * mono_valloc:
  * \param addr memory address
@@ -224,6 +250,13 @@ mono_valloc (void *addr, size_t length, int flags, MonoMemAccountType type)
 		mflags |= MAP_FIXED;
 	if (flags & MONO_MMAP_32BIT)
 		mflags |= MAP_32BIT;
+#if defined(__APPLE__) && defined(MAP_JIT)
+	if (flags & MONO_MMAP_JIT) {
+		if (get_darwin_version () >= DARWIN_VERSION_MOJAVE) {
+			mflags |= MAP_JIT;
+		}
+	}
+#endif
 
 	mflags |= MAP_ANONYMOUS;
 	mflags |= MAP_PRIVATE;
@@ -242,7 +275,7 @@ mono_valloc (void *addr, size_t length, int flags, MonoMemAccountType type)
 	if (ptr == MAP_FAILED)
 		return NULL;
 
-	account_mem (type, (ssize_t)length);
+	mono_account_mem (type, (ssize_t)length);
 
 	return ptr;
 }
@@ -262,7 +295,7 @@ mono_vfree (void *addr, size_t length, MonoMemAccountType type)
 	res = munmap (addr, length);
 	END_CRITICAL_SECTION;
 
-	account_mem (type, -(ssize_t)length);
+	mono_account_mem (type, -(ssize_t)length);
 
 	return res;
 }
@@ -316,6 +349,13 @@ mono_file_map (size_t length, int flags, int fd, guint64 offset, void **ret_hand
 	return ptr;
 }
 
+void*
+mono_file_map_error (size_t length, int flags, int fd, guint64 offset, void **ret_handle,
+	const char *filepath, char **error_message)
+{
+	return mono_file_map (length, flags, fd, offset, ret_handle);
+}
+
 /**
  * mono_file_unmap:
  * \param addr memory address returned by mono_file_map ()
@@ -364,7 +404,8 @@ mono_mprotect (void *addr, size_t length, int flags)
 			memset (addr, 0, length);
 #else
 		memset (addr, 0, length);
-#ifdef HAVE_MADVISE
+/* some OSes (like AIX) have madvise but no MADV_FREE */
+#if defined(HAVE_MADVISE) && defined(MADV_FREE)
 		madvise (addr, length, MADV_DONTNEED);
 		madvise (addr, length, MADV_FREE);
 #else
@@ -513,7 +554,7 @@ mono_shared_area (void)
 
 	if (shared_area_disabled ()) {
 		if (!malloced_shared_area)
-			malloced_shared_area = malloc_shared_area (0);
+			malloced_shared_area = mono_malloc_shared_area (0);
 		/* get the pid here */
 		return malloced_shared_area;
 	}
@@ -533,7 +574,7 @@ mono_shared_area (void)
 	 * even if it means the data can't be read by other processes
 	 */
 	if (fd == -1)
-		return malloc_shared_area (pid);
+		return mono_malloc_shared_area (pid);
 	if (ftruncate (fd, size) != 0) {
 		shm_unlink (buf);
 		close (fd);
@@ -545,7 +586,7 @@ mono_shared_area (void)
 	if (res == MAP_FAILED) {
 		shm_unlink (buf);
 		close (fd);
-		return malloc_shared_area (pid);
+		return mono_malloc_shared_area (pid);
 	}
 	/* we don't need the file descriptor anymore */
 	close (fd);
@@ -626,7 +667,7 @@ void*
 mono_shared_area (void)
 {
 	if (!malloced_shared_area)
-		malloced_shared_area = malloc_shared_area (getpid ());
+		malloced_shared_area = mono_malloc_shared_area (getpid ());
 	/* get the pid here */
 	return malloced_shared_area;
 }
@@ -671,7 +712,7 @@ mono_valloc_aligned (size_t size, size_t alignment, int flags, MonoMemAccountTyp
 	if (!mem)
 		return NULL;
 
-	aligned = aligned_address (mem, size, alignment);
+	aligned = mono_aligned_address (mem, size, alignment);
 
 	if (aligned > mem)
 		mono_vfree (mem, aligned - mem, type);

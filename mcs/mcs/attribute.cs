@@ -789,6 +789,17 @@ namespace Mono.CSharp {
 			return ((BoolConstant) pos_args[0].Expr).Value;
 		}
 
+		public TypeSpec GetAsyncMethodBuilderValue ()
+		{
+			if (!arg_resolved)
+				Resolve ();
+
+			if (resolve_error)
+				return null;
+
+			return GetArgumentType ();
+		}
+
 		public TypeSpec GetCoClassAttributeValue ()
 		{
 			if (!arg_resolved)
@@ -1769,6 +1780,7 @@ namespace Mono.CSharp {
 
 		// New in .NET 4.7
 		public readonly PredefinedTupleElementNamesAttribute TupleElementNames;
+		public readonly PredefinedAttribute AsyncMethodBuilder;
 
 		// New in .NET 4.7.1
 		public readonly PredefinedAttribute IsReadOnly;
@@ -1853,6 +1865,7 @@ namespace Mono.CSharp {
 			CallerLineNumberAttribute = new PredefinedAttribute (module, "System.Runtime.CompilerServices", "CallerLineNumberAttribute");
 			CallerFilePathAttribute = new PredefinedAttribute (module, "System.Runtime.CompilerServices", "CallerFilePathAttribute");
 
+			AsyncMethodBuilder = new PredefinedAttribute (module, "System.Runtime.CompilerServices", "AsyncMethodBuilderAttribute");
 			TupleElementNames = new PredefinedTupleElementNamesAttribute (module, "System.Runtime.CompilerServices", "TupleElementNamesAttribute");
 			IsReadOnly = new PredefinedAttribute (module, "System.Runtime.CompilerServices", "IsReadOnlyAttribute");
 			IsByRefLike = new PredefinedAttribute (module, "System.Runtime.CompilerServices", "IsByRefLikeAttribute");
