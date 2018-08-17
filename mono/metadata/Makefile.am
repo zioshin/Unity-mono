@@ -98,12 +98,6 @@ noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(bdwgc_librari
 
 lib_LTLIBRARIES = $(icall_table_libraries) $(ilgen_libraries)
 
-if DISABLE_EXECUTABLES
-noinst_LTLIBRARIES = libmonoruntime-config.la $(shared_sgen_libraries) $(shared_boehm_libraries) $(shared_bdwgc_libraries)
-else
-noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(sgen_libraries) $(bdwgc_libraries)
-endif
-
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(GLIB_CFLAGS) $(SHARED_CFLAGS)
 
 #

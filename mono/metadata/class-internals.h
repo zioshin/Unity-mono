@@ -23,7 +23,7 @@
 
 extern gboolean mono_print_vtable;
 extern gboolean mono_align_small_structs;
-extern gboolen mono_allow_gc_aware_layout;
+extern gboolean mono_allow_gc_aware_layout;
 
 typedef struct _MonoMethodWrapper MonoMethodWrapper;
 typedef struct _MonoMethodInflated MonoMethodInflated;
