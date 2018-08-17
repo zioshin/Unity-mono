@@ -19,6 +19,7 @@
 #include <mono/metadata/metadata.h>
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/class-internals.h>
+#include <mono/metadata/class-init.h>
 #include <mono/metadata/object-internals.h>
 #include <mono/metadata/marshal.h>
 #include <mono/metadata/metadata-internals.h>
@@ -433,7 +434,7 @@ const char* mono_unity_method_get_name(const MonoMethod *method)
 
 
 //must match the hash in il2cpp code generation
-static guint32 hash_string_djb2(guchar *str)
+static guint32 hash_string_djb2(const guchar *str)
 {
 	guint32 hash = 5381;
 	int c;
@@ -687,7 +688,7 @@ MonoMethod* mono_unity_method_get_aot_array_helper_from_wrapper(MonoMethod *meth
 	if (m->is_generic) {
 		MonoError error;
 		memset(&ctx, 0, sizeof(ctx));
-		args[0] = &method->klass->element_class->byval_arg;
+		args[0] = m_class_get_byval_arg (method->klass->element_class);
 		ctx.method_inst = mono_metadata_get_generic_inst(1, args);
 		m = mono_class_inflate_generic_method_checked(m, &ctx, &error);
 		g_assert(mono_error_ok(&error)); /* FIXME don't swallow the error */
@@ -954,7 +955,7 @@ MonoImage* mono_unity_image_get_mscorlib()
 MonoClass* mono_unity_generic_container_get_parameter_class(MonoGenericContainer* generic_container, gint index)
 {
 	MonoGenericParam *param = mono_generic_container_get_param(generic_container, index);
-	return mono_class_from_generic_parameter_internal(param);
+	return mono_class_create_generic_parameter(param);
 }
 
 MonoString* mono_unity_string_append_assembly_name_if_necessary(MonoString* typeName, const char* assemblyName)
@@ -1057,7 +1058,7 @@ MonoType* mono_unity_reflection_type_get_type(MonoReflectionType *type)
 MONO_API void
 mono_unity_runtime_set_main_args (int argc, const char* argv[])
 {
-	mono_runtime_set_main_args (argc, argv);
+	mono_runtime_set_main_args (argc, (char**)argv);
 }
 
 MONO_API MonoString*
@@ -1124,7 +1125,7 @@ mono_unity_set_data_dir(const char* dir)
     if (data_dir)
         g_free(data_dir);
 
-    data_dir = g_new(char*, strlen(dir) + 1);
+    data_dir = g_new(char, strlen(dir) + 1);
     strcpy(data_dir, dir);
 }
 
@@ -1148,7 +1149,7 @@ mono_unity_class_get_generic_parameter_at (MonoClass* klass, guint32 index)
 	if (!generic_container || index >= generic_container->type_argc)
 		return NULL;
 
-	return mono_class_from_generic_parameter_internal (mono_generic_container_get_param (generic_container, index));
+	return mono_class_create_generic_parameter (mono_generic_container_get_param (generic_container, index));
 }
 
 MONO_API guint32
@@ -1303,7 +1304,7 @@ ves_icall_System_IO_MonoIO_RemapPath  (MonoString *path, MonoString **new_path)
 
 	mono_gc_wbarrier_generic_store (new_path, (MonoObject*)mono_string_from_utf16_checked (path_remapped, &error));
 
-	g_free (path_remapped);
+	g_free ((void*)path_remapped);
 
 	mono_error_set_pending_exception (&error);
 
@@ -1313,7 +1314,7 @@ ves_icall_System_IO_MonoIO_RemapPath  (MonoString *path, MonoString **new_path)
 const char*
 mono_unity_remap_path (const char* path)
 {
-	const char* path_remap = NULL;
+	char* path_remap = NULL;
 	call_remapper (path, &path_remap);
 
 	return path_remap;

@@ -463,18 +463,18 @@ mono_set_assemblies_path_null_separated(const char* path)
     char **dest;
 
     int numPaths = 0;
-    char* path_count_ptr = path;
+    const char* path_count_ptr = path;
     while (*path_count_ptr)
     {
         path_count_ptr += strlen(path_count_ptr) + 1;
         numPaths++;
     }
-    dest = g_new(char**, sizeof(char*) * (numPaths + 1));
+    dest = g_new(char*, sizeof(char*) * (numPaths + 1));
 
     if (assemblies_path)
         g_strfreev(assemblies_path);
     assemblies_path = dest;
-    char* current_path = path;
+    const char* current_path = path;
     while (*current_path)
     {
         *dest++ = mono_path_canonicalize(current_path);

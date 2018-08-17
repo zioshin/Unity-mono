@@ -319,7 +319,7 @@ static void mono_traverse_array (MonoArray* array, LivenessState* state)
 	
 	
 	element_class = GET_VTABLE(object)->klass->element_class;
-	has_references = !mono_class_is_valuetype(element_class);
+	has_references = !m_class_is_valuetype(element_class);
 	g_assert(element_class->size_inited != 0);
 	
 	for (i = 0; i < mono_class_get_field_count (element_class); i++)
@@ -438,7 +438,7 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 				MonoError error;
 				MonoObject* val = NULL;
 
-				mono_field_static_get_value_checked (mono_class_vtable (domain, klass), field, &val, &error);
+				mono_field_static_get_value_checked (mono_class_vtable_checked (domain, klass, &error), field, &val, &error);
 
 				if (val && mono_error_ok (&error))
 				{

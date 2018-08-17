@@ -147,7 +147,7 @@ static void AddMetadataType(gpointer key, gpointer value, gpointer user_data)
 	if (klass->rank > 0)
 	{
 		type->flags = (MonoMetadataTypeFlags)(kArray | (kArrayRankMask & (klass->rank << 16)));
-		type->baseOrElementTypeIndex = FindClassIndex(context->allTypes, mono_class_get_element_class(klass));
+		type->baseOrElementTypeIndex = FindClassIndex(context->allTypes, m_class_get_element_class(klass));
 	}
 	else
 	{
@@ -158,14 +158,14 @@ static void AddMetadataType(gpointer key, gpointer value, gpointer user_data)
 		MonoVTable* vtable;
 		void* statics_data;
 
-		type->flags = (klass->valuetype || klass->byval_arg.type == MONO_TYPE_PTR) ? kValueType : kNone;
+		type->flags = (klass->valuetype || m_class_get_byval_arg (klass)->type == MONO_TYPE_PTR) ? kValueType : kNone;
 		type->fieldCount = 0;
 
 		if (mono_class_num_fields(klass) > 0)
 		{
 			type->fields = g_new(MonoMetadataField, mono_class_num_fields(klass));
 
-			while ((field = mono_class_get_fields(klass, &iter)))
+			while ((field = mono_class_get_fields_internal(klass, &iter)))
 			{
 				MonoMetadataField* metaField = &type->fields[type->fieldCount];
 				metaField->typeIndex = FindClassIndex(context->allTypes, mono_class_from_mono_type(field->type));
@@ -198,12 +198,12 @@ static void AddMetadataType(gpointer key, gpointer value, gpointer user_data)
 			memcpy(type->statics, statics_data, type->staticsSize);
 		}
 
-		baseClass = mono_class_get_parent(klass);
+		baseClass = m_class_get_parent(klass);
 		type->baseOrElementTypeIndex = baseClass ? FindClassIndex(context->allTypes, baseClass) : -1;
 	}
 
 	type->assemblyName = mono_class_get_image(klass)->assembly->aname.name;
-	type->name = mono_type_get_name_full(&klass->byval_arg, MONO_TYPE_NAME_FORMAT_IL);
+	type->name = mono_type_get_name_full(m_class_get_byval_arg (klass), MONO_TYPE_NAME_FORMAT_IL);
 	type->typeInfoAddress = (uint64_t)klass;
 	type->size = (klass->valuetype) != 0 ? (mono_class_instance_size(klass) - sizeof(MonoObject)) : mono_class_instance_size(klass);
 }
