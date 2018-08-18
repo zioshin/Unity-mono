@@ -26,15 +26,10 @@ namespace Mono.Unity
 		{
 		}
 
-		protected override MNS.MobileTlsContext CreateContext (
-			bool serverMode, string targetHost, SslProtocols enabledProtocols,
-			X509Certificate serverCertificate, X509CertificateCollection clientCertificates,
-			bool askForClientCert)
+
+		protected override MNS.MobileTlsContext CreateContext (MNS.MonoSslAuthenticationOptions options)
 		{
-			return new UnityTlsContext (
-				this, serverMode, targetHost,
-				enabledProtocols, serverCertificate,
-				clientCertificates, askForClientCert);
+			return new UnityTlsContext (this, options);
 		}
 	}
 }

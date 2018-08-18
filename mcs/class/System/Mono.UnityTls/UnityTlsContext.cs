@@ -49,12 +49,8 @@ namespace Mono.Unity
 		GCHandle handle;
 		Exception lastException;
 
-		public UnityTlsContext (
-			MobileAuthenticatedStream parent,
-			bool serverMode, string targetHost,
-			SslProtocols enabledProtocols, X509Certificate serverCertificate,
-			X509CertificateCollection clientCertificates, bool askForClientCert)
-			: base (parent, serverMode, targetHost, enabledProtocols, serverCertificate, clientCertificates, askForClientCert)
+		public UnityTlsContext (MobileAuthenticatedStream parent, MonoSslAuthenticationOptions options)
+			: base (parent, options)
 		{
 			// Need GCHandle to get a consistent pointer to this instance
 			handle = GCHandle.Alloc (this);
@@ -63,8 +59,8 @@ namespace Mono.Unity
 
 			// Map selected protocols as best as we can.
 			UnityTls.unitytls_tlsctx_protocolrange protocolRange = new UnityTls.unitytls_tlsctx_protocolrange {
-				min = UnityTlsConversions.GetMinProtocol (enabledProtocols),
-				max = UnityTlsConversions.GetMaxProtocol (enabledProtocols),
+				min = UnityTlsConversions.GetMinProtocol (options.EnabledSslProtocols),
+				max = UnityTlsConversions.GetMaxProtocol (options.EnabledSslProtocols),
 			};
 
 			UnityTls.unitytls_tlsctx_callbacks callbacks = new UnityTls.unitytls_tlsctx_callbacks {
@@ -73,8 +69,8 @@ namespace Mono.Unity
 				data = (void*)(IntPtr)handle,
 			};
 
-			if (serverMode) {
-				ExtractNativeKeyAndChainFromManagedCertificate(serverCertificate, &errorState, out var serverCerts, out var serverPrivateKey);
+			if (options.ServerMode) {
+				ExtractNativeKeyAndChainFromManagedCertificate(options.ServerCertificate, &errorState, out var serverCerts, out var serverPrivateKey);
 				try {
 					var serverCertsRef = UnityTls.NativeInterface.unitytls_x509list_get_ref (serverCerts, &errorState);
 					var serverKeyRef = UnityTls.NativeInterface.unitytls_key_get_ref (serverPrivateKey, &errorState);
@@ -82,7 +78,7 @@ namespace Mono.Unity
 
 					tlsContext = UnityTls.NativeInterface.unitytls_tlsctx_create_server (protocolRange, callbacks, serverCertsRef.handle, serverKeyRef.handle, &errorState);
 
-					if (askForClientCert) {
+					if (options.ClientCertificateRequired) {
 						UnityTls.unitytls_x509list* clientAuthCAList = null;
 						try {
 							clientAuthCAList = UnityTls.NativeInterface.unitytls_x509list_create (&errorState);
@@ -98,7 +94,7 @@ namespace Mono.Unity
 				}
 			}
 			else {
-				byte [] targetHostUtf8 = Encoding.UTF8.GetBytes (targetHost);
+				byte [] targetHostUtf8 = Encoding.UTF8.GetBytes (options.TargetHost);
 				fixed (byte* targetHostUtf8Ptr = targetHostUtf8) {
 					tlsContext = UnityTls.NativeInterface.unitytls_tlsctx_create_client (protocolRange, callbacks, targetHostUtf8Ptr, targetHostUtf8.Length, &errorState);
 				}
@@ -327,6 +323,25 @@ namespace Mono.Unity
 			isAuthenticated = true;
 		}
 
+
+		public override bool PendingRenegotiation ()
+		{
+			throw new NotImplementedException();
+		}
+
+
+		public override bool CanRenegotiate {
+			get
+			{
+				throw new NotImplementedException();
+			}
+		}
+
+		public override void Renegotiate ()
+		{
+			throw new NotImplementedException();
+		}
+
 		[MonoPInvokeCallback (typeof (UnityTls.unitytls_tlsctx_write_callback))]
 		static private size_t WriteCallback (void* userData, byte* data, size_t bufferLen, UnityTls.unitytls_errorstate* errorState)
 		{
@@ -430,7 +445,8 @@ namespace Mono.Unity
 				if (remoteCertificate == null)
 					throw new TlsException (AlertDescription.InternalError, "Cannot request client certificate before receiving one from the server.");
 				
-				localClientCertificate = SelectClientCertificate (remoteCertificate, null);
+				// UNITY_TODO
+				localClientCertificate = null;//SelectClientCertificate (remoteCertificate, null);
 				
 				if (localClientCertificate == null) {
 					*chain = new UnityTls.unitytls_x509list_ref { handle = UnityTls.NativeInterface.UNITYTLS_INVALID_HANDLE };
