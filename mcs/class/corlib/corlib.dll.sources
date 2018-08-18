@@ -1057,7 +1057,7 @@ ReferenceSources/AppContextDefaultValues.cs
 ../referencesource/mscorlib/system/globalization/calendarweekrule.cs
 # UNITY
 System/Debug.cs
-../../../external/corert/src/System.Private.CoreLib/src/System/Globalization/CharUnicodeInfo.cs
+../../../external/corert/src/System.Private.CoreLib/shared/System/Globalization/CharUnicodeInfo.cs
 ../../../external/corert/src/System.Private.CoreLib/src/System/Globalization/CharUnicodeInfoData.cs
 # UNITY commented out below
 # ../referencesource/mscorlib/system/globalization/charunicodeinfo.cs
