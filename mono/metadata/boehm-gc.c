@@ -1405,8 +1405,8 @@ mono_gc_get_write_barrier (void)
 
 	/* Create the IL version of mono_gc_barrier_generic_store () */
 	sig = mono_metadata_signature_alloc (mono_defaults.corlib, 1);
-	sig->ret = &mono_defaults.void_class->byval_arg;
-	sig->params [0] = &mono_defaults.int_class->byval_arg;
+	sig->ret = m_class_get_byval_arg (mono_defaults.void_class);
+	sig->params [0] = m_class_get_byval_arg (mono_defaults.int_class);
 
 	mb = mono_mb_new (mono_defaults.object_class, "wbarrier_conc", MONO_WRAPPER_WRITE_BARRIER);
 
