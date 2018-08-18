@@ -262,7 +262,7 @@ if ($build)
 
 	if(!($disableMcs))
 	{
-		push @configureparams, "--with-unityjit=yes";
+		push @configureparams, "--with-unityjit=no";
 		push @configureparams, "--with-unityaot=yes";
 	}
 
@@ -1415,7 +1415,7 @@ if ($build)
 	if(!($disableMcs))
 	{
 		my @additionalProfiles = ();
-		push @additionalProfiles, "unityjit";
+		#push @additionalProfiles, "unityjit";
 		push @additionalProfiles, "unityaot";
 
 		chdir("$monoroot/mcs");

@@ -27,17 +27,17 @@ if ($result ne 0)
 my $profileRoot = "tmp/lib/mono";
 my $referenceProfile = "$profileRoot/4.7.1-api";
 
-print ">>> Modifying the unityjit profile to match the .NET 4.7.1 API\n";
+#print ">>> Modifying the unityjit profile to match the .NET 4.7.1 API\n";
 
-$result = system("mono",
-					"$extraBuildTools/build/ProfileStubber.exe",
-					"--reference-profile=$referenceProfile",
-					"--stub-profile=$profileRoot/unityjit");
+#$result = system("mono",
+#					"$extraBuildTools/build/ProfileStubber.exe",
+#					"--reference-profile=$referenceProfile",
+#					"--stub-profile=$profileRoot/unityjit");
 
-if ($result ne 0)
-{
-	die("Failed to stub the unityjit profile\n");
-}
+#if ($result ne 0)
+#{
+#	die("Failed to stub the unityjit profile\n");
+#}
 
 print ">>> Modifying the unityaot profile to match the .NET 4.7.1 API\n";
 
