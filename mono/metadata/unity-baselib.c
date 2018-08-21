@@ -13,10 +13,18 @@ static MonoDl *baselib_handle = NULL;
 
 #define UNLOAD_BASELIB_FUNCTION(name) name = NULL;
 
+#define BASELIB_LIBRARY_NAME "baselib"
+
 static char*
-get_baselib_path ()
+get_default_baselib_path ()
 {
-	const char* baselib_filename = "baselib.dylib";
+#if defined(HOST_WIN32)
+	const char* baselib_filename = BASELIB_LIBRARY_NAME".dll";
+#elif defined (TARGET_OSX)
+	const char* baselib_filename = BASELIB_LIBRARY_NAME".dylib";
+#else
+	const char* baselib_filename = BASELIB_LIBRARY_NAME".so";
+#endif
 
 	const char *root_directory = mono_unity_get_baselib_directory ();
 	size_t root_directory_length = strlen (root_directory);
@@ -32,18 +40,30 @@ load_baselib_function (const char *name, void **symbol)
 {
 	if (baselib_handle == NULL)
 	{
-		char* baselib_path = get_baselib_path ();
-
 		char *library_error_message = NULL;
-		baselib_handle = mono_dl_open (baselib_path, MONO_DL_LAZY, &library_error_message);
+
+		char* default_baselib_path = get_default_baselib_path ();
+		baselib_handle = mono_dl_open (default_baselib_path, MONO_DL_LAZY, &library_error_message);
 		if (baselib_handle == NULL)
 		{
-			mono_trace_message (MONO_TRACE_TYPE, "Unable to load the baselib dynamic library at '%s', error: '%s'", baselib_path, library_error_message);
-			g_free(baselib_path);
+			UnityFindPluginCallback find_plugin = mono_get_find_plugin_callback ();
+			if (find_plugin != NULL)
+			{
+				const char* unity_baselib_path = find_plugin (BASELIB_LIBRARY_NAME);
+				baselib_handle = mono_dl_open (unity_baselib_path, MONO_DL_LAZY, &library_error_message);
+				if (baselib_handle == NULL)
+					mono_trace_message (MONO_TRACE_TYPE, "Unable to load the baselib dynamic library at '%s', error: '%s'", unity_baselib_path, library_error_message);
+			}
+		}
+
+		if (baselib_handle == NULL)
+		{
+			mono_trace_message (MONO_TRACE_TYPE, "Unable to load the baselib dynamic library at '%s', error: '%s'", default_baselib_path, library_error_message);
+			g_free(default_baselib_path);
 			return library_error_message;
 		}
 
-		g_free(baselib_path);
+		g_free(default_baselib_path);
 	}
 
 	char *function_error_message = NULL;
