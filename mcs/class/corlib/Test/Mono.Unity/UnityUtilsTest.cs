@@ -24,7 +24,7 @@ namespace MonoTests.Mono.Unity
 		{
 			const string unityUtilsTypeName = "Mono.Unity.UnityUtils";
 			var unityUtilsType = typeof(int).Assembly.GetType(unityUtilsTypeName);
-			Assert.That(unityUtilsType, Is.Not.Null, string.Format("Unable to reflection the type {0}",
+			Assert.That(unityUtilsType, Is.Not.Null, string.Format("Unable to reflect the type {0}",
 				unityUtilsType));
 
 			var method = unityUtilsType.GetMethod(name);
