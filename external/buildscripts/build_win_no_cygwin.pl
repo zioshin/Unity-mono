@@ -145,6 +145,9 @@ if ($build)
 	system("$winPerl", "$winMonoRoot/external/buildscripts/build_runtime_vs.pl", "--build=$build", "--arch32=$arch32", "--msbuildversion=$msBuildVersion", "--clean=$clean", "--debug=$debug", "--gc=bdwgc") eq 0 or die ('failed building mono bdwgc with VS\n');
 	system("$winPerl", "$winMonoRoot/external/buildscripts/build_runtime_vs.pl", "--build=$build", "--arch32=$arch32", "--msbuildversion=$msBuildVersion", "--clean=$clean", "--debug=$debug", "--gc=sgen") eq 0 or die ('failed building mono sgen with VS\n');
 
+	my $baselibTarget = $arch32	 ? "win32" : "win64";
+	system("$winPerl", "$buildscriptsdir/build_baselib.pl", "--target=$baselibTarget") eq 0 or die ("Failed building baselib for $baselibTarget");
+
 	if (!(-d "$monoroot\\tmp"))
 	{
 		print(">>> Creating directory $monoroot\\tmp\n");
@@ -247,6 +250,8 @@ if ($artifact)
 	copy("$monoprefix/bin/MonoPosixHelper.dll", "$embedDirArchDestination/.") or die ("failed copying MonoPosixHelper.dll\n");
 	copy("$monoprefix/bin/MonoPosixHelper.pdb", "$embedDirArchDestination/.") or die ("failed copying MonoPosixHelper.pdb\n");
 
+	copy("$currentdir/support/.libs/baselib.dll", "$embedDirArchDestination/.") or die ("failed copying baselib.dll\n");
+
 	# monodistribution directory setup
 	print(">>> Creating monodistribution directory\n");
 	copy("$monoprefix/bin/mono-2.0-bdwgc.dll", "$distDirArchBin/.") or die ("failed copying mono-2.0-bdwgc.dll\n");
@@ -262,6 +267,7 @@ if ($artifact)
 	copy("$monoprefix/bin/MonoPosixHelper.dll", "$distDirArchBin/.") or die ("failed copying MonoPosixHelper.dll\n");
 	copy("$monoprefix/bin/MonoPosixHelper.pdb", "$distDirArchBin/.") or die ("failed copying MonoPosixHelper.pdb\n");
 
+	copy("$currentdir/support/.libs/baselib.dll", "$distDirArchBin/.") or die ("failed copying baselib.dll\n");
 
 	# Output version information
 	print(">>> Creating version file : $versionsOutputFile\n");
