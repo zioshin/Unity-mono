@@ -36,6 +36,14 @@ elsif ($target eq "win32")
 {
 	$outputlib = "release_win32_nonlump/baselib.dll";
 }
+elsif ($target eq "linux_x64")
+{
+	$outputlib = "release_linux64_nonlump/baselib.so";
+}
+elsif ($target eq "linux_x86")
+{
+	$outputlib = "release_linux32_nonlump/baselib.so";
+}
 else
 {
 	die ("Unrecognized target: $target\n");
@@ -45,7 +53,7 @@ my $buildDestination = "$currentdir/support/.libs";
 mkdir "$buildDestination";
 copy("artifacts/baselib/$outputlib", $buildDestination) or die ("Failed copying artifacts/baselib/$outputlib to $buildDestination\n");
 
-if ($target eq "mac64" or $target eq "mac32")
+if ($target eq "mac64" or $target eq "mac32" or $target eq "linux_x64" or $target eq "linux_x86")
 {
 	my $unitTestDestination = "$currentdir/tmp/lib";
 	mkdir "$unitTestDestination";

@@ -1623,11 +1623,15 @@ if ($artifact)
 			print ">>> Copying libMonoPosixHelper.so\n";
 			system("cp", "$monoroot/support/.libs/libMonoPosixHelper.so","$embedDirArchDestination/libMonoPosixHelper.so") eq 0 or die ("failed copying libMonoPosixHelper.so\n");
 
+			my $baselibTarget = $arch32	 ? "linux_x86" : "linux_x64";
+			system("perl", "$buildscriptsdir/build_baselib.pl", "--target=$baselibTarget") eq 0 or die ("Failed building baselib for $baselibTarget");
+			system("cp", "$monoroot/support/.libs/baselib.so","$embedDirArchDestination/baselib.so") eq 0 or die ("failed copying baselib.so\n");
 			if ($buildMachine)
 			{
 				system("strip $embedDirArchDestination/libmonobdwgc-2.0.so") eq 0 or die("failed to strip libmonobdwgc-2.0.so (shared)\n");
 				system("strip $embedDirArchDestination/libmonosgen-2.0.so") eq 0 or die("failed to strip libmonosgen-2.0.so (shared)\n");
 				system("strip $embedDirArchDestination/libMonoPosixHelper.so") eq 0 or die("failed to strip libMonoPosixHelper (shared)\n");
+				system("strip $embedDirArchDestination/baselib.so") eq 0 or die("failed to strip baselib (shared)\n");
 			}
 		}
 		elsif($^O eq 'darwin')
