@@ -124,8 +124,6 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
       <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
@@ -166,8 +164,6 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
       <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
@@ -200,8 +196,6 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
       <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
@@ -242,8 +236,6 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
       <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
