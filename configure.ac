@@ -1517,7 +1517,8 @@ if test "x$support_boehm" = "xyes"; then
 			BOEHM_DEFINES="-DHAVE_BOEHM_GC"
 
 			if test x$target_win32 = xyes; then
-				CFLAGS_FOR_LIBGC="$CFLAGS_FOR_LIBGC -DGC_BUILD"
+				BOEHM_DEFINES="$BOEHM_DEFINES -DGC_DLL"
+				CFLAGS_FOR_LIBGC="$CFLAGS_FOR_LIBGC -DGC_BUILD -DGC_DLL"
 			fi
 
 			gc_msg="Included Boehm GC with typed GC"
