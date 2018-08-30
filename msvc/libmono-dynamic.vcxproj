@@ -123,6 +123,7 @@
       <AdditionalDependencies Condition="'$(MONO_TARGET_GC)'!='sgen'">$(GC_LIB);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
+      <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <DataExecutionPrevention>
@@ -164,6 +165,7 @@
       <AdditionalDependencies Condition="'$(MONO_TARGET_GC)'!='sgen'">$(GC_LIB);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
+      <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
@@ -197,6 +199,7 @@
       <AdditionalDependencies Condition="'$(MONO_TARGET_GC)'!='sgen'">$(GC_LIB);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
+      <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <DataExecutionPrevention>
@@ -238,6 +241,7 @@
       <AdditionalDependencies Condition="'$(MONO_TARGET_GC)'!='sgen'">$(GC_LIB);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/WHOLEARCHIVE:libgcbdwgc.lib</AdditionalOptions>
+      <ModuleDefinitionFile>libmono-dynamic.def</ModuleDefinitionFile>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <ImportLibrary>$(MONO_BUILD_DIR_PREFIX)$(Platform)\lib\$(Configuration)\$(TargetName).lib</ImportLibrary>
