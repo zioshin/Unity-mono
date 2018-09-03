@@ -62,7 +62,6 @@
 #	endif
 
 #	define GC_INSIDE_DLL
-#	define GC_BUILD
 #	include <gc.h>
 #	include <gc_typed.h>
 #	include <gc_mark.h>
