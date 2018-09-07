@@ -11,7 +11,7 @@ my $target=0;
 
 GetOptions('target=s'=>\$target);
 
-my $baseLibTarget = $target . "::baselib";
+my $baseLibTarget = "baselib::" . $target;
 
 print ">>> Building baselib target $baseLibTarget\n";
 
@@ -44,6 +44,14 @@ elsif ($target eq "linux_x86")
 {
 	$outputlib = "release_linux32_nonlump/baselib.so";
 }
+elsif ($target eq "android_arm32")
+{
+	$outputlib = "release_android_armv7/baselib.so";
+}
+elsif ($target eq "android_x86")
+{
+	$outputlib = "release_android_x86/baselib.so";
+}
 else
 {
 	die ("Unrecognized target: $target\n");
@@ -53,6 +61,7 @@ my $buildDestination = "$currentdir/support/.libs";
 mkdir "$buildDestination";
 copy("artifacts/baselib/$outputlib", $buildDestination) or die ("Failed copying artifacts/baselib/$outputlib to $buildDestination\n");
 
+# Copy the output for unit tests only on some platforms (we don't run the unit tests everywhere)
 if ($target eq "mac64" or $target eq "mac32" or $target eq "linux_x64" or $target eq "linux_x86")
 {
 	my $unitTestDestination = "$currentdir/tmp/lib";

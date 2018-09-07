@@ -1598,6 +1598,10 @@ if ($artifact)
 		}
 		elsif ($android)
 		{
+			my $baselibTarget = $androidArch eq "armv7a" ? "android_arm32" : "android_x86";
+			system("perl", "$buildscriptsdir/build_baselib.pl", "--target=$baselibTarget") eq 0 or die ("Failed building baselib for $baselibTarget");
+			system("cp", "$monoroot/support/.libs/baselib.so","$embedDirArchDestination/baselib.so") eq 0 or die ("failed copying baselib.so\n");
+
 			for my $file ('libmonosgen-2.0.so','libmonobdwgc-2.0.so')
 			{
 				print ">>> Copying $file\n";
