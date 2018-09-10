@@ -44,6 +44,9 @@ else
 
 	}
 
+	print ">>> Checking mono executable version\n";
+	system("$monoExecutable", "--version");
+
 	system("$monoExecutable", "bee.exe", "b", "$baseLibTarget") eq 0 or die("Failed to build baselib target: $baseLibTarget\n");
 }
 
