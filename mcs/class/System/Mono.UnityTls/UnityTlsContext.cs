@@ -41,6 +41,7 @@ namespace Mono.Unity
 		MonoTlsConnectionInfo connectioninfo;
 		bool                  isAuthenticated = false;
 		bool                  hasContext = false;
+		bool                  closedGraceful = false;
 
 		// Memory-buffer
 		byte [] writeBuffer;
@@ -168,7 +169,6 @@ namespace Mono.Unity
 
 		public override (int ret, bool wantMore) Read (byte[] buffer, int offset, int count)
 		{
-			bool wantMore = false;
 			int numBytesRead = 0;
 
 			lastException = null;
@@ -179,19 +179,29 @@ namespace Mono.Unity
 			if (lastException != null)
 				throw lastException;
 
-			if (errorState.code == UnityTls.unitytls_error_code.UNITYTLS_USER_WOULD_BLOCK || numBytesRead < count) // In contrast to some other APIs (like Apple security) WOULD_BLOCK is not set if we did a partial read
-				wantMore = true;
-			else if (errorState.code == UnityTls.unitytls_error_code.UNITYTLS_STREAM_CLOSED)
-				return (0, false);	// According to Apple and Btls implementation this is how we should handle gracefully closed connections.
-			else
-				Mono.Unity.Debug.CheckAndThrow (errorState, "Failed to read data from TLS context");
+			switch (errorState.code)
+			{
+				case UnityTls.unitytls_error_code.UNITYTLS_SUCCESS:
+					// In contrast to some other APIs (like Apple security) WOULD_BLOCK is not set if we did a partial write.
+					// The Mono Api however requires us to set the wantMore flag also if we didn't read all the data.
+					return (numBytesRead, numBytesRead < count);
+				
+				case UnityTls.unitytls_error_code.UNITYTLS_USER_WOULD_BLOCK:
+					return (numBytesRead, true);
+				
+				case UnityTls.unitytls_error_code.UNITYTLS_STREAM_CLOSED:
+					return (0, false);	// According to Apple and Btls implementation this is how we should handle gracefully closed connections.
 
-			return (numBytesRead, wantMore);
+				default:
+					if (!closedGraceful) {
+						Mono.Unity.Debug.CheckAndThrow (errorState, "Failed to read data to TLS context");
+					}
+					return (0, false);
+			}
 		}
 
 		public override (int ret, bool wantMore) Write (byte[] buffer, int offset, int count)
 		{
-			bool wantMore = false;
 			int numBytesWritten = 0;
 
 			lastException = null;
@@ -202,14 +212,23 @@ namespace Mono.Unity
 			if (lastException != null)
 				throw lastException;
 
-			if (errorState.code == UnityTls.unitytls_error_code.UNITYTLS_USER_WOULD_BLOCK || numBytesWritten < count) // In contrast to some other APIs (like Apple security) WOULD_BLOCK is not set if we did a partial write
-				wantMore = true;
-			else if (errorState.code == UnityTls.unitytls_error_code.UNITYTLS_STREAM_CLOSED)
-				return (0, false);	// According to Apple and Btls implementation this is how we should handle gracefully closed connections.
-			else
-				Mono.Unity.Debug.CheckAndThrow (errorState, "Failed to write data to TLS context");
+			switch (errorState.code)
+			{
+				case UnityTls.unitytls_error_code.UNITYTLS_SUCCESS:
+					// In contrast to some other APIs (like Apple security) WOULD_BLOCK is not set if we did a partial write.
+					// The Mono Api however requires us to set the wantMore flag also if we didn't write all the data.
+					return (numBytesWritten, numBytesWritten < count);
+				
+				case UnityTls.unitytls_error_code.UNITYTLS_USER_WOULD_BLOCK:
+					return (numBytesWritten, true);
+				
+				case UnityTls.unitytls_error_code.UNITYTLS_STREAM_CLOSED:
+					return (0, false);	// According to Apple and Btls implementation this is how we should handle gracefully closed connections.
 
-			return (numBytesWritten, wantMore);
+				default:
+					Mono.Unity.Debug.CheckAndThrow (errorState, "Failed to write data to TLS context");
+					return (0, false);
+			}
 		}
 
 		public override void Shutdown ()
@@ -284,18 +303,17 @@ namespace Mono.Unity
 			if (lastException != null)
 				throw lastException;
 
-			// Not done is not an error if we are server and don't ask for ClientCertificate
-			if (result == UnityTls.unitytls_x509verify_result.UNITYTLS_X509VERIFY_NOT_DONE && IsServer && !AskForClientCertificate)
+			// Not done is only an error if we are a client. Even servers with AskForClientCertificate should ignore it since .Net client authentification is always optional.
+			if (IsServer && result == UnityTls.unitytls_x509verify_result.UNITYTLS_X509VERIFY_NOT_DONE) {
 				Unity.Debug.CheckAndThrow (errorState, "Handshake failed", AlertDescription.HandshakeFailure);
-			else
-				Unity.Debug.CheckAndThrow (errorState, result, "Handshake failed", AlertDescription.HandshakeFailure);
 
-			// .Net implementation gives the server a verification callback (with null cert) even if AskForClientCertificate is false.
-			// We stick to this behavior here.
-			if (IsServer && !AskForClientCertificate) {
+				// .Net implementation gives the server a verification callback (with null cert) even if AskForClientCertificate is false.
+				// We stick to this behavior here.
 				if (!ValidateCertificate (null, null))
 					throw new TlsException (AlertDescription.HandshakeFailure, "Verification failure during handshake");
 			}
+			else
+				Unity.Debug.CheckAndThrow (errorState, result, "Handshake failed", AlertDescription.HandshakeFailure);
 
 			return true;
 		}
@@ -387,16 +405,27 @@ namespace Mono.Unity
 
 				bool wouldBlock;
 				int numBytesRead = Parent.InternalRead (readBuffer, 0, bufferLen, out wouldBlock);
-				if (wouldBlock) {
-					UnityTls.NativeInterface.unitytls_errorstate_raise_error (errorState, UnityTls.unitytls_error_code.UNITYTLS_USER_WOULD_BLOCK);
-					return 0;
-				}
+
+				// Non graceful exit.
 				if (numBytesRead < 0) {
 					UnityTls.NativeInterface.unitytls_errorstate_raise_error (errorState, UnityTls.unitytls_error_code.UNITYTLS_USER_READ_FAILED);
-					return 0;
+				} else if (numBytesRead > 0) {
+					Marshal.Copy (readBuffer, 0, (IntPtr)buffer, bufferLen);
+				} else  { // numBytesRead == 0
+					// careful when rearranging this: wouldBlock might be true even if stream was closed abruptly. 
+					if (wouldBlock) {
+						UnityTls.NativeInterface.unitytls_errorstate_raise_error (errorState, UnityTls.unitytls_error_code.UNITYTLS_USER_WOULD_BLOCK);
+					} 
+					// indicates graceful exit.
+					// UnityTls only accepts an exit as gracful, if it was closed via a special TLS protocol message.
+					// Both .Net and MobileTlsContext have a different idea of this concept though!
+					else {
+						closedGraceful = true;
+						UnityTls.NativeInterface.unitytls_errorstate_raise_error (errorState, UnityTls.unitytls_error_code.UNITYTLS_USER_READ_FAILED);
+					}
 				}
 
-				Marshal.Copy (readBuffer, 0, (IntPtr)buffer, bufferLen);
+				// Note that UnityTls ignores this number when raising an error.
 				return numBytesRead;
 			} catch (Exception ex) { // handle all exceptions and store them for later since we don't want to let them go through native code.
 				UnityTls.NativeInterface.unitytls_errorstate_raise_error (errorState, UnityTls.unitytls_error_code.UNITYTLS_USER_UNKNOWN_ERROR);
