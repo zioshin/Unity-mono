@@ -61,11 +61,11 @@ elsif ($target eq "mac32")
 }
 elsif ($target eq "win64")
 {
-	$outputlib = "release_win64_nonlump/baselib.dll";
+	$outputlib = "release_win64/baselib.dll";
 }
 elsif ($target eq "win32")
 {
-	$outputlib = "release_win32_nonlump/baselib.dll";
+	$outputlib = "release_win32/baselib.dll";
 }
 elsif ($target eq "linux_x64")
 {
