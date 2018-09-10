@@ -1573,7 +1573,7 @@ mono_gc_is_disabled (void)
 #else
 	if (GC_dont_gc
 #endif
-		|| gc_dont_gc_env))
+		|| gc_dont_gc_env)
 		return TRUE;
 	else
 		return FALSE;
