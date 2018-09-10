@@ -53,11 +53,11 @@ else
 my $outputlib = "";
 if ($target eq "mac64")
 {
-	$outputlib = "release_macosx64_nonlump/baselib.dylib";
+	$outputlib = "release_macosx64/baselib.dylib";
 }
 elsif ($target eq "mac32")
 {
-	$outputlib = "release_macosx32_nonlump/baselib.dylib";
+	$outputlib = "release_macosx32/baselib.dylib";
 }
 elsif ($target eq "win64")
 {
@@ -69,11 +69,11 @@ elsif ($target eq "win32")
 }
 elsif ($target eq "linux_x64")
 {
-	$outputlib = "release_linux64_nonlump/baselib.so";
+	$outputlib = "release_linux64/baselib.so";
 }
 elsif ($target eq "linux_x86")
 {
-	$outputlib = "release_linux32_nonlump/baselib.so";
+	$outputlib = "release_linux32/baselib.so";
 }
 elsif ($target eq "android_arm32")
 {
