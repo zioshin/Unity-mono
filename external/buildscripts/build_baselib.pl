@@ -17,38 +17,7 @@ print ">>> Building baselib target $baseLibTarget\n";
 
 chdir("external/baselib") eq 1 or die ("Failed to change to directory: external/baselib\n");
 
-if ($^O eq "MSWin32")
-{
-	system("bee.exe", "b", "$baseLibTarget") eq 0 or die("Failed to build baselib target: $baseLibTarget\n");
-}
-else
-{
-	my $monoExecutable = "../../../../mono-build-deps/build/MonoBleedingEdge/builds/monodistribution/";
-	if($^O eq "linux")
-	{
-		$monoExecutable .= "bin-linux32/mono";
-	}
-	elsif($^O eq 'darwin')
-	{
-		$monoExecutable .= "bin/mono";
-	}
-
-	if (-f $monoExecutable)
-	{
-		print ">>> Using Mono executable from $monoExecutable to run bee\n";
-	}
-	else
-	{
-		print ">>> Mono executable not found at $monoExecutable. Using the system Mono to run bee\n";
-		$monoExecutable = "mono";
-
-	}
-
-	print ">>> Checking mono executable version\n";
-	system("$monoExecutable", "--version");
-
-	system("$monoExecutable", "bee.exe", "b", "$baseLibTarget") eq 0 or die("Failed to build baselib target: $baseLibTarget\n");
-}
+system("./bee", "b", "$baseLibTarget") eq 0 or die("Failed to build baselib target: $baseLibTarget\n");
 
 my $outputlib = "";
 if ($target eq "mac64")
