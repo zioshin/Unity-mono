@@ -68,6 +68,7 @@
 #include <mono/utils/mono-signal-handler.h>
 #include <mono/utils/mono-threads.h>
 #include <mono/utils/os-event.h>
+#include <mono/utils/mono-state.h>
 #include <mono/mini/debugger-state-machine.h>
 
 #include "mini.h"
@@ -144,7 +145,7 @@ get_saved_signal_handler (int signo, gboolean remove)
 {
 	if (mono_saved_signal_handlers) {
 		/* The hash is only modified during startup, so no need for locking */
-		struct sigaction *handler = g_hash_table_lookup (mono_saved_signal_handlers, GINT_TO_POINTER (signo));
+		struct sigaction *handler = (struct sigaction*)g_hash_table_lookup (mono_saved_signal_handlers, GINT_TO_POINTER (signo));
 		if (remove && handler)
 			g_hash_table_remove (mono_saved_signal_handlers, GINT_TO_POINTER (signo));
 		return handler;
@@ -242,8 +243,7 @@ MONO_SIG_HANDLER_FUNC (static, sigterm_signal_handler)
 #ifdef TARGET_OSX
 	if (mono_merp_enabled ()) {
 		pid_t crashed_pid = getpid ();
-		char *full_version = mono_get_runtime_build_info ();
-		mono_merp_invoke (crashed_pid, "SIGTERM", output, &hashes, full_version);
+		mono_merp_invoke (crashed_pid, "SIGTERM", output, &hashes);
 	} else
 #endif
 	{
@@ -301,7 +301,7 @@ MONO_SIG_HANDLER_FUNC (static, profiler_signal_handler)
 
 	mono_thread_info_set_is_async_context (TRUE);
 
-	MONO_PROFILER_RAISE (sample_hit, (mono_arch_ip_from_context (ctx), ctx));
+	MONO_PROFILER_RAISE (sample_hit, ((const mono_byte*)mono_arch_ip_from_context (ctx), ctx));
 
 	mono_thread_info_set_is_async_context (FALSE);
 
@@ -337,14 +337,16 @@ MONO_SIG_HANDLER_FUNC (static, sigusr2_signal_handler)
 	mono_chain_signal (MONO_SIG_HANDLER_PARAMS);
 }
 
+typedef void MONO_SIG_HANDLER_SIGNATURE ((*MonoSignalHandler));
+
 static void
-add_signal_handler (int signo, gpointer handler, int flags)
+add_signal_handler (int signo, MonoSignalHandler handler, int flags)
 {
 	struct sigaction sa;
 	struct sigaction previous_sa;
 
 #ifdef MONO_ARCH_USE_SIGACTION
-	sa.sa_sigaction = (void (*)(int, siginfo_t *, void *))handler;
+	sa.sa_sigaction = handler;
 	sigemptyset (&sa.sa_mask);
 	sa.sa_flags = SA_SIGINFO | flags;
 #ifdef MONO_ARCH_SIGSEGV_ON_ALTSTACK
@@ -375,7 +377,7 @@ add_signal_handler (int signo, gpointer handler, int flags)
 		sigemptyset (&block_mask);
 	}
 #else
-	sa.sa_handler = handler;
+	sa.sa_handler = (void (*)(int))handler;
 	sigemptyset (&sa.sa_mask);
 	sa.sa_flags = flags;
 #endif
@@ -710,7 +712,9 @@ sampling_thread_func (gpointer unused)
 	 * to do our work, the kernel may knock us back down to the normal thread
 	 * scheduling policy without telling us.
 	 */
-	struct sched_param sched = { .sched_priority = sched_get_priority_max (SCHED_FIFO) };
+	struct sched_param sched;
+	memset (&sched, 0, sizeof (sched));
+	sched.sched_priority = sched_get_priority_max (SCHED_FIFO);
 	pthread_setschedparam (pthread_self (), SCHED_FIFO, &sched);
 
 	MonoProfilerSampleMode mode;
@@ -894,25 +898,25 @@ xxd_mem (gpointer d, int len)
 	guint8 *data = (guint8 *) d;
 
 	for (int off = 0; off < len; off += 0x10) {
-		g_printerr ("%p  ", data + off);
+		gchar *line = g_strdup_printf ("%p  ", data + off);
 
 		for (int i = 0; i < 0x10; i++) {
 			if ((i + off) >= len)
-				g_printerr ("   ");
+				line = g_strdup_printf ("%s   ", line);
 			else
-				g_printerr ("%02x ", data [off + i]);
+				line = g_strdup_printf ("%s%02x ", line, data [off + i]);
 		}
 
-		g_printerr (" ");
+		line = g_strdup_printf ("%s ", line);
 
 		for (int i = 0; i < 0x10; i++) {
 			if ((i + off) >= len)
-				g_printerr (" ");
+				line = g_strdup_printf ("%s ", line);
 			else
-				g_printerr ("%c", conv_ascii_char (data [off + i]));
+				line = g_strdup_printf ("%s%c", line, conv_ascii_char (data [off + i]));
 		}
 
-		g_printerr ("\n");
+		mono_runtime_printf_err ("%s", line);
 	}
 }
 
@@ -923,8 +927,12 @@ dump_memory_around_ip (void *ctx)
 	MonoContext mctx;
 	mono_sigctx_to_monoctx (ctx, &mctx);
 	gpointer native_ip = MONO_CONTEXT_GET_IP (&mctx);
-	g_printerr ("Memory around native instruction pointer (%p):\n", native_ip);
-	xxd_mem (((guint8 *) native_ip) - 0x10, 0x40);
+	if (native_ip) {
+		mono_runtime_printf_err ("Memory around native instruction pointer (%p):", native_ip);
+		xxd_mem (((guint8 *) native_ip) - 0x10, 0x40);
+	} else {
+		mono_runtime_printf_err ("instruction pointer is NULL, skip dumping");
+	}
 #endif
 }
 
@@ -958,44 +966,6 @@ print_process_map (void)
 	/* do nothing */
 #endif
 }
-
-#ifndef DISABLE_CRASH_REPORTING
-static void
-mono_crash_dump (const char *jsonFile)
-{
-	size_t size = strlen (jsonFile);
-
-	pid_t pid = getpid ();
-	gboolean success = FALSE;
-
-	// Save up to 100 dump files for a pid, in case mono is embedded?
-	for (int increment = 0; increment < 100; increment++) {
-		FILE* fp;
-		char *name = g_strdup_printf ("mono_crash.%d.%d.json", pid, increment);
-
-		if ((fp = fopen (name, "ab"))) {
-			if (ftell (fp) == 0) {
-				fwrite (jsonFile, size, 1, fp);
-				success = TRUE;
-			}
-		} else {
-			// Couldn't make file and file doesn't exist
-			g_warning ("Didn't have permission to access %s for file dump\n", name);
-		}
-
-		/*cleanup*/
-		if (fp)
-			fclose (fp);
-
-		g_free (name);
-
-		if (success)
-			return;
-	}
-
-	return;
-}
-#endif /* DISABLE_CRASH_REPORTING */
 
 static void
 dump_native_stacktrace (const char *signal, void *ctx)
@@ -1059,7 +1029,7 @@ dump_native_stacktrace (const char *signal, void *ctx)
 			// We want our crash, and don't have telemetry
 			// So we dump to disk
 			if (!leave && !dump_for_merp)
-				mono_crash_dump (output);
+				mono_crash_dump (output, &hashes);
 		}
 #endif
 
@@ -1096,9 +1066,7 @@ dump_native_stacktrace (const char *signal, void *ctx)
 					exit (1);
 				}
 
-				char *full_version = mono_get_runtime_build_info ();
-
-				mono_merp_invoke (crashed_pid, signal, output, &hashes, full_version);
+				mono_merp_invoke (crashed_pid, signal, output, &hashes);
 
 				exit (1);
 			}

@@ -1,3 +1,4 @@
+// -*- indent-tabs-mode:nil -*-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,9 +14,6 @@ namespace CppSharp
      * This tool dumps the offsets of structures used in the Mono VM needed
      * by the AOT compiler for cross-compiling code to target platforms
      * different than the host the compiler is being invoked on.
-     * 
-     * It takes two arguments: the path to your clone of the Mono repo and
-     * the path to the root of Android NDK.
      */
     static class MonoAotOffsetsDumper
     {
@@ -25,18 +23,19 @@ namespace CppSharp
         static string OutputDir;
         static string OutputFile;
 
-        static string MonodroidDir = @"";
         static string AndroidNdkPath = @"";
-        static string MaccoreDir = @"";
+        static string EmscriptenSdkPath = @"";
         static string TargetDir = @"";
         static bool GenIOS;
+        static bool GenAndroid;
 
         public enum TargetPlatform
         {
             Android,
             iOS,
             WatchOS,
-            OSX
+            OSX,
+            WASM
         }
 
         public class Target
@@ -179,12 +178,19 @@ namespace CppSharp
                 Environment.Exit (1);
             }
             string abi = Abis [0];
-            if (abi == "i386-apple-darwin11.2.0") {
+            if (abi == "i386-apple-darwin13.0.0") {
                 Targets.Add(new Target {
                         Platform = TargetPlatform.OSX,
-                        Triple = "i386-apple-darwin11.2.0",
+                        Triple = "i386-apple-darwin13.0.0",
                         Build = "",
                         Defines = { "TARGET_X86" },
+                });
+            } else if (abi == "wasm32-unknown-unknown") {
+                Targets.Add(new Target {
+                        Platform = TargetPlatform.WASM,
+                        Triple = "wasm32-wasm32-unknown-unknown",
+                        Build = "",
+                        Defines = { "TARGET_WASM" },
                 });
             } else {
                 Console.WriteLine ($"Unsupported abi: {abi}.");
@@ -215,22 +221,10 @@ namespace CppSharp
         {
             ParseCommandLineArgs(args);
 
-            string monodroidDir;
-            if (!Directory.Exists (MonodroidDir) &&
-                GetParentSubDirectoryPath ("monodroid", out monodroidDir)) {
-                MonodroidDir = Path.Combine (monodroidDir);
-            }
-
-            if (Directory.Exists (MonodroidDir))
+            if (GenAndroid)
                 SetupAndroidTargets();
 
-            string maccoreDir;
-            if (!Directory.Exists (MaccoreDir) &&
-                GetParentSubDirectoryPath ("maccore", out maccoreDir)) {
-                MaccoreDir = Path.Combine (maccoreDir);
-            }
-
-            if (Directory.Exists(MaccoreDir) || GenIOS)
+            if (GenIOS)
                 SetupiOSTargets();
 
             if (Targets.Count == 0)
@@ -275,21 +269,6 @@ namespace CppSharp
             }
         }
 
-        static string GetAndroidNdkPath()
-        {
-            if (!String.IsNullOrEmpty (AndroidNdkPath))
-                return AndroidNdkPath;
-
-            // Find the Android NDK's path from Monodroid's config.
-            var configFile = Path.Combine(MonodroidDir, "env.config");
-            if (!File.Exists(configFile))
-                throw new Exception("Expected a valid Monodroid environment config file at " + configFile);
-
-            var config = File.ReadAllText(configFile);
-            var match = Regex.Match(config, @"ANDROID_NDK_PATH\s*:=\s(.*)");
-            return match.Groups[1].Value.Trim();
-        }
-
         static void ParseCommandLineArgs(string[] args)
         {
             var showHelp = false;
@@ -298,12 +277,12 @@ namespace CppSharp
                 { "abi=", "ABI triple to generate", v => Abis.Add(v) },
                 { "o|out=", "output directory", v => OutputDir = v },
                 { "outfile=", "output directory", v => OutputFile = v },
-                { "maccore=", "include directory", v => MaccoreDir = v },
-                { "monodroid=", "top monodroid directory", v => MonodroidDir = v },
                 { "android-ndk=", "Path to Android NDK", v => AndroidNdkPath = v },
+                { "emscripten-sdk=", "Path to emscripten sdk", v => EmscriptenSdkPath = v },
                 { "targetdir=", "Path to the directory containing the mono build", v =>TargetDir = v },
                 { "mono=", "include directory", v => MonoDir = v },
                 { "gen-ios", "generate iOS offsets", v => GenIOS = v != null },
+                { "gen-android", "generate Android offsets", v => GenAndroid = v != null },
                 { "h|help",  "show this message and exit",  v => showHelp = v != null },
             };
 
@@ -352,12 +331,16 @@ namespace CppSharp
             string targetBuild;
             switch (target.Platform) {
             case TargetPlatform.Android:
-                if (TargetDir == "") {
+                if (string.IsNullOrEmpty (TargetDir)) {
                     Console.Error.WriteLine ("The --targetdir= option is required when targeting android.");
                     Environment.Exit (1);
                 }
-                if (MonoDir == "") {
+                if (string.IsNullOrEmpty (MonoDir)) {
                     Console.Error.WriteLine ("The --mono= option is required when targeting android.");
+                    Environment.Exit (1);
+                }
+                if (string.IsNullOrEmpty(AndroidNdkPath)) {
+                    Console.WriteLine("The --android-ndk= option is required when targeting android");
                     Environment.Exit (1);
                 }
                 if (Abis.Count != 1) {
@@ -368,22 +351,28 @@ namespace CppSharp
                 break;
             case TargetPlatform.WatchOS:
             case TargetPlatform.iOS: {
-                if (!string.IsNullOrEmpty (TargetDir)) {
-                    targetBuild = TargetDir;
-                } else {
-                    string targetPath = Path.Combine (MaccoreDir, "builds");
-                    if (!Directory.Exists (MonoDir))
-                        MonoDir = Path.GetFullPath (Path.Combine (targetPath, "../../mono"));
-                    targetBuild = Path.Combine(targetPath, target.Build);
+                if (string.IsNullOrEmpty (TargetDir)) {
+                    Console.Error.WriteLine ("The --targetdir= option is required when targeting ios.");
+                    Environment.Exit (1);
                 }
+                if (string.IsNullOrEmpty (MonoDir)) {
+                    Console.Error.WriteLine ("The --mono= option is required when targeting ios.");
+                    Environment.Exit (1);
+                }
+                targetBuild = TargetDir;
                 break;
             }
             case TargetPlatform.OSX:
+            case TargetPlatform.WASM:
                 if (MonoDir == "") {
                     Console.Error.WriteLine ("The --mono= option is required when targeting osx.");
                     Environment.Exit (1);
                 }
-                targetBuild = ".";
+                if (!string.IsNullOrEmpty (TargetDir)) {
+                    targetBuild = TargetDir;
+                } else {
+                    targetBuild = ".";
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException ();
@@ -444,6 +433,22 @@ namespace CppSharp
             case TargetPlatform.WatchOS:
             case TargetPlatform.OSX:
                 SetupXcode(driver, target);
+                break;
+            case TargetPlatform.WASM:
+                if (EmscriptenSdkPath == "") {
+                    Console.Error.WriteLine ("The --emscripten-sdk= option is required when targeting wasm.");
+                    Environment.Exit (1);
+                }
+                string include_dir = Path.Combine (EmscriptenSdkPath, "system", "include", "libc");
+                if (!Directory.Exists (include_dir)) {
+                    Console.Error.WriteLine ($"emscripten include directory {include_dir} does not exist.");
+                    Environment.Exit (1);
+                }
+                var parserOptions = driver.ParserOptions;
+                parserOptions.NoBuiltinIncludes = true;
+                parserOptions.NoStandardIncludes = true;
+                parserOptions.TargetTriple = target.Triple;
+                parserOptions.AddSystemIncludeDirs(include_dir);
                 break;
             default:
                 throw new ArgumentOutOfRangeException ();
@@ -578,9 +583,8 @@ namespace CppSharp
 
         static string GetAndroidHostToolchainPath()
         {
-            var androidNdkPath = GetAndroidNdkPath ();
             var toolchains = Directory.EnumerateDirectories(
-                Path.Combine(androidNdkPath, "toolchains"), "llvm*").ToList();
+                Path.Combine(AndroidNdkPath, "toolchains"), "llvm*").ToList();
             toolchains.Sort();
 
             var toolchainPath = toolchains.LastOrDefault();
@@ -625,10 +629,9 @@ namespace CppSharp
             var builtinsPath = GetAndroidBuiltinIncludesFolder();
             parserOptions.AddSystemIncludeDirs(builtinsPath);
 
-            var androidNdkRoot = GetAndroidNdkPath ();
             const int androidNdkApiLevel = 21;
 
-            var toolchainPath = Path.Combine(androidNdkRoot, "platforms",
+            var toolchainPath = Path.Combine(AndroidNdkPath, "platforms",
                 "android-" + androidNdkApiLevel, "arch-" + GetArchFromTriple(target.Triple),
                 "usr", "include");
             parserOptions.AddSystemIncludeDirs(toolchainPath);
@@ -697,6 +700,8 @@ namespace CppSharp
                 return "TARGET_WATCHOS";
             case TargetPlatform.OSX:
                 return "TARGET_OSX";
+            case TargetPlatform.WASM:
+                return "TARGET_WASM";
             default:
                 throw new ArgumentOutOfRangeException ();
             }

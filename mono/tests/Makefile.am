@@ -207,7 +207,7 @@ MCS_NO_UNSAFE = $(TOOLS_RUNTIME) $(CSC) -debug:portable \
 	-noconfig -nologo \
 	-nowarn:0162 -nowarn:0168 -nowarn:0219 -nowarn:0414 -nowarn:0618 \
 	-nowarn:0169 -nowarn:1690 -nowarn:0649 -nowarn:0612 -nowarn:3021 \
-	-nowarn:0197 -langversion:7.3 $(PROFILE_MCS_FLAGS)
+	-nowarn:0197 -langversion:latest $(PROFILE_MCS_FLAGS)
 MCS_NO_LIB = $(MCS_NO_UNSAFE) -unsafe
 
 MCS = $(MCS_NO_LIB)
@@ -1246,6 +1246,7 @@ PROFILE_DISABLED_TESTS += \
 	invalid-token.exe \
 	call_missing_method.exe \
 	call_missing_class.exe \
+	custom-attr-errors.exe \
 	ldfld_missing_field.exe \
 	ldfld_missing_class.exe \
 	vt-sync-method.exe \
@@ -1375,6 +1376,9 @@ PROFILE_DISABLED_TESTS += \
 	assembly-load-bytes.exe \
 	assembly-load-bytes-bindingredirect.exe
 
+# Tests which require AOT of a multi-netmodule assemblies
+PROFILE_DISABLED_TESTS += test-multi-netmodule-4-exe.exe
+
 # Tests which depend on a case-insensitive filesystem when using AOT
 if HOST_DARWIN
 else
@@ -1424,6 +1428,7 @@ PROFILE_DISABLED_TESTS += \
 if MONO_ARCH_GSHAREDVT_SUPPORTED
 PROFILE_DISABLED_TESTS += tailcall-interface-conservestack.exe
 PROFILE_DISABLED_TESTS += tailcall/fsharp-deeptail.exe
+PROFILE_DISABLED_TESTS += tailcall/interface-conservestack/20.exe
 PROFILE_DISABLED_TESTS += tailcall/interface-conservestack/26.exe
 PROFILE_DISABLED_TESTS += tailcall/interface-conservestack/31.exe
 PROFILE_DISABLED_TESTS += tailcall/interface-conservestack/33.exe
@@ -1485,20 +1490,15 @@ CI_DISABLED_TESTS = \
 	main-returns-background-resetabort.exe \
 	main-returns-background-abort-resetabort.exe	\
 	assemblyresolve_event3.exe \
-	delegate2.exe	\
 	finally_guard.exe \
 	generic-xdomain.2.exe
 
 # failing tests which we temporarily disable for PRs
 # so they don't interfere with other people's work
-CI_PR_DISABLED_TESTS = \
-	appdomain-threadpool-unload.exe
+CI_PR_DISABLED_TESTS =
 
 # FIXME Hybrid Suspend - see https://github.com/mono/mono/issues/9959
-CI_PR_DISABLED_TESTS += sgen-new-threads-collect.exe
-
-# see https://github.com/mono/mono/issues/10031
-CI_PR_DISABLED_TESTS += unhandled-exception-2.exe unhandled-exception-4.exe
+# CI_PR_DISABLED_TESTS += sgen-new-threads-collect.exe
 
 # appdomain-threadpool-unload.exe creates 100 appdomains, takes too long with llvm
 LLVM_DISABLED_TESTS = \
@@ -2065,7 +2065,7 @@ test-multi-netmodule-4-exe.exe: test-multi-netmodule-4-exe.cs test-multi-netmodu
 	$(Q) $(MCS) -r:test-multi-netmodule-2-dll1.dll -out:$@ $<
 
 test-multi-netmodule: test-multi-netmodule-4-exe.exe
-	$(Q) $(RUNTIME) test-multi-netmodule-4-exe.exe > test-multi-netmodule-4-exe.exe.stdout 2> test-multi-netmodule-4-exe.exe.stderr
+	$(Q) $(TOOLS_RUNTIME) $(TEST_RUNNER) --testsuite-name $@ --disabled "$(DISABLED_TESTS)" $<
 
 EXTRA_DIST += custom-attr-errors.cs custom-attr-errors-lib.cs
 
@@ -2075,7 +2075,7 @@ custom-attr-errors.exe custom-attr-errors-lib.dll: custom-attr-errors.cs custom-
 	$(Q) $(MCS) /t:library custom-attr-errors-lib.cs
 
 test-cattr-type-load: custom-attr-errors.exe
-	$(Q) $(RUNTIME) custom-attr-errors.exe > custom-attr-errors.exe.stdout 2> custom-attr-errors.exe.stderr
+	$(Q) $(TOOLS_RUNTIME) $(TEST_RUNNER) --testsuite-name $@ --disabled "$(DISABLED_TESTS)" $<
 
 EXTRA_DIST += reflection-load-with-context-lib.cs reflection-load-with-context-second-lib.cs reflection-load-with-context.cs
 
@@ -2953,9 +2953,9 @@ if HOST_WIN32
 libtest_la_CFLAGS=-fno-optimize-sibling-calls
 # the exported names created by gcc for stdcall functions are missing the leading _, so MS.NET
 # can't find them. So we use --kill-at to remove the @ suffix as well.
-libtest_la_LDFLAGS=-no-undefined -rpath `pwd` -Wl,--kill-at
+libtest_la_LDFLAGS = -no-undefined -rpath `pwd` -Wl,--kill-at
 else
-libtest_la_LDFLAGS = -rpath `pwd`
+libtest_la_LDFLAGS = -no-undefined -rpath `pwd`
 endif
 libtest_la_SOURCES = libtest.c
 libtest_la_LIBADD = $(top_builddir)/mono/eglib/libeglib.la

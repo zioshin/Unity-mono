@@ -123,25 +123,33 @@ get_method_image (MonoMethod *method)
 	return m_class_get_image (method->klass);
 }
 
+#ifdef __cplusplus
+template <typename T>
+static void
+register_icall (T func, const char *name, const char *sigstr, gboolean no_wrapper)
+#else
 static void
 register_icall (gpointer func, const char *name, const char *sigstr, gboolean no_wrapper)
+#endif
 {
 	MonoMethodSignature *sig = mono_create_icall_signature (sigstr);
 
 	mono_register_jit_icall (func, name, sig, no_wrapper);
 }
 
+#ifdef __cplusplus
+template <typename T>
+static void
+register_icall_no_wrapper (T func, const char *name, const char *sigstr)
+#else
 static void
 register_icall_no_wrapper (gpointer func, const char *name, const char *sigstr)
+#endif
 {
 	MonoMethodSignature *sig = mono_create_icall_signature (sigstr);
 
 	mono_register_jit_icall (func, name, sig, TRUE);
 }
-
-// Cast the first parameter to gpointer; macros do not recurse.
-#define register_icall(func, name, sigstr, no_wrapper) (register_icall ((gpointer)(func), (name), (sigstr), (no_wrapper)))
-#define register_icall_no_wrapper(func, name, sigstr) (register_icall_no_wrapper ((gpointer)(func), (name), (sigstr)))
 
 MonoMethodSignature*
 mono_signature_no_pinvoke (MonoMethod *method)
@@ -281,6 +289,7 @@ mono_marshal_init (void)
 		register_icall (mono_icall_end, "mono_icall_end", "void ptr ptr ptr", TRUE);
 		register_icall (mono_icall_handle_new, "mono_icall_handle_new", "ptr ptr", TRUE);
 		register_icall (mono_icall_handle_new_interior, "mono_icall_handle_new_interior", "ptr ptr", TRUE);
+		register_icall (mono_marshal_get_type_object, "mono_marshal_get_type_object", "object ptr", TRUE);
 
 		mono_cominterop_init ();
 		mono_remoting_init ();
@@ -522,7 +531,7 @@ mono_ftnptr_to_delegate_handle (MonoClass *klass, gpointer ftn, MonoError *error
 		if (gchandle)
 			MONO_HANDLE_ASSIGN (d, MONO_HANDLE_CAST (MonoDelegate, mono_gchandle_get_target_handle (gchandle)));
 	} else {
-		MONO_HANDLE_ASSIGN (d, MONO_HANDLE_NEW (MonoDelegate, g_hash_table_lookup (delegate_hash_table, ftn)));
+		MONO_HANDLE_ASSIGN (d, MONO_HANDLE_NEW (MonoDelegate, (MonoDelegate*)g_hash_table_lookup (delegate_hash_table, ftn)));
 		mono_marshal_unlock ();
 	}
 	if (MONO_HANDLE_IS_NULL (d)) {
@@ -753,13 +762,13 @@ mono_byvalarray_to_array (MonoArray *arr, gpointer native_arr, MonoClass *elclas
 
 	if (elclass == mono_defaults.byte_class) {
 		GError *gerror = NULL;
-		guint16 *ut;
+		gunichar2 *ut;
 		glong items_written;
 
 		ut = g_utf8_to_utf16 ((const gchar *)native_arr, elnum, NULL, &items_written, &gerror);
 
 		if (!gerror) {
-			memcpy (mono_array_addr (arr, guint16, 0), ut, items_written * sizeof (guint16));
+			memcpy (mono_array_addr (arr, gunichar2, 0), ut, items_written * sizeof (gunichar2));
 			g_free (ut);
 		}
 		else
@@ -2599,7 +2608,11 @@ mono_marshal_get_runtime_invoke_full (MonoMethod *method, gboolean virtual_, gbo
 	const char *param_names [16];
 	WrapperInfo *info;
 	MonoWrapperMethodCacheKey *method_key;
-	MonoWrapperMethodCacheKey method_key_lookup_only = { .method = method, .virtual_ = virtual_, .need_direct_wrapper = need_direct_wrapper };
+	MonoWrapperMethodCacheKey method_key_lookup_only;
+	memset (&method_key_lookup_only, 0, sizeof (method_key_lookup_only));
+	method_key_lookup_only.method = method;
+	method_key_lookup_only.virtual_ = virtual_;
+	method_key_lookup_only.need_direct_wrapper = need_direct_wrapper;
 	method_key = &method_key_lookup_only;
 
 	g_assert (method);
@@ -2652,7 +2665,10 @@ mono_marshal_get_runtime_invoke_full (MonoMethod *method, gboolean virtual_, gbo
 		MonoMethodSignature *tmp_sig;
 
 		callsig = mono_marshal_get_runtime_invoke_sig (callsig);
-		MonoWrapperSignatureCacheKey sig_key = { .signature = callsig, .valuetype = m_class_is_valuetype (method->klass)};
+		MonoWrapperSignatureCacheKey sig_key;
+		memset (&sig_key, 0, sizeof (sig_key));
+		sig_key.signature = callsig;
+		sig_key.valuetype = m_class_is_valuetype (method->klass);
 
 		cache_table = &mono_method_get_wrapper_cache (method)->runtime_invoke_signature_cache;
 		sig_cache = get_cache (cache_table, (GHashFunc) wrapper_cache_signature_key_hash, (GCompareFunc) wrapper_cache_signature_key_equal);
@@ -5040,10 +5056,10 @@ ves_icall_System_Runtime_InteropServices_Marshal_PtrToStringAnsi_len (const char
 }
 
 MonoStringHandle
-ves_icall_System_Runtime_InteropServices_Marshal_PtrToStringUni (const guint16 *ptr, MonoError *error)
+ves_icall_System_Runtime_InteropServices_Marshal_PtrToStringUni (const gunichar2 *ptr, MonoError *error)
 {
 	gsize len = 0;
-	const guint16 *t = ptr;
+	const gunichar2 *t = ptr;
 
 	if (!ptr)
 		return NULL_HANDLE_STRING;
@@ -5058,7 +5074,7 @@ ves_icall_System_Runtime_InteropServices_Marshal_PtrToStringUni (const guint16 *
 }
 
 MonoStringHandle
-ves_icall_System_Runtime_InteropServices_Marshal_PtrToStringUni_len (const guint16 *ptr, gint32 len, MonoError *error)
+ves_icall_System_Runtime_InteropServices_Marshal_PtrToStringUni_len (const gunichar2 *ptr, gint32 len, MonoError *error)
 {
 	if (!ptr) {
 		mono_error_set_argument_null (error, "ptr", "");
@@ -6202,10 +6218,20 @@ gpointer
 mono_icall_handle_new_interior (gpointer rawobj)
 {
 #ifdef MONO_HANDLE_TRACK_OWNER
-	return mono_handle_new_interior (rawobj, "<marshal args>");
+	return mono_handle_new_interior ((MonoObject*)rawobj, "<marshal args>");
 #else
-	return mono_handle_new_interior (rawobj);
+	return mono_handle_new_interior ((MonoObject*)rawobj);
 #endif
+}
+
+MonoObject*
+mono_marshal_get_type_object (MonoClass *klass)
+{
+	ERROR_DECL (error);
+	MonoType *type = m_class_get_byval_arg (klass);
+	MonoObject *result = (MonoObject*)mono_type_get_object_checked (mono_domain_get (), type, error);
+	mono_error_set_pending_exception (error);
+	return result;
 }
 
 void

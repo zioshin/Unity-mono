@@ -5,6 +5,7 @@
 #ifndef __MONO_OBJECT_INTERNALS_H__
 #define __MONO_OBJECT_INTERNALS_H__
 
+#include <mono/utils/mono-forward-internal.h>
 #include <mono/metadata/object-forward.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/threads.h>
@@ -152,6 +153,8 @@ struct _MonoString {
 	int32_t length;
 	mono_unichar2 chars [MONO_ZERO_LEN_ARRAY];
 };
+
+#define MONO_SIZEOF_MONO_STRING (MONO_STRUCT_OFFSET (MonoString, chars))
 
 #define mono_object_class(obj) (((MonoObject*)(obj))->vtable->klass)
 #define mono_object_domain(obj) (((MonoObject*)(obj))->vtable->domain)
@@ -489,7 +492,7 @@ struct _MonoInternalThread {
 
 struct _MonoThread {
 	MonoObject obj;
-	struct _MonoInternalThread *internal_thread;
+	MonoInternalThread *internal_thread;
 	MonoObject *start_obj;
 	MonoException *pending_exception;
 };
@@ -696,6 +699,7 @@ typedef struct {
 	void (*mono_clear_abort_threshold) (void);
 	void (*mono_reraise_exception) (MonoException *ex);
 	void (*mono_summarize_stack) (MonoDomain *domain, MonoThreadSummary *out, MonoContext *crash_ctx);
+	void (*mono_summarize_exception) (MonoException *exc, MonoThreadSummary *out);
 } MonoRuntimeExceptionHandlingCallbacks;
 
 MONO_COLD void mono_set_pending_exception (MonoException *exc);
@@ -1771,6 +1775,8 @@ mono_method_add_generic_virtual_invocation (MonoDomain *domain, MonoVTable *vtab
 gpointer
 mono_method_alloc_generic_virtual_trampoline (MonoDomain *domain, int size);
 
+#define mono_method_alloc_generic_virtual_trampoline(domain, size) (g_cast (mono_method_alloc_generic_virtual_trampoline ((domain), (size))))
+
 typedef enum {
 	MONO_UNHANDLED_POLICY_LEGACY,
 	MONO_UNHANDLED_POLICY_CURRENT
@@ -1953,10 +1959,10 @@ MonoString*
 mono_string_new_wtf8_len_checked (MonoDomain *domain, const char *text, guint length, MonoError *error);
 
 MonoString *
-mono_string_new_utf16_checked (MonoDomain *domain, const guint16 *text, gint32 len, MonoError *error);
+mono_string_new_utf16_checked (MonoDomain *domain, const gunichar2 *text, gint32 len, MonoError *error);
 
 MonoStringHandle
-mono_string_new_utf16_handle (MonoDomain *domain, const guint16 *text, gint32 len, MonoError *error);
+mono_string_new_utf16_handle (MonoDomain *domain, const gunichar2 *text, gint32 len, MonoError *error);
 
 MonoStringHandle
 mono_string_new_utf8_len_handle (MonoDomain *domain, const char *text, guint length, MonoError *error);
@@ -2115,6 +2121,6 @@ gpointer
 mono_object_get_data (MonoObject *o);
 
 gpointer
-mono_vtype_get_field_addr (guint8 *vtype, MonoClassField *field);
+mono_vtype_get_field_addr (gpointer vtype, MonoClassField *field);
 
 #endif /* __MONO_OBJECT_INTERNALS_H__ */

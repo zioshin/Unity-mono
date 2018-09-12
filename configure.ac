@@ -46,7 +46,7 @@ MONO_VERSION_BUILD=`echo $VERSION | cut -d . -f 3`
 # There is no ordering of corlib versions, no old or new,
 # the runtime expects an exact match.
 #
-MONO_CORLIB_VERSION=E3B08C49-2D68-4693-AF9C-639F3ED0395F
+MONO_CORLIB_VERSION=D5B35FED-5DF9-413F-8463-57269F340FA7
 
 #
 # Put a quoted #define in config.h.
@@ -983,11 +983,11 @@ fi
 #--with-crash_privacy=no --with-structured_crashes=no means you want to see no crash dumps on failure and you don't care about privacy. This is how you'd set a "don't want it, don't care" configuration.
 #--with-crash_privacy=no --with-structured_crashes=yes means you want full crashes and you want to see them in the terminal, not on telemetry. This is going to be how we build for CI.
 
-AC_ARG_WITH(crash-privacy,       [  --with-crash_privacy=yes,no         If you want your crashes to not include names of symbols present in the binary. ], [], [with_crash_privacy=no])
+AC_ARG_WITH(crash-privacy,       [  --with-crash_privacy=yes,no         If you want your crashes to not include names of symbols present in the binary. ], [], [with_crash_privacy=yes])
 AC_ARG_WITH(structured-crashes,  [  --with-structured_crashes=yes,no    If you want your unmanaged crashes to result in a small crash dump file. ],        [], [with_structured_crashes=yes])
 AC_ARG_ENABLE(crash-reporting,  [  --disable-crash-reporting            Enable or Disable crash reporting subsystem],        [crash_reporting=$enableval], [crash_reporting=yes])
 
-if test "x$with_crash_privacy" = "xno"; then
+if test "x$with_crash_privacy" = "xyes"; then
 AC_DEFINE(MONO_PRIVATE_CRASHES,1,[Do not include names of unmanaged functions in the crash dump])
 fi
 
@@ -1022,11 +1022,17 @@ fi
 
 AC_ARG_ENABLE(cxx, [  --enable-cxx   compile some code as C++])
 
+# mono/corefx/native has a lot of invalid C++98 in its headers
+# dotnet/corefx/native looks a lot better, i.e. 44e5bdafb8d989a220c9cf1b94f31a64a6e4f052
+#CXXFLAGS_COMMON=' -std=gnu++98 -fno-exceptions -fno-rtti '
+CXXFLAGS_COMMON=' -std=gnu++0x -fno-exceptions -fno-rtti '
+# "c++0x" instead of C++11, for compat with Centos6/gcc4.4
+
+AC_SUBST(CXXFLAGS_COMMON)
+
 if test "x$enable_cxx" = "xyes"; then
 
-	# FIXME Centos6 requires a different flag for prerelease C++11.
-	#CXX_ADD_CFLAGS=' -xc++ -std=gnu++98 -fno-exceptions -fno-rtti '
-	CXX_ADD_CFLAGS=' -xc++ -std=gnu++11 -fno-exceptions -fno-rtti '
+	CXX_ADD_CFLAGS=" -xc++ $CXXFLAGS_COMMON "
 
 	# -std=gnu99 -xc++ is not allowed and errors.
 	CXX_REMOVE_CFLAGS=-std=gnu99
@@ -2344,6 +2350,23 @@ if test x$host_win32 = xno; then
 	])
 
 	dnl **********************************
+	dnl *** Check for getprotobyname_r ***
+	dnl **********************************
+	AC_MSG_CHECKING(for getprotobyname_r)
+		AC_TRY_LINK([
+		#include <stdio.h>
+		#include <netdb.h>
+	], [
+		getprotobyname_r(NULL, NULL, NULL, 0, NULL);
+	], [
+		# Yes, we have it...
+		AC_MSG_RESULT(yes)
+		AC_DEFINE(HAVE_GETPROTOBYNAME_R, 1, [Have getprotobyname_r])
+	], [
+		AC_MSG_RESULT(no)
+	])
+
+	dnl **********************************
 	dnl *** Check for getnameinfo ***
 	dnl **********************************
 	AC_MSG_CHECKING(for getnameinfo)
@@ -2446,24 +2469,7 @@ if test x$host_win32 = xno; then
 	AC_CHECK_FUNCS(pthread_attr_setstacksize)
 	AC_CHECK_FUNCS(pthread_attr_getstack pthread_attr_getstacksize)
 	AC_CHECK_FUNCS(pthread_get_stacksize_np pthread_get_stackaddr_np)
-
-	dnl **********************************
-	dnl *** Check for mincore ***
-	dnl **********************************
-	AC_MSG_CHECKING(for mincore)
-		AC_TRY_LINK([
-		#include <stdio.h>
-		#include <sys/types.h>
-		#include <sys/mman.h>
-	], [
-		mincore(NULL, 0, NULL);
-	], [
-		# Yes, we have it...
-		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_MINCORE, 1, [Have mincore])
-	], [
-		AC_MSG_RESULT(no)
-	])
+	AC_CHECK_FUNCS(mincore mlock munlock)
 
 	dnl ***********************************
 	dnl *** Checks for working __thread ***
@@ -3830,41 +3836,42 @@ internal_llvm="no"
 if test "x$enable_llvm" = "xyes"; then
 	if test "x$with_llvm" != "x"; then
 		EXTERNAL_LLVM_CONFIG=$with_llvm/bin/llvm-config
+		if test x$host_win32 = xyes; then
+			EXTERNAL_LLVM_CONFIG=$EXTERNAL_LLVM_CONFIG.exe
+		fi
 		if test ! -x $EXTERNAL_LLVM_CONFIG; then
 			AC_MSG_ERROR([LLVM executable $EXTERNAL_LLVM_CONFIG not found.])
 		fi
 	else
-		AC_PATH_PROG(EXTERNAL_LLVM_CONFIG, llvm-config, no)
+		if test x$host_win32 = xyes; then
+			AC_PATH_PROG(EXTERNAL_LLVM_CONFIG, llvm-config.exe, no)
+		else
+			AC_PATH_PROG(EXTERNAL_LLVM_CONFIG, llvm-config, no)
+		fi
 		if test "x$EXTERNAL_LLVM_CONFIG" = "xno"; then
 			internal_llvm=yes
-		else
-			with_llvm=`$EXTERNAL_LLVM_CONFIG --prefix`
 		fi
 	fi
-          
-	if test "x$host_win32" != "xyes"; then
-		LLVM_CODEGEN_LIBS="x86codegen"
-		case "$target" in
-		arm*)
-			LLVM_CODEGEN_LIBS="armcodegen"
-			;;
-		aarch64*)
-			LLVM_CODEGEN_LIBS="aarch64codegen"
-			;;
-		powerpc*)
-			LLVM_CODEGEN_LIBS="powerpccodegen"
-			;;
-		esac
-		if test "x$host" != "x$target"; then
-			# No need for jit libs
-			LLVM_CODEGEN_LIBS=
-		fi
 
-		AC_SUBST(LLVM_CODEGEN_LIBS)
-		AC_SUBST(EXTERNAL_LLVM_CONFIG)
-	else # is win32
-		AC_MSG_ERROR([LLVM for Windows only supported using Visual Studio build mono runtime, see http://www.mono-project.com/docs/advanced/mono-llvm/ for more details.])
-	fi # win32
+	LLVM_CODEGEN_LIBS="x86codegen"
+	case "$target" in
+	arm*)
+		LLVM_CODEGEN_LIBS="armcodegen"
+		;;
+	aarch64*)
+		LLVM_CODEGEN_LIBS="aarch64codegen"
+		;;
+	powerpc*)
+		LLVM_CODEGEN_LIBS="powerpccodegen"
+		;;
+	esac
+	if test "x$host" != "x$target"; then
+		# No need for jit libs
+		LLVM_CODEGEN_LIBS=
+	fi
+
+	AC_SUBST(LLVM_CODEGEN_LIBS)
+	AC_SUBST(EXTERNAL_LLVM_CONFIG)
 	
 	AC_DEFINE(ENABLE_LLVM, 1, [Enable the LLVM back end])
 fi # ENABLE_LLVM
@@ -3876,7 +3883,7 @@ if test "x$internal_llvm" != "xno"; then
 fi
 
 AM_CONDITIONAL(INTERNAL_LLVM_ASSERTS, [test "x$enable_llvm_asserts" != "xno"])
-if test "x$internal_llvm_asserts" != "xno"; then
+if test "x$enable_llvm_asserts" != "xno"; then
    AC_DEFINE(INTERNAL_LLVM_ASSERTS, 1, [Build LLVM with assertions])
 fi
 
@@ -5532,6 +5539,7 @@ AC_CONFIG_COMMANDS([runtime/etc/mono/4.5/web.config],
 
 AC_CONFIG_COMMANDS([quiet-libtool], [sed -e 's/echo "copying selected/# "copying selected/g' < libtool > libtool.tmp && mv libtool.tmp libtool && chmod a+x libtool; sed -e 's/$ECHO "copying selected/# "copying selected/g' < libtool > libtool.tmp && mv libtool.tmp libtool && chmod a+x libtool])
 AC_CONFIG_COMMANDS([nolock-libtool], [sed -e 's/lock_old_archive_extraction=yes/lock_old_archive_extraction=no/g' < libtool > libtool.tmp && mv libtool.tmp libtool && chmod a+x libtool])
+AC_CONFIG_COMMANDS([clean-llvm], [rm -f llvm/llvm_config.mk])
 
 # Anything involving -Werror must be done late because autoconf depends on compiling with warnings to be success.
 if test x"$GCC" = xyes; then
@@ -5552,7 +5560,7 @@ if test x"$GCC" = xyes; then
 fi
 
 # Update all submodules recursively to ensure everything is checked out
-$srcdir/scripts/update_submodules.sh
+(cd $srcdir && scripts/update_submodules.sh)
 
 AC_OUTPUT([
 Makefile
@@ -5590,6 +5598,7 @@ mono/mini/Makefile
 mono/profiler/Makefile
 mono/eglib/Makefile
 mono/eglib/eglib-config.h
+mono/eglib/test/Makefile
 m4/Makefile
 ikvm-native/Makefile
 scripts/Makefile

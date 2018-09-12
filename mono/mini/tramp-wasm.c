@@ -7,9 +7,9 @@ void mono_sdb_single_step_trampoline (void);
 gpointer
 mono_arch_create_specific_trampoline (gpointer arg1, MonoTrampolineType tramp_type, MonoDomain *domain, guint32 *code_len)
 {
-	static void *_dummy;
-
-	return (gpointer)&_dummy;
+	//FUN FACT but this is a key used to do reverse lookups when resolving patch entries!
+	//it's seeded to mono_register_jit_icall_wrapper and then used to reverse that value in mini-llvm <o>
+	return g_malloc (1);
 }
 
 guchar*
@@ -55,7 +55,7 @@ mono_arch_get_interp_to_native_trampoline (MonoTrampInfo **info)
 {
 	if (info)
 		*info = mono_tramp_info_create ("interp_to_native_trampoline", (guint8*)mono_wasm_interp_to_native_trampoline, 1, NULL, NULL);
-	return mono_wasm_interp_to_native_trampoline;
+	return (gpointer)mono_wasm_interp_to_native_trampoline;
 }
 
 guint8*
@@ -63,22 +63,19 @@ mono_arch_create_sdb_trampoline (gboolean single_step, MonoTrampInfo **info, gbo
 {
 	g_assert (!aot);
 	const char *name;
-	gpointer code;
+	guint8* code;
 	if (single_step) {
 		name = "sdb_single_step_trampoline";
-		code = mono_wasm_single_step_hit;
+		code = (guint8*)mono_wasm_single_step_hit;
 	} else {
 		name = "sdb_breakpoint_trampoline";
-		code = mono_wasm_breakpoint_hit;
+		code = (guint8*)mono_wasm_breakpoint_hit;
 	}
 
 	if (info)
 		*info = mono_tramp_info_create (name, code, 1, NULL, NULL);
 	return code;
 }
-
-
-#ifndef DISABLE_JIT
 
 guint8*
 mono_arch_get_call_target (guint8 *code)
@@ -111,6 +108,3 @@ mono_arch_get_gsharedvt_trampoline (MonoTrampInfo **info, gboolean aot)
 	g_assert_not_reached ();
 	return NULL;
 }
-
-
-#endif

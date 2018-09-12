@@ -80,8 +80,14 @@ mono_IUnknown_Release (MonoIUnknown *pUnk)
 /*
 Code shared between the DISABLE_COM and !DISABLE_COM
 */
+#ifdef __cplusplus
+template <typename T>
+static void
+register_icall (       T func, const char *name, const char *sigstr, gboolean save)
+#else
 static void
 register_icall (gpointer func, const char *name, const char *sigstr, gboolean save)
+#endif
 {
 	MonoMethodSignature *sig = mono_create_icall_signature (sigstr);
 
@@ -99,9 +105,6 @@ mono_string_to_bstr_handle (MonoStringHandle s)
 	mono_gchandle_free (gchandle);
 	return res;
 }
-
-// Cast the first parameter to gpointer; macros do not recurse.
-#define register_icall(func, name, sigstr, save) (register_icall ((gpointer)(func), (name), (sigstr), (save)))
 
 gpointer
 mono_string_to_bstr (MonoString* s_raw)
@@ -2489,7 +2492,7 @@ cominterop_ccw_getfreethreadedmarshaler (MonoCCW* ccw, MonoObjectHandle object, 
 	if (!ccw->free_marshaler) {
 		gpointer const tunk = cominterop_get_ccw_checked (object, mono_class_get_iunknown_class (), error);
 		return_val_if_nok (error, MONO_E_NOINTERFACE);
-		int const ret = CoCreateFreeThreadedMarshaler (tunk, (LPUNKNOWN*)&ccw->free_marshaler);
+		int const ret = CoCreateFreeThreadedMarshaler ((LPUNKNOWN)tunk, (LPUNKNOWN*)&ccw->free_marshaler);
 	}
 
 	return ccw->free_marshaler ? mono_IUnknown_QueryInterface (ccw->free_marshaler, &MONO_IID_IMarshal, ppv)
@@ -2838,7 +2841,7 @@ mono_string_from_bstr_checked (mono_bstr_const bstr, MonoError *error)
 	if (!bstr)
 		return NULL_HANDLE_STRING;
 #ifdef HOST_WIN32
-	return mono_string_new_utf16_handle (mono_domain_get (), bstr, SysStringLen (bstr), error);
+	return mono_string_new_utf16_handle (mono_domain_get (), bstr, SysStringLen ((BSTR)bstr), error);
 #else
 #ifndef DISABLE_COM
 	if (com_provider == MONO_COM_DEFAULT)
@@ -3175,10 +3178,10 @@ mono_cominterop_emit_marshal_safearray (EmitMarshalContext *m, int argnum, MonoT
 
 #ifdef HOST_WIN32
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
-static inline guint32
+static guint32
 mono_marshal_win_safearray_get_dim (gpointer safearray)
 {
-	return SafeArrayGetDim (safearray);
+	return SafeArrayGetDim ((SAFEARRAY*)safearray);
 }
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT) */
 
@@ -3205,10 +3208,10 @@ mono_marshal_safearray_get_dim (gpointer safearray)
 
 #ifdef HOST_WIN32
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
-static inline int
+static int
 mono_marshal_win_safe_array_get_lbound (gpointer psa, guint nDim, glong* plLbound)
 {
-	return SafeArrayGetLBound (psa, nDim, plLbound);
+	return SafeArrayGetLBound ((SAFEARRAY*)psa, nDim, plLbound);
 }
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT) */
 
@@ -3235,10 +3238,10 @@ mono_marshal_safe_array_get_lbound (gpointer psa, guint nDim, glong* plLbound)
 
 #ifdef HOST_WIN32
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
-inline static int
+static int
 mono_marshal_win_safe_array_get_ubound (gpointer psa, guint nDim, glong* plUbound)
 {
-	return SafeArrayGetUBound (psa, nDim, plUbound);
+	return SafeArrayGetUBound ((SAFEARRAY*)psa, nDim, plUbound);
 }
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT) */
 
@@ -3344,10 +3347,10 @@ mono_marshal_safearray_begin (gpointer safearray, MonoArray **result, gpointer *
 /* This is an icall */
 #ifdef HOST_WIN32
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
-static inline int
+static int
 mono_marshal_win_safearray_get_value (gpointer safearray, gpointer indices, gpointer *result)
 {
-	return SafeArrayPtrOfIndex (safearray, indices, result);
+	return SafeArrayPtrOfIndex ((SAFEARRAY*)safearray, (LONG*)indices, result);
 }
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT) */
 
@@ -3432,11 +3435,11 @@ gboolean mono_marshal_safearray_next (gpointer safearray, gpointer indices)
 
 #ifdef HOST_WIN32
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
-static inline void
+static void
 mono_marshal_win_safearray_end (gpointer safearray, gpointer indices)
 {
 	g_free(indices);
-	SafeArrayDestroy (safearray);
+	SafeArrayDestroy ((SAFEARRAY*)safearray);
 }
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT) */
 
@@ -3462,7 +3465,7 @@ mono_marshal_safearray_end (gpointer safearray, gpointer indices)
 
 #ifdef HOST_WIN32
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
-static inline gboolean
+static gboolean
 mono_marshal_win_safearray_create_internal (UINT cDims, SAFEARRAYBOUND *rgsabound, gpointer *newsafearray)
 {
 	*newsafearray = SafeArrayCreate (VT_VARIANT, cDims, rgsabound);
@@ -3478,7 +3481,7 @@ mono_marshal_safearray_create_internal (UINT cDims, SAFEARRAYBOUND *rgsabound, g
 
 #else /* HOST_WIN32 */
 
-static inline gboolean
+static gboolean
 mono_marshal_safearray_create_internal (UINT cDims, SAFEARRAYBOUND *rgsabound, gpointer *newsafearray)
 {
 	*newsafearray = safe_array_create_ms (VT_VARIANT, cDims, rgsabound);
@@ -3525,10 +3528,10 @@ mono_marshal_safearray_create (MonoArray *input, gpointer *newsafearray, gpointe
 /* This is an icall */
 #ifdef HOST_WIN32
 #if G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
-static inline int
+static int
 mono_marshal_win_safearray_set_value (gpointer safearray, gpointer indices, gpointer value)
 {
-	return SafeArrayPutElement (safearray, indices, value);
+	return SafeArrayPutElement ((SAFEARRAY*)safearray, (LONG*)indices, value);
 }
 #endif /* G_HAVE_API_SUPPORT(HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT) */
 

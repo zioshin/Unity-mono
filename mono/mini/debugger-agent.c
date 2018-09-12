@@ -273,7 +273,7 @@ typedef struct {
 #define HEADER_LENGTH 11
 
 #define MAJOR_VERSION 2
-#define MINOR_VERSION 47
+#define MINOR_VERSION 48
 
 typedef enum {
 	CMD_SET_VM = 1,
@@ -919,23 +919,23 @@ debugger_agent_init (void)
 	if (!agent_config.enabled)
 		return;
 
-	DebuggerEngineCallbacks cbs = {
-		.tls_get_restore_state = tls_get_restore_state,
-		.try_process_suspend = try_process_suspend,
-		.begin_breakpoint_processing = begin_breakpoint_processing,
-		.begin_single_step_processing = begin_single_step_processing,
-		.ss_discard_frame_context = ss_discard_frame_context,
-		.ss_calculate_framecount = ss_calculate_framecount,
-		.ensure_jit = ensure_jit,
-		.ensure_runtime_is_suspended = ensure_runtime_is_suspended,
-		.get_this_async_id = get_this_async_id,
-		.set_set_notification_for_wait_completion_flag = set_set_notification_for_wait_completion_flag,
-		.get_notify_debugger_of_wait_completion_method = get_notify_debugger_of_wait_completion_method,
-		.create_breakpoint_events = create_breakpoint_events,
-		.process_breakpoint_events = process_breakpoint_events,
-		.ss_create_init_args = ss_create_init_args,
-		.ss_args_destroy = ss_args_destroy,
-	};
+	DebuggerEngineCallbacks cbs;
+	memset (&cbs, 0, sizeof (cbs));
+	cbs.tls_get_restore_state = tls_get_restore_state;
+	cbs.try_process_suspend = try_process_suspend;
+	cbs.begin_breakpoint_processing = begin_breakpoint_processing;
+	cbs.begin_single_step_processing = begin_single_step_processing;
+	cbs.ss_discard_frame_context = ss_discard_frame_context;
+	cbs.ss_calculate_framecount = ss_calculate_framecount;
+	cbs.ensure_jit = ensure_jit;
+	cbs.ensure_runtime_is_suspended = ensure_runtime_is_suspended;
+	cbs.get_this_async_id = get_this_async_id;
+	cbs.set_set_notification_for_wait_completion_flag = set_set_notification_for_wait_completion_flag;
+	cbs.get_notify_debugger_of_wait_completion_method = get_notify_debugger_of_wait_completion_method;
+	cbs.create_breakpoint_events = create_breakpoint_events;
+	cbs.process_breakpoint_events = process_breakpoint_events;
+	cbs.ss_create_init_args = ss_create_init_args;
+	cbs.ss_args_destroy = ss_args_destroy;
 
 	mono_de_init (&cbs);
 
@@ -1172,7 +1172,7 @@ socket_transport_send (void *data, int len)
 	MONO_ENTER_GC_SAFE;
 
 	do {
-		res = send (conn_fd, data, len, 0);
+		res = send (conn_fd, (const char*)data, len, 0);
 	} while (res == -1 && get_last_sock_error () == MONO_EINTR);
 
 	MONO_EXIT_GC_SAFE;
@@ -1263,7 +1263,7 @@ socket_transport_connect (const char *address)
 				if (sfd == -1)
 					continue;
 
-				if (setsockopt (sfd, SOL_SOCKET, SO_REUSEADDR, &n, sizeof(n)) == -1)
+				if (setsockopt (sfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&n, sizeof(n)) == -1)
 					continue;
 
 				res = bind (sfd, &sockaddr.addr, sock_len);
@@ -2474,7 +2474,7 @@ get_top_method_ji (gpointer ip, MonoDomain **domain, gpointer *out_ip)
 		g_assert (((gsize)lmf->previous_lmf) & 2);
 		MonoLMFExt *ext = (MonoLMFExt*)lmf;
 
-		g_assert (ext->interp_exit);
+		g_assert (ext->kind == MONO_LMFEXT_INTERP_EXIT || ext->kind == MONO_LMFEXT_INTERP_EXIT_WITH_CTX);
 		frame = (MonoInterpFrameHandle*)ext->interp_exit_data;
 		ji = mini_get_interp_callbacks ()->frame_get_jit_info (frame);
 		if (domain)
@@ -2629,11 +2629,11 @@ thread_interrupt (DebuggerTlsData *tls, MonoThreadInfo *info, MonoJitInfo *ji)
 			data.last_frame_set = FALSE;
 			mono_get_eh_callbacks ()->mono_walk_stack_with_state (get_last_frame, state, MONO_UNWIND_SIGNAL_SAFE, &data);
 			if (data.last_frame_set) {
-				gpointer jit_tls = ((MonoThreadInfo*)tls->thread->thread_info)->jit_data;
+				gpointer jit_tls = tls->thread->thread_info->jit_data;
 
 				memcpy (&tls->async_last_frame, &data.last_frame, sizeof (StackFrameInfo));
 
-				if (data.last_frame.type == FRAME_TYPE_INTERP_TO_MANAGED) {
+				if (data.last_frame.type == FRAME_TYPE_INTERP_TO_MANAGED || data.last_frame.type == FRAME_TYPE_INTERP_TO_MANAGED_WITH_CTX) {
 					/*
 					 * Store the current lmf instead of the parent one, since that
 					 * contains the interp exit data.
@@ -2721,7 +2721,7 @@ notify_thread (gpointer key, gpointer value, gpointer user_data)
 	InterruptData interrupt_data = { 0 };
 	interrupt_data.tls = tls;
 
-	mono_thread_info_safe_suspend_and_run ((MonoNativeThreadId)(gpointer)(gsize)thread->tid, FALSE, debugger_interrupt_critical, &interrupt_data);
+	mono_thread_info_safe_suspend_and_run ((MonoNativeThreadId)(gsize)thread->tid, FALSE, debugger_interrupt_critical, &interrupt_data);
 	if (!interrupt_data.valid_info) {
 		DEBUG_PRINTF (1, "[%p] mono_thread_info_suspend_sync () failed for %p...\n", (gpointer) (gsize) mono_native_thread_id_get (), (gpointer)tid);
 		/* 
@@ -4558,7 +4558,7 @@ user_break_cb (StackFrameInfo *frame, MonoContext *ctx, gpointer user_data)
 {
 	UserBreakCbData *data = (UserBreakCbData*)user_data;
 
-	if (frame->type == FRAME_TYPE_INTERP_TO_MANAGED) {
+	if (frame->type == FRAME_TYPE_INTERP_TO_MANAGED || frame->type == FRAME_TYPE_INTERP_TO_MANAGED_WITH_CTX) {
 		data->found = TRUE;
 		return TRUE;
 	}
@@ -5300,11 +5300,13 @@ obj_is_of_type (MonoObject *obj, MonoType *t)
 }
 
 static ErrorCode
-decode_value (MonoType *t, MonoDomain *domain, guint8 *addr, guint8 *buf, guint8 **endbuf, guint8 *limit);
+decode_value (MonoType *t, MonoDomain *domain, gpointer void_addr, gpointer void_buf, guint8 **endbuf, guint8 *limit);
 
 static ErrorCode
-decode_vtype (MonoType *t, MonoDomain *domain, guint8 *addr, guint8 *buf, guint8 **endbuf, guint8 *limit)
+decode_vtype (MonoType *t, MonoDomain *domain, gpointer void_addr, gpointer void_buf, guint8 **endbuf, guint8 *limit)
 {
+	guint8 *addr = (guint8*)void_addr;
+	guint8 *buf = (guint8*)void_buf;
 	gboolean is_enum;
 	MonoClass *klass;
 	MonoClassField *f;
@@ -5522,8 +5524,11 @@ decode_value_internal (MonoType *t, int type, MonoDomain *domain, guint8 *addr, 
 }
 
 static ErrorCode
-decode_value (MonoType *t, MonoDomain *domain, guint8 *addr, guint8 *buf, guint8 **endbuf, guint8 *limit)
+decode_value (MonoType *t, MonoDomain *domain, gpointer void_addr, gpointer void_buf, guint8 **endbuf, guint8 *limit)
 {
+	guint8 *addr = (guint8*)void_addr;
+	guint8 *buf = (guint8*)void_buf;
+
 	ERROR_DECL (error);
 	ErrorCode err;
 	int type = decode_byte (buf, &buf, limit);
@@ -6095,7 +6100,7 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 	if (invoke->has_ctx) {
 		/* Setup our lmf */
 		memset (&ext, 0, sizeof (ext));
-		ext.debugger_invoke = TRUE;
+		ext.kind = MONO_LMFEXT_DEBUGGER_INVOKE;
 		memcpy (&ext.ctx, &invoke->ctx, sizeof (MonoContext));
 
 		mono_push_lmf (&ext);
@@ -6723,12 +6728,12 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 		res_domains = g_ptr_array_new ();
 
 		mono_loader_lock ();
-		GetTypesForSourceFileArgs args = {
-			.ignore_case = ignore_case,
-			.basename = basename,
-			.res_classes  = res_classes,
-			.res_domains = res_domains
-		};
+		GetTypesForSourceFileArgs args;
+		memset (&args, 0, sizeof (args));
+		args.ignore_case = ignore_case;
+		args.basename = basename;
+		args.res_classes  = res_classes;
+		args.res_domains = res_domains;
 		mono_de_foreach_domain (get_types_for_source_file, &args);
 		mono_loader_unlock ();
 
@@ -6765,12 +6770,12 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 
 		mono_loader_lock ();
 
-		GetTypesArgs args = {
-			.info = &info,
-			.ignore_case = ignore_case,
-			.res_classes = res_classes,
-			.res_domains = res_domains
-		};
+		GetTypesArgs args;
+		memset (&args, 0, sizeof (args));
+		args.info = &info;
+		args.ignore_case = ignore_case;
+		args.res_classes = res_classes;
+		args.res_domains = res_domains;
 
 		mono_de_foreach_domain (get_types, &args);
 
@@ -7856,7 +7861,11 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 	case CMD_TYPE_GET_METHODS_BY_NAME_FLAGS: {
 		char *name = decode_string (p, &p, end);
 		int i, flags = decode_int (p, &p, end);
-		int mlisttype = decode_int (p, &p, end);
+		int mlisttype;
+		if (CHECK_PROTOCOL_VERSION (2, 48))
+			mlisttype = decode_int (p, &p, end);
+		else
+			mlisttype = 0; // MLISTTYPE_All
 		ERROR_DECL (error);
 		GPtrArray *array;
 
@@ -8575,7 +8584,7 @@ thread_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		DEBUG_PRINTF (1, "[dbg] Setting IP to %s:0x%0x(0x%0x)\n", tls->frames [0]->actual_method->name, (int)sp.il_offset, (int)sp.native_offset);
 
 		if (tls->frames [0]->de.ji->is_interp) {
-			MonoJitTlsData *jit_data = (thread->thread_info)->jit_data;
+			MonoJitTlsData *jit_data = thread->thread_info->jit_data;
 			mini_get_interp_callbacks ()->set_resume_state (jit_data, NULL, NULL, tls->frames [0]->interp_frame, (guint8*)tls->frames [0]->de.ji->code_start + sp.native_offset);
 		} else {
 			MONO_CONTEXT_SET_IP (&tls->restore_state.ctx, (guint8*)tls->frames [0]->de.ji->code_start + sp.native_offset);
