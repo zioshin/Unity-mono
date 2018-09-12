@@ -74,6 +74,7 @@ endif
 MODULE_DEPS += LinkerDescriptor/mscorlib.xml
 
 RESOURCE_FILES = \
+	resources/charinfo.nlp \
 	resources/collation.core.bin \
 	resources/collation.tailoring.bin \
 	resources/collation.cjkCHS.bin \
