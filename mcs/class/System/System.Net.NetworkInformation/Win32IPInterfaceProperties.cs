@@ -44,13 +44,11 @@ namespace System.Net.NetworkInformation {
 
 		public override IPv4InterfaceProperties GetIPv4Properties ()
 		{
-			Win32_IP_ADAPTER_INFO v4info = Win32NetworkInterface2.GetAdapterInfoByIndex (mib4.Index);
-			return new Win32IPv4InterfaceProperties (v4info, mib4);
+			return new Win32IPv4InterfaceProperties (addr, mib4);
 		}
 
 		public override IPv6InterfaceProperties GetIPv6Properties ()
 		{
-			Win32_IP_ADAPTER_INFO v6info = Win32NetworkInterface2.GetAdapterInfoByIndex (mib6.Index);
 			return new Win32IPv6InterfaceProperties (mib6);
 		}
 
