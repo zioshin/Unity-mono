@@ -125,6 +125,7 @@ extern Il2CppMonoDebugOptions il2cpp_mono_debug_options;
 const Il2CppDebuggerMetadataRegistration *g_il2cpp_metadata;
 #endif
 
+void il2cpp_mono_free_method_signatures(void);
 
 typedef struct {
 	gboolean enabled;
@@ -4622,6 +4623,9 @@ remove_breakpoint (BreakpointInstance *inst)
 }
 
 #endif // !RUNTIME_IL2CPP
+
+int32_t il2cpp_mono_methods_match(const MethodInfo* left, const MethodInfo* right);
+MonoImage* il2cpp_mono_assembly_get_image(MonoAssembly* assembly);
 
 /*
  * This doesn't take any locks.

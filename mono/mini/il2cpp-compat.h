@@ -4,6 +4,9 @@
 #if defined(RUNTIME_IL2CPP)
 #include "il2cpp-c-types.h"
 #include "il2cpp-api.h"
+#include "metadata/w32socket.h"
+#include "metadata/w32socket-internals.h"
+#include "metadata/seq-points-data.h"
 #else
 #include <mono/mini/mini.h>
 #include <mono/sgen/sgen-conf.h>
