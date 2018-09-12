@@ -1559,7 +1559,7 @@ if ($artifact)
 	else
 	{
 		$embedDirArchDestination = $arch32 ? "$embedDirRoot/win32" : "$embedDirRoot/win64";
-		$distDirArchBin = $arch32 ? "$distdir/bin" : "$distdir/bin-x64";
+		$distDirArchBin = $arch32 ? "$distdir/bin-win32" : "$distdir/bin";
 		$versionsOutputFile = $arch32 ? "$buildsroot/versions-win32.txt" : "$buildsroot/versions-win64.txt";
 	}
 

@@ -195,7 +195,7 @@ if ($artifact)
 	my $embedDirRoot = "$buildsroot\\embedruntimes";
 
 	my $embedDirArchDestination = $arch32 ? "$embedDirRoot\\win32" : "$embedDirRoot\\win64";
-	my $distDirArchBin = $arch32 ? "$distdir\\bin" : "$distdir\\bin-x64";
+	my $distDirArchBin = $arch32 ? "$distdir\\bin-win32" : "$distdir\\bin";
 	my $versionsOutputFile = $arch32 ? "$buildsroot\\versions-win32.txt" : "$buildsroot\\versions-win64.txt";
 
 	# Make sure the directory for our architecture is clean before we copy stuff into it
