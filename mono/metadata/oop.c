@@ -36,7 +36,7 @@
 #include <mono/metadata/coree.h>
 
 #ifdef _M_X64
-#include <mono/mini/mini-amd64.h>
+#include <mono/mini/mini.h>
 extern GList* g_dynamic_function_table_begin;
 extern SRWLOCK g_dynamic_function_table_lock;
 #endif
