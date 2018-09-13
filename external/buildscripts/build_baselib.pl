@@ -60,7 +60,7 @@ else
 # Don't try to copy the output now. On Linx we build baselib very early, before the output directory exists.
 # This is necessary because the system Mono won't run bee properly with the SDK we use to build Mono. Later in
 # the build process for Linux, build.pl will reach into the artifacts directory and pull out what it needs.
-if (!($target eq "linux_x64" or $target eq "linux_x86"))
+if ($target ne "linux_x64" and $target ne "linux_x86")
 {
 	my $buildDestination = "$currentdir/support/.libs";
 	mkdir "$buildDestination";
@@ -68,7 +68,7 @@ if (!($target eq "linux_x64" or $target eq "linux_x86"))
 }
 
 # Copy the output for unit tests only on some platforms (we don't run the unit tests everywhere)
-if ($target eq "mac64" or $target eq "mac32" or $target eq "linux_x64" or $target eq "linux_x86")
+if ($target eq "mac64" or $target eq "mac32")
 {
 	my $unitTestDestination = "$currentdir/tmp/lib";
 	mkdir "$unitTestDestination";

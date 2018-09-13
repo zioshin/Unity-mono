@@ -1633,10 +1633,14 @@ if ($artifact)
 			if ($arch32)
 			{
 				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux32/baselib.so","$embedDirArchDestination/baselib.so") eq 0 or die ("failed copying baselib.so\n");
+				# Copy baselib for unit tests
+				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux32/baselib.so","$monoroot/tmp/lib/baselib.so") eq 0 or die ("failed copying baselib.so\n");
 			}
 			else
 			{
 				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux64/baselib.so","$embedDirArchDestination/baselib.so") eq 0 or die ("failed copying baselib.so\n");
+				# Copy baselib for unit tests
+				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux64/baselib.so","$monoroot/tmp/lib/baselib.so") eq 0 or die ("failed copying baselib.so\n");
 			}
 
 			if ($buildMachine)
