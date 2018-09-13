@@ -116,7 +116,11 @@ mono_gc_warning (char *msg, GC_word arg)
 }
 
 static void on_gc_notification (GC_EventType event);
+#if defined(HAVE_BDWGC_GC)
+static void on_gc_heap_resize (GC_word new_size);
+#else
 static void on_gc_heap_resize (size_t new_size);
+#endif
 
 void
 mono_gc_base_init (void)
@@ -599,9 +603,13 @@ on_gc_notification (GC_EventType event)
 	}
 }
 
- 
+#if defined(HAVE_BDWGC_GC)
+static void
+on_gc_heap_resize (GC_word new_size)
+#else
 static void
 on_gc_heap_resize (size_t new_size)
+#endif
 {
 	guint64 heap_size = GC_get_heap_size ();
 #ifndef DISABLE_PERFCOUNTERS
