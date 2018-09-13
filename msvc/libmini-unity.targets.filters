@@ -10,6 +10,9 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\mini\mixed_callstack_plugin.c">
       <Filter>Source Files$(MonoMiniFilterSubFolder)\common</Filter>
     </ClCompile>
+    <ClCompile Include="$(MonoSourceLocation)\mono\mini\oop.c">
+      <Filter>Source Files$(MonoMiniFilterSubFolder)\unity</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files$(MonoMiniFilterSubFolder)\unity">

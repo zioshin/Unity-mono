@@ -4,5 +4,6 @@
     <ClCompile Include="$(MonoSourceLocation)\mono\mini\mini-unity.c" />
     <ClInclude Include="$(MonoSourceLocation)\mono\mini\mixed_callstack_plugin.h" />
     <ClCompile Include="$(MonoSourceLocation)\mono\mini\mixed_callstack_plugin.c" />
+    <ClCompile Include="$(MonoSourceLocation)\mono\mini\oop.c" />
   </ItemGroup>
 </Project>
