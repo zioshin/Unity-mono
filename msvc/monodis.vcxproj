@@ -105,7 +105,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN32);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <DataExecutionPrevention>
@@ -130,7 +130,7 @@
       <SubSystem>Console</SubSystem>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN32);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -151,7 +151,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN64);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -175,7 +175,7 @@
     <Link>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN64);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

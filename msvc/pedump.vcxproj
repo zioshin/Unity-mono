@@ -105,7 +105,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN32);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <DataExecutionPrevention>
@@ -126,7 +126,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN32);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <DataExecutionPrevention>
@@ -151,7 +151,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN64);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -173,7 +173,7 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <Link>
-      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MONO_STATIC_LIBMONO_LIB);$(BASELIB_LIB_WIN64);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
     </Link>

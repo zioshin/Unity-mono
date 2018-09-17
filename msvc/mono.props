@@ -31,6 +31,9 @@
     <MONO_JIT_INCLUDE_DIR>$(MONO_INCLUDE_DIR)/jit</MONO_JIT_INCLUDE_DIR>
     <MONO_JIT_SOURCE_DIR>$(MONO_INCLUDE_DIR)/jit</MONO_JIT_SOURCE_DIR>
     <GLIB_CFLAGS_INCLUDE>$(MONO_EGLIB_SOURCE_DIR)</GLIB_CFLAGS_INCLUDE>
+    <BASELIB_INCLUDE_DIR>$(top_srcdir)\external\baselib</BASELIB_INCLUDE_DIR>
+    <BASELIB_LIB_WIN32>$(top_srcdir)\external\baselib\artifacts\baselib\$(Configuration)_win32\baselib.lib</BASELIB_LIB_WIN32>
+    <BASELIB_LIB_WIN64>$(top_srcdir)\external\baselib\artifacts\baselib\$(Configuration)_win64\baselib.lib</BASELIB_LIB_WIN64>
   </PropertyGroup>
   <PropertyGroup Label="Static-C-Runtime" Condition="$(MONO_USE_STATIC_C_RUNTIME)=='true'">
     <MONO_C_RUNTIME Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</MONO_C_RUNTIME>
