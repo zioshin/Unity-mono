@@ -15,7 +15,7 @@
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/object.h>
 #include <mono/metadata/object-internals.h>
-#include <mono/metadata/unity-baselib.h>
+#include "Include/PAL/PAL_Identification.h"
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>

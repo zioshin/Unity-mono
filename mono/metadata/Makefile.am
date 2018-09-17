@@ -113,7 +113,7 @@ else
 noinst_LTLIBRARIES = libmonoruntime-config.la $(boehm_libraries) $(sgen_libraries) $(bdwgc_libraries)
 endif
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono $(GLIB_CFLAGS) $(SHARED_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/mono -I$(top_srcdir)/external/baselib $(GLIB_CFLAGS) $(SHARED_CFLAGS)
 
 #
 # Make sure any prefix changes are updated in the binaries too.
@@ -148,9 +148,7 @@ unity_sources = \
 	unity-memory-info.h \
 	unity-utils.c   \
 	unity-utils.h	\
-	unity-icall.c \
-	unity-baselib.c \
-	unity-baselib.h
+	unity-icall.c
 
 common_sources = \
 	$(platform_sources)	\

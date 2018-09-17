@@ -23,7 +23,8 @@ pedump_LDADD = 			\
 	$(LLVM_LIBS)			\
 	$(LLVM_LDFLAGS)			\
 	$(GLIB_LIBS)			\
-	$(LIBICONV)
+	$(LIBICONV)				\
+	$(top_srcdir)/support/baselib.a
 
 if HOST_DARWIN
 pedump_LDFLAGS=-framework CoreFoundation -framework Foundation

@@ -52,7 +52,8 @@ monodis_LDADD = 			\
 	$(LLVM_LIBS)			\
 	$(LLVM_LDFLAGS)			\
 	$(GLIB_LIBS)			\
-	$(LIBICONV)
+	$(LIBICONV)				\
+	$(top_builddir)/support/baselib.a
 
 if HOST_DARWIN
 monodis_LDFLAGS=-framework CoreFoundation -framework Foundation

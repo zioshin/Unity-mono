@@ -288,7 +288,8 @@ mono_boehm_LDADD = \
 	$(LLVMMONOF)		\
 	$(LIBICONV)		\
 	-lm			\
-	$(MONO_DTRACE_OBJECT)
+	$(MONO_DTRACE_OBJECT) \
+	$(monodir)/support/baselib.a
 
 mono_boehm_LDFLAGS = \
 	$(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
@@ -299,7 +300,8 @@ mono_bdwgc_LDADD = \
 	$(LLVMMONOF)		\
 	$(LIBICONV)		\
 	-lm			\
-	$(MONO_DTRACE_OBJECT)
+	$(MONO_DTRACE_OBJECT) \
+	$(monodir)/support/baselib.a
 
 mono_bdwgc_LDFLAGS = \
 	$(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
@@ -310,7 +312,8 @@ mono_sgen_LDADD = \
 	$(LLVMMONOF)		\
 	$(LIBICONV)		\
 	-lm			\
-	$(MONO_DTRACE_OBJECT)
+	$(MONO_DTRACE_OBJECT) \
+	$(monodir)/support/baselib.a
 
 mono_sgen_LDFLAGS = $(static_flags) -export-dynamic $(monobinldflags) $(monobin_platform_ldflags)
 
@@ -713,12 +716,12 @@ libmonoboehm_2_0_la_LDFLAGS = $(libmonoldflags) $(monobin_platform_ldflags)
 
 libmonobdwgc_2_0_la_SOURCES =
 libmonobdwgc_2_0_la_CFLAGS = $(mono_bdwgc_CFLAGS)
-libmonobdwgc_2_0_la_LIBADD = libmini.la $(bdwgc_libs) $(LIBMONO_DTRACE_OBJECT) $(LLVMMONOF)
+libmonobdwgc_2_0_la_LIBADD = libmini.la $(bdwgc_libs) $(LIBMONO_DTRACE_OBJECT) $(LLVMMONOF) $(monodir)/support/baselib.a
 libmonobdwgc_2_0_la_LDFLAGS = $(libmonoldflags) $(monobin_platform_ldflags)
 
 libmonosgen_2_0_la_SOURCES =
 libmonosgen_2_0_la_CFLAGS = $(mono_sgen_CFLAGS)
-libmonosgen_2_0_la_LIBADD = libmini.la $(sgen_libs) $(LIBMONO_DTRACE_OBJECT) $(LLVMMONOF)
+libmonosgen_2_0_la_LIBADD = libmini.la $(sgen_libs) $(LIBMONO_DTRACE_OBJECT) $(LLVMMONOF) $(monodir)/support/baselib.a
 libmonosgen_2_0_la_LDFLAGS = $(libmonoldflags) $(monobin_platform_ldflags)
 
 #
