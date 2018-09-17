@@ -1091,9 +1091,6 @@ if ($build)
 			die("mono build deps are required and the directory was not found : $externalBuildDeps\n");
 		}
 
-		my $baselibTarget = $arch32 ? "linux_x86" : "linux_x64";
-		system("perl", "$buildscriptsdir/build_baselib.pl", "--target=$baselibTarget") eq 0 or die ("Failed building baselib for $baselibTarget");
-
 		if($ENV{UNITY_THISISABUILDMACHINE} || $ENV{UNITY_USE_LINUX_SDK})
 		{
 			my $sdkVersion = '20170609';
@@ -1153,6 +1150,11 @@ if ($build)
 		{
 			$ENV{CFLAGS} = "$archflags -Os";  #optimize for size
 		}
+
+		my $baselibDirectory = "external/baselib/artifacts/baselib";
+		my $baselibArchitecture = $arch32 ? "linux32" : "linux64";
+		my $baselib = $baselibDirectory . "/release_" . $baselibArchitecture . "/baselib.a";
+		system("cp $baselib $monoroot/support") eq 0 or die ("Failed copying $baselib to $monoroot/support\n");
 	}
 	elsif($^O eq 'darwin')
 	{
@@ -1636,25 +1638,11 @@ if ($artifact)
 			print ">>> Copying libMonoPosixHelper.so\n";
 			system("cp", "$monoroot/support/.libs/libMonoPosixHelper.so","$embedDirArchDestination/libMonoPosixHelper.so") eq 0 or die ("failed copying libMonoPosixHelper.so\n");
 
-			if ($arch32)
-			{
-				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux32/baselib.so","$embedDirArchDestination/baselib.so") eq 0 or die ("failed copying baselib.so\n");
-				# Copy baselib for unit tests
-				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux32/baselib.so","$monoroot/tmp/lib/baselib.so") eq 0 or die ("failed copying baselib.so\n");
-			}
-			else
-			{
-				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux64/baselib.so","$embedDirArchDestination/baselib.so") eq 0 or die ("failed copying baselib.so\n");
-				# Copy baselib for unit tests
-				system("cp", "$monoroot/external/baselib/artifacts/baselib/release_linux64/baselib.so","$monoroot/tmp/lib/baselib.so") eq 0 or die ("failed copying baselib.so\n");
-			}
-
 			if ($buildMachine)
 			{
 				system("strip $embedDirArchDestination/libmonobdwgc-2.0.so") eq 0 or die("failed to strip libmonobdwgc-2.0.so (shared)\n");
 				system("strip $embedDirArchDestination/libmonosgen-2.0.so") eq 0 or die("failed to strip libmonosgen-2.0.so (shared)\n");
 				system("strip $embedDirArchDestination/libMonoPosixHelper.so") eq 0 or die("failed to strip libMonoPosixHelper (shared)\n");
-				system("strip $embedDirArchDestination/baselib.so") eq 0 or die("failed to strip baselib (shared)\n");
 			}
 		}
 		elsif($^O eq 'darwin')
