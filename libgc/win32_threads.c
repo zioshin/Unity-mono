@@ -51,6 +51,7 @@ struct GC_thread_Rep {
 			/* !in_use ==> stack_base == 0	*/
   GC_bool suspended;
   GC_bool should_scan;
+  CONTEXT saved_context;
 
 # ifdef CYGWIN32
     void *status; /* hold exit value until join in case it's a pointer */
@@ -308,6 +309,7 @@ void GC_stop_world()
 {
   DWORD thread_id = GetCurrentThreadId();
   int i;
+  int iterations = 0;
 
   if (!GC_thr_initialized) ABORT("GC_stop_world() called before GC_thr_init()");
 
@@ -340,15 +342,26 @@ void GC_stop_world()
 #         endif
 	  continue;
 	}
-	if (SuspendThread(thread_table[i].handle) == (DWORD)-1) {
-          thread_table[i].stack_base = 0; /* prevent stack from being pushed */
-#         ifndef CYGWIN32
-            /* this breaks pthread_join on Cygwin, which is guaranteed to  */
-	    /* only see user pthreads 					   */
-	    thread_table[i].in_use = FALSE;
-	    CloseHandle(thread_table[i].handle);
-#         endif
+
+	while (TRUE) {
+		DWORD res;
+		do {
+			res = SuspendThread (thread_table[i].handle);
+		} while (res == -1);
+
+		thread_table[i].saved_context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
+		if (GetThreadContext (thread_table[i].handle, &thread_table[i].saved_context))
+			break; /* success case break out of loop */
+
+		/* resume thread and try to suspend in better location */
+		if (ResumeThread (thread_table[i].handle) == (DWORD)-1)
+			ABORT ("ResumeThread failed");
+
+		/* after a million tries something must be wrong */
+		if (iterations++ == 1000 * 1000)
+			ABORT ("SuspendThread loop failed");
 	}
+
 #     endif
       thread_table[i].suspended = TRUE;
     }
@@ -437,10 +450,8 @@ void GC_push_all_stacks()
 		  continue;
 	  }
 	   else {
-        CONTEXT context;
-        context.ContextFlags = CONTEXT_INTEGER|CONTEXT_CONTROL;
-        if (!GetThreadContext(thread_table[i].handle, &context))
-	  ABORT("GetThreadContext failed");
+		  /* we cache context when suspending the thread since it may require looping */
+		  CONTEXT context = thread_table[i].saved_context;
 
         /* Push all registers that might point into the heap.  Frame	*/
         /* pointer registers are included in case client code was	*/
