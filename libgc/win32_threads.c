@@ -324,6 +324,7 @@ void GC_stop_world()
         /* SuspendThread will fail if thread is running kernel code */
 	while (SuspendThread(thread_table[i].handle) == (DWORD)-1)
 	  Sleep(10);
+	thread_table[i].suspended = TRUE;
 #     else
 	/* Apparently the Windows 95 GetOpenFileName call creates	*/
 	/* a thread that does not properly get cleaned up, and		*/
@@ -343,15 +344,17 @@ void GC_stop_world()
 	  continue;
 	}
 
-	while (TRUE) {
+	while (InterlockedCompareExchange (&thread_table[i].in_use, 0, 0)) {
 		DWORD res;
 		do {
 			res = SuspendThread (thread_table[i].handle);
 		} while (res == -1);
 
 		thread_table[i].saved_context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
-		if (GetThreadContext (thread_table[i].handle, &thread_table[i].saved_context))
+		if (GetThreadContext (thread_table[i].handle, &thread_table[i].saved_context)) {
+			thread_table[i].suspended = TRUE;
 			break; /* success case break out of loop */
+		}
 
 		/* resume thread and try to suspend in better location */
 		if (ResumeThread (thread_table[i].handle) == (DWORD)-1)
@@ -363,7 +366,6 @@ void GC_stop_world()
 	}
 
 #     endif
-      thread_table[i].suspended = TRUE;
     }
 # ifndef CYGWIN32
     LeaveCriticalSection(&GC_write_cs);
