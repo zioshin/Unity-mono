@@ -264,12 +264,10 @@ static void AllocateMemoryForImageMemPool(MonoAssembly *assembly, void *user_dat
 {
 	MonoImage* image = assembly->image;
 
-	mono_image_lock (image);
 	mono_mempool_foreach_chunk(image->mempool, AllocateMemoryForMemPoolChunk, user_data);
-	mono_image_unlock (image);
 }
 
-static void* CaptureHeapInfo(void* monoManagedHeap)
+static void CaptureHeapInfo(void* monoManagedHeap)
 {
 	MonoManagedHeap* heap = (MonoManagedHeap*)monoManagedHeap;
 	MonoDomain* domain = mono_domain_get();
@@ -289,13 +287,10 @@ static void* CaptureHeapInfo(void* monoManagedHeap)
 	// Allocate memory for each heap section
 	GC_foreach_heap_section(&iterationContext, AllocateMemoryForSection);
 	// Allocate memory for the domain mem pool chunk
-	mono_domain_lock (domain);
 	mono_mempool_foreach_chunk(domain->mp, AllocateMemoryForMemPoolChunk, &iterationContext);
-	mono_domain_unlock(domain);
 	// Allocate memory for each image mem pool chunk
 	mono_assembly_foreach((GFunc)AllocateMemoryForImageMemPool,  &iterationContext);
 
-	return NULL;
 }
 
 static void FreeMonoManagedHeap(MonoManagedHeap* heap)
@@ -364,18 +359,7 @@ static void CaptureManagedHeap(MonoManagedHeap* heap)
 	MonoDomain* domain = mono_domain_get();
 	SectionIterationContext iterationContext;
 
-	while(TRUE)
-	{
-		GC_call_with_alloc_lock(CaptureHeapInfo, heap);
-		GC_stop_world_external();
-
-		if (MonoManagedHeapStillValid(heap))
-			break;
-
-		GC_start_world_external();
-
-		FreeMonoManagedHeap(heap);
-	}
+	CaptureHeapInfo(heap);
 	
 	iterationContext.currentSection = heap->sections;
 	GC_foreach_heap_section(&iterationContext, CopyHeapSection);
@@ -426,12 +410,16 @@ static void FillRuntimeInformation(MonoRuntimeInformation* runtimeInfo)
 MonoManagedMemorySnapshot* mono_unity_capture_memory_snapshot()
 {
 	MonoManagedMemorySnapshot* snapshot;
+
+	GC_stop_world_external();
 	snapshot = g_new0(MonoManagedMemorySnapshot, 1);
 
 	CollectMetadata(&snapshot->metadata);
 	CaptureManagedHeap(&snapshot->heap);
 	CaptureGCHandleTargets(&snapshot->gcHandles);
 	FillRuntimeInformation(&snapshot->runtimeInformation);
+
+	GC_start_world_external();
 
 	return snapshot;
 }
