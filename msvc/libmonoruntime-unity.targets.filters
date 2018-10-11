@@ -10,6 +10,9 @@
     <ClInclude Include="$(MonoSourceLocation)\mono\metadata\unity-memory-info.h">
       <Filter>Header Files$(MonoRuntimeFilterSubFolder)\unity</Filter>
     </ClInclude>
+    <ClCompile Include="$(MonoSourceLocation)\mono\metadata\unity-reload.c">
+      <Filter>Source Files$(MonoRuntimeFilterSubFolder)\unity</Filter>
+    </ClCompile>
     <ClCompile Include="$(MonoSourceLocation)\mono\metadata\unity-utils.c">
       <Filter>Source Files$(MonoRuntimeFilterSubFolder)\unity</Filter>
     </ClCompile>
