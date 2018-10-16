@@ -3388,7 +3388,7 @@ ves_icall_Type_GetMethodsByName (MonoReflectionType *type, MonoString *name, gui
 	}
 
 	/* An optimization for calls made from Delegate:CreateDelegate () */
-	if (klass->delegate && mname && !strcmp (mname, "Invoke") && (bflags == (BFLAGS_Public | BFLAGS_Static | BFLAGS_Instance))) {
+	if (klass->delegate && klass != mono_defaults.delegate_class && klass != mono_defaults.multicastdelegate_class && mname && !strcmp (mname, "Invoke") && (bflags == (BFLAGS_Public | BFLAGS_Static | BFLAGS_Instance))) {
 		method = mono_get_delegate_invoke (klass);
 		if (mono_loader_get_last_error ())
 			goto loader_error;
