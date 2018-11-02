@@ -180,7 +180,7 @@ else
 # abs_path ends up returning an empty string
 $externalBuildDeps = abs_path($externalBuildDeps) if (-d $externalBuildDeps);
 
-my $extraBuildTools = "$monoroot/../../mono-build-tools-extra/build";
+my $extraBuildTools = "$monoroot/mono-build-tools-extra/build";
 
 my $existingExternalMonoRoot = "$externalBuildDeps/MonoBleedingEdge";
 my $existingExternalMono = "";
@@ -1112,10 +1112,18 @@ if ($build)
 			else
 			{
 				print(">>> Linux SDK needs to be extracted\n");
+				chdir("$externalBuildDeps") eq 1 or die ("failed to chdir to external directory\n");
+				
+				if (!(-f $depsSdkArchive))
+				{
+					print(">>> Linux SDK not found\n");
+				}
+				
 				system('mkdir', '-p', $depsSdkFinal);
-				system('tar', 'xaf', $depsSdkArchive, '-C', $depsSdkFinal) eq 0  or die ("failed to extract Linux SDK\n");
+				system('tar', '-xvf', $depsSdkArchive, '-C', $depsSdkFinal) eq 0  or die ("failed to extract Linux SDK\n");
 				system('sudo', 'cp', '-R', "$depsSdkFinal/linux-sdk-$sdkVersion", '/etc/schroot');
 				system("sed 's,^directory=.*,directory=$depsSdkFinal/$schroot,' \"$depsSdkFinal/$schroot.conf\" | sudo tee /etc/schroot/chroot.d/$schroot.conf") eq 0 or die ("failed to deploy Linux SDK\n");
+				chdir("$monoroot") eq 1 or die ("failed to chdir to $monoroot\n");
 			}
 
 			@commandPrefix = @linuxToolchain;
