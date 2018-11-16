@@ -608,7 +608,8 @@ void mono_unity_liveness_free_struct (LivenessState* state)
 
 void mono_unity_liveness_stop_gc_world (LivenessState* state)
 {
-	state->onWorldStopCallback();
+	if (state)
+		state->onWorldStopCallback();
 #if defined(HAVE_SGEN_GC)
 	sgen_stop_world (1);
 #elif defined(HAVE_BOEHM_GC)
@@ -627,7 +628,8 @@ void mono_unity_liveness_start_gc_world (LivenessState* state)
 #else
 #error need to implement liveness GC API
 #endif
-	state->onWorldStartCallback();
+	if (state)
+		state->onWorldStartCallback ();
 }
 
 LivenessState* mono_unity_liveness_calculation_begin (MonoClass* filter, guint max_count, register_object_callback callback, void* callback_userdata, WorldStateChanged onWorldStartCallback, WorldStateChanged onWorldStopCallback)
