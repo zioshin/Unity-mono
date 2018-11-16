@@ -474,7 +474,7 @@ void mono_mempool_foreach_chunk(MonoMemPool* pool, mono_mempool_chunk_proc callb
 	while (current)
 	{
 		gpointer start = (guint8*)current + sizeof(MonoMemPool);
-		gpointer end = (guint8*)start + current->size;
+		gpointer end = (guint8*)current + current->size;
 
 		callback(start, end, user_data);
 		current = current->next;
