@@ -22,7 +22,6 @@ my $buildscriptsdir = "$monoroot\\external\\buildscripts";
 my $addtoresultsdistdir = "$buildscriptsdir\\add_to_build_results\\monodistribution";
 my $monoprefix = "$monoroot\\tmp\\monoprefix";
 my $buildsroot = "$monoroot\\builds";
-my $distdir = "$buildsroot\\monodistribution";
 my $buildMachine = $ENV{UNITY_THISISABUILDMACHINE};
 
 my $build=0;
@@ -192,10 +191,9 @@ if ($artifact)
 
 	# Do the platform specific logic to create the builds output structure that we want
 
-	my $embedDirRoot = "$buildsroot\\embedruntimes";
-
-	my $embedDirArchDestination = $arch32 ? "$embedDirRoot\\win32" : "$embedDirRoot\\win64";
-	my $distDirArchBin = $arch32 ? "$distdir\\bin" : "$distdir\\bin-x64";
+	my $embedDirArchDestination = $arch32 ? "$buildsroot\\win\\x86\\embedruntimes" : "$buildsroot\\win\\x86_64\\embedruntimes";
+	my $distDirArchBin = $arch32 ? "$buildsroot\\win\\x86\\mono\\bin" : "$buildsroot\\win\\x86_64\\mono\\bin";
+	
 	my $versionsOutputFile = $arch32 ? "$buildsroot\\versions-win32.txt" : "$buildsroot\\versions-win64.txt";
 
 	# Make sure the directory for our architecture is clean before we copy stuff into it
@@ -214,29 +212,23 @@ if ($artifact)
 	if (!(-d "$buildsroot"))
 	{
 		print(">>> Creating directory $buildsroot\n");
-		system("mkdir $buildsroot") eq 0 or die("failed to create directory $buildsroot\n");
+		system("mkdir -p $buildsroot") eq 0 or die("failed to create directory $buildsroot\n");
 	}
 
-	if (!(-d "$embedDirRoot"))
+	if (!(-d "$embedDirArchDestination"))
 	{
-		print(">>> Creating directory $embedDirRoot\n");
-		system("mkdir $embedDirRoot") eq 0 or die("failed to create directory $embedDirRoot\n");
+		print(">>> Creating directory $embedDirArchDestination\n");
+		system("mkdir -p $embedDirArchDestination") eq 0 or die("failed to create directory $embedDirArchDestination\n");
 	}
 
-	if (!(-d "$distdir"))
+	if (!(-d "$distDirArchBin"))
 	{
-		print(">>> Creating directory $distdir\n");
-		system("mkdir $distdir") eq 0 or die("failed to create directory $distdir\n");
+		print(">>> Creating directory $distDirArchBin\n");
+		system("mkdir -p $distDirArchBin") eq 0 or die("failed to create directory $distDirArchBin\n");
 	}
-
-	print(">>> Creating directory $embedDirArchDestination\n");
-	system("mkdir $embedDirArchDestination") eq 0 or die("failed to create directory $embedDirArchDestination\n");
-
-	print(">>> Creating directory $distDirArchBin\n");
-	system("mkdir $distDirArchBin") eq 0 or die("failed to create directory $distDirArchBin\n");
 
 	# embedruntimes directory setup
-	print(">>> Creating embedruntimes directory : $embedDirArchDestination\n");
+	print(">>> Setting up embedruntimes directory : $embedDirArchDestination\n");
 
 	copy("$monoprefix/bin/mono-2.0-bdwgc.dll", "$embedDirArchDestination/.") or die ("failed copying mono-2.0-bdwgc.dll\n");
 	copy("$monoprefix/bin/mono-2.0-bdwgc.pdb", "$embedDirArchDestination/.") or die ("failed copying mono-2.0-bdwgc.pdb\n");
@@ -248,7 +240,7 @@ if ($artifact)
 	copy("$monoprefix/bin/MonoPosixHelper.pdb", "$embedDirArchDestination/.") or die ("failed copying MonoPosixHelper.pdb\n");
 
 	# monodistribution directory setup
-	print(">>> Creating monodistribution directory\n");
+	print(">>> Setting up monodistribution directory : $distDirArchBin\n");
 	copy("$monoprefix/bin/mono-2.0-bdwgc.dll", "$distDirArchBin/.") or die ("failed copying mono-2.0-bdwgc.dll\n");
 	copy("$monoprefix/bin/mono-2.0-bdwgc.pdb", "$distDirArchBin/.") or die ("failed copying mono-2.0-bdwgc.pdb\n");
 

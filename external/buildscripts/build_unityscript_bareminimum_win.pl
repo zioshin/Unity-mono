@@ -8,7 +8,7 @@ use File::Basename;
 
 my $root = getcwd();
 
-my $monodistro = "$root/builds/monodistribution";
+my $monodistro = "$root/builds/mono";
 my $libmono = "$monodistro/lib/mono";
 
 sub AddDotNetFolderToPath() {

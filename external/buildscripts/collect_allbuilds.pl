@@ -4,6 +4,7 @@ use File::Basename;
 use File::Copy::Recursive qw(dircopy rmove);
 use File::Path;
 use Tools qw(InstallNameTool);
+use File::Copy;
 
 
 my $monoroot = File::Spec->rel2abs(dirname(__FILE__) . "/../..");
@@ -13,6 +14,10 @@ my $path = "incomingbuilds/";
 
 rmtree("collectedbuilds");
 mkpath("collectedbuilds");
+
+# Copy bareminimum into classlibs
+dircopy("incomingbuilds/bareminimum/mono", "incomingbuilds/classlibs/osx/mono");
+rmtree("incomingbuilds/bareminimum/mono");
 
 my @folders = ();
 opendir(DIR, $path) or die "cant find $path: $!";
@@ -34,6 +39,65 @@ while (defined(my $file = shift @files)) {
 	}
 }
 closedir(DIR);
+
+# Copy classlibs into windows and linux. 
+# Windows and linux runtime builds may have produced some files under collectedbuilds/<platform>/<arch>/mono. 
+# We don't want them to be replaced when we copy over classlibs. 
+# So, preserve them and copy back after the classlibs are copied
+
+# Copy classlibs into windows x86
+move('collectedbuilds/win/x86/mono', 'collectedbuilds/win/x86/mono-tmp');
+dircopy("incomingbuilds/classlibs/osx/mono", "collectedbuilds/win/x86/mono");
+dircopy("collectedbuilds/win/x86/mono-tmp/*", "collectedbuilds/win/x86/mono");
+rmtree("collectedbuilds/win/x86/mono-tmp");
+
+# Copy classlibs into windows x86_64
+move('collectedbuilds/win/x86_64/mono', 'collectedbuilds/win/x86_64/mono-tmp');
+dircopy("incomingbuilds/classlibs/osx/mono", "collectedbuilds/win/x86_64/mono");
+dircopy("collectedbuilds/win/x86_64/mono-tmp/*", "collectedbuilds/win/x86_64/mono");
+rmtree("collectedbuilds/win/x86_64/mono-tmp");
+
+# Copy classlibs into linux x86
+move('collectedbuilds/linux/x86/mono', 'collectedbuilds/linux/x86/mono-tmp');
+dircopy("incomingbuilds/classlibs/osx/mono", "collectedbuilds/linux/x86/mono");
+dircopy("collectedbuilds/linux/x86/mono-tmp/*", "collectedbuilds/linux/x86/mono");
+rmtree("collectedbuilds/linux/x86/mono-tmp");
+
+# Copy classlibs into linux x86_64
+move('collectedbuilds/linux/x86_64/mono', 'collectedbuilds/linux/x86_64/mono-tmp');
+dircopy("incomingbuilds/classlibs/osx/mono", "collectedbuilds/linux/x86_64/mono");
+dircopy("collectedbuilds/linux/x86_64/mono-tmp/*", "collectedbuilds/linux/x86_64/mono");
+rmtree("collectedbuilds/linux/x86_64/mono-tmp");
+
+# Cleanup
+unlink glob "collectedbuilds/linux/x86/mono/bin/*.bat";
+unlink glob "collectedbuilds/linux/x86_64/mono/bin/*.bat";
+unlink glob "collectedbuilds/osx/mono/bin/*.bat";
+
+Cleanup("collectedbuilds/win/x86/mono/bin");
+Cleanup("collectedbuilds/win/x86_64/mono/bin");
+
+sub Cleanup
+{
+	my $dirname = shift;
+	opendir(DH, $dirname);
+	my @files = readdir(DH);
+	closedir(DH);
+
+	foreach my $file (@files)
+	{
+		# skip . and ..
+		next if($file =~ /^\.$/);
+		next if($file =~ /^\.\.$/);
+	
+		# Delete files with no extension, like shell executables
+		if($file !~ /\./ )
+		{
+			my $working_dir_abs_path = File::Spec->rel2abs(dirname(__FILE__));
+			unlink glob "$working_dir_abs_path/$dirname/$file";
+		}
+	}
+}
 
 system("find collectedbuilds -type f -name mono -exec chmod +x {} \\;") eq 0 or die("Failed chmodding");
 system("find collectedbuilds -type f -name mono-sgen -exec chmod +x {} \\;") eq 0 or die("Failed chmodding");
@@ -77,4 +141,3 @@ else
 {
 	die("Unsupported platform for build collection.")
 }
-

@@ -1438,6 +1438,18 @@ if ($artifact)
 
 	if ($artifactsCommon)
 	{
+		#Do platform specific set up for distribution directory
+		if ($^O eq "linux")
+		{	
+			$distdir = $arch32 ? "$buildsroot/linux/x86/mono" : "$buildsroot/linux/x86_64/mono";
+			$distDirArchBin = "$distdir/bin";
+		}
+		elsif ($^O eq 'darwin')
+		{
+			$distdir = "$buildsroot/osx/mono";
+			$distDirArchBin = "$distdir/bin";
+		}
+	
 		print(">>> Creating common artifacts...\n");
 		print(">>> distribution directory = $distdir\n");
 
@@ -1530,7 +1542,8 @@ if ($artifact)
 	}
 	elsif ($android)
 	{
-		$embedDirArchDestination = "$embedDirRoot/android/$androidArch";
+		$embedDirRoot = "$buildsroot/android";
+		$embedDirArchDestination = "$embedDirRoot/$androidArch/embedruntimes";
 		$versionsOutputFile = "$buildsroot/versions-android-$androidArch.txt";
 	}
 	elsif ($tizenEmulator)
@@ -1545,21 +1558,27 @@ if ($artifact)
 	}
 	elsif($^O eq "linux")
 	{
-		$embedDirArchDestination = $arch32 ? "$embedDirRoot/linux32" : "$embedDirRoot/linux64";
-		$distDirArchBin = $arch32 ? "$distdir/bin-linux32" : "$distdir/bin-linux64";
+		$embedDirRoot = "$buildsroot/linux";
+		$embedDirArchDestination = $arch32 ? "$embedDirRoot/x86/embedruntimes" : "$embedDirRoot/x86_64/embedruntimes";
+		$distdir = $arch32 ? "$buildsroot/linux/x86/mono" : "$buildsroot/linux/x86_64/mono";
+		$distDirArchBin = "$distdir/bin";
 		$versionsOutputFile = $arch32 ? "$buildsroot/versions-linux32.txt" : "$buildsroot/versions-linux64.txt";
 	}
 	elsif($^O eq 'darwin')
 	{
 		# Note these tmp directories will get merged into a single 'osx' directory later by a parent script
-		$embedDirArchDestination = "$embedDirRoot/osx-tmp-$monoHostArch";
+		$embedDirRoot = "$buildsroot/osx";
+		$embedDirArchDestination = "$embedDirRoot/embedruntimes/osx-tmp-$monoHostArch";
+		$distdir = "$buildsroot/osx/mono";
 		$distDirArchBin = "$distdir/bin-osx-tmp-$monoHostArch";
 		$versionsOutputFile = $arch32 ? "$buildsroot/versions-osx32.txt" : "$buildsroot/versions-osx64.txt";
 	}
 	else
 	{
-		$embedDirArchDestination = $arch32 ? "$embedDirRoot/win32" : "$embedDirRoot/win64";
-		$distDirArchBin = $arch32 ? "$distdir/bin" : "$distdir/bin-x64";
+		$embedDirRoot = "$buildsroot/win";
+		$embedDirArchDestination = $arch32 ? "$embedDirRoot/x86/embedruntimes" : "$embedDirRoot/x86_64/embedruntimes";
+		$distdir = $arch32 ? "$buildsroot/win/x86/mono" : "$buildsroot/win/x86_64/mono";
+		$distDirArchBin = "$distdir/bin";
 		$versionsOutputFile = $arch32 ? "$buildsroot/versions-win32.txt" : "$buildsroot/versions-win64.txt";
 	}
 
@@ -1667,7 +1686,8 @@ if ($artifact)
 		}
 		elsif($^O eq "linux")
 		{
-			my $distDirArchEtc = $arch32 ? "$distdir/etc-linux32" : "$distdir/etc-linux64";
+			$distdir = $arch32 ? "$buildsroot/linux/x86/mono" : "$buildsroot/linux/x86_64/mono";
+			my $distDirArchEtc = "$distdir/etc";
 
 			if (-d "$distDirArchEtc")
 			{

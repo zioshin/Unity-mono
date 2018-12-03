@@ -73,10 +73,10 @@ if ($artifact)
 {
 	print(">>> Creating universal binaries\n");
 	# Merge stuff in the embedruntimes directory
-	my $embedDirRoot = "$buildsroot/embedruntimes";
-	my $embedDirDestination = "$embedDirRoot/osx";
-	my $embedDirSource32 = "$embedDirRoot/osx-tmp-$monoArch32Target";
-	my $embedDirSource64 = "$embedDirRoot/osx-tmp-x86_64";
+	my $embedDirRoot = "$buildsroot/osx";
+	my $embedDirDestination = "$embedDirRoot/embedruntimes";
+	my $embedDirSource32 = "$embedDirRoot/embedruntimes/osx-tmp-$monoArch32Target";
+	my $embedDirSource64 = "$embedDirRoot/embedruntimes/osx-tmp-x86_64";
 
 	system("mkdir -p $embedDirDestination");
 
@@ -111,9 +111,9 @@ if ($artifact)
 	}
 
 	# Merge stuff in the monodistribution directory
-	my $distDirRoot = "$buildsroot/monodistribution";
-	my $distDirDestinationBin = "$buildsroot/monodistribution/bin";
-	my $distDirDestinationLib = "$buildsroot/monodistribution/lib";
+	my $distDirRoot = "$buildsroot/osx/mono";
+	my $distDirDestinationBin = "$distDirRoot/bin";
+	my $distDirDestinationLib = "$distDirRoot/lib";
 	my $distDirSourceBin32 = "$distDirRoot/bin-osx-tmp-$monoArch32Target";
 	my $distDirSourceBin64 = "$distDirRoot/bin-osx-tmp-x86_64";
 
