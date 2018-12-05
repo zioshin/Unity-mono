@@ -191,7 +191,7 @@ if ($artifact)
 
 	# Do the platform specific logic to create the builds output structure that we want
 
-	my $embedDirArchDestination = $arch32 ? "$buildsroot\\win\\x86\\embedruntimes" : "$buildsroot\\win\\x86_64\\embedruntimes";
+	my $embedDirArchDestination = $arch32 ? "$buildsroot\\win\\x86\\embedruntime" : "$buildsroot\\win\\x86_64\\embedruntime";
 	my $distDirArchBin = $arch32 ? "$buildsroot\\win\\x86\\mono\\bin" : "$buildsroot\\win\\x86_64\\mono\\bin";
 	
 	my $versionsOutputFile = $arch32 ? "$buildsroot\\versions-win32.txt" : "$buildsroot\\versions-win64.txt";
@@ -227,8 +227,8 @@ if ($artifact)
 		system("mkdir -p $distDirArchBin") eq 0 or die("failed to create directory $distDirArchBin\n");
 	}
 
-	# embedruntimes directory setup
-	print(">>> Setting up embedruntimes directory : $embedDirArchDestination\n");
+	# embedruntime directory setup
+	print(">>> Setting up embedruntime directory : $embedDirArchDestination\n");
 
 	copy("$monoprefix/bin/mono-2.0-bdwgc.dll", "$embedDirArchDestination/.") or die ("failed copying mono-2.0-bdwgc.dll\n");
 	copy("$monoprefix/bin/mono-2.0-bdwgc.pdb", "$embedDirArchDestination/.") or die ("failed copying mono-2.0-bdwgc.pdb\n");

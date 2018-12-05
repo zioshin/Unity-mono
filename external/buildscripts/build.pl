@@ -1543,7 +1543,7 @@ if ($artifact)
 	elsif ($android)
 	{
 		$embedDirRoot = "$buildsroot/android";
-		$embedDirArchDestination = "$embedDirRoot/$androidArch/embedruntimes";
+		$embedDirArchDestination = "$embedDirRoot/$androidArch/embedruntime";
 		$versionsOutputFile = "$buildsroot/versions-android-$androidArch.txt";
 	}
 	elsif ($tizenEmulator)
@@ -1559,7 +1559,7 @@ if ($artifact)
 	elsif($^O eq "linux")
 	{
 		$embedDirRoot = "$buildsroot/linux";
-		$embedDirArchDestination = $arch32 ? "$embedDirRoot/x86/embedruntimes" : "$embedDirRoot/x86_64/embedruntimes";
+		$embedDirArchDestination = $arch32 ? "$embedDirRoot/x86/embedruntime" : "$embedDirRoot/x86_64/embedruntime";
 		$distdir = $arch32 ? "$buildsroot/linux/x86/mono" : "$buildsroot/linux/x86_64/mono";
 		$distDirArchBin = "$distdir/bin";
 		$versionsOutputFile = $arch32 ? "$buildsroot/versions-linux32.txt" : "$buildsroot/versions-linux64.txt";
@@ -1568,7 +1568,7 @@ if ($artifact)
 	{
 		# Note these tmp directories will get merged into a single 'osx' directory later by a parent script
 		$embedDirRoot = "$buildsroot/osx";
-		$embedDirArchDestination = "$embedDirRoot/embedruntimes/osx-tmp-$monoHostArch";
+		$embedDirArchDestination = "$embedDirRoot/embedruntime/osx-tmp-$monoHostArch";
 		$distdir = "$buildsroot/osx/mono";
 		$distDirArchBin = "$distdir/bin-osx-tmp-$monoHostArch";
 		$versionsOutputFile = $arch32 ? "$buildsroot/versions-osx32.txt" : "$buildsroot/versions-osx64.txt";
@@ -1576,7 +1576,7 @@ if ($artifact)
 	else
 	{
 		$embedDirRoot = "$buildsroot/win";
-		$embedDirArchDestination = $arch32 ? "$embedDirRoot/x86/embedruntimes" : "$embedDirRoot/x86_64/embedruntimes";
+		$embedDirArchDestination = $arch32 ? "$embedDirRoot/x86/embedruntime" : "$embedDirRoot/x86_64/embedruntime";
 		$distdir = $arch32 ? "$buildsroot/win/x86/mono" : "$buildsroot/win/x86_64/mono";
 		$distDirArchBin = "$distdir/bin";
 		$versionsOutputFile = $arch32 ? "$buildsroot/versions-win32.txt" : "$buildsroot/versions-win64.txt";

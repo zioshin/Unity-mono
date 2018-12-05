@@ -72,11 +72,11 @@ system("perl", "$buildscriptsdir/build.pl", "--clean=1", "--classlibtests=0", @p
 if ($artifact)
 {
 	print(">>> Creating universal binaries\n");
-	# Merge stuff in the embedruntimes directory
+	# Merge stuff in the embedruntime directory
 	my $embedDirRoot = "$buildsroot/osx";
-	my $embedDirDestination = "$embedDirRoot/embedruntimes";
-	my $embedDirSource32 = "$embedDirRoot/embedruntimes/osx-tmp-$monoArch32Target";
-	my $embedDirSource64 = "$embedDirRoot/embedruntimes/osx-tmp-x86_64";
+	my $embedDirDestination = "$embedDirRoot/embedruntime";
+	my $embedDirSource32 = "$embedDirRoot/embedruntime/osx-tmp-$monoArch32Target";
+	my $embedDirSource64 = "$embedDirRoot/embedruntime/osx-tmp-x86_64";
 
 	system("mkdir -p $embedDirDestination");
 
