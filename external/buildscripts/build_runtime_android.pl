@@ -11,7 +11,7 @@ my $buildScriptsRoot = "$monoroot/external/buildscripts";
 my $androidArch = "";
 my $clean = 1;
 my $windowsSubsystemForLinux = 0;
-my $stevedoreBuildDeps = 0;
+my $stevedoreBuildDeps = 1;
 
 GetOptions(
    "androidarch=s"=>\$androidArch,
