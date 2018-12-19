@@ -160,9 +160,10 @@ static void mono_traverse_objects (LivenessState* state);
 
 static void mono_traverse_generic_object( MonoObject* object, LivenessState* state ) 
 {
-	gsize gc_desc = (gsize)(GET_VTABLE(object)->gc_descr);
+	MonoVTable* vtable = GET_VTABLE (object);
+	gsize gc_desc = (gsize)(vtable->gc_descr);
 
-	if (gc_desc & (gsize)1)
+	if (gc_desc & (gsize)1 && !(vtable->klass->has_non_object_gc_memory))
 		mono_traverse_gc_desc (object, state);
 	else if (GET_VTABLE(object)->klass->rank)
 		mono_traverse_array ((MonoArray*)object, state);
