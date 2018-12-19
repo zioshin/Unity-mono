@@ -671,6 +671,8 @@ compute_class_bitmap (MonoClass *class, gsize *bitmap, int size, int offset, int
 #else
 				if (class->image != mono_defaults.corlib)
 					break;
+				else
+					class->has_non_object_gc_memory = 1;
 #endif
 			case MONO_TYPE_STRING:
 			case MONO_TYPE_SZARRAY:
