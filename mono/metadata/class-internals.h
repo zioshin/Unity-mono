@@ -348,6 +348,7 @@ struct _MonoClass {
 	USE_UINT8_BIT_FIELD(guint, simd_type       : 1); /* class is a simd intrinsic type */
 	USE_UINT8_BIT_FIELD(guint, is_generic      : 1); /* class is a generic type definition */
 	USE_UINT8_BIT_FIELD(guint, is_inflated     : 1); /* class is a generic instance */
+	USE_UINT8_BIT_FIELD(guint, has_non_object_gc_memory     : 1); /* class has UIntPtr field which may point to GC memory */
 
 	guint8     exception_type;	/* MONO_EXCEPTION_* */
 
