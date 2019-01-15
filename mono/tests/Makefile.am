@@ -725,6 +725,10 @@ TESTS_CS_SRC += bug-60862.cs
 endif
 endif
 
+if HOST_WIN32
+TESTS_CS_SRC += finally-chained-exception.cs
+endif
+
 #maybe this test works on linux, not sure
 if HOST_DARWIN
 TESTS_CS_SRC += bug-8417.cs
