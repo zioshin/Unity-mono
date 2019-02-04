@@ -701,7 +701,7 @@ if ($build)
 			die("mono build deps are required and the directory was not found : $externalBuildDeps\n");
 		}
 
-		my $ndkVersion = "r16b";
+		my $ndkVersion = "r19";
 		my $apiLevel = 16;
 		my $hostTriple = "";
 		my $platformRootPostfix = "";
@@ -745,21 +745,26 @@ if ($build)
 		print(">>> Android NDK Version = $ndkVersion\n");
 
 		my $ndkName = "";
+		my $sevenZip = "";
 		if($^O eq "linux")
 		{
-			$ndkName = "android-ndk-$ndkVersion-linux/android-ndk-$ndkVersion-linux-x86_64.zip";
+			$ndkName = "android-ndk/android-ndk-$ndkVersion-linux-x86_64.zip";
+			$sevenZip = "$externalBuildDeps/7z/linux64/7za";
 		}
 		elsif($^O eq "darwin")
 		{
-			$ndkName = "android-ndk-$ndkVersion-darwin/android-ndk-$ndkVersion-darwin-x86_64.zip";
+			$ndkName = "android-ndk/android-ndk-$ndkVersion-darwin-x86_64.zip";
+			$sevenZip = "$externalBuildDeps/7z/osx/7za";
 		}
 		else
 		{
-			$ndkName = "android-$ndkVersion-r16b-windows/android-ndk-$ndkVersion-windows-x86.zip";
+			$ndkName = "android-ndk/android-ndk-$ndkVersion-windows-x86.zip";
+			$sevenZip = "$externalBuildDeps/7z/win64/7za.exe";
 		}
 
 		my $depsNdkArchive = "$externalBuildDeps/$ndkName";
-		my $depsNdkFinal = "$externalBuildDeps/android-ndk-$ndkVersion";
+		my $depsNdkDir = "$externalBuildDeps/android-ndk";
+		my $depsNdkFinal = "$depsNdkDir/android-ndk-$ndkVersion";
 
 		print(">>> Android NDK Archive = $depsNdkArchive\n");
 		print(">>> Android NDK Extraction Destination = $depsNdkFinal\n");
@@ -777,9 +782,8 @@ if ($build)
 
 			if ($runningOnWindows)
 			{
-				my $sevenZip = "$externalBuildDeps/7z/win64/7za.exe";
 				my $winDepsNdkArchive = `cygpath -w $depsNdkArchive`;
-				my $winDepsNdkExtract = `cygpath -w $externalBuildDeps`;
+				my $winDepsNdkExtract = `cygpath -w $depsNdkDir`;
 
 				# clean up trailing new lines that end up in the output from cygpath.  If left, they cause problems down the line
 				# for 7zip
@@ -790,24 +794,7 @@ if ($build)
 			}
 			else
 			{
-				my ($name,$path,$suffix) = fileparse($depsNdkArchive, qr/\.[^.]*/);
-
-				print(">>> Android NDK Extension = $suffix\n");
-
-				# Versions after r11 use .zip extension.  Currently we use r10e, but let's support the .zip extension in case
-				# we upgrade down the road
-				if (lc $suffix eq '.zip')
-				{
-					system("unzip", "-q", $depsNdkArchive, "-d", $externalBuildDeps);
-				}
-				elsif (lc $suffix eq '.bin')
-				{	chmod(0755, $depsNdkArchive);
-					system($depsNdkArchive, "-o$externalBuildDeps");
-				}
-				else
-				{
-					die "Unknown file extension '" . $suffix . "'\n";
-				}
+				system($sevenZip, "x", "$depsNdkArchive", "-o$depsNdkDir");
 			}
 		}
 

@@ -47,14 +47,14 @@ name : autoconf-src
 id : autoconf-src/2.69_0e4ba7a0363c68ad08a7d138b228596aecdaea68e1d8b8eefc645e6ac8fc85c7.7z
 repo: public
 
-name : android-ndk-r16b-darwin 
-id : android-ndk-r16b-darwin/9df1e3b3b120_c7cda5a221dd72799b7e618597b3f8766df7183d386becb2785631c2d3ac0d75.7z
+name : android-ndk-r19-darwin 
+id : android-ndk-mac/r19-unity_5535e12fd4ea1e83a3f21b659b5bf2e2c1946d9bf2d9b81a94adce653a925afe.7z
 repo: testing
 
-name : android-ndk-r16b-linux 
-id : android-ndk-r16b-linux/9df1e3b3b120_fbabd18208d82cbc810266e8b566bb0ea4e1e438de38d450a92deaa3e23757b6.7z
+name : android-ndk-r19-linux 
+id : android-ndk-linux/r19-unity_ee526792a8a0fd98fb920164922e69501ef190c36572e6c3eaa8bdc40711530f.7z
 repo: testing
 
-name : android-ndk-r16b-windows 
-id : android-ndk-r16b-windows/9df1e3b3b120_403e0d58eabae03f0d9e8d1d2cea2dbf1d14c380c3d1c7eeb6e8c60ffc15e1b8.7z
+name : android-ndk-r19-windows 
+id : android-ndk-win/r19-unity_4fbd0adc1f7be5b7cabaabe55738b8407a2f6312db560cc3ebfa691a0b375ad4.7z
 repo: testing
