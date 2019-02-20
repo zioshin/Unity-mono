@@ -1401,6 +1401,7 @@ process_add_sigchld_handler (void)
 void
 mono_w32process_signal_finished (void)
 {
+	int old_errno = errno;
 	mono_coop_mutex_lock (&processes_mutex);
 
 	for (Process* process = processes; process; process = process->next) {
@@ -1430,6 +1431,7 @@ mono_w32process_signal_finished (void)
 	}
 
 	mono_coop_mutex_unlock (&processes_mutex);
+	errno = old_errno;
 }
 
 static gboolean
