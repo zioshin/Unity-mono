@@ -426,7 +426,7 @@ if ($build)
 		elsif (!(-d "$automakeDir"))
 		{
 			print(">>> Extracting automake\n");
-			chdir("$externalBuildDeps/automake-1-16-1"") eq 1 or die ("failed to chdir to external directory\n");
+			chdir("$externalBuildDeps/automake-1-16-1") eq 1 or die ("failed to chdir to external directory\n");
 			system("tar xzf automake-$automakeVersion.tar.gz") eq 0  or die ("failed to extract automake\n");
 		}
 		if (-d "$automakeDir")
