@@ -18,13 +18,14 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <NoStdLib>True</NoStdLib>
     
+    
     <NoConfig>True</NoConfig>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>
     </RootNamespace>
     <AssemblyName>System.Data</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>../ecma.pub</AssemblyOriginatorKeyFile>
@@ -59,7 +60,6 @@
     <Compile Include="..\..\..\external\corefx\src\Common\src\Interop\Unix\Interop.Libraries.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\Interop\Unix\System.Net.Security.Native\Interop.GssApiException.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\Interop\Unix\System.Net.Security.Native\Interop.GssBuffer.cs" />
-    <Compile Include="..\..\..\external\corefx\src\Common\src\Interop\Unix\System.Net.Security.Native\Interop.NetSecurityNative.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\Microsoft\Win32\SafeHandles\GssSafeHandles.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\Data\Common\AdapterUtil.cs" />
     <Compile Include="..\..\..\external\corefx\src\Common\src\System\Data\Common\BasicFieldNameLookup.cs" />
@@ -543,6 +543,7 @@
     <Compile Include="Assembly\AssemblyInfo.cs" />
     <Compile Include="corefx\DbConnectionOptions.cs" />
     <Compile Include="corefx\DiagnosticListener.cs" />
+    <Compile Include="corefx\Interop.NetSecurityNative.cs" />
     <Compile Include="corefx\Odbc\AdapterUtil.cs" />
     <Compile Include="corefx\Odbc\DbConnectionStringCommon.cs" />
     <Compile Include="corefx\Odbc\OdbcFactory.cs" />

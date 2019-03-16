@@ -14,6 +14,7 @@
  */
 #include <config.h>
 #include "mono/metadata/assembly.h"
+#include "mono/metadata/class-init.h"
 #include "mono/metadata/gc-internals.h"
 #include "mono/metadata/mono-endian.h"
 #include "mono/metadata/object-internals.h"
@@ -1172,7 +1173,7 @@ create_custom_attr_data_handle (MonoImage *image, MonoCustomAttrEntry *cattr, Mo
 
 	domain = mono_domain_get ();
 
-	MonoObjectHandle attr = MONO_HANDLE_NEW (MonoObject, mono_object_new_checked (domain, mono_defaults.customattribute_data_class, error));
+	MonoObjectHandle attr = mono_object_new_handle (domain, mono_defaults.customattribute_data_class, error);
 	goto_if_nok (error, fail);
 
 	MonoReflectionMethod *ctor_obj = mono_method_get_object_checked (domain, cattr->ctor, NULL, error);

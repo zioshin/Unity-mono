@@ -49,7 +49,7 @@ all-profiles $(STD_TARGETS:=-profiles): %-profiles: profiles-do--%
 	@:
 
 profiles-do--%:
-	$(MAKE) $(PROFILES:%=profile-do--%--$*)
+	$(if $(PROFILES),$(MAKE) $(PROFILES:%=profile-do--%--$*))
 
 # The % below looks like profile-name--target-name
 profile-do--%:

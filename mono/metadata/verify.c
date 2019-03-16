@@ -23,6 +23,7 @@
 #include <mono/metadata/metadata.h>
 #include <mono/metadata/metadata-internals.h>
 #include <mono/metadata/class-internals.h>
+#include <mono/metadata/class-init.h>
 #include <mono/metadata/security-manager.h>
 #include <mono/metadata/security-core-clr.h>
 #include <mono/metadata/tokentype.h>
@@ -1884,10 +1885,10 @@ dump_stack_value (ILStackDesc *value)
 				printf ("complex] (inst of %s )", value->type->data.generic_class->container_class->name);
 				return;
 			case MONO_TYPE_VAR:
-				printf ("complex] (type generic param !%d - %s) ", value->type->data.generic_param->num, mono_generic_param_info (value->type->data.generic_param)->name);
+				printf ("complex] (type generic param !%d - %s) ", value->type->data.generic_param->num, mono_generic_param_name (value->type->data.generic_param));
 				return;
 			case MONO_TYPE_MVAR:
-				printf ("complex] (method generic param !!%d - %s) ", value->type->data.generic_param->num, mono_generic_param_info (value->type->data.generic_param)->name);
+				printf ("complex] (method generic param !!%d - %s) ", value->type->data.generic_param->num, mono_generic_param_name (value->type->data.generic_param));
 				return;
 			default: {
 				//should be a boxed value 
@@ -4137,7 +4138,7 @@ do_newarr (VerifyContext *ctx, int token)
 	if (stack_slot_get_type (value) != TYPE_I4 && stack_slot_get_type (value) != TYPE_NATIVE_INT)
 		CODE_NOT_VERIFIABLE (ctx, g_strdup_printf ("Array size type on stack (%s) is not a verifiable type at 0x%04x", stack_slot_get_name (value), ctx->ip_offset));
 
-	set_stack_value (ctx, stack_push (ctx), mono_class_get_type (mono_array_class_get (mono_class_from_mono_type (type), 1)), FALSE);
+	set_stack_value (ctx, stack_push (ctx), mono_class_get_type (mono_class_create_array (mono_class_from_mono_type (type), 1)), FALSE);
 }
 
 /*FIXME handle arrays that are not 0-indexed*/

@@ -15,7 +15,7 @@
 
 #if HAVE_BDWGC_GC
 
-#include "external/bdwgc/include/gc.h"
+#include <mono/utils/gc_wrapper.h>
 
 typedef struct CollectMetadataContext
 {

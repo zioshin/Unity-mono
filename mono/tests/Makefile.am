@@ -534,7 +534,9 @@ TESTS_CS_SRC=		\
 	threads-leak.cs	\
 	threads-init.cs \
 	bug-60848.cs \
-	generic-unmanaged-constraint.cs
+	generic-unmanaged-constraint.cs \
+	bug-59400.cs \
+	sizeof-empty-structs.cs
 
 if AMD64
 TESTS_CS_SRC += async-exc-compilation.cs finally_guard.cs finally_block_ending_in_dead_bb.cs
@@ -553,6 +555,17 @@ endif
 endif
 
 TESTS_IL_SRC=			\
+	gptail1.il		\
+	itail1.il		\
+	itaili1.il		\
+	ivtail1.il		\
+	sirtail1.il		\
+	sitail1.il		\
+	srtail1.il		\
+	stail1.il		\
+	tail1.il		\
+	taili1.il		\
+	vtail1.il		\
 	field-access.il		\
 	method-access.il	\
 	ldftn-access.il		\
@@ -707,7 +720,8 @@ if HOST_WIN32
 PLATFORM_DISABLED_TESTS += async-exc-compilation.exe finally_guard.exe finally_block_ending_in_dead_bb.exe \
 	bug-18026.exe monitor.exe threadpool-exceptions5.exe process-unref-race.exe w32message.exe \
 	unhandled-exception-1.exe unhandled-exception-2.exe unhandled-exception-3.exe unhandled-exception-4.exe \
-	unhandled-exception-5.exe unhandled-exception-6.exe unhandled-exception-7.exe unhandled-exception-8.exe
+	unhandled-exception-5.exe unhandled-exception-6.exe unhandled-exception-7.exe unhandled-exception-8.exe \
+	finalizer-abort.exe
 endif
 
 endif
@@ -728,32 +742,10 @@ endif
 
 if ARM
 PLATFORM_DISABLED_TESTS += filter-stack.exe weak-fields.exe
-INTERP_PLATFORM_DISABLED_TESTS= \
-	assemblyresolve_event6.exe \
-	delegate-async-exit.exe \
-	delegate-delegate-exit.exe \
-	delegate-exit.exe \
-	delegate1.exe \
-	delegate3.exe \
-	thunks.exe \
-	finalizer-exception.exe \
-	delegate5.exe \
-	delegate8.exe \
-	bug-323114.exe \
-	threadpool-exceptions3.exe \
-	threadpool-exceptions6.exe \
-	bug-80392.2.exe \
-	remoting3.exe \
-	remoting2.exe \
-	appdomain-unload-callback.exe \
-	monitor-abort.exe
 endif
 
 if ARM64
 PLATFORM_DISABLED_TESTS += weak-fields.exe
-INTERP_PLATFORM_DISABLED_TESTS= \
-	assemblyresolve_event6.exe \
-	finalizer-exception.exe
 endif
 
 if MIPS
@@ -770,12 +762,6 @@ PLATFORM_DISABLED_TESTS += \
 	sgen-bridge.exe \
 	sgen-bridge-major-fragmentation.exe \
 	sgen-bridge-xref.exe
-endif
-
-if ENABLE_COOP
-COOP_DISABLED_TESTS= thunks.exe
-else
-COOP_DISABLED_TESTS= 
 endif
 
 PROFILE_DISABLED_TESTS=
@@ -960,7 +946,11 @@ CI_DISABLED_TESTS = \
 # failing tests which we temporarily disable for PRs
 # so they don't interfere with other people's work
 CI_PR_DISABLED_TESTS = \
-	appdomain-threadpool-unload.exe
+	appdomain-threadpool-unload.exe \
+	monitor-abort.exe \
+	monitor-wait-abort.exe \
+	process-stress-3.exe \
+	sleep.exe
 
 if ENABLE_COOP
 CI_PR_DISABLED_TESTS += \
@@ -989,7 +979,8 @@ LLVM = $(filter --llvm, $(MONO_ENV_OPTIONS))
 # appdomain-thread-abort.exe: https://bugzilla.xamarin.com/show_bug.cgi?id=47054
 # abort-try-holes.exe is flaky due to unwinding failure to the finally block when aborting
 # appdomain-marshalbyref-assemblyload.exe: https://bugzilla.xamarin.com/show_bug.cgi?id=49308
-# dim-*: https://github.com/mono/mono/pull/6252
+# threads-init.exe: runs out of system threads
+# dim-constrainedcall.exe: fails on dontnet as well (https://github.com/dotnet/coreclr/issues/15353)
 KNOWN_FAILING_TESTS = \
 	delegate-async-exception.exe	\
 	bug-348522.2.exe	\
@@ -998,69 +989,119 @@ KNOWN_FAILING_TESTS = \
 	bug-Xamarin-5278.exe \
 	appdomain-marshalbyref-assemblyload.exe	\
 	abort-try-holes.exe \
-	dim-constrainedcall.exe	\
-	dim-diamondshape.exe
+	threads-init.exe \
+	dim-constrainedcall.exe \
+	gptail1.exe \
+	itaili1.exe \
+	ivtail1.exe \
+	sirtail1.exe \
+	srtail1.exe \
+	stail1.exe \
+	tail1.exe \
+	taili1.exe \
+	vtail1.exe
 
 DISABLED_TESTS = \
 	$(KNOWN_FAILING_TESTS) \
 	$(PLATFORM_DISABLED_TESTS) \
-	$(EXTRA_DISABLED_TESTS) \
-	$(COOP_DISABLED_TESTS) \
 	$(PROFILE_DISABLED_TESTS) \
 	$(if $(AOT),$(AOT_DISABLED_TESTS)) \
 	$(if $(CI),$(CI_DISABLED_TESTS)) \
 	$(if $(CI_PR),$(CI_PR_DISABLED_TESTS)) \
 	$(if $(LLVM),$(LLVM_DISABLED_TESTS))
 
-# bug-48015.exe: be careful when re-enabling, it happens that it returns with
-#                exit code 0, but doesn't actually execute the test.
-# block_guard_restore_aligment_on_exit.exe: flaky (10% of the time it hangs and thus times out)
-# weak-fields.exe: https://bugzilla.xamarin.com/show_bug.cgi?id=60973
+INTERP_DISABLED_TESTS = $(DISABLED_TESTS)
+
+# bug-48015.exe: be careful when re-enabling, it happens that it returns with exit code 0, but doesn't actually execute the test.
 # bug-60862.exe: missing support to map IP->method; only works on platforms with altstack support.
-INTERP_DISABLED_TESTS = \
-	$(KNOWN_FAILING_TESTS) \
-	$(INTERP_PLATFORM_DISABLED_TESTS) \
-	$(COOP_DISABLED_TESTS) \
-	$(if $(CI),$(CI_DISABLED_TESTS)) \
-	$(if $(CI_PR),$(CI_PR_DISABLED_TESTS)) \
+
+if ARM
+INTERP_DISABLED_TESTS += \
+	appdomain-unload-callback.exe \
 	appdomain-unload.exe \
-	array_load_exception.exe \
-	async-exc-compilation.exe \
+	assemblyresolve_event6.exe \
 	async-with-cb-throws.exe \
 	block_guard_restore_aligment_on_exit.exe \
+	bug-323114.exe \
 	bug-335131.2.exe \
 	bug-415577.exe \
 	bug-45841-fpstack-exceptions.exe \
 	bug-48015.exe \
-	bug-58782-capture-and-throw.exe \
-	bug-58782-plain-throw.exe \
-	bug445361.exe \
 	bug-60862.exe \
+	bug-80307.exe \
+	bug-80392.2.exe \
+	bug445361.exe \
 	calliGenericTest.exe \
 	cominterop.exe \
 	context-static.exe \
+	delegate-async-exit.exe \
+	delegate-delegate-exit.exe \
+	delegate-exit.exe \
 	delegate-with-null-target.exe \
+	delegate1.exe \
+	delegate3.exe \
+	delegate5.exe \
+	delegate8.exe \
 	delegate9.exe \
+	dim-diamondshape.exe \
 	dynamic-method-stack-traces.exe \
 	even-odd.exe \
 	exception18.exe \
 	field-access.exe \
+	finalizer-exception.exe \
 	handleref.exe \
+	itail1.exe \
+	monitor-abort.exe \
 	nullable_boxing.2.exe \
+	pinvoke.exe \
 	pinvoke2.exe \
 	pinvoke3.exe \
+	remoting2.exe \
+	remoting3.exe \
 	safehandle.2.exe \
+	sitail1.exe \
 	stackframes-async.2.exe \
 	static-constructor.exe \
-	thread6.exe \
 	threadpool-exceptions2.exe \
+	threadpool-exceptions3.exe \
 	threadpool-exceptions4.exe \
 	threadpool-exceptions5.exe \
+	threadpool-exceptions6.exe \
+	thunks.exe \
 	typeload-unaligned.exe \
-	weak-fields.exe \
 	vararg.exe \
 	vararg2.exe \
 	vararg3.exe
+endif
+
+if ARM64
+INTERP_DISABLED_TESTS += \
+	bug-48015.exe \
+	bug-80307.exe \
+	calliGenericTest.exe \
+	delegate-with-null-target.exe \
+	dim-diamondshape.exe \
+	itail1.exe \
+	pinvoke2.exe \
+	pinvoke3.exe \
+	sitail1.exe
+endif
+
+if AMD64
+INTERP_DISABLED_TESTS += \
+	assemblyresolve_event6.exe \
+	bug-48015.exe \
+	bug-60862.exe \
+	calliGenericTest.exe \
+	cominterop.exe \
+	delegate-with-null-target.exe \
+	dim-diamondshape.exe \
+	itail1.exe \
+	pinvoke.exe \
+	pinvoke2.exe \
+	pinvoke3.exe \
+	sitail1.exe
+endif
 
 TESTS_CS=$(filter-out $(DISABLED_TESTS),$(TESTS_CS_SRC:.cs=.exe))
 TESTS_IL=$(filter-out $(DISABLED_TESTS),$(TESTS_IL_SRC:.il=.exe))

@@ -996,15 +996,6 @@ mono_get_array_new_va_icall (int rank)
 }
 
 gboolean
-mini_class_is_system_array (MonoClass *klass)
-{
-	if (klass->parent == mono_defaults.array_class)
-		return TRUE;
-	else
-		return FALSE;
-}
-
-gboolean
 mini_assembly_can_skip_verification (MonoDomain *domain, MonoMethod *method)
 {
 	MonoAssembly *assembly = method->klass->image->assembly;
@@ -2876,7 +2867,7 @@ mono_create_gc_safepoint (MonoCompile *cfg, MonoBasicBlock *bblock)
 	if (cfg->verbose_level > 1)
 		printf ("ADDING SAFE POINT TO BB %d\n", bblock->block_num);
 
-	g_assert (mono_threads_is_coop_enabled ());
+	g_assert (mono_threads_are_safepoints_enabled ());
 	NEW_AOTCONST (cfg, poll_addr, MONO_PATCH_INFO_GC_SAFE_POINT_FLAG, (gpointer)&mono_polling_required);
 
 	MONO_INST_NEW (cfg, ins, OP_GC_SAFE_POINT);
@@ -2922,12 +2913,12 @@ mono_insert_safepoints (MonoCompile *cfg)
 {
 	MonoBasicBlock *bb;
 
-	if (!mono_threads_is_coop_enabled ())
+	if (!mono_threads_are_safepoints_enabled ())
 		return;
 
 	if (cfg->method->wrapper_type == MONO_WRAPPER_MANAGED_TO_NATIVE) {
 		WrapperInfo *info = mono_marshal_get_wrapper_info (cfg->method);
-		g_assert (mono_threads_is_coop_enabled ());
+		g_assert (mono_threads_are_safepoints_enabled ());
 		gpointer poll_func = &mono_threads_state_poll;
 
 		if (info && info->subtype == WRAPPER_SUBTYPE_ICALL_WRAPPER && info->d.icall.func == poll_func) {
@@ -3049,9 +3040,6 @@ init_backend (MonoBackend *backend)
 #endif
 	if (MONO_ARCH_USE_FPSTACK)
 		backend->use_fpstack = 1;
-#ifdef MONO_ARCH_HAVE_LIVERANGE_OPS
-	backend->have_liverange_ops = 1;
-#endif
 #ifdef MONO_ARCH_HAVE_OP_TAIL_CALL
 	backend->have_op_tail_call = 1;
 #endif
@@ -3062,9 +3050,6 @@ init_backend (MonoBackend *backend)
 #endif
 #if defined(__mono_ilp32__)
 	backend->ilp32 = 1;
-#endif
-#ifdef MONO_ARCH_HAVE_DUMMY_INIT
-	backend->have_dummy_init = 1;
 #endif
 #ifdef MONO_ARCH_NEED_DIV_CHECK
 	backend->need_div_check = 1;
@@ -3077,6 +3062,9 @@ init_backend (MonoBackend *backend)
 #endif
 #ifdef MONO_ARCH_NO_DIV_WITH_MUL
 	backend->disable_div_with_mul = 1;
+#endif
+#ifdef MONO_ARCH_EXPLICIT_NULL_CHECKS
+	backend->explicit_null_checks = 1;
 #endif
 }
 
@@ -3136,7 +3124,7 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 		g_assert (opts & MONO_OPT_GSHARED);
 	} else {
 		try_generic_shared = mono_class_generic_sharing_enabled (method->klass) &&
-			(opts & MONO_OPT_GSHARED) && mono_method_is_generic_sharable (method, FALSE);
+			(opts & MONO_OPT_GSHARED) && mono_method_is_generic_sharable_full (method, FALSE, FALSE, FALSE);
 		if (mini_is_gsharedvt_sharable_method (method)) {
 			/*
 			if (!mono_debug_count ())
@@ -3203,9 +3191,14 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 		cfg->gen_sdb_seq_points = FALSE;
 	}
 	/* coop requires loop detection to happen */
-	if (mono_threads_is_coop_enabled ())
+	if (mono_threads_are_safepoints_enabled ())
 		cfg->opt |= MONO_OPT_LOOP;
-	cfg->explicit_null_checks = debug_options.explicit_null_checks || (flags & JIT_FLAG_EXPLICIT_NULL_CHECKS);
+	if (cfg->backend->explicit_null_checks) {
+		/* some platforms have null pages, so we can't SIGSEGV */
+		cfg->explicit_null_checks = TRUE;
+	} else {
+		cfg->explicit_null_checks = debug_options.explicit_null_checks || (flags & JIT_FLAG_EXPLICIT_NULL_CHECKS);
+	}
 	cfg->soft_breakpoints = debug_options.soft_breakpoints;
 	cfg->check_pinvoke_callconv = debug_options.check_pinvoke_callconv;
 	cfg->disable_direct_icalls = disable_direct_icalls;
@@ -3873,13 +3866,11 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 
 	MONO_TIME_TRACK (mono_jit_stats.jit_create_jit_info, cfg->jit_info = create_jit_info (cfg, method_to_compile));
 
-#ifdef MONO_ARCH_HAVE_LIVERANGE_OPS
 	if (cfg->extend_live_ranges) {
 		/* Extend live ranges to cover the whole method */
 		for (i = 0; i < cfg->num_varinfo; ++i)
 			MONO_VARINFO (cfg, i)->live_range_end = cfg->code_len;
 	}
-#endif
 
 	MONO_TIME_TRACK (mono_jit_stats.jit_gc_create_gc_map, mini_gc_create_gc_map (cfg));
 	MONO_TIME_TRACK (mono_jit_stats.jit_save_seq_point_info, mono_save_seq_point_info (cfg));
@@ -4101,9 +4092,9 @@ mono_jit_compile_method_inner (MonoMethod *method, MonoDomain *target_domain, in
 		gpointer compiled_method = mono_compile_method_checked (nm, error);
 		return_val_if_nok (error, NULL);
 		code = mono_get_addr_from_ftnptr (compiled_method);
-		jinfo = mono_jit_info_table_find (target_domain, (char *)code);
+		jinfo = mono_jit_info_table_find (target_domain, code);
 		if (!jinfo)
-			jinfo = mono_jit_info_table_find (mono_domain_get (), (char *)code);
+			jinfo = mono_jit_info_table_find (mono_domain_get (), code);
 		if (jinfo)
 			MONO_PROFILER_RAISE (jit_done, (method, jinfo));
 		return code;
@@ -4451,3 +4442,12 @@ mono_add_patch_info (MonoCompile *cfg, int ip, MonoJumpInfoType type, gconstpoin
 }
 
 #endif /* DISABLE_JIT */
+
+gboolean
+mini_class_is_system_array (MonoClass *klass)
+{
+	if (klass->parent == mono_defaults.array_class)
+		return TRUE;
+	else
+		return FALSE;
+}

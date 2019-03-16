@@ -1,12 +1,10 @@
-// 
-// System.IO.WaitForChangedResult.cs
+//
+// ServiceHostFactory.cs
 //
 // Author:
-//   Tim Coleman (tim@timcoleman.com)
+//	Atsushi Enomoto <atsushi@ximian.com>
 //
-// Copyright (C) Tim Coleman, 2002
-//
-
+// Copyright (C) 2006 Novell, Inc.  http://www.novell.com
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -28,42 +26,23 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-
-namespace System.IO {
-	public struct WaitForChangedResult {
-
-		#region Fields
-
-		WatcherChangeTypes changeType;
-		string name;
-		string oldName;
-		bool timedOut;
-
-		#endregion // Fields
-		
-		#region Properties
-
-		public WatcherChangeTypes ChangeType {
-			get { return changeType; }
-			set { changeType = value; }
+namespace System.ServiceModel.Activation
+{
+	[System.Runtime.CompilerServices.TypeForwardedFrom (Consts.AssemblySystemServiceModel_3_0)]
+	public class ServiceHostFactory : ServiceHostFactoryBase
+	{
+		[MonoTODO]
+		public override ServiceHostBase CreateServiceHost (
+			string constructorString, Uri [] baseAddresses)
+		{
+			throw new NotImplementedException ();
 		}
 
-		public string Name {
-			get { return name; }
-			set { name = value; }
+		[MonoTODO ("untested")]
+		protected virtual ServiceHost CreateServiceHost (
+			Type serviceType, Uri [] baseAddresses)
+		{
+			return new ServiceHost (serviceType, baseAddresses);
 		}
-
-		public string OldName {
-			get { return oldName; }
-			set { oldName = value; }
-		}
-
-		public bool TimedOut {
-			get { return timedOut; }
-			set { timedOut = value; }
-		}
-
-		#endregion // Properties
 	}
 }

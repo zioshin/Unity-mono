@@ -102,8 +102,6 @@
 #define TV_GETTIME(tv) tv = mono_100ns_ticks ()
 #define TV_ELAPSED(start,end) (((end) - (start)) / 10)
 
-#define ALIGN_TO(val,align) ((((guint64)val) + ((align) - 1)) & ~((align) - 1))
-#define ALIGN_PTR_TO(ptr,align) (gpointer)((((gssize)(ptr)) + (align - 1)) & (~(align - 1)))
 #define ROUND_DOWN(VALUE,SIZE)	((VALUE) & ~((SIZE) - 1))
 
 typedef struct {
@@ -2980,7 +2978,7 @@ encode_klass_ref_inner (MonoAotCompile *acfg, MonoClass *klass, guint8 *buf, gui
 		if (par->gshared_constraint) {
 			MonoGSharedGenericParam *gpar = (MonoGSharedGenericParam*)par;
 			encode_type (acfg, par->gshared_constraint, p, &p);
-			encode_klass_ref (acfg, mono_class_from_generic_parameter_internal (gpar->parent), p, &p);
+			encode_klass_ref (acfg, mono_class_create_generic_parameter (gpar->parent), p, &p);
 		} else {
 			encode_value (klass->byval_arg.type, p, &p);
 			encode_value (mono_type_get_generic_param_num (&klass->byval_arg), p, &p);
@@ -3911,12 +3909,13 @@ create_gsharedvt_inst (MonoAotCompile *acfg, MonoMethod *method, MonoGenericCont
 	}
 	if (method->is_generic) {
 		container = mono_method_get_generic_container (method);
+		g_assert (!container->is_anonymous && container->is_method);
 		shared_context = container->context;
 		inst = shared_context.method_inst;
 
 		args = g_new0 (MonoType*, inst->type_argc);
 		for (i = 0; i < container->type_argc; ++i) {
-			MonoGenericParamInfo *info = &container->type_params [i].info;
+			MonoGenericParamInfo *info = mono_generic_param_info (&container->type_params [i]);
 			gboolean ref_only = FALSE;
 
 			if (info && info->constraints) {
@@ -4721,7 +4720,7 @@ add_generic_class_with_depth (MonoAotCompile *acfg, MonoClass *klass, int depth,
 	if (klass->image == mono_defaults.corlib && !strcmp (klass->name_space, "System.Collections.Generic") &&
 		(!strcmp(klass->name, "ICollection`1") || !strcmp (klass->name, "IEnumerable`1") || !strcmp (klass->name, "IList`1") || !strcmp (klass->name, "IEnumerator`1") || !strcmp (klass->name, "IReadOnlyList`1"))) {
 		MonoClass *tclass = mono_class_from_mono_type (mono_class_get_generic_class (klass)->context.class_inst->type_argv [0]);
-		MonoClass *array_class = mono_bounded_array_class_get (tclass, 1, FALSE);
+		MonoClass *array_class = mono_class_create_bounded_array (tclass, 1, FALSE);
 		gpointer iter;
 		char *name_prefix;
 
@@ -5139,7 +5138,7 @@ add_generic_instances (MonoAotCompile *acfg)
 			MonoGenericContext ctx;
 			MonoType *args [16];
 			MonoMethod *get_method;
-			MonoClass *array_klass = mono_array_class_get (mono_defaults.object_class, 1)->parent;
+			MonoClass *array_klass = mono_class_create_array (mono_defaults.object_class, 1)->parent;
 
 			get_method = mono_class_get_method_from_name (array_klass, "GetGenericValueImpl", 2);
 
@@ -5197,7 +5196,7 @@ add_generic_instances (MonoAotCompile *acfg)
 
 		/* object[] accessor wrappers. */
 		for (i = 1; i < 4; ++i) {
-			MonoClass *obj_array_class = mono_array_class_get (mono_defaults.object_class, i);
+			MonoClass *obj_array_class = mono_class_create_array (mono_defaults.object_class, i);
 			MonoMethod *m;
 
 			m = mono_class_get_method_from_name (obj_array_class, "Get", i);
@@ -7917,7 +7916,7 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 	 * encountered.
 	 */
 	depth = GPOINTER_TO_UINT (g_hash_table_lookup (acfg->method_depth, method));
-	if (!acfg->aot_opts.no_instances && depth < 32 && mono_aot_mode_is_full (&acfg->aot_opts)) {
+	if (!acfg->aot_opts.no_instances && depth < 32 && (mono_aot_mode_is_full (&acfg->aot_opts) || mono_aot_mode_is_hybrid (&acfg->aot_opts))) {
 		for (patch_info = cfg->patch_info; patch_info; patch_info = patch_info->next) {
 			switch (patch_info->type) {
 			case MONO_PATCH_INFO_RGCTX_FETCH:
@@ -7937,7 +7936,7 @@ compile_method (MonoAotCompile *acfg, MonoMethod *method)
 
 				if (!m)
 					break;
-				if (m->is_inflated && mono_aot_mode_is_full (&acfg->aot_opts)) {
+				if (m->is_inflated && (mono_aot_mode_is_full (&acfg->aot_opts) || mono_aot_mode_is_hybrid (&acfg->aot_opts))) {
 					if (!(mono_class_generic_sharing_enabled (m->klass) &&
 						  mono_method_is_generic_sharable_full (m, FALSE, FALSE, FALSE)) &&
 						(!method_has_type_vars (m) || mono_method_is_generic_sharable_full (m, TRUE, TRUE, FALSE))) {
@@ -9892,27 +9891,31 @@ emit_image_table (MonoAotCompile *acfg)
 static void
 emit_weak_field_indexes (MonoAotCompile *acfg)
 {
-	char symbol [128];
 	GHashTable *indexes;
 	GHashTableIter iter;
 	gpointer key, value;
+	int buf_size;
+	guint8 *buf, *p;
 
 	/* Emit a table of weak field indexes, since computing these at runtime is expensive */
-	sprintf (symbol, "weak_field_indexes");
-	emit_section_change (acfg, ".text", 0);
-	emit_alignment_code (acfg, 8);
-	emit_info_symbol (acfg, symbol);
-
 	mono_assembly_init_weak_fields (acfg->image);
 	indexes = acfg->image->weak_field_indexes;
 	g_assert (indexes);
 
-	emit_int32 (acfg, g_hash_table_size (indexes));
+	buf_size = (g_hash_table_size (indexes) + 1) * 4;
+	buf = p = (guint8 *)g_malloc0 (buf_size);
+
+	encode_int (g_hash_table_size (indexes), p, &p);
 	g_hash_table_iter_init (&iter, indexes);
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
 		guint32 index = GPOINTER_TO_UINT (key);
-		emit_int32 (acfg, index);
+		encode_int (index, p, &p);
 	}
+	g_assert (p - buf <= buf_size);
+
+	emit_aot_data (acfg, MONO_AOT_TABLE_WEAK_FIELD_INDEXES, "weak_field_indexes", buf, p - buf);
+
+	g_free (buf);
 }
 
 static void
@@ -10263,6 +10266,7 @@ emit_aot_file_info (MonoAotCompile *acfg, MonoAotFileInfo *info)
 		symbols [sindex ++] = NULL;
 		symbols [sindex ++] = NULL;
 	}
+
 	if (acfg->data_outfile) {
 		for (i = 0; i < MONO_AOT_TABLE_NUM; ++i)
 			symbols [sindex ++] = NULL;
@@ -10280,7 +10284,9 @@ emit_aot_file_info (MonoAotCompile *acfg, MonoAotFileInfo *info)
 		else
 			symbols [sindex ++] = NULL;
 		symbols [sindex ++] = "image_table";
+		symbols [sindex ++] = "weak_field_indexes";
 	}
+
 	symbols [sindex ++] = "mem_end";
 	symbols [sindex ++] = "assembly_guid";
 	symbols [sindex ++] = "runtime_version";
@@ -10313,7 +10319,6 @@ emit_aot_file_info (MonoAotCompile *acfg, MonoAotFileInfo *info)
 		symbols [sindex ++] = NULL;
 		symbols [sindex ++] = NULL;
 	}
-	symbols [sindex ++] = "weak_field_indexes";
 
 	g_assert (sindex == MONO_AOT_FILE_INFO_NUM_SYMBOLS);
 
@@ -10978,7 +10983,7 @@ collect_methods (MonoAotCompile *acfg)
 		}
 	}
 
-	if (mono_aot_mode_is_full (&acfg->aot_opts))
+	if (mono_aot_mode_is_full (&acfg->aot_opts) || mono_aot_mode_is_hybrid (&acfg->aot_opts))
 		add_generic_instances (acfg);
 
 	if (mono_aot_mode_is_full (&acfg->aot_opts))
@@ -11309,21 +11314,14 @@ static char*
 profread_string (FILE *infile)
 {
 	int len, res;
-	char buf [1024];
 	char *pbuf;
 
 	len = profread_int (infile);
-	if (len + 1 > 1024)
-		pbuf = g_malloc (len + 1);
-	else
-		pbuf = buf;
+	pbuf = (char*)g_malloc (len + 1);
 	res = fread (pbuf, 1, len, infile);
 	g_assert (res == len);
 	pbuf [len] = '\0';
-	if (pbuf == buf)
-		return g_strdup (buf);
-	else
-		return pbuf;
+	return pbuf;
 }
 
 static void
@@ -12374,6 +12372,7 @@ static const char* interp_in_static_sigs[] = {
 	"ptr ptr int32 ptr&",
 	"ptr ptr ptr int32 ptr&",
 	"ptr ptr ptr ptr& ptr&",
+	"ptr ptr ptr ptr ptr&",
 	"ptr ptr ptr ptr&",
 	"ptr ptr ptr&",
 	"ptr ptr uint32 ptr&",
@@ -12526,7 +12525,7 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options,
 		acfg->is_full_aot = TRUE;
 	}
 
-	if (mono_threads_is_coop_enabled ())
+	if (mono_threads_are_safepoints_enabled ())
 		acfg->flags = (MonoAotFileFlags)(acfg->flags | MONO_AOT_FILE_FLAG_SAFEPOINTS);
 
 	// The methods in dedup-emit amodules must be available on runtime startup

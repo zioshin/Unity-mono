@@ -63,7 +63,9 @@ static gboolean gc_strict_wbarriers = FALSE;
 static gboolean gc_dont_gc_env = FALSE;
 static mono_mutex_t mono_gc_lock;
 
+#ifndef HAVE_BDWGC_GC
 typedef void (*GC_push_other_roots_proc)(void);
+#endif
 
 static GC_push_other_roots_proc default_push_other_roots;
 static GHashTable *roots;
@@ -161,7 +163,9 @@ mono_gc_base_init (void)
 		}
 	}
 #elif defined(HAVE_PTHREAD_GET_STACKSIZE_NP) && defined(HAVE_PTHREAD_GET_STACKADDR_NP)
+#ifndef HAVE_BDWGC_GC
 		GC_stackbottom = (char*)pthread_get_stackaddr_np (pthread_self ());
+#endif
 #elif defined(__OpenBSD__)
 #  include <pthread_np.h>
 	{
@@ -188,7 +192,9 @@ mono_gc_base_init (void)
 	default_push_other_roots = GC_push_other_roots;
 	GC_push_other_roots = mono_push_other_roots;
 
-#if defined(HAVE_BDWGC_GC) || !defined(HOST_ANDROID)
+#if defined(HAVE_BDWGC_GC)
+	GC_set_no_dls(TRUE);
+#elif !defined(HOST_ANDROID)
 	/* If GC_no_dls is set to true, GC_find_limit is not called. This causes a seg fault on Android With Mono's Older Boehm. */
 	GC_no_dls = TRUE;
 #endif
@@ -215,8 +221,13 @@ mono_gc_base_init (void)
 	GC_init ();
 
 	GC_set_warn_proc (mono_gc_warning);
+#ifdef HAVE_BDWGC_GC
+	GC_set_finalize_on_demand(1);
+	GC_set_finalizer_notifier(mono_gc_finalize_notify);
+#else
 	GC_finalize_on_demand = 1;
 	GC_finalizer_notifier = mono_gc_finalize_notify;
+#endif
 
 	GC_init_gcj_malloc (5, NULL);
 	GC_allow_register_threads ();
@@ -282,7 +293,11 @@ mono_gc_base_init (void)
 	mono_thread_info_attach ();
 
 	GC_set_on_collection_event (on_gc_notification);
+#ifdef HAVE_BDWGC_GC
+	GC_set_on_heap_resize(on_gc_heap_resize);
+#else
 	GC_on_heap_resize = on_gc_heap_resize;
+#endif
 
 	gc_initialized = TRUE;
 }
@@ -308,7 +323,11 @@ mono_gc_dirty_range(void **ptr, size_t size)
 void
 mono_gc_base_cleanup (void)
 {
+#ifdef HAVE_BDWGC_GC
+	GC_set_finalizer_notifier(NULL);
+#else
 	GC_finalizer_notifier = NULL;
+#endif
 }
 
 /**
@@ -381,7 +400,11 @@ mono_gc_get_generation  (MonoObject *object)
 int
 mono_gc_collection_count (int generation)
 {
+#ifdef HAVE_BDWGC_GC
+	return GC_get_gc_no();
+#else
 	return GC_gc_no;
+#endif
 }
 
 /**
@@ -705,7 +728,7 @@ push_handle_stack (HandleStack* stack)
 
 	while (cur) {
 		if (cur->size > 0)
-			GC_push_all (cur->elems, (char*)(cur->elems + cur->size) + 1);
+			GC_push_all ((gpointer)&cur->elems[0], (char*)(cur->elems + cur->size) + 1);
 		if (cur == last)
 			break;
 		cur = cur->next;
@@ -716,7 +739,7 @@ static void
 mono_push_other_roots (void)
 {
 	g_hash_table_foreach (roots, push_root, NULL);
-	FOREACH_THREAD (info) {
+	FOREACH_THREAD_EXCLUDE (info, MONO_THREAD_INFO_FLAGS_NO_GC) {
 		HandleStack* stack = (HandleStack*)info->handle_stack;
 		if (stack)
 			push_handle_stack (stack);
@@ -1574,7 +1597,11 @@ mono_gc_get_description (void)
 void
 mono_gc_set_desktop_mode (void)
 {
+#ifdef HAVE_BDWGC_GC
+	GC_set_dont_expand(1);
+#else
 	GC_dont_expand = 1;
+#endif
 }
 
 gboolean
@@ -1590,7 +1617,13 @@ mono_gc_is_moving (void)
 gboolean
 mono_gc_is_disabled (void)
 {
-	if (GC_dont_gc || gc_dont_gc_env)
+	gboolean dont_gc;
+#ifdef HAVE_BDWGC_GC
+	dont_gc = GC_is_disabled ();
+#else
+	dont_gc = GC_dont_gc;
+#endif
+	if (dont_gc || gc_dont_gc_env)
 		return TRUE;
 	else
 		return FALSE;
@@ -1670,12 +1703,31 @@ mono_gc_set_stack_end (void *stack_end)
 {
 }
 
-void mono_gc_set_skip_thread (gboolean value)
+void
+mono_gc_skip_thread_changing (gboolean skip)
+{
+#ifdef HAVE_BDWGC_GC
+	g_assert_not_reached ();
+#else
+	/*
+	 * Unlike SGen, Boehm doesn't respect our thread info flags. We need to
+	 * inform Boehm manually to skip/not skip the current thread.
+	 */
+
+	if (skip)
+		GC_start_blocking ();
+	else
+		GC_end_blocking ();
+#endif
+}
+
+void
+mono_gc_skip_thread_changed (gboolean skip)
 {
 }
 
 void
-mono_gc_register_for_finalization (MonoObject *obj, void *user_data)
+mono_gc_register_for_finalization (MonoObject *obj, MonoFinalizationProc user_data)
 {
 	guint offset = 0;
 

@@ -328,6 +328,12 @@ public class Tests : TestsBase, ITest2
 			new Tests ().attach ();
 			return 0;
 		}
+		if (args.Length > 0 && args [0] == "step-out-void-async") {
+			var wait = new ManualResetEvent (false);
+			step_out_void_async (wait);
+			wait.WaitOne ();//Don't exist until step_out_void_async is executed...
+			return 0;
+		}
 		assembly_load ();
 		breakpoints ();
 		single_stepping ();
@@ -1781,6 +1787,31 @@ public class Tests : TestsBase, ITest2
 	public static void Bug59649 ()
 	{
 		UninitializedClass.Call();//Breakpoint here and step in
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	static async void step_out_void_async (ManualResetEvent wait)
+	{
+		await Task.Yield ();
+		step_out_void_async_2 ();
+		wait.Set ();
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	static void step_out_void_async_2 ()
+	{
+	}
+
+	public static unsafe void pointer_arguments (int* a, BlittableStruct* s) {
+		*a = 0;
+	}
+
+	[MethodImplAttribute (MethodImplOptions.NoInlining)]
+	public static unsafe void pointers () {
+		int[] a = new [] {1,2,3};
+		BlittableStruct s = new BlittableStruct () { i = 2, d = 3.0 };
+		fixed (int* pa = a)
+			pointer_arguments (pa, &s);
 	}
 }
 

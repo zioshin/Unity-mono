@@ -10,6 +10,7 @@ using Diag = System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 
 using NUnit.Framework;
 
@@ -3510,6 +3511,10 @@ public class DebuggerTests
 		Assert.AreEqual ("domains", frames [2].Method.Name);
 		Assert.AreEqual (vm.RootDomain, frames [2].Domain);
 
+		// Check enum creation in other domains
+		var anenum = vm.CreateEnumMirror (d_method.DeclaringType.Assembly.GetType ("AnEnum"), vm.CreateValue (1));
+		Assert.AreEqual (1, anenum.Value);
+
 		// Test breakpoints on already JITted methods in other domains
 		m = entry_point.DeclaringType.GetMethod ("invoke_in_domain_2");
 		Assert.IsNotNull (m);
@@ -4289,6 +4294,26 @@ public class DebuggerTests
 	}
 
 	[Test]
+	[Category("NotWorking")] // flaky, see https://github.com/mono/mono/issues/6997
+	public void StepOutAsync () {
+		vm.Detach ();
+		Start (new string [] { "dtest-app.exe", "step-out-void-async" });
+		var e = run_until ("step_out_void_async_2");
+		create_step (e);
+		var e2 = step_out ();
+		assert_location (e2, "MoveNext");//we are in step_out_void_async
+		step_req.Disable ();
+		step_req.Depth = StepDepth.Out;
+		step_req.Enable ();
+		vm.Resume ();
+		var e3 = GetNextEvent ();
+		//after step-out from async void, execution should continue
+		//and runtime should exit
+		Assert.IsTrue (e3 is VMDeathEvent, e3.GetType().FullName);
+		vm = null;
+	}
+
+	[Test]
 	[Category("NotWorking")]
 	public void ShouldCorrectlyStepOverOnExitFromArgsAfterStepInMethodParameter() {
 		Event e = run_until ("ss_nested_with_two_args_wrapper");
@@ -4481,6 +4506,40 @@ public class DebuggerTests
 		// Is cctor in this bug, ends up in the static field constructor
 		// DummyCall
 		assert_location (e, "Call");
+	}
+
+	[Test]
+	public void Pointer_GetValue () {
+		var e = run_until ("pointer_arguments");
+		var frame = e.Thread.GetFrames () [0];
+
+		var param = frame.Method.GetParameters()[0];
+		Assert.AreEqual("Int32*", param.ParameterType.Name);
+
+		var pointerValue = frame.GetValue(param) as PointerValue;
+		Assert.AreEqual("Int32*", pointerValue.Type.Name);
+
+		AssertValue(1, pointerValue.Value);
+
+		var pointerValue2 = new PointerValue (pointerValue.VirtualMachine, pointerValue.Type, pointerValue.Address + pointerValue.Type.GetElementType().GetValueSize());
+
+		AssertValue(2, pointerValue2.Value);
+
+
+		param = frame.Method.GetParameters()[1];
+		Assert.AreEqual("BlittableStruct*", param.ParameterType.Name);
+
+		pointerValue = frame.GetValue(param) as PointerValue;
+		Assert.AreEqual("BlittableStruct*", pointerValue.Type.Name);
+
+		var structValue = pointerValue.Value as StructMirror;
+		Assert.AreEqual("BlittableStruct", structValue.Type.Name);
+
+		object f = structValue.Fields[0];
+		AssertValue (2, f);
+		f = structValue.Fields[1];
+		AssertValue (3.0, f);
+
 	}
 } // class DebuggerTests
 } // namespace

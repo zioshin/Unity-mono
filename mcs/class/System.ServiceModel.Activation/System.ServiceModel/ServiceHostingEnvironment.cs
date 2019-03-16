@@ -1,8 +1,8 @@
 //
-// ServiceHostFactory.cs
+// ServiceHostingEnvironment.cs
 //
 // Author:
-//	Atsushi Enomoto <atsushi@ximian.com>
+//	Ankit Jain  <jankit@novell.com>
 //
 // Copyright (C) 2006 Novell, Inc.  http://www.novell.com
 //
@@ -26,27 +26,15 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-#if !HAS_ACTIVATION
-
-namespace System.ServiceModel.Activation
-{
+namespace System.ServiceModel {
+ 
 	[System.Runtime.CompilerServices.TypeForwardedFrom (Consts.AssemblySystemServiceModel_3_0)]
-	public class ServiceHostFactory : ServiceHostFactoryBase
+	public static class ServiceHostingEnvironment
 	{
-		[MonoTODO]
-		public override ServiceHostBase CreateServiceHost (
-			string constructorString, Uri [] baseAddresses)
+		public static bool AspNetCompatibilityEnabled { get; internal set; }
+ 
+		public static void EnsureServiceAvailable (string virtualPath)
 		{
-			throw new NotImplementedException ();
-		}
-
-		[MonoTODO ("untested")]
-		protected virtual ServiceHost CreateServiceHost (
-			Type serviceType, Uri [] baseAddresses)
-		{
-			return new ServiceHost (serviceType, baseAddresses);
 		}
 	}
 }
-
-#endif

@@ -28,8 +28,6 @@
 #include "debugger-agent.h"
 #include "jit-icalls.h"
 
-#define ALIGN_TO(val,align) ((((guint64)val) + ((align) - 1)) & ~((align) - 1))
-
 /*
  * mono_arch_get_unbox_trampoline:
  * @m: method pointer
@@ -750,11 +748,3 @@ mono_arch_create_sdb_trampoline (gboolean single_step, MonoTrampInfo **info, gbo
 
 	return buf;
 }
-
-gpointer
-mono_arch_get_interp_to_native_trampoline (MonoTrampInfo **info)
-{
-	g_assert_not_reached ();
-	return NULL;
-}
-
