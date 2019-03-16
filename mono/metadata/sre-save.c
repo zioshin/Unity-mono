@@ -358,7 +358,7 @@ method_encode_code (MonoDynamicImage *assembly, ReflectionMethodBuilder *mb, Mon
 	} else {
 		code = mb->code;
 		if (code == NULL){
-			MonoError inner_error;
+			ERROR_DECL_VALUE (inner_error);
 			char *name = mono_string_to_utf8_checked (mb->name, &inner_error);
 			if (!is_ok (&inner_error)) {
 				name = g_strdup ("");
@@ -1293,9 +1293,9 @@ mono_image_fill_export_table_from_module (MonoDomain *domain, MonoReflectionModu
 	t = &image->tables [MONO_TABLE_TYPEDEF];
 
 	for (i = 0; i < t->rows; ++i) {
-		MonoError error;
-		MonoClass *klass = mono_class_get_checked (image, mono_metadata_make_token (MONO_TABLE_TYPEDEF, i + 1), &error);
-		g_assert (mono_error_ok (&error)); /* FIXME don't swallow the error */
+		ERROR_DECL (error);
+		MonoClass *klass = mono_class_get_checked (image, mono_metadata_make_token (MONO_TABLE_TYPEDEF, i + 1), error);
+		g_assert (mono_error_ok (error)); /* FIXME don't swallow the error */
 
 		if (mono_class_is_public (klass))
 			mono_image_fill_export_table_from_class (domain, klass, module_index, 0, assembly);
@@ -1344,7 +1344,7 @@ add_exported_type (MonoReflectionAssemblyBuilder *assemblyb, MonoDynamicImage *a
 static void
 mono_image_fill_export_table_from_type_forwarders (MonoReflectionAssemblyBuilder *assemblyb, MonoDynamicImage *assembly)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoClass *klass;
 	int i;
 
@@ -1357,8 +1357,8 @@ mono_image_fill_export_table_from_type_forwarders (MonoReflectionAssemblyBuilder
 		if (!t)
 			continue;
 
-		type = mono_reflection_type_get_handle (t, &error);
-		mono_error_assert_ok (&error);
+		type = mono_reflection_type_get_handle (t, error);
+		mono_error_assert_ok (error);
 		g_assert (type);
 
 		klass = mono_class_from_mono_type (type);
@@ -1423,15 +1423,15 @@ compare_nested (const void *a, const void *b)
 static int
 compare_genericparam (const void *a, const void *b)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	const GenericParamTableEntry **a_entry = (const GenericParamTableEntry **) a;
 	const GenericParamTableEntry **b_entry = (const GenericParamTableEntry **) b;
 
 	if ((*b_entry)->owner == (*a_entry)->owner) {
-		MonoType *a_type = mono_reflection_type_get_handle ((MonoReflectionType*)(*a_entry)->gparam, &error);
-		mono_error_assert_ok (&error);
-		MonoType *b_type = mono_reflection_type_get_handle ((MonoReflectionType*)(*b_entry)->gparam, &error);
-		mono_error_assert_ok (&error);
+		MonoType *a_type = mono_reflection_type_get_handle ((MonoReflectionType*)(*a_entry)->gparam, error);
+		mono_error_assert_ok (error);
+		MonoType *b_type = mono_reflection_type_get_handle ((MonoReflectionType*)(*b_entry)->gparam, error);
+		mono_error_assert_ok (error);
 		return 
 			mono_type_get_generic_param_num (a_type) -
 			mono_type_get_generic_param_num (b_type);

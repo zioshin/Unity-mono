@@ -180,12 +180,12 @@ Icall macros
 */
 #define SETUP_ICALL_COMMON	\
 	do { \
-		MonoError error;	\
+		ERROR_DECL (error);	\
 		MonoThreadInfo *__info = mono_thread_info_current ();	\
-		error_init (&error);	\
+		error_init (error);	\
 
 #define CLEAR_ICALL_COMMON	\
-	mono_error_set_pending_exception (&error);
+	mono_error_set_pending_exception (error);
 
 #define SETUP_ICALL_FRAME	\
 	HandleStackMark __mark;	\

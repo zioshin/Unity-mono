@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Reflection;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -787,6 +788,11 @@ class Tests {
 		}
 		if (!ok)
 			return 12;
+
+		object arr = new int [10];
+		if (arr is IList<int?>)
+			return 13;
+
 		return 0;
 	}
 
@@ -1828,6 +1834,19 @@ ncells ) {
 		}
 
 		return 0;
+	}
+
+	static void decode (out sbyte v) {
+		byte tmp = 134;
+		v = (sbyte)tmp;
+	}
+
+	// gh #6414
+	public static int test_0_alias_analysis_sign_extend () {
+	  sbyte t;
+	  decode (out t);
+
+	  return t == -122 ? 0 : 1;
 	}
 }
 

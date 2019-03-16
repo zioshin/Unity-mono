@@ -1771,6 +1771,9 @@ stop_debugger_thread (void)
 				mono_coop_cond_wait (&debugger_thread_exited_cond, &debugger_thread_exited_mutex);
 			mono_coop_mutex_unlock (&debugger_thread_exited_mutex);
 		} while (!debugger_thread_exited);
+
+		if (debugger_thread_handle)
+			mono_thread_info_wait_one_handle (debugger_thread_handle, MONO_INFINITE_WAIT, TRUE);
 	}
 
 	transport_close2 ();
@@ -1786,11 +1789,11 @@ start_debugger_thread (void)
 static void
 start_debugger_thread (void)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoInternalThread *thread;
 
-	thread = mono_thread_create_internal (mono_get_root_domain (), debugger_thread, NULL, MONO_THREAD_CREATE_FLAGS_DEBUGGER, &error);
-	mono_error_assert_ok (&error);
+	thread = mono_thread_create_internal (mono_get_root_domain (), debugger_thread, NULL, MONO_THREAD_CREATE_FLAGS_DEBUGGER, error);
+	mono_error_assert_ok (error);
 
 	debugger_thread_handle = mono_threads_open_thread_handle (thread->handle);
 	g_assert (debugger_thread_handle);
@@ -3655,7 +3658,7 @@ static void
 init_jit_info_dbg_attrs (MonoJitInfo *ji)
 {
 	static MonoClass *hidden_klass, *step_through_klass, *non_user_klass;
-	MonoError error;
+	ERROR_DECL (error);
 	MonoCustomAttrInfo *ainfo;
 
 	if (ji->dbg_attrs_inited)
@@ -3670,8 +3673,8 @@ init_jit_info_dbg_attrs (MonoJitInfo *ji)
 	if (!non_user_klass)
 		non_user_klass = mono_class_load_from_name (mono_defaults.corlib, "System.Diagnostics", "DebuggerNonUserCodeAttribute");
 
-	ainfo = mono_custom_attrs_from_method_checked (jinfo_get_method (ji), &error);
-	mono_error_cleanup (&error); /* FIXME don't swallow the error? */
+	ainfo = mono_custom_attrs_from_method_checked (jinfo_get_method (ji), error);
+	mono_error_cleanup (error); /* FIXME don't swallow the error? */
 	if (ainfo) {
 		if (mono_custom_attrs_has_attr (ainfo, hidden_klass))
 			ji->dbg_hidden = TRUE;
@@ -3682,8 +3685,8 @@ init_jit_info_dbg_attrs (MonoJitInfo *ji)
 		mono_custom_attrs_free (ainfo);
 	}
 
-	ainfo = mono_custom_attrs_from_class_checked (jinfo_get_method (ji)->klass, &error);
-	mono_error_cleanup (&error); /* FIXME don't swallow the error? */
+	ainfo = mono_custom_attrs_from_class_checked (jinfo_get_method (ji)->klass, error);
+	mono_error_cleanup (error); /* FIXME don't swallow the error? */
 	if (ainfo) {
 		if (mono_custom_attrs_has_attr (ainfo, step_through_klass))
 			ji->dbg_step_through = TRUE;
@@ -4040,10 +4043,13 @@ process_event (EventKind event, gpointer arg, gint32 il_offset, MonoContext *ctx
 			buffer_add_typeid (&buf, domain, (MonoClass *)arg);
 			break;
 		case EVENT_KIND_BREAKPOINT:
-		case EVENT_KIND_STEP:
-			buffer_add_methodid (&buf, domain, (MonoMethod *)arg);
+		case EVENT_KIND_STEP: {
+			MonoMethod *method = (MonoMethod *)arg;
+
+			buffer_add_methodid (&buf, domain, method);
 			buffer_add_long (&buf, il_offset);
 			break;
+		}
 		case EVENT_KIND_VM_START:
 			buffer_add_domainid (&buf, mono_get_root_domain ());
 			break;
@@ -4786,7 +4792,7 @@ set_bp_in_method (MonoDomain *domain, MonoMethod *method, MonoSeqPointInfo *seq_
 
 	code = mono_jit_find_compiled_method_with_jit_info (domain, method, &ji);
 	if (!code) {
-		MonoError oerror;
+		ERROR_DECL_VALUE (oerror);
 
 		/* Might be AOTed code */
 		mono_class_init (method->klass);
@@ -5137,6 +5143,42 @@ ss_update (SingleStepReq *req, MonoJitInfo *ji, SeqPoint *sp, DebuggerTlsData *t
 #endif // !RUNTIME_IL2CPP
 	gboolean hit = TRUE;
 
+	if ((ss_req->filter & STEP_FILTER_STATIC_CTOR)) {
+		mono_thread_state_init_from_monoctx (&tls->context, ctx);
+		compute_frame_info (tls->thread, tls);
+
+		gboolean ret = FALSE;
+		gboolean method_in_stack = FALSE;
+
+		for (int i=0; i < tls->frame_count; i++) {
+			MonoMethod *external_method = tls->frames [i]->method;
+			if (method == external_method)
+				method_in_stack = TRUE;
+
+			if (!ret) {
+				ret = (external_method->flags & METHOD_ATTRIBUTE_SPECIAL_NAME);
+				ret = ret && !strcmp (external_method->name, ".cctor");
+				ret = ret && (external_method != req->start_method);
+			}
+		}
+
+		if (!method_in_stack) {
+			fprintf (stderr, "[%p] The instruction pointer of the currently executing method(%s) is not on the recorded stack. This is likely due to a runtime bug. The %d frames are as follow: \n", (gpointer)(gsize)mono_native_thread_id_get (), mono_method_full_name (method, TRUE), tls->frame_count);
+			/*DEBUG_PRINTF (1, "[%p] The instruction pointer of the currently executing method(%s) is not on the recorded stack. This is likely due to a runtime bug. The %d frames are as follow: \n", (gpointer)(gsize)mono_native_thread_id_get (), mono_method_full_name (method, TRUE), tls->frame_count);*/
+
+			for (int i=0; i < tls->frame_count; i++)
+				DEBUG_PRINTF (1, "\t [%p] Frame (%d / %d): %s\n", (gpointer)(gsize)mono_native_thread_id_get (), i, tls->frame_count, mono_method_full_name (tls->frames [i]->method, TRUE));
+		}
+		g_assert (method_in_stack);
+
+		tls->context.valid = FALSE;
+		tls->async_state.valid = FALSE;
+		invalidate_frames (tls);
+
+		if (ret)
+			return FALSE;
+	}
+
 	if (req->async_stepout_method == method) {
 		DEBUG_PRINTF (1, "[%p] Breakpoint hit during async step-out at %s hit, continuing stepping out.\n", (gpointer)(gsize)mono_native_thread_id_get (), mono_method_get_name(method));
 		return FALSE;
@@ -5313,9 +5355,9 @@ get_this_addr (StackFrame *frame)
 static MonoMethod*
 get_set_notification_method (MonoClass* async_builder_class)
 {
-	MonoError error;
-	GPtrArray* array = mono_class_get_methods_by_name (async_builder_class, "SetNotificationForWaitCompletion", 0x24, FALSE, FALSE, &error);
-	mono_error_assert_ok (&error);
+	ERROR_DECL (error);
+	GPtrArray* array = mono_class_get_methods_by_name (async_builder_class, "SetNotificationForWaitCompletion", 0x24, FALSE, FALSE, error);
+	mono_error_assert_ok (error);
 	g_assert (array->len == 1);
 	MonoMethod* set_notification_method = (MonoMethod *)g_ptr_array_index (array, 0);
 	g_ptr_array_free (array, TRUE);
@@ -5325,9 +5367,9 @@ get_set_notification_method (MonoClass* async_builder_class)
 static MonoMethod*
 get_object_id_for_debugger_method (MonoClass* async_builder_class)
 {
-	MonoError error;
-	GPtrArray *array = mono_class_get_methods_by_name (async_builder_class, "get_ObjectIdForDebugger", 0x24, FALSE, FALSE, &error);
-	mono_error_assert_ok (&error);
+	ERROR_DECL (error);
+	GPtrArray *array = mono_class_get_methods_by_name (async_builder_class, "get_ObjectIdForDebugger", 0x24, FALSE, FALSE, error);
+	mono_error_assert_ok (error);
 	g_assert (array->len == 1);
 	MonoMethod *method = (MonoMethod *)g_ptr_array_index (array, 0);
 	g_ptr_array_free (array, TRUE);
@@ -5370,7 +5412,7 @@ get_this_async_id (StackFrame *frame)
 	gpointer builder;
 	MonoMethod *method;
 	MonoObject *ex;
-	MonoError error;
+	ERROR_DECL (error);
 	MonoObject *obj;
 	gboolean old_disable_breakpoints = FALSE;
 	DebuggerTlsData *tls;
@@ -5393,8 +5435,8 @@ get_this_async_id (StackFrame *frame)
 	}
 
 	method = get_object_id_for_debugger_method (mono_class_from_mono_type (mono_field_get_type (builder_field)));
-	obj = mono_runtime_try_invoke (method, builder, NULL, &ex, &error);
-	mono_error_assert_ok (&error);
+	obj = mono_runtime_try_invoke (method, builder, NULL, &ex, error);
+	mono_error_assert_ok (error);
 
 	if (tls)
 		tls->disable_breakpoints = old_disable_breakpoints;
@@ -5412,10 +5454,10 @@ set_set_notification_for_wait_completion_flag (StackFrame *frame)
 
 	void* args [1];
 	gboolean arg = TRUE;
-	MonoError error;
+	ERROR_DECL (error);
 	args [0] = &arg;
-	mono_runtime_invoke_checked (get_set_notification_method (mono_class_from_mono_type (mono_field_get_type (builder_field))), builder, args, &error);
-	mono_error_assert_ok (&error);
+	mono_runtime_invoke_checked (get_set_notification_method (mono_class_from_mono_type (mono_field_get_type (builder_field))), builder, args, error);
+	mono_error_assert_ok (error);
 }
 
 static MonoMethod* notify_debugger_of_wait_completion_method_cache = NULL;
@@ -5428,10 +5470,10 @@ get_notify_debugger_of_wait_completion_method (void)
 #else
 	if (notify_debugger_of_wait_completion_method_cache != NULL)
 		return notify_debugger_of_wait_completion_method_cache;
-	MonoError error;
+	ERROR_DECL (error);
 	MonoClass* task_class = mono_class_load_from_name (mono_defaults.corlib, "System.Threading.Tasks", "Task");
-	GPtrArray* array = mono_class_get_methods_by_name (task_class, "NotifyDebuggerOfWaitCompletion", 0x24, FALSE, FALSE, &error);
-	mono_error_assert_ok (&error);
+	GPtrArray* array = mono_class_get_methods_by_name (task_class, "NotifyDebuggerOfWaitCompletion", 0x24, FALSE, FALSE, error);
+	mono_error_assert_ok (error);
 	g_assert (array->len == 1);
 	notify_debugger_of_wait_completion_method_cache = (MonoMethod *)g_ptr_array_index (array, 0);
 	g_ptr_array_free (array, TRUE);
@@ -6763,7 +6805,7 @@ ss_clear_for_assembly (SingleStepReq *req, MonoAssembly *assembly)
 void
 mono_debugger_agent_debug_log (int level, MonoString *category, MonoString *message)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	int suspend_policy;
 	GSList *events;
 	DebuggerEventInfo ei;
@@ -6778,13 +6820,13 @@ mono_debugger_agent_debug_log (int level, MonoString *category, MonoString *mess
 	ei.level = level;
 	ei.category = NULL;
 	if (category) {
-		ei.category = mono_string_to_utf8_checked (category, &error);
-		mono_error_cleanup (&error);
+		ei.category = mono_string_to_utf8_checked (category, error);
+		mono_error_cleanup (error);
 	}
 	ei.message = NULL;
 	if (message) {
-		ei.message = mono_string_to_utf8_checked (message, &error);
-		mono_error_cleanup  (&error);
+		ei.message = mono_string_to_utf8_checked (message, error);
+		mono_error_cleanup  (error);
 	}
 
 	process_event (EVENT_KIND_USER_LOG, &ei, 0, NULL, events, suspend_policy);
@@ -7744,7 +7786,7 @@ decode_value_internal (MonoType *t, int type, MonoDomain *domain, guint8 *addr, 
 			} else if (type == VALUE_TYPE_ID_NULL) {
 				*(MonoObject**)addr = NULL;
 			} else if (type == MONO_TYPE_VALUETYPE) {
-				MonoError error;
+				ERROR_DECL (error);
 				guint8 *buf2;
 				gboolean is_enum;
 				MonoClass *klass;
@@ -7776,8 +7818,8 @@ decode_value_internal (MonoType *t, int type, MonoDomain *domain, guint8 *addr, 
 					g_free (vtype_buf);
 					return err;
 				}
-				mono_gc_wbarrier_generic_store((void**)addr, mono_value_box_checked (d, klass, vtype_buf, &error));
-				mono_error_cleanup (&error);
+				mono_gc_wbarrier_generic_store((void**)addr, mono_value_box_checked (d, klass, vtype_buf, error));
+				mono_error_cleanup (error);
 				g_free (vtype_buf);
 			} else {
 				char *name = mono_type_full_name (t);
@@ -7799,7 +7841,7 @@ decode_value_internal (MonoType *t, int type, MonoDomain *domain, guint8 *addr, 
 static ErrorCode
 decode_value (MonoType *t, MonoDomain *domain, guint8 *addr, guint8 *buf, guint8 **endbuf, guint8 *limit)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	ErrorCode err;
 	int type = decode_byte (buf, &buf, limit);
 
@@ -7824,9 +7866,9 @@ decode_value (MonoType *t, MonoDomain *domain, guint8 *addr, guint8 *buf, guint8
 				g_free (nullable_buf);
 				return err;
 			}
-			MonoObject *boxed = mono_value_box_checked (domain, mono_class_from_mono_type (targ), nullable_buf, &error);
-			if (!is_ok (&error)) {
-				mono_error_cleanup (&error);
+			MonoObject *boxed = mono_value_box_checked (domain, mono_class_from_mono_type (targ), nullable_buf, error);
+			if (!is_ok (error)) {
+				mono_error_cleanup (error);
 				return ERR_INVALID_OBJECT;
 			}
 			mono_nullable_init (addr, boxed, mono_class_from_mono_type (t));
@@ -8218,7 +8260,7 @@ add_thread (gpointer key, gpointer value, gpointer user_data)
 static ErrorCode
 do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 *p, guint8 **endp)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	guint8 *end = invoke->endp;
 	MonoMethod *m;
 	int i, nargs;
@@ -8243,8 +8285,8 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 		this_arg = NULL;
 		DEBUG_PRINTF (1, "[%p] Invoking method '%s' on receiver '%s'.\n", (gpointer) (gsize) mono_native_thread_id_get (), mono_method_full_name (invoke->method, TRUE), this_arg ? mono_class_get_name (mono_object_get_class (this_arg)) : "<null>");
 
-		mono_runtime_try_invoke (invoke->method, NULL, invoke->args, &exc, &error);
-		mono_error_assert_ok (&error);
+		mono_runtime_try_invoke (invoke->method, NULL, invoke->args, &exc, error);
+		mono_error_assert_ok (error);
 
 		g_assert_not_reached ();
 	}
@@ -8329,9 +8371,9 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 			if (mono_class_is_abstract (m->klass))
 				return ERR_INVALID_ARGUMENT;
 			else {
-				MonoError error;
-				this_arg = mono_object_new_checked (domain, m->klass, &error);
-				mono_error_assert_ok (&error);
+				ERROR_DECL (error);
+				this_arg = mono_object_new_checked (domain, m->klass, error);
+				mono_error_assert_ok (error);
 			}
 		} else {
 			return ERR_INVALID_ARGUMENT;
@@ -8371,8 +8413,8 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 #ifdef RUNTIME_IL2CPP
 				g_assert_not_reached ();
 #else
-				args [i] = mono_nullable_box (arg_buf [i], arg_class, &error);
-				mono_error_assert_ok (&error);
+				args [i] = mono_nullable_box (arg_buf [i], arg_class, error);
+				mono_error_assert_ok (error);
 #endif // RUNTIME_IL2CPP
 			} else {
 				args [i] = arg_buf [i];
@@ -8405,11 +8447,11 @@ do_invoke_method (DebuggerTlsData *tls, Buffer *buf, InvokeData *invoke, guint8 
 #endif // !RUNTIME_IL2CPP
 
 	mono_stopwatch_start (&watch);
-	res = mono_runtime_try_invoke (m, mono_class_is_valuetype (m->klass) ? (gpointer)this_buf : (gpointer)this_arg, args, &exc, &error);
-	if (!mono_error_ok (&error) && exc == NULL) {
-		exc = (MonoObject*) mono_error_convert_to_exception (&error);
+	res = mono_runtime_try_invoke (m, mono_class_is_valuetype (m->klass) ? (gpointer)this_buf : (gpointer)this_arg, args, &exc, error);
+	if (!mono_error_ok (error) && exc == NULL) {
+		exc = (MonoObject*) mono_error_convert_to_exception (error);
 	} else {
-		mono_error_cleanup (&error); /* FIXME report error */
+		mono_error_cleanup (error); /* FIXME report error */
 	}
 	mono_stopwatch_stop (&watch);
 	DEBUG_PRINTF (1, "[%p] Invoke result: %p, exc: %s, time: %ld ms.\n", (gpointer) (gsize) mono_native_thread_id_get (), res, exc ? mono_class_get_name (mono_object_get_class (exc)) : NULL, (long)mono_stopwatch_elapsed_ms (&watch));
@@ -9018,7 +9060,7 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 		break;
 	}
 	case CMD_VM_GET_TYPES: {
-		MonoError error;
+		ERROR_DECL (error);
 		GHashTableIter iter;
 		MonoDomain *domain;
 		int i;
@@ -9030,8 +9072,8 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 		name = decode_string (p, &p, end);
 		ignore_case = decode_byte (p, &p, end);
 
-		if (!mono_reflection_parse_type_checked (name, &info, &error)) {
-			mono_error_cleanup (&error);
+		if (!mono_reflection_parse_type_checked (name, &info, error)) {
+			mono_error_cleanup (error);
 			g_free (name);
 			mono_reflection_free_type_info (&info);
 			return ERR_INVALID_ARGUMENT;
@@ -9054,7 +9096,7 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 			{
 				if (ass->image)
 				{
-					MonoError probe_type_error;
+					ERROR_DECL_VALUE (probe_type_error);
 					/* FIXME really okay to call while holding locks? */
 					t = mono_reflection_get_type_checked (ass->image, ass->image, &info, ignore_case, &type_resolve, &probe_type_error);
 					mono_error_cleanup (&probe_type_error); 
@@ -9093,7 +9135,7 @@ static ErrorCode
 event_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 {
 	ErrorCode err;
-	MonoError error;
+	ERROR_DECL (error);
 
 	switch (command) {
 	case CMD_EVENT_REQUEST_SET: {
@@ -9220,11 +9262,11 @@ event_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		if (req->event_kind == EVENT_KIND_BREAKPOINT) {
 			g_assert (method);
 
-			req->info = set_breakpoint (method, location, req, &error);
-			if (!mono_error_ok (&error)) {
+			req->info = set_breakpoint (method, location, req, error);
+			if (!mono_error_ok (error)) {
 				g_free (req);
-				DEBUG_PRINTF (1, "[dbg] Failed to set breakpoint: %s\n", mono_error_get_message (&error));
-				mono_error_cleanup (&error);
+				DEBUG_PRINTF (1, "[dbg] Failed to set breakpoint: %s\n", mono_error_get_message (error));
+				mono_error_cleanup (error);
 				return ERR_NO_SEQ_POINT_AT_IL_OFFSET;
 			}
 		} else if (req->event_kind == EVENT_KIND_STEP) {
@@ -9407,24 +9449,24 @@ domain_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 	case CMD_APPDOMAIN_CREATE_STRING: {
 		char *s;
 		MonoString *o;
-		MonoError error;
+		ERROR_DECL (error);
 
 		domain = decode_domainid (p, &p, end, NULL, &err);
 		if (err != ERR_NONE)
 			return err;
 		s = decode_string (p, &p, end);
 
-		o = mono_string_new_checked (domain, s, &error);
-		if (!is_ok (&error)) {
-			DEBUG_PRINTF (1, "[dbg] Failed to allocate String object '%s': %s\n", s, mono_error_get_message (&error));
-			mono_error_cleanup (&error);
+		o = mono_string_new_checked (domain, s, error);
+		if (!is_ok (error)) {
+			DEBUG_PRINTF (1, "[dbg] Failed to allocate String object '%s': %s\n", s, mono_error_get_message (error));
+			mono_error_cleanup (error);
 			return ERR_INVALID_OBJECT;
 		}
 		buffer_add_objid (buf, (MonoObject*)o);
 		break;
 	}
 	case CMD_APPDOMAIN_CREATE_BOXED_VALUE: {
-		MonoError error;
+		ERROR_DECL (error);
 		MonoClass *klass;
 		MonoDomain *domain2;
 		MonoObject *o;
@@ -9439,8 +9481,8 @@ domain_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		// FIXME:
 		g_assert (domain == domain2);
 
-		o = mono_object_new_checked (domain, klass, &error);
-		mono_error_assert_ok (&error);
+		o = mono_object_new_checked (domain, klass, error);
+		mono_error_assert_ok (error);
 
 		err = decode_value (mono_class_get_type(klass), domain, (guint8 *)mono_object_unbox (o), p, &p, end);
 		if (err != ERR_NONE)
@@ -9516,10 +9558,10 @@ assembly_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 			if (token == 0) {
 				buffer_add_id (buf, 0);
 			} else {
-				MonoError error;
-				m = mono_get_method_checked (ass->image, token, NULL, NULL, &error);
+				ERROR_DECL (error);
+				m = mono_get_method_checked (ass->image, token, NULL, NULL, error);
 				if (!m)
-					mono_error_cleanup (&error); /* FIXME don't swallow the error */
+					mono_error_cleanup (error); /* FIXME don't swallow the error */
 				buffer_add_methodid (buf, domain, m);
 			}
 #endif // RUNTIME_IL2CPP
@@ -9531,9 +9573,9 @@ assembly_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		break;
 	}
 	case CMD_ASSEMBLY_GET_OBJECT: {
-		MonoError error;
-		err = get_assembly_object_command (domain, ass, buf, &error);
-		mono_error_cleanup (&error);
+		ERROR_DECL (error);
+		err = get_assembly_object_command (domain, ass, buf, error);
+		mono_error_cleanup (error);
 		return err;
 	}
 	case CMD_ASSEMBLY_GET_DOMAIN: {
@@ -9541,7 +9583,7 @@ assembly_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		break;
 	}
 	case CMD_ASSEMBLY_GET_TYPE: {
-		MonoError error;
+		ERROR_DECL (error);
 		char *s = decode_string (p, &p, end);
 		gboolean ignorecase = decode_byte (p, &p, end);
 		MonoTypeNameParse info;
@@ -9553,15 +9595,15 @@ assembly_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		res = mono_domain_set (domain, FALSE);
 		g_assert (res);
 
-		if (!mono_reflection_parse_type_checked (s, &info, &error)) {
-			mono_error_cleanup (&error);
+		if (!mono_reflection_parse_type_checked (s, &info, error)) {
+			mono_error_cleanup (error);
 			t = NULL;
 		} else {
 			if (info.assembly.name)
 				NOT_IMPLEMENTED;
-			t = mono_reflection_get_type_checked (ass->image, ass->image, &info, ignorecase, &type_resolve, &error);
-			if (!is_ok (&error)) {
-				mono_error_cleanup (&error); /* FIXME don't swallow the error */
+			t = mono_reflection_get_type_checked (ass->image, ass->image, &info, ignorecase, &type_resolve, error);
+			if (!is_ok (error)) {
+				mono_error_cleanup (error); /* FIXME don't swallow the error */
 				mono_reflection_free_type_info (&info);
 				g_free (s);
 				return ERR_INVALID_ARGUMENT;
@@ -9688,12 +9730,12 @@ buffer_add_cattrs (Buffer *buf, MonoDomain *domain, MonoImage *image, MonoClass 
 			MonoArray *typed_args, *named_args;
 			MonoType *t;
 			CattrNamedArg *arginfo = NULL;
-			MonoError error;
+			ERROR_DECL (error);
 
-			mono_reflection_create_custom_attr_data_args (image, attr->ctor, attr->data, attr->data_size, &typed_args, &named_args, &arginfo, &error);
-			if (!mono_error_ok (&error)) {
-				DEBUG_PRINTF (2, "[dbg] mono_reflection_create_custom_attr_data_args () failed with: '%s'\n", mono_error_get_message (&error));
-				mono_error_cleanup (&error);
+			mono_reflection_create_custom_attr_data_args (image, attr->ctor, attr->data, attr->data_size, &typed_args, &named_args, &arginfo, error);
+			if (!mono_error_ok (error)) {
+				DEBUG_PRINTF (2, "[dbg] mono_reflection_create_custom_attr_data_args () failed with: '%s'\n", mono_error_get_message (error));
+				mono_error_cleanup (error);
 				return ERR_LOADER_ERROR;
 			}
 
@@ -9767,7 +9809,7 @@ collect_interfaces (MonoClass *klass, GHashTable *ifaces, MonoError *error)
 static ErrorCode
 type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint8 *p, guint8 *end, Buffer *buf)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	MonoClass *nested;
 	MonoType *type;
 	int type_tag;
@@ -9930,9 +9972,9 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		if (err != ERR_NONE)
 			return err;
 
-		cinfo = mono_custom_attrs_from_class_checked (klass, &error);
-		if (!is_ok (&error)) {
-			mono_error_cleanup (&error); /* FIXME don't swallow the error message */
+		cinfo = mono_custom_attrs_from_class_checked (klass, error);
+		if (!is_ok (error)) {
+			mono_error_cleanup (error); /* FIXME don't swallow the error message */
 			return ERR_LOADER_ERROR;
 		}
 
@@ -9958,9 +10000,9 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		if (err != ERR_NONE)
 			return err;
 
-		cinfo = mono_custom_attrs_from_field_checked (klass, field, &error);
-		if (!is_ok (&error)) {
-			mono_error_cleanup (&error); /* FIXME don't swallow the error message */
+		cinfo = mono_custom_attrs_from_field_checked (klass, field, error);
+		if (!is_ok (error)) {
+			mono_error_cleanup (error); /* FIXME don't swallow the error message */
 			return ERR_LOADER_ERROR;
 		}
 
@@ -9986,9 +10028,9 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		if (err != ERR_NONE)
 			return err;
 
-		cinfo = mono_custom_attrs_from_property_checked (klass, prop, &error);
-		if (!is_ok (&error)) {
-			mono_error_cleanup (&error); /* FIXME don't swallow the error message */
+		cinfo = mono_custom_attrs_from_property_checked (klass, prop, error);
+		if (!is_ok (error)) {
+			mono_error_cleanup (error); /* FIXME don't swallow the error message */
 			return ERR_LOADER_ERROR;
 		}
 
@@ -10051,10 +10093,12 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 			if (!found)
 				return ERR_INVALID_FIELDID;
 
-			vtable = mono_class_vtable (domain, mono_field_get_parent (f));
+			vtable = mono_class_vtable_checked (domain, mono_field_get_parent (f), error);
+			if (!is_ok (error))
+				return ERR_INVALID_FIELDID;
 			val = (guint8 *)g_malloc (mono_class_instance_size (mono_class_from_mono_type (mono_field_get_type (f))));
-			mono_field_static_get_value_for_thread (thread ? thread : mono_thread_internal_current (), vtable, f, val, &error);
-			if (!is_ok (&error))
+			mono_field_static_get_value_for_thread (thread ? thread : mono_thread_internal_current (), vtable, f, val, error);
+			if (!is_ok (error))
 				return ERR_INVALID_FIELDID;
 			buffer_add_value (buf, mono_field_get_type (f), val, domain);
 			g_free (val);
@@ -10093,9 +10137,11 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 
 			// FIXME: Check for literal/const
 
-			vtable = mono_class_vtable (domain, mono_field_get_parent(f));
+			vtable = mono_class_vtable_checked (domain, mono_field_get_parent(f), error);
+			if (!is_ok (error))
+				return ERR_INVALID_FIELDID;
 			val = (guint8 *)g_malloc (mono_class_instance_size (mono_class_from_mono_type (mono_field_get_type(f))));
-			err = decode_value (mono_field_get_type(f), domain, val, p, &p, end);
+			err = decode_value (f->type, domain, val, p, &p, end);
 			if (err != ERR_NONE) {
 				g_free (val);
 				return err;
@@ -10109,9 +10155,9 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		break;
 	}
 	case CMD_TYPE_GET_OBJECT: {
-		MonoObject *o = (MonoObject*)mono_type_get_object_checked (domain, mono_class_get_type(klass), &error);
-		if (!mono_error_ok (&error)) {
-			mono_error_cleanup (&error);
+		MonoObject *o = (MonoObject*)mono_type_get_object_checked (domain, mono_class_get_type(klass), error);
+		if (!mono_error_ok (error)) {
+			mono_error_cleanup (error);
 			return ERR_INVALID_OBJECT;
 		}
 		buffer_add_objid (buf, o);
@@ -10154,13 +10200,13 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 	case CMD_TYPE_GET_METHODS_BY_NAME_FLAGS: {
 		char *name = decode_string (p, &p, end);
 		int i, flags = decode_int (p, &p, end);
-		MonoError error;
+		ERROR_DECL (error);
 		GPtrArray *array;
 
-		error_init (&error);
-		array = mono_class_get_methods_by_name (klass, name, flags & ~BINDING_FLAGS_IGNORE_CASE, (flags & BINDING_FLAGS_IGNORE_CASE) != 0, TRUE, &error);
-		if (!is_ok (&error)) {
-			mono_error_cleanup (&error);
+		error_init (error);
+		array = mono_class_get_methods_by_name (klass, name, flags & ~BINDING_FLAGS_IGNORE_CASE, (flags & BINDING_FLAGS_IGNORE_CASE) != 0, TRUE, error);
+		if (!is_ok (error)) {
+			mono_error_cleanup (error);
 			return ERR_LOADER_ERROR;
 		}
 		buffer_add_int (buf, array->len);
@@ -10182,11 +10228,11 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		tclass = klass;
 
 		for (parent = tclass; parent; parent = mono_class_get_parent (parent)) {
-			mono_class_setup_interfaces (parent, &error);
-			if (!mono_error_ok (&error))
+			mono_class_setup_interfaces (parent, error);
+			if (!mono_error_ok (error))
 				return ERR_LOADER_ERROR;
-			collect_interfaces (parent, iface_hash, &error);
-			if (!mono_error_ok (&error))
+			collect_interfaces (parent, iface_hash, error);
+			if (!mono_error_ok (error))
 				return ERR_LOADER_ERROR;
 		}
 
@@ -10235,7 +10281,9 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		break;
 	}
 	case CMD_TYPE_IS_INITIALIZED: {
-		MonoVTable *vtable = mono_class_vtable (domain, klass);
+		MonoVTable *vtable = mono_class_vtable_checked (domain, klass, error);
+		if (!is_ok (error))
+			return ERR_LOADER_ERROR;
 
 		if (vtable)
 #ifdef RUNTIME_IL2CPP
@@ -10248,11 +10296,11 @@ type_commands_internal (int command, MonoClass *klass, MonoDomain *domain, guint
 		break;
 	}
 	case CMD_TYPE_CREATE_INSTANCE: {
-		MonoError error;
+		ERROR_DECL (error);
 		MonoObject *obj;
 
-		obj = mono_object_new_checked (domain, klass, &error);
-		mono_error_assert_ok (&error);
+		obj = mono_object_new_checked (domain, klass, error);
+		mono_error_assert_ok (error);
 		buffer_add_objid (buf, obj);
 		break;
 	}
@@ -10367,7 +10415,7 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 		break;
 	}
 	case CMD_METHOD_GET_DEBUG_INFO: {
-		MonoError error;
+		ERROR_DECL (error);
 		int i, j;
 #ifdef RUNTIME_IL2CPP
 		GPtrArray* sequencePoints;
@@ -10439,9 +10487,9 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 		GPtrArray *source_file_list;
 		MonoSymSeqPoint *sym_seq_points;
 
-		header = mono_method_get_header_checked (method, &error);
+		header = mono_method_get_header_checked (method, error);
 		if (!header) {
-			mono_error_cleanup (&error); /* FIXME don't swallow the error */
+			mono_error_cleanup (error); /* FIXME don't swallow the error */
 			buffer_add_int (buf, 0);
 			buffer_add_string (buf, "");
 			buffer_add_int (buf, 0);
@@ -10529,14 +10577,14 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 		break;
 	}
 	case CMD_METHOD_GET_LOCALS_INFO: {
-		MonoError error;
+		ERROR_DECL (error);
 		int i, num_locals;
 		MonoDebugLocalsInfo *locals;
 		int *locals_map = NULL;
 
-		header = mono_method_get_header_checked (method, &error);
+		header = mono_method_get_header_checked (method, error);
 		if (!header) {
-			mono_error_cleanup (&error); /* FIXME don't swallow the error */
+			mono_error_cleanup (error); /* FIXME don't swallow the error */
 			return ERR_INVALID_ARGUMENT;
 		}
 
@@ -10635,9 +10683,9 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 						MonoClass *klass = ((MonoMethod *) imethod)->klass;
 						/*Generic methods gets the context of the GTD.*/
 						if (mono_class_get_context (klass)) {
-							MonoError error;
-							result = mono_class_inflate_generic_method_full_checked (result, klass, mono_class_get_context (klass), &error);
-							g_assert (mono_error_ok (&error)); /* FIXME don't swallow the error */
+							ERROR_DECL (error);
+							result = mono_class_inflate_generic_method_full_checked (result, klass, mono_class_get_context (klass), error);
+							g_assert (mono_error_ok (error)); /* FIXME don't swallow the error */
 						}
 					}
 				}
@@ -10685,12 +10733,12 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 #ifdef RUNTIME_IL2CPP
 		return ERR_NOT_IMPLEMENTED;
 #else
-		MonoError error;
+		ERROR_DECL (error);
 		int i;
 
-		header = mono_method_get_header_checked (method, &error);
+		header = mono_method_get_header_checked (method, error);
 		if (!header) {
-			mono_error_cleanup (&error); /* FIXME don't swallow the error */
+			mono_error_cleanup (error); /* FIXME don't swallow the error */
 			buffer_add_int (buf, 0);
 
 			if (CHECK_PROTOCOL_VERSION (2, 18))
@@ -10729,15 +10777,15 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 		// FIXME: Generics
 		switch (mono_metadata_token_code (token)) {
 		case MONO_TOKEN_STRING: {
-			MonoError error;
+			ERROR_DECL (error);
 			MonoString *s;
 			char *s2;
 
-			s = mono_ldstr_checked (domain, mono_class_get_image (method->klass), mono_metadata_token_index (token), &error);
-			mono_error_assert_ok (&error); /* FIXME don't swallow the error */
+			s = mono_ldstr_checked (domain, mono_class_get_image (method->klass), mono_metadata_token_index (token), error);
+			mono_error_assert_ok (error); /* FIXME don't swallow the error */
 
-			s2 = mono_string_to_utf8_checked (s, &error);
-			mono_error_assert_ok (&error);
+			s2 = mono_string_to_utf8_checked (s, error);
+			mono_error_assert_ok (error);
 
 			buffer_add_byte (buf, TOKEN_TYPE_STRING);
 			buffer_add_string (buf, s2);
@@ -10745,7 +10793,7 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 			break;
 		}
 		default: {
-			MonoError error;
+			ERROR_DECL (error);
 			gpointer val;
 			MonoClass *handle_class;
 
@@ -10759,9 +10807,9 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 					break;
 				}
 			} else {
-				val = mono_ldtoken_checked (mono_class_get_image (method->klass), token, &handle_class, NULL, &error);
+				val = mono_ldtoken_checked (mono_class_get_image (method->klass), token, &handle_class, NULL, error);
 				if (!val)
-					g_error ("Could not load token due to %s", mono_error_get_message (&error));
+					g_error ("Could not load token due to %s", mono_error_get_message (error));
 			}
 
 			if (handle_class == mono_defaults.typehandle_class) {
@@ -10779,8 +10827,8 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 			} else if (handle_class == mono_defaults.string_class) {
 				char *s;
 
-				s = mono_string_to_utf8_checked ((MonoString *)val, &error);
-				mono_error_assert_ok (&error);
+				s = mono_string_to_utf8_checked ((MonoString *)val, error);
+				mono_error_assert_ok (error);
 				buffer_add_byte (buf, TOKEN_TYPE_STRING);
 				buffer_add_string (buf, s);
 				g_free (s);
@@ -10797,7 +10845,7 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 		buffer_add_int (buf, 0);
 		return ERR_NONE;
 #else
-		MonoError error;
+		ERROR_DECL (error);
 		MonoClass *attr_klass;
 		MonoCustomAttrInfo *cinfo;
 
@@ -10806,9 +10854,9 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 		if (err != ERR_NONE)
 			return err;
 
-		cinfo = mono_custom_attrs_from_method_checked (method, &error);
-		if (!is_ok (&error)) {
-			mono_error_cleanup (&error); /* FIXME don't swallow the error message */
+		cinfo = mono_custom_attrs_from_method_checked (method, error);
+		if (!is_ok (error)) {
+			mono_error_cleanup (error); /* FIXME don't swallow the error message */
 			return ERR_LOADER_ERROR;
 		}
 
@@ -10819,7 +10867,7 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 #endif // RUNTIME_IL2CPP
 	}
 	case CMD_METHOD_MAKE_GENERIC_METHOD: {
-		MonoError error;
+		ERROR_DECL (error);
 		MonoType **type_argv;
 		int i, type_argc;
 		MonoDomain *d;
@@ -10847,8 +10895,8 @@ method_commands_internal (int command, MonoMethod *method, MonoDomain *domain, g
 		tmp_context.class_inst = mono_class_is_ginst (method->klass) ? mono_generic_class_get_context (mono_class_get_generic_class (method->klass))->class_inst : NULL;
 		tmp_context.method_inst = ginst;
 
-		inflated = mono_class_inflate_generic_method_checked (method, &tmp_context, &error);
-		g_assert (mono_error_ok (&error)); /* FIXME don't swallow the error */
+		inflated = mono_class_inflate_generic_method_checked (method, &tmp_context, error);
+		g_assert (mono_error_ok (error)); /* FIXME don't swallow the error */
 		if (!mono_verifier_is_method_valid_generic_instantiation (inflated))
 			return ERR_INVALID_ARGUMENT;
 		buffer_add_methodid (buf, domain, inflated);
@@ -11138,10 +11186,10 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 	switch (command) {
 	case CMD_STACK_FRAME_GET_VALUES: {
-		MonoError error;
+		ERROR_DECL (error);
 		len = decode_int (p, &p, end);
-		header = mono_method_get_header_checked (frame->actual_method, &error);
-		mono_error_assert_ok (&error); /* FIXME report error */
+		header = mono_method_get_header_checked (frame->actual_method, error);
+		mono_error_assert_ok (error); /* FIXME report error */
 
 		for (i = 0; i < len; ++i) {
 			pos = decode_int (p, &p, end);
@@ -11227,15 +11275,15 @@ frame_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 		break;
 	}
 	case CMD_STACK_FRAME_SET_VALUES: {
-		MonoError error;
+		ERROR_DECL (error);
 		guint8 *val_buf;
 		MonoType *t;
 		MonoDebugVarInfo *var = NULL;
 		gboolean is_arg = FALSE;
 
 		len = decode_int (p, &p, end);
-		header = mono_method_get_header_checked (frame->actual_method, &error);
-		mono_error_assert_ok (&error); /* FIXME report error */
+		header = mono_method_get_header_checked (frame->actual_method, error);
+		mono_error_assert_ok (error); /* FIXME report error */
 
 		for (i = 0; i < len; ++i) {
 			pos = decode_int (p, &p, end);
@@ -11418,9 +11466,9 @@ string_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 			buffer_add_int (buf, mono_string_length (str) * 2);
 			buffer_add_data (buf, (guint8*)mono_string_chars (str), mono_string_length (str) * 2);
 		} else {
-			MonoError error;
-			s = mono_string_to_utf8_checked (str, &error);
-			if (!mono_error_ok (&error)) {
+			ERROR_DECL (error);
+			s = mono_string_to_utf8_checked (str, error);
+			if (!mono_error_ok (error)) {
 				if (s)
 					g_free (s);
 
@@ -11481,7 +11529,7 @@ pointer_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 static ErrorCode
 object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	int objid;
 	ErrorCode err;
 	MonoObject *obj;
@@ -11552,11 +11600,15 @@ object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 					return ERR_INVALID_FIELDID;
 
 				g_assert (mono_type_get_attrs (mono_field_get_type (f)) & FIELD_ATTRIBUTE_STATIC);
-				vtable = mono_class_vtable (VM_OBJECT_GET_DOMAIN(obj), mono_field_get_parent (f));
+				vtable = mono_class_vtable_checked (VM_OBJECT_GET_DOMAIN(obj), mono_field_get_parent (f), error);
+				if (!is_ok (error)) {
+					mono_error_cleanup (error);
+					return ERR_INVALID_OBJECT;
+				}
 				val = (guint8 *)g_malloc (mono_class_instance_size (mono_class_from_mono_type (mono_field_get_type (f))));
-				mono_field_static_get_value_checked (vtable, f, val, &error);
-				if (!is_ok (&error)) {
-					mono_error_cleanup (&error); /* FIXME report the error */
+				mono_field_static_get_value_checked (vtable, f, val, error);
+				if (!is_ok (error)) {
+					mono_error_cleanup (error); /* FIXME report the error */
 					return ERR_INVALID_OBJECT;
 				}
 				buffer_add_value (buf, mono_field_get_type (f), val, VM_OBJECT_GET_DOMAIN(obj));
@@ -11567,9 +11619,9 @@ object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				if (remote_obj) {
 #ifndef DISABLE_REMOTING
 					void *field_storage = NULL;
-					field_value = mono_load_remote_field_checked(obj, obj_type, f, &field_storage, &error);
-					if (!is_ok (&error)) {
-						mono_error_cleanup (&error); /* FIXME report the error */
+					field_value = mono_load_remote_field_checked(obj, obj_type, f, &field_storage, error);
+					if (!is_ok (error)) {
+						mono_error_cleanup (error); /* FIXME report the error */
 						return ERR_INVALID_OBJECT;
 					}
 #else
@@ -11609,7 +11661,11 @@ object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 					return ERR_INVALID_FIELDID;
 
 				g_assert (mono_type_get_attrs (mono_field_get_type (f)) & FIELD_ATTRIBUTE_STATIC);
-				vtable = mono_class_vtable (VM_OBJECT_GET_DOMAIN(obj), mono_field_get_parent (f));
+				vtable = mono_class_vtable_checked (VM_OBJECT_GET_DOMAIN(obj), mono_field_get_parent (f), error);
+				if (!is_ok (error)) {
+					mono_error_cleanup (error);
+					return ERR_INVALID_FIELDID;
+				}
 
 				val = (guint8 *)g_malloc (mono_class_instance_size (mono_class_from_mono_type (mono_field_get_type (f))));
 				err = decode_value (mono_field_get_type (f), VM_OBJECT_GET_DOMAIN(obj), val, p, &p, end);
@@ -11928,7 +11984,7 @@ wait_for_attach (void)
 static gsize WINAPI
 debugger_thread (void *arg)
 {
-	MonoError error;
+	ERROR_DECL (error);
 	int res, len, id, flags, command = 0;
 	CommandSet command_set = (CommandSet)0;
 	guint8 header [HEADER_LENGTH];
@@ -11949,10 +12005,10 @@ debugger_thread (void *arg)
 #ifdef RUNTIME_IL2CPP
 	internal->debugger_thread = 1;
 #endif // RUNTIME_IL2CPP
-	MonoString *str = mono_string_new_checked (mono_domain_get (), "Debugger agent", &error);
-	mono_error_assert_ok (&error);
-	mono_thread_set_name_internal (internal, str, TRUE, FALSE, &error);
-	mono_error_assert_ok (&error);
+	MonoString *str = mono_string_new_checked (mono_domain_get (), "Debugger agent", error);
+	mono_error_assert_ok (error);
+	mono_thread_set_name_internal (internal, str, TRUE, FALSE, error);
+	mono_error_assert_ok (error);
 
 	internal->state |= ThreadState_Background;
 	internal->flags |= MONO_THREAD_FLAG_DONT_MANAGE;

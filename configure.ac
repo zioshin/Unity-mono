@@ -2,7 +2,7 @@
 #AC_PREREQ([2.62])
 
 AC_INIT(mono, [5.11.0],
-        [http://bugzilla.xamarin.com/enter_bug.cgi?classification=Mono])
+        [https://github.com/mono/mono/issues/new])
 
 AC_CONFIG_SRCDIR([README.md])
 AC_CONFIG_MACRO_DIR([m4])
@@ -40,7 +40,7 @@ MONO_VERSION_BUILD=`echo $VERSION | cut -d . -f 3`
 # This can be reset to 0 when Mono's version number is bumped
 # since it's part of the corlib version (the prefix '1' in the full
 # version number is to ensure the number isn't treated as octal in C)
-MONO_CORLIB_COUNTER=1
+MONO_CORLIB_COUNTER=3
 MONO_CORLIB_VERSION=`printf "1%02d%02d%02d%03d" $MONO_VERSION_MAJOR $MONO_VERSION_MINOR 0 $MONO_CORLIB_COUNTER`
 
 AC_DEFINE_UNQUOTED(MONO_CORLIB_VERSION,$MONO_CORLIB_VERSION,[Version of the corlib-runtime interface])
@@ -100,7 +100,7 @@ extra_runtime_ldflags=""
 # Hack for WASM
 # Current autotools (v1.15) doesn't have a triplet we can use for wasm so the kludge we do is to
 # work around it by using a feature flag instead
-AC_ARG_ENABLE(wasm,[  --enable-wasm	Hack to set the current runtime to target wasm], enable_wasm=$enableval)
+AC_ARG_ENABLE(wasm,[  --enable-wasm    Hack to set the current runtime to target wasm], enable_wasm=$enableval)
 
 # Thread configuration inspired by sleepycat's db
 AC_MSG_CHECKING([host platform characteristics])
@@ -207,6 +207,7 @@ case "$host" in
 		;;
 	*-*-*openbsd*)
 		CPPFLAGS="$CPPFLAGS -D_THREAD_SAFE -DGC_OPENBSD_THREADS -DHOST_BSD -D_REENTRANT -DUSE_MMAP"
+		LDFLAGS="${LDFLAGS} -Wl,-zwxneeded"
 		if test "x$disable_munmap" != "xyes"; then
 		CPPFLAGS="$CPPFLAGS -DUSE_MUNMAP"
 		fi
@@ -216,6 +217,7 @@ case "$host" in
 		AC_DEFINE(PTHREAD_POINTER_ID)
 		libdl=
 		libgc_threads=pthreads
+		with_tls=pthread
 		with_sigaltstack=no
 		use_sigposix=yes
 		with_sgen_default_concurrent=yes
@@ -516,7 +518,6 @@ AC_CHECK_HEADER(zlib.h, [have_zlib=yes], [have_zlib=no])
 if test x$have_zlib = xyes; then
    AC_TRY_COMPILE([#include <zlib.h>], [
    #if defined(ZLIB_VERNUM) && (ZLIB_VERNUM >= 0x1230)
-   return 0;
    #else
    #error No good zlib found
    #endif
@@ -614,7 +615,6 @@ if test x$platform_android = xyes; then
 					#include <android/versioning.h>
 				],[
 					#if __ANDROID_API_O__ == 26 && defined(__INTRODUCED_IN)
-						return 0
 					#else
 						#error __ANDROID_API_O__ != 26 or the __INTRODUCED_IN macro not defined
 					#endif
@@ -655,7 +655,6 @@ AC_CACHE_CHECK([for clang],
 		#else
 		#error "FAILED"
 		#endif
-		return 0;
 	],
 	[mono_cv_clang=yes],
 	[mono_cv_clang=no],
@@ -691,7 +690,6 @@ if test x"$GCC" = xyes; then
 		CFLAGS="$CFLAGS -Wunused-but-set-variable -Werror"
 		AC_MSG_CHECKING(for -Wno-unused-but-set-variable option to gcc)
 		AC_TRY_COMPILE([],[
-				return 0;
 		], [
 		   AC_MSG_RESULT(yes)
 		   CFLAGS="$ORIG_CFLAGS -Wno-unused-but-set-variable"
@@ -862,7 +860,6 @@ if test "x$with_xen_opt" = "xyes" -a "x$mono_cv_clang" = "xno"; then
 	CFLAGS="$CFLAGS -mno-tls-direct-seg-refs"
 	AC_MSG_CHECKING(for -mno-tls-direct-seg-refs option to gcc)
 	AC_TRY_COMPILE([], [
-		return 0;
 	], [
 	   AC_MSG_RESULT(yes)
 	   # Pass it to libgc as well
@@ -912,6 +909,51 @@ if test $csc_compiler = default; then
    fi
 fi
 AC_MSG_RESULT($csc_compiler)
+
+AC_ARG_WITH(jemalloc,             [  --with-jemalloc=yes,no               If jemalloc is enabled (defaults to no)],                                     [], [with_jemalloc=no])
+AC_ARG_WITH(jemalloc-always,      [  --with-jemalloc_always=yes,no        If jemalloc is enabled and always used (defaults to yes)],                    [], [with_jemalloc_always=no])
+AC_ARG_WITH(jemalloc-assert,      [  --with-jemalloc_assert=yes,no        If jemalloc performs runtime checks for memory correctness (defaults to no)], [], [with_jemalloc_assert=no])
+
+
+if test x$target_win32 = xyes; then
+with_jemalloc=no
+with_jemalloc_assert=no
+with_jemalloc_always=no
+fi
+
+AM_CONDITIONAL(MONO_JEMALLOC_ASSERT, [test "x$with_jemalloc_assert" = "xyes"])
+if test "x$with_jemalloc_assert" = "xyes"; then
+JEMALLOC_CFLAGS+=" -DMONO_JEMALLOC_ASSERT"
+AC_DEFINE(MONO_JEMALLOC_ASSERT, 1, [Make jemalloc assert for mono])
+AC_SUBST(MONO_JEMALLOC_ASSERT, 1)
+fi
+
+AM_CONDITIONAL(MONO_JEMALLOC_DEFAULT, [test "x$with_jemalloc_always" = "xyes"])
+if test "x$with_jemalloc_always" = "xyes"; then
+with_jemalloc=yes
+JEMALLOC_CFLAGS+=" -DMONO_JEMALLOC_DEFAULT"
+AC_DEFINE(MONO_JEMALLOC_DEFAULT, 1, [Make jemalloc default for mono])
+AC_SUBST(MONO_JEMALLOC_DEFAULT, 1)
+fi
+
+AM_CONDITIONAL(MONO_JEMALLOC_ENABLED, [test "x$with_jemalloc" = "xyes"])
+if test "x$with_jemalloc" = "xyes"; then
+JEMALLOC_LDFLAGS="-L`pwd`/mono/utils/jemalloc/jemalloc/lib -ljemalloc_pic"
+JEMALLOC_CFLAGS+=" -DMONO_JEMALLOC_ENABLED -I `pwd`/mono/utils/jemalloc/jemalloc/include"
+JEMALLOC_AUTOCONF_FLAGS=" --build=$target --host=$host"
+
+if test "x$target_mach" = "xyes"; then
+	JEMALLOC_CPPFLAGS=" -stdlib=libc++ "
+fi
+
+AC_DEFINE(MONO_JEMALLOC_ENABLED, 1, [Enable jemalloc usage for mono])
+AC_SUBST(MONO_JEMALLOC_ENABLED, 1)
+
+AC_SUBST(JEMALLOC_CFLAGS)
+AC_SUBST(JEMALLOC_CPPFLAGS)
+AC_SUBST(JEMALLOC_LDFLAGS)
+AC_SUBST(JEMALLOC_AUTOCONF_FLAGS)
+fi
 
 #
 # Set the build profiles and options before things which use them
@@ -1701,7 +1743,6 @@ if test x$host_win32 = xno; then
 	AC_TRY_COMPILE([#include <sched.h>], [
             int mask = 1; 
             sched_setaffinity(0, &mask);
-			return 0;
 	], [
 		# Yes, we have it...
 		AC_MSG_RESULT(yes)
@@ -2285,11 +2326,7 @@ if test x$host_win32 = xno; then
 			child ()
 			{
 				struct sigaction sa;
-			#ifdef __APPLE__
 				stack_t sas;
-			#else
-				struct sigaltstack sas;
-			#endif
 				pthread_t id;
 				pthread_attr_t attr;
 
@@ -2684,7 +2721,7 @@ if test x$host_win32 = xno; then
 		[#include <sys/types.h>
 		 #include <sys/vfs.h>])
 	AC_CHECK_MEMBERS(
-		[struct stat.st_atim, struct stat.st_mtim, struct stat.st_ctim],,, 
+		[struct stat.st_atim, struct stat.st_mtim, struct stat.st_atimespec, struct stat.st_ctim],,, 
 		[#include <sys/types.h>
 		 #include <sys/stat.h>
 		 #include <unistd.h>])
@@ -2730,8 +2767,10 @@ if test x$host_win32 = xno; then
 	dnl *********************************
 	dnl *** Checks for random         ***
 	dnl *********************************
-	AC_CHECK_HEADERS(sys/random.h)
-	AC_CHECK_FUNCS(getrandom getentropy)
+	if test x$host_darwin = xno; then
+		AC_CHECK_HEADERS(sys/random.h)
+		AC_CHECK_FUNCS(getrandom getentropy)
+	fi
 else
 	dnl *********************************
 	dnl *** Checks for Windows compilation ***
@@ -3276,7 +3315,6 @@ case "$host" in
 		#if _MIPS_SIM != _ABIN32
 		#error Not mips n32
 		#endif
-		return 0;
 		],[
 		AC_MSG_RESULT(yes)
 		sizeof_register=8
@@ -3326,6 +3364,9 @@ case "$host" in
 			BTLS_PLATFORM=i386
 			;;
 		  openbsd*|freebsd*|kfreebsd-gnu*)
+			AOT_SUPPORTED="yes"
+			BTLS_SUPPORTED=yes
+			BTLS_PLATFORM=i386
 		        ;;
 		esac
 		;;
@@ -3350,6 +3391,9 @@ case "$host" in
 			boehm_supported=false
 			;;
 		  openbsd*|freebsd*|kfreebsd-gnu*)
+			AOT_SUPPORTED="yes"
+			BTLS_SUPPORTED=yes
+			BTLS_PLATFORM=x86_64
 			;;
 		  mingw*)
 			;;
@@ -3737,7 +3781,6 @@ if test "x$target_mach" = "xyes"; then
        #if TARGET_IPHONE_SIMULATOR == 1 || TARGET_OS_IPHONE == 1
        #error fail this for ios
        #endif
-       return 0;
        ], [
 	   	  AC_DEFINE(TARGET_OSX,1,[The JIT/AOT targets OSX])
           CPPFLAGS_FOR_LIBGC="$CPPFLAGS_FOR_LIBGC -DTARGET_OSX"
@@ -4135,7 +4178,6 @@ if test ${TARGET} = ARM; then
 			#ifndef __ARM_PCS_VFP
 			#error "Float ABI is not 'hard'"
 			#endif
-			return 0;
 		], [
 			fpu=VFP_HARD
 		], [
@@ -4149,7 +4191,6 @@ if test ${TARGET} = ARM; then
 			#ifdef __SOFTFP__
 			#error "Float ABI is not 'softfp'"
 			#endif
-			return 0;
 		], [
 			fpu=VFP
 		], [
@@ -4174,7 +4215,6 @@ if test ${TARGET} = ARM; then
 		#if !defined(__ARM_ARCH_5T__) && !defined(__ARM_ARCH_5TE__) && !defined(__ARM_ARCH_5TEJ__)
 		#error Not on ARM v5.
 		#endif
-		return 0;
 	], [
 		arm_v5=yes
 
@@ -4185,7 +4225,6 @@ if test ${TARGET} = ARM; then
 		#if !defined(__ARM_ARCH_6J__) && !defined(__ARM_ARCH_6ZK__) && !defined(__ARM_ARCH_6K__) && !defined(__ARM_ARCH_6T2__) && !defined(__ARM_ARCH_6M__)
 		#error Not on ARM v6.
 		#endif
-		return 0;
 	], [
 		arm_v5=yes
 		arm_v6=yes
@@ -4197,7 +4236,6 @@ if test ${TARGET} = ARM; then
 		#if !defined(__ARM_ARCH_7A__) && !defined(__ARM_ARCH_7R__) && !defined(__ARM_ARCH_7EM__) && !defined(__ARM_ARCH_7M__) && !defined(__ARM_ARCH_7S__)
 		#error Not on ARM v7.
 		#endif
-		return 0;
 	], [
 		arm_v5=yes
 		arm_v6=yes
@@ -4455,22 +4493,22 @@ if test "x$enable_btls" = "xyes"; then
 		btls_arch=aarch64
 		;;
 	android-armv5)
-		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"armeabi\" -DANDROID_NATIVE_API_LEVEL=12"
+		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"armeabi\" -DANDROID_NATIVE_API_LEVEL=14"
 		;;
 	android-armv6)
-		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"armeabi\" -DANDROID_NATIVE_API_LEVEL=12"
+		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"armeabi\" -DANDROID_NATIVE_API_LEVEL=14"
 		;;
 	android-armv7)
-		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"armeabi-v7a\" -DANDROID_NATIVE_API_LEVEL=12"
+		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"armeabi-v7a\" -DANDROID_NATIVE_API_LEVEL=14"
 		;;
 	android-v8a)
-		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"arm64-v8a\" -DANDROID_NATIVE_API_LEVEL=12"
+		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"arm64-v8a\" -DANDROID_NATIVE_API_LEVEL=21"
 		;;
 	android-x86)
-		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"x86\" -DANDROID_NATIVE_API_LEVEL=12"
+		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"x86\" -DANDROID_NATIVE_API_LEVEL=14"
 		;;
 	android-x64)
-		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"x86_64\" -DANDROID_NATIVE_API_LEVEL=12"
+		BTLS_CMAKE_ARGS="-DANDROID_ABI=\"x86_64\" -DANDROID_NATIVE_API_LEVEL=21"
 		;;
 	*)
 		AC_MSG_ERROR(Invalid BTLS platform)
@@ -4756,6 +4794,7 @@ scripts/mono-find-requires
 mono/Makefile
 mono/btls/Makefile
 mono/utils/Makefile
+mono/utils/jemalloc/Makefile
 mono/metadata/Makefile
 mono/dis/Makefile
 mono/cil/Makefile
@@ -4997,6 +5036,7 @@ echo "
 	libgdiplus:      $libgdiplus_msg
 	zlib:            $zlib_msg
 	BTLS:            $enable_btls$btls_platform_string
+	jemalloc:        $with_jemalloc (always use: $with_jemalloc_always)
 	$disabled
 "
 if test x$with_static_mono = xno -a "x$host_win32" != "xyes"; then

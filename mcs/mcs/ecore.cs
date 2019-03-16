@@ -2957,6 +2957,13 @@ namespace Mono.CSharp {
 				if ((restrictions & MemberLookupRestrictions.NameOfExcluded) == 0 && Name == "nameof")
 					return new NameOf (this);
 
+				if ((restrictions & MemberLookupRestrictions.ReadAccess) == 0 && Name == "_") {
+					if (rc.Module.Compiler.Settings.Version < LanguageVersion.V_7)
+						rc.Report.FeatureIsNotAvailable (rc.Module.Compiler, loc, "discards");
+
+					return new Discard (loc).Resolve (rc);
+				}
+
 				if (errorMode) {
 					if (variable_found) {
 						rc.Report.Error (841, loc, "A local variable `{0}' cannot be used before it is declared", Name);
@@ -4029,6 +4036,13 @@ namespace Mono.CSharp {
 			return Methods.First ().GetSignatureForError ();
 		}
 
+		static MethodSpec CandidateDevirtualization (TypeSpec type, MethodSpec method)
+		{
+			// Assumes no generics get involved
+			var filter = new MemberFilter (method.Name, method.Arity, MemberKind.Method, method.Parameters, null);
+			return MemberCache.FindMember (type, filter, BindingRestriction.InstanceOnly | BindingRestriction.OverrideOnly | BindingRestriction.DeclaredOnly) as MethodSpec;
+		}
+
 		public override Expression CreateExpressionTree (ResolveContext ec)
 		{
 			if (best_candidate == null) {
@@ -4180,9 +4194,18 @@ namespace Mono.CSharp {
 
 						var expr_type = InstanceExpression.Type;
 						if ((expr_type.IsByRefLike || expr_type.IsSpecialRuntimeType) && best_candidate.DeclaringType != expr_type) {
-							// CSC: Should be better error message
-							ec.Report.Error (29, InstanceExpression.Location, "Cannot implicitly convert type `{0}' to `{1}'",
-								InstanceExpression.Type.GetSignatureForError (), best_candidate.DeclaringType.GetSignatureForError ());
+							MethodSpec devirt = null;
+							if ((best_candidate.Modifiers & (Modifiers.VIRTUAL | Modifiers.ABSTRACT | Modifiers.OVERRIDE)) != 0) {
+								devirt = CandidateDevirtualization (expr_type, best_candidate);
+							}
+
+							if (devirt == null) {
+								// CSC: Should be better error message
+								ec.Report.Error (29, InstanceExpression.Location, "Cannot implicitly convert type `{0}' to `{1}'",
+												 InstanceExpression.Type.GetSignatureForError (), best_candidate.DeclaringType.GetSignatureForError ());
+							} else {
+								best_candidate = devirt;
+							}
 						}
 					}
 				}
@@ -5426,7 +5449,7 @@ namespace Mono.CSharp {
 				}
 
 				if (arg_type != parameter) {
-					if (arg_type == InternalType.VarOutType)
+					if (arg_type == InternalType.VarOutType || arg_type == InternalType.Discard)
 						return 0;
 
 					var ref_arg_type = arg_type as ReferenceContainer;
@@ -6035,6 +6058,11 @@ namespace Mono.CSharp {
 						continue;
 					}
 
+					if (arg_type == InternalType.Discard) {
+						a.Expr.Type = pt;
+						continue;
+					}
+
 					var ref_arg_type = arg_type as ReferenceContainer;
 					if (ref_arg_type != null) {
 						if (ref_arg_type.Element != pt)
@@ -6068,9 +6096,15 @@ namespace Mono.CSharp {
 						else
 							ec.Report.SymbolRelatedToPreviousError (member);
 
-						ec.Report.Error (1744, na.Location,
-							"Named argument `{0}' cannot be used for a parameter which has positional argument specified",
-							na.Name);
+						if (name_index > a_idx) {
+							ec.Report.Error (8323, na.Location,
+								"Named argument `{0}' is used out of position but is followed by positional argument",
+								na.Name);
+						} else {
+							ec.Report.Error (1744, na.Location,
+								"Named argument `{0}' cannot be used for a parameter which has positional argument specified",
+								na.Name);
+						}
 					}
 				}
 				

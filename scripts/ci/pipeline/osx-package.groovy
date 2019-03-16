@@ -37,7 +37,7 @@ node ("osx-amd64") {
 
                 // build the .pkg
                 timeout (time: 420, unit: 'MINUTES') {
-                    withEnv (["MONO_BRANCH=${isPr ? '' : monoBranch}"]) {
+                    withEnv (["MONO_BRANCH=${isPr ? '' : monoBranch}", "MONO_BUILD_REVISION=${commitHash}"]) {
                         sshagent (credentials: ['mono-extensions-ssh']) {
                             sh "external/bockbuild/bb MacSDKRelease --arch darwin-universal --verbose --package ${isReleaseJob ? '--release' : ''}"
                         }
@@ -66,7 +66,6 @@ node ("osx-amd64") {
                     uploadZips: false,
                     virtualPath: "${monoBranch}/${env.BUILD_NUMBER}/"
                 ])
-                currentBuild.description = "<hr/><h2>DOWNLOAD: <a href=\"https://xamjenkinsartifact.azureedge.net/${jobName}/${monoBranch}/${env.BUILD_NUMBER}/${packageFileName}\">${packageFileName}</a></h2><hr/>"
             }
         }
     }
@@ -84,6 +83,8 @@ if (isReleaseJob) {
 else {
     echo "Not a release job, skipping signing."
 }
+
+currentBuild.description = "<hr/><h2>DOWNLOAD: <a href=\"https://xamjenkinsartifact.azureedge.net/${jobName}/${monoBranch}/${env.BUILD_NUMBER}/${packageFileName}\">${packageFileName}</a></h2><hr/>"
 
 if (!isPr) {
     // trigger the Windows build

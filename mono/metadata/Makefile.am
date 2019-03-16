@@ -240,6 +240,7 @@ common_sources = \
 	number-ms.c		\
 	number-ms.h		\
 	object.c	\
+	object-forward.h	\
 	object-internals.h	\
 	opcodes.c		\
 	property-bag.h	\
@@ -368,15 +369,15 @@ libmonoruntimesgen_static_la_LIBADD = libmonoruntime-config.la
 
 libmonoruntimeincludedir = $(includedir)/mono-$(API_VER)/mono/metadata
 
+# This list is sorted for easier searching.
 libmonoruntimeinclude_HEADERS = \
+	appdomain.h		\
 	assembly.h		\
 	attrdefs.h		\
-	appdomain.h		\
 	blob.h			\
 	class.h			\
 	debug-helpers.h		\
 	debug-mono-symfile.h	\
-	threads.h		\
 	environment.h		\
 	exception.h		\
 	image.h			\
@@ -385,13 +386,14 @@ libmonoruntimeinclude_HEADERS = \
 	mono-config.h		\
 	mono-debug.h		\
 	mono-gc.h		\
-	sgen-bridge.h		\
 	object.h		\
 	opcodes.h		\
 	profiler.h		\
 	profiler-events.h	\
 	reflection.h		\
 	row-indexes.h		\
+	sgen-bridge.h		\
+	threads.h		\
 	tokentype.h		\
 	verify.h		
 

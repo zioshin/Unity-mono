@@ -1084,15 +1084,15 @@ static gpointer
 resolve_patch (MonoCompile *cfg, MonoJumpInfoType type, gconstpointer target)
 {
 	MonoJumpInfo ji;
-	MonoError error;
+	ERROR_DECL (error);
 	gpointer res;
 
 	memset (&ji, 0, sizeof (ji));
 	ji.type = type;
 	ji.data.target = target;
 
-	res = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, &ji, FALSE, &error);
-	mono_error_assert_ok (&error);
+	res = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, &ji, FALSE, error);
+	mono_error_assert_ok (error);
 
 	return res;
 }
@@ -3228,7 +3228,7 @@ process_call (EmitContext *ctx, MonoBasicBlock *bb, LLVMBuilderRef *builder_ref,
 					g_hash_table_insert (ctx->method_to_callers, call->method, l);
 				}
 			} else {
-				MonoError error;
+				ERROR_DECL (error);
 				static int tramp_index;
 				char *name;
 
@@ -3246,10 +3246,10 @@ process_call (EmitContext *ctx, MonoBasicBlock *bb, LLVMBuilderRef *builder_ref,
 				if (!tramp_var) {
 					target =
 						mono_create_jit_trampoline (mono_domain_get (),
-													call->method, &error);
-					if (!is_ok (&error)) {
-						set_failure (ctx, mono_error_get_message (&error));
-						mono_error_cleanup (&error);
+													call->method, error);
+					if (!is_ok (error)) {
+						set_failure (ctx, mono_error_get_message (error));
+						mono_error_cleanup (error);
 						return;
 					}
 
@@ -3262,11 +3262,11 @@ process_call (EmitContext *ctx, MonoBasicBlock *bb, LLVMBuilderRef *builder_ref,
 #else
 				target =
 					mono_create_jit_trampoline (mono_domain_get (),
-								    call->method, &error);
-				if (!is_ok (&error)) {
+								    call->method, error);
+				if (!is_ok (error)) {
 					g_free (name);
-					set_failure (ctx, mono_error_get_message (&error));
-					mono_error_cleanup (&error);
+					set_failure (ctx, mono_error_get_message (error));
+					mono_error_cleanup (error);
 					return;
 				}
 
@@ -3329,10 +3329,10 @@ process_call (EmitContext *ctx, MonoBasicBlock *bb, LLVMBuilderRef *builder_ref,
 				if (cfg->abs_patches) {
 					MonoJumpInfo *abs_ji = (MonoJumpInfo*)g_hash_table_lookup (cfg->abs_patches, call->fptr);
 					if (abs_ji) {
-						MonoError error;
+						ERROR_DECL (error);
 
-						target = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, abs_ji, FALSE, &error);
-						mono_error_assert_ok (&error);
+						target = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, abs_ji, FALSE, error);
+						mono_error_assert_ok (error);
 						callee = emit_jit_callee (ctx, "", llvm_sig, target);
 					} else {
 						g_assert_not_reached ();
@@ -3346,14 +3346,14 @@ process_call (EmitContext *ctx, MonoBasicBlock *bb, LLVMBuilderRef *builder_ref,
 				if (cfg->abs_patches) {
 					MonoJumpInfo *abs_ji = (MonoJumpInfo*)g_hash_table_lookup (cfg->abs_patches, call->fptr);
 					if (abs_ji) {
-						MonoError error;
+						ERROR_DECL (error);
 
 						/*
 						 * FIXME: Some trampolines might have
 						 * their own calling convention on some platforms.
 						 */
-						target = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, abs_ji, FALSE, &error);
-						mono_error_assert_ok (&error);
+						target = mono_resolve_patch_target (cfg->method, cfg->domain, NULL, abs_ji, FALSE, error);
+						mono_error_assert_ok (error);
 						LLVMAddGlobalMapping (ctx->module->ee, callee, target);
 					}
 				}
