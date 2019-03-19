@@ -152,6 +152,7 @@ mono_gc_base_init (void)
 		/* apparently with some linuxthreads implementations sstart can be NULL,
 		 * fallback to the more imprecise method (bug# 78096).
 		 */
+#ifndef HAVE_BDWGC_GC
 		if (sstart) {
 			GC_stackbottom = (char*)sstart + size;
 		} else {
@@ -161,6 +162,7 @@ mono_gc_base_init (void)
 			stack_bottom &= ~4095;
 			GC_stackbottom = (char*)stack_bottom;
 		}
+#endif
 	}
 #elif defined(HAVE_PTHREAD_GET_STACKSIZE_NP) && defined(HAVE_PTHREAD_GET_STACKADDR_NP)
 #ifndef HAVE_BDWGC_GC
