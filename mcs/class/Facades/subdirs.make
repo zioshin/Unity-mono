@@ -51,7 +51,7 @@ testing_aot_full_SUBDIRS = $(monotouch_SUBDIRS)
 testing_aot_full_PARALLEL_SUBDIRS = $(monotouch_PARALLEL_SUBDIRS)
 
 net_4_x_SUBDIRS = $(common_DEPS_SUBDIRS) $(netstandard_drawing_SUBDIRS)
-net_4_x_PARALLEL_SUBDIRS = $(common_SUBDIRS)
+net_4_x_PARALLEL_SUBDIRS = $(common_SUBDIRS) System.Net.Http.Rtc
 
 basic_PARALLEL_SUBDIRS = System.Runtime System.Reflection System.Collections System.Resources.ResourceManager System.Globalization \
 System.Threading.Tasks System.Collections.Concurrent System.Text.Encoding System.IO System.Threading System.Diagnostics.Debug \
@@ -97,7 +97,7 @@ wasm_SUBDIRS = $(common_DEPS_SUBDIRS) $(netstandard_drawing_SUBDIRS) $(mobile_on
 wasm_PARALLEL_SUBDIRS = $(common_SUBDIRS) $(mobile_only_SUBDIRS)
 
 mobile_only_SUBDIRS = System.Security.Cryptography.Pkcs \
-System.Security.Cryptography.Cng System.Runtime.Loader System.Xml.XPath.XmlDocument System.Reflection.DispatchProxy
+System.Security.Cryptography.Cng System.Runtime.Loader System.Xml.XPath.XmlDocument System.Reflection.DispatchProxy System.Memory System.Drawing.Common
 
 mobile_only_DEPS_SUBDIRS = System.Security.Cryptography.OpenSsl
 

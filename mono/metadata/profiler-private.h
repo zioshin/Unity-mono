@@ -61,6 +61,8 @@ typedef struct {
 	gboolean allocations;
 	gboolean fileio;
 
+	gboolean clauses;
+
 	gboolean call_contexts;
 	void (*context_enable) (void);
 	gpointer (*context_get_this) (MonoProfilerCallContext *);
@@ -112,6 +114,7 @@ mono_profiler_installed (void)
 	return !!mono_profiler_state.profilers;
 }
 
+gboolean mono_profiler_coverage_instrumentation_enabled (MonoMethod *method);
 MonoProfilerCoverageInfo *mono_profiler_coverage_alloc (MonoDomain* domain, MonoMethod *method, guint32 entries);
 
 struct _MonoDomainCoverage
@@ -153,6 +156,12 @@ static inline gboolean
 mono_profiler_allocations_enabled (void)
 {
 	return mono_profiler_state.allocations;
+}
+
+static inline gboolean
+mono_profiler_clauses_enabled (void)
+{
+	return mono_profiler_state.clauses;
 }
 
 #define _MONO_PROFILER_EVENT(name, ...) \

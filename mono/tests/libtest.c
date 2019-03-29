@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <time.h>
 #include <math.h>
+#include <setjmp.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -3659,6 +3660,8 @@ mono_test_marshal_lookup_symbol (const char *symbol_name)
 	return lookup_mono_symbol (symbol_name);
 }
 
+
+// FIXME use runtime headers
 #define MONO_BEGIN_EFRAME { void *__dummy; void *__region_cookie = mono_threads_enter_gc_unsafe_region ? mono_threads_enter_gc_unsafe_region (&__dummy) : NULL;
 #define MONO_END_EFRAME if (mono_threads_exit_gc_unsafe_region) mono_threads_exit_gc_unsafe_region (__region_cookie, &__dummy); }
 
@@ -3674,21 +3677,27 @@ test_method_thunk (int test_id, gpointer test_method_handle, gpointer create_obj
 {
 	int ret = 0;
 
+	// FIXME use runtime headers
 	gpointer (*mono_method_get_unmanaged_thunk)(gpointer)
 		= (gpointer (*)(gpointer))lookup_mono_symbol ("mono_method_get_unmanaged_thunk");
 
+	// FIXME use runtime headers
 	gpointer (*mono_string_new_wrapper)(const char *)
 		= (gpointer (*)(const char *))lookup_mono_symbol ("mono_string_new_wrapper");
 
+	// FIXME use runtime headers
 	char *(*mono_string_to_utf8)(gpointer)
 		= (char *(*)(gpointer))lookup_mono_symbol ("mono_string_to_utf8");
 
+	// FIXME use runtime headers
 	gpointer (*mono_object_unbox)(gpointer)
 		= (gpointer (*)(gpointer))lookup_mono_symbol ("mono_object_unbox");
 
+	// FIXME use runtime headers
 	gpointer (*mono_threads_enter_gc_unsafe_region) (gpointer)
 		= (gpointer (*)(gpointer))lookup_mono_symbol ("mono_threads_enter_gc_unsafe_region");
 
+	// FIXME use runtime headers
 	void (*mono_threads_exit_gc_unsafe_region) (gpointer, gpointer)
 		= (void (*)(gpointer, gpointer))lookup_mono_symbol ("mono_threads_exit_gc_unsafe_region");
 
@@ -7556,3 +7565,33 @@ mono_test_native_to_managed_exception_rethrow (NativeToManagedExceptionRethrowFu
 	pthread_join (t, NULL);
 }
 #endif
+
+typedef void (*VoidVoidCallback) (void);
+typedef void (*MonoFtnPtrEHCallback) (guint32 gchandle);
+
+static jmp_buf test_jmp_buf;
+static guint32 test_gchandle;
+
+static void
+mono_test_longjmp_callback (guint32 gchandle)
+{
+	test_gchandle = gchandle;
+	longjmp (test_jmp_buf, 1);
+}
+
+LIBTEST_API void STDCALL
+mono_test_setjmp_and_call (VoidVoidCallback managedCallback, intptr_t *out_handle)
+{
+	void (*mono_install_ftnptr_eh_callback) (MonoFtnPtrEHCallback) =
+		(void (*) (MonoFtnPtrEHCallback)) (lookup_mono_symbol ("mono_install_ftnptr_eh_callback"));
+	if (setjmp (test_jmp_buf) == 0) {
+		*out_handle = 0;
+		mono_install_ftnptr_eh_callback (mono_test_longjmp_callback);
+		managedCallback ();
+		*out_handle = 0; /* Do not expect to return here */
+	} else {
+		mono_install_ftnptr_eh_callback (NULL);
+		*out_handle = test_gchandle;
+	}
+}
+

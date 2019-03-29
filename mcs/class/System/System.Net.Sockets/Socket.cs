@@ -1167,24 +1167,21 @@ namespace System.Net.Sockets
 			// while skipping entries that do not match the address family
 			DnsEndPoint dep = e.RemoteEndPoint as DnsEndPoint;
 			if (dep != null) {
-				if (dep.AddressFamily == AddressFamily.Unspecified)
-				{
-					addresses = Dns.GetHostAddresses(dep.Host);
+				if (dep.AddressFamily == AddressFamily.Unspecified) {
+					addresses = Dns.GetHostAddresses (dep.Host);
 				} else {
-					var possibleAddresses = Dns.GetHostAddresses (dep.Host);
-					var numberOfAddresses = 0;
-					int[] addressIndices = new int[possibleAddresses.Length];
-					for (var i = 0; i < possibleAddresses.Length; i++) {
-						if (possibleAddresses[i].AddressFamily == dep.AddressFamily) {
-							addressIndices[numberOfAddresses] = i;
-							numberOfAddresses++;
-						}
-					}
+					addresses = Dns.GetHostAddresses (dep.Host);
+					int last_valid = 0;
+					for (int i = 0; i < addresses.Length; ++i) {
+						if (addresses [i].AddressFamily != dep.AddressFamily)
+							continue;
 
-					addresses = new IPAddress[numberOfAddresses];
-					for (var i = 0; i < numberOfAddresses; i++)
-						addresses[i] = possibleAddresses[addressIndices[i]];
+						addresses [last_valid++] = addresses [i];
+					}
 				}
+
+				if (last_valid != addresses.Length)
+					Array.Resize (ref addresses, last_valid);
 				return true;
 			} else {
 				e.ConnectByNameError = null;
