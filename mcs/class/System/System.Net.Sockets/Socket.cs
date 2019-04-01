@@ -1178,10 +1178,11 @@ namespace System.Net.Sockets
 
 						addresses [last_valid++] = addresses [i];
 					}
+
+					if (last_valid != addresses.Length)
+						Array.Resize (ref addresses, last_valid);
 				}
 
-				if (last_valid != addresses.Length)
-					Array.Resize (ref addresses, last_valid);
 				return true;
 			} else {
 				e.ConnectByNameError = null;
