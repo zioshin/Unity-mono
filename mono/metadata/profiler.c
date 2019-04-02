@@ -1025,7 +1025,28 @@ mono_profiler_cleanup (void)
 #undef MONO_PROFILER_EVENT_5
 #undef _MONO_PROFILER_EVENT
 
+	/* Aqcuire the write lock */
+	do {
+		gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers);
+		if(readers == 0) {
+			if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, -1, readers) == 0)
+				break;
+		}
+		mono_thread_info_yield();
+	} while(1);
+
 	MonoProfilerHandle head = mono_profiler_state.profilers;
+	mono_profiler_state.profilers = NULL;
+
+	/* Release the write lock */
+	do {
+		gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers);
+		if(readers == -1) {
+			if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, 0, readers) == -1)
+				break;
+		}
+		mono_thread_info_yield();
+	} while(1);
 
 	while (head) {
 		MonoProfilerCleanupCallback cb = head->cleanup_callback;
@@ -1099,11 +1120,32 @@ update_callback (volatile gpointer *location, gpointer new_, volatile gint32 *co
 	void \
 	mono_profiler_raise_ ## name params \
 	{ \
+		/* Acquire the read lock */ \
+		do { \
+			gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers); \
+			if(readers != -1) { \
+				gint32 new_readers = readers+1; \
+				if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, new_readers, readers) == readers) \
+					break; \
+			} \
+			mono_thread_info_yield(); \
+		} while(1); \
+		/* Call the callbacks */ \
 		for (MonoProfilerHandle h = mono_profiler_state.profilers; h; h = h->next) { \
 			MonoProfiler ## type ## Callback cb = h->name ## _cb; \
 			if (cb) \
 				cb args; \
 		} \
+		/* Release the read lock */ \
+		do { \
+			gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers); \
+			if(readers != -1) { \
+				gint32 new_readers = readers-1; \
+				if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, new_readers, readers) == readers) \
+					break; \
+			} \
+			mono_thread_info_yield(); \
+		} while(1); \
 	}
 #define MONO_PROFILER_EVENT_0(name, type) \
 	_MONO_PROFILER_EVENT(name, type, (void), (h->prof))

@@ -48,6 +48,7 @@ typedef struct {
 	gboolean startup_done;
 
 	MonoProfilerHandle profilers;
+	volatile gint32 profilers_readers;
 
 	gboolean code_coverage;
 	mono_mutex_t coverage_mutex;
