@@ -236,7 +236,11 @@ mono_threads_suspend_abort_syscall (MonoThreadInfo *info)
 {
 	DWORD id = mono_thread_info_get_tid(info);
 	g_assert (info->native_handle);
+#ifndef UNITY_MERGE_FIXME
+	suspend_abort_syscall (info, info->native_handle, id);
+#else
 	mono_win32_abort_wait (info, info->native_handle, id);
+#endif
 }
 
 gboolean
