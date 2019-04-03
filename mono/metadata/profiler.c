@@ -1124,6 +1124,7 @@ update_callback (volatile gpointer *location, gpointer new_, volatile gint32 *co
 	void \
 	mono_profiler_raise_ ## name params \
 	{ \
+		if (!mono_profiler_state.startup_done) return;	\
 		for (MonoProfilerHandle h = mono_profiler_state.profilers; h; h = h->next) { \
 			MonoProfiler ## type ## Callback cb = h->name ## _cb; \
 			if (cb) \
@@ -1245,7 +1246,7 @@ mono_profiler_install_thread (MonoLegacyProfileThreadFunc start, MonoLegacyProfi
 }
 
 static void
-gc_event_cb (MonoProfiler *prof, MonoProfilerGCEvent event, uint32_t generation)
+gc_event_cb (MonoProfiler *prof, MonoProfilerGCEvent event, uint32_t generation, gboolean is_serial)
 {
 	prof->gc_event (prof->profiler, event, generation);
 }

@@ -266,6 +266,12 @@ typedef struct {
 	gpointer win32_apc_info_io_handle;
 #endif
 
+	/*
+	 * This is where we store tools tls data so it follows our lifecycle and doesn't depends on posix tls cleanup ordering
+	 *
+	 * TODO support multiple values by multiple tools
+	 */
+	void *tools_data;
 } MonoThreadInfo;
 
 typedef struct {
@@ -383,7 +389,7 @@ mono_threads_get_runtime_callbacks (void);
 MONO_API int
 mono_thread_info_register_small_id (void);
 
-THREAD_INFO_TYPE *
+MONO_API THREAD_INFO_TYPE *
 mono_thread_info_attach (void);
 
 MONO_API void
@@ -403,6 +409,13 @@ mono_thread_info_is_exiting (void);
 
 THREAD_INFO_TYPE *
 mono_thread_info_current (void);
+
+MONO_API gboolean
+mono_thread_info_set_tools_data (void *data);
+
+MONO_API void*
+mono_thread_info_get_tools_data (void);
+
 
 THREAD_INFO_TYPE*
 mono_thread_info_current_unchecked (void);
@@ -630,8 +643,7 @@ typedef enum {
 
 typedef enum {
 	DoneBlockingOk, //exited blocking fine
-	DoneBlockingWait, //thread should end suspended
-	DoneBlockingNotifyAndWait, // thread was preemptively suspended while in blocking, notify suspend initiator and wait for resume
+	DoneBlockingWait, //thread should end suspended and wait for resume
 } MonoDoneBlockingResult;
 
 
@@ -640,7 +652,6 @@ typedef enum {
 	AbortBlockingIgnoreAndPoll, //Ignore and poll
 	AbortBlockingOk, //Abort worked
 	AbortBlockingWait, //Abort worked, but should wait for resume
-	AbortBlockingNotifyAndWait, // thread was preemptively suspended while in blocking, notify suspend initiator and wait for resume
 } MonoAbortBlockingResult;
 
 
@@ -652,7 +663,7 @@ MonoResumeResult mono_threads_transition_request_resume (THREAD_INFO_TYPE* info)
 gboolean mono_threads_transition_finish_async_suspend (THREAD_INFO_TYPE* info);
 MonoDoBlockingResult mono_threads_transition_do_blocking (THREAD_INFO_TYPE* info, const char* func);
 MonoDoneBlockingResult mono_threads_transition_done_blocking (THREAD_INFO_TYPE* info, const char* func);
-MonoAbortBlockingResult mono_threads_transition_abort_blocking (THREAD_INFO_TYPE* info);
+MonoAbortBlockingResult mono_threads_transition_abort_blocking (THREAD_INFO_TYPE* info, const char* func);
 
 MonoThreadUnwindState* mono_thread_info_get_suspend_state (THREAD_INFO_TYPE *info);
 

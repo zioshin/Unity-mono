@@ -717,7 +717,7 @@ get_socket_assembly (void)
 
 		socket_assembly = mono_image_loaded ("System");
 		if (!socket_assembly) {
-			MonoAssembly *sa = mono_assembly_open_predicate ("System.dll", FALSE, FALSE, NULL, NULL, NULL);
+			MonoAssembly *sa = mono_assembly_open_predicate ("System.dll", MONO_ASMCTX_DEFAULT, NULL, NULL, NULL);
 		
 			if (!sa) {
 				g_assert_not_reached ();
@@ -1057,7 +1057,7 @@ ves_icall_System_Net_Sockets_Socket_LocalEndPoint_internal (gsize sock, gint32 a
 	salen = get_sockaddr_size (convert_family ((MonoAddressFamily)af));
 	if (salen == 0) {
 		*werror = WSAEAFNOSUPPORT;
-		return NULL;
+		return NULL_HANDLE;
 	}
 	sa = (salen <= 128) ? (gchar *)alloca (salen) : (gchar *)g_malloc0 (salen);
 
@@ -2000,7 +2000,7 @@ ves_icall_System_Net_Sockets_Socket_GetSocketOption_obj_internal (gsize sock, gi
 		if (mono_posix_image == NULL) {
 			mono_posix_image = mono_image_loaded ("Mono.Posix");
 			if (!mono_posix_image) {
-				MonoAssembly *sa = mono_assembly_open_predicate ("Mono.Posix.dll", FALSE, FALSE, NULL, NULL, NULL);
+				MonoAssembly *sa = mono_assembly_open_predicate ("Mono.Posix.dll", MONO_ASMCTX_DEFAULT, NULL, NULL, NULL);
 				if (!sa) {
 					*werror = WSAENOPROTOOPT;
 					return;
@@ -2013,7 +2013,7 @@ ves_icall_System_Net_Sockets_Socket_GetSocketOption_obj_internal (gsize sock, gi
 		obj_class = mono_class_load_from_name (mono_posix_image,
 						 "Mono.Posix",
 						 "PeerCredData");
-		MonoPeerCredDataHandle cred_data = (MonoPeerCredDataHandle)mono_object_new_handle (domain, obj_class, error);
+		MonoPeerCredDataHandle cred_data = MONO_HANDLE_CAST (MonoPeerCredData, mono_object_new_handle (domain, obj_class, error));
 		return_if_nok (error);
 
 		MONO_HANDLE_SETVAL (cred_data, pid, gint, cred.pid);

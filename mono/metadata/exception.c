@@ -110,9 +110,9 @@ mono_exception_new_by_name_domain (MonoDomain *domain, MonoImage *image,
 
 	goto_if_ok (error, exit);
 return_null:
-	MONO_HANDLE_ASSIGN (o, NULL);
+	MONO_HANDLE_ASSIGN (o, NULL_HANDLE);
 exit:
-	HANDLE_FUNCTION_RETURN_REF (MonoException, o);
+	HANDLE_FUNCTION_RETURN_REF (MonoException, MONO_HANDLE_CAST (MonoException, o));
 }
 
 /**
@@ -307,7 +307,7 @@ mono_exception_new_by_name_msg (MonoImage *image, const char *name_space,
 	}
 	goto exit;
 return_null:
-	MONO_HANDLE_ASSIGN (ex, NULL);
+	MONO_HANDLE_ASSIGN (ex, NULL_HANDLE);
 exit:
 	HANDLE_FUNCTION_RETURN_REF (MonoException, ex)
 }
@@ -384,7 +384,7 @@ mono_exception_from_token_two_strings_checked (MonoImage *image, guint32 token,
  * \returns a new instance of the \c System.DivideByZeroException
  */
 MonoException *
-mono_get_exception_divide_by_zero ()
+mono_get_exception_divide_by_zero (void)
 {
 	return mono_exception_from_name (mono_get_corlib (), "System",
 					 "DivideByZeroException");
@@ -437,7 +437,7 @@ mono_exception_new_thread_interrupted (MonoError *error)
  * \returns a new instance of the \c System.Threading.ThreadInterruptedException
  */
 MonoException *
-mono_get_exception_thread_interrupted ()
+mono_get_exception_thread_interrupted (void)
 {
 	return mono_exception_from_name (mono_get_corlib (), "System.Threading",
 					 "ThreadInterruptedException");
@@ -448,7 +448,7 @@ mono_get_exception_thread_interrupted ()
  * \returns a new instance of the \c System.ArithmeticException
  */
 MonoException *
-mono_get_exception_arithmetic ()
+mono_get_exception_arithmetic (void)
 {
 	return mono_exception_from_name (mono_get_corlib (), "System",
 					 "ArithmeticException");
@@ -459,7 +459,7 @@ mono_get_exception_arithmetic ()
  * \returns a new instance of the \c System.OverflowException
  */
 MonoException *
-mono_get_exception_overflow ()
+mono_get_exception_overflow (void)
 {
 	return mono_exception_from_name (mono_get_corlib (), "System",
 					 "OverflowException");
@@ -470,7 +470,7 @@ mono_get_exception_overflow ()
  * \returns a new instance of the \c System.NullReferenceException
  */
 MonoException *
-mono_get_exception_null_reference ()
+mono_get_exception_null_reference (void)
 {
 	return mono_exception_from_name (mono_get_corlib (), "System",
 					 "NullReferenceException");
@@ -520,6 +520,13 @@ mono_get_exception_invalid_operation (const char *msg)
 					"InvalidOperationException", msg);
 }
 
+MonoExceptionHandle
+mono_exception_new_invalid_operation (const char *msg, MonoError *error)
+{
+	return mono_exception_new_by_name_msg (mono_get_corlib (), "System",
+					"InvalidOperationException", msg, error);
+}
+
 /**
  * mono_get_exception_index_out_of_range:
  * \returns a new instance of the \c System.IndexOutOfRangeException
@@ -536,7 +543,7 @@ mono_get_exception_index_out_of_range ()
  * \returns a new instance of the \c System.ArrayTypeMismatchException
  */
 MonoException *
-mono_get_exception_array_type_mismatch ()
+mono_get_exception_array_type_mismatch (void)
 {
 	return mono_exception_from_name (mono_get_corlib (), "System",
 					 "ArrayTypeMismatchException");
@@ -629,18 +636,18 @@ mono_get_exception_missing_field (const char *class_name, const char *member_nam
 	return ret;
 }
 
-/**
- * mono_get_exception_argument_null:
- * \param arg the name of the argument that is null
- * \returns a new instance of the \c System.ArgumentNullException
- */
-MonoException*
-mono_get_exception_argument_null (const char *arg)
-{
-	MonoException *ex;
 
-	ex = mono_exception_from_name ( 
-		mono_get_corlib (), "System", "ArgumentNullException");
+/**
+ * mono_get_exception_argument_internal:
+ * \param type the actual type
+ * \param arg the name of the argument that is invalid or null, etc.
+ * \param msg optional message
+ * \returns a new instance of the \c System.ArgumentException or derived
+ */
+static MonoException*
+mono_get_exception_argument_internal (const char *type, const char *arg, const char *msg)
+{
+	MonoException *ex = mono_exception_from_name_msg (mono_get_corlib (), "System", type, msg);
 
 	if (arg) {
 		ERROR_DECL (error);
@@ -649,8 +656,19 @@ mono_get_exception_argument_null (const char *arg)
 		mono_error_assert_ok (error);
 		MONO_OBJECT_SETREF (argex, param_name, arg_str);
 	}
-	
+
 	return ex;
+}
+
+/**
+ * mono_get_exception_argument_null:
+ * \param arg the name of the argument that is null
+ * \returns a new instance of the \c System.ArgumentNullException
+ */
+MonoException*
+mono_get_exception_argument_null (const char *arg)
+{
+	return mono_get_exception_argument_internal ("ArgumentNullException", arg, NULL);
 }
 
 /**
@@ -661,20 +679,7 @@ mono_get_exception_argument_null (const char *arg)
 MonoException *
 mono_get_exception_argument (const char *arg, const char *msg)
 {
-	MonoException *ex;
-
-	ex = mono_exception_from_name_msg (
-		mono_get_corlib (), "System", "ArgumentException", msg);
-
-	if (arg) {
-		ERROR_DECL (error);
-		MonoArgumentException *argex = (MonoArgumentException *)ex;
-		MonoString *arg_str = mono_string_new_checked (mono_object_get_domain ((MonoObject*)ex), arg, error);
-		mono_error_assert_ok (error);
-		MONO_OBJECT_SETREF (argex, param_name, arg_str);
-	}
-	
-	return ex;
+	return mono_get_exception_argument_internal ("ArgumentException", arg, msg);
 }
 
 TYPED_HANDLE_DECL (MonoArgumentException);
@@ -686,12 +691,20 @@ mono_exception_new_argument (const char *arg, const char *msg, MonoError *error)
 	ex = mono_exception_new_by_name_msg (mono_get_corlib (), "System", "ArgumentException", msg, error);
 
 	if (arg && !MONO_HANDLE_IS_NULL (ex)) {
-		MonoArgumentExceptionHandle argex = (MonoArgumentExceptionHandle)ex;
+		MonoArgumentExceptionHandle argex = MONO_HANDLE_CAST (MonoArgumentException, ex);
 		MonoStringHandle arg_str = mono_string_new_handle (MONO_HANDLE_DOMAIN (ex), arg, error);
 		MONO_HANDLE_SET (argex, param_name, arg_str);
 	}
 
 	return ex;
+}
+
+MonoExceptionHandle
+mono_exception_new_serialization (const char *msg, MonoError *error)
+{
+	return mono_exception_new_by_name_msg (mono_get_corlib (),
+		"System.Runtime.Serialization", "SerializationException",
+		"Could not serialize unhandled exception.", error);
 }
 
 /**
@@ -702,20 +715,7 @@ mono_exception_new_argument (const char *arg, const char *msg, MonoError *error)
 MonoException *
 mono_get_exception_argument_out_of_range (const char *arg)
 {
-	MonoException *ex;
-
-	ex = mono_exception_from_name (
-		mono_get_corlib (), "System", "ArgumentOutOfRangeException");
-
-	if (arg) {
-		ERROR_DECL (error);
-		MonoArgumentException *argex = (MonoArgumentException *)ex;
-		MonoString *arg_str = mono_string_new_checked (mono_object_get_domain ((MonoObject*)ex), arg, error);
-		mono_error_assert_ok (error);
-		MONO_OBJECT_SETREF (argex, param_name, arg_str);
-	}
-	
-	return ex;
+	return mono_get_exception_argument_internal ("ArgumentOutOfRangeException", arg, NULL);
 }
 
 /**
@@ -723,6 +723,7 @@ mono_get_exception_argument_out_of_range (const char *arg)
  * \param msg the message to present to the user
  * \returns a new instance of the \c System.Threading.ThreadStateException
  */
+MONO_RT_EXTERNAL_ONLY
 MonoException *
 mono_get_exception_thread_state (const char *msg)
 {
@@ -1015,7 +1016,7 @@ mono_get_exception_reflection_type_load_checked (MonoArrayHandle types, MonoArra
 	}
 	g_assert (method);
 
-	MonoExceptionHandle exc = MONO_HANDLE_NEW (MonoException, mono_object_new_checked (mono_domain_get (), klass, error));
+	MonoExceptionHandle exc = MONO_HANDLE_CAST (MonoException, MONO_HANDLE_NEW (MonoObject, mono_object_new_checked (mono_domain_get (), klass, error)));
 	mono_error_assert_ok (error);
 
 	gpointer args [2];
@@ -1148,7 +1149,7 @@ ves_icall_Mono_Runtime_GetNativeStackTrace (MonoExceptionHandle exc, MonoError *
 	MonoStringHandle res;
 	error_init (error);
 
-	if (!exc) {
+	if (MONO_HANDLE_IS_NULL (exc)) {
 		mono_error_set_argument_null (error, "exception", "");
 		return NULL_HANDLE_STRING;
 	}
@@ -1429,4 +1430,18 @@ mono_error_set_simple_file_not_found (MonoError *error, const char *file_name, g
 		mono_error_set_file_not_found (error, file_name, "Cannot resolve dependency to assembly because it has not been preloaded. When using the ReflectionOnly APIs, dependent assemblies must be pre-loaded or loaded on demand through the ReflectionOnlyAssemblyResolve event.");
 	else
 		mono_error_set_file_not_found (error, file_name, "Could not load file or assembly '%s' or one of its dependencies.", file_name);
+}
+
+void
+mono_error_set_argument_out_of_range (MonoError *error, const char *name)
+{
+	//FIXMEcoop
+	mono_error_set_exception_instance (error, mono_get_exception_argument_out_of_range (name));
+}
+
+MonoExceptionHandle
+mono_error_convert_to_exception_handle (MonoError *error)
+{
+	//FIXMEcoop mono_error_convert_to_exception is raw pointer
+	return MONO_HANDLE_NEW (MonoException, mono_error_convert_to_exception (error));
 }

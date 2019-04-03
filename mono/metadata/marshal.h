@@ -121,7 +121,8 @@ typedef enum {
 	/* Subtypes of MONO_WRAPPER_UNKNOWN */
 	WRAPPER_SUBTYPE_GSHAREDVT_IN_SIG,
 	WRAPPER_SUBTYPE_GSHAREDVT_OUT_SIG,
-	WRAPPER_SUBTYPE_INTERP_IN
+	WRAPPER_SUBTYPE_INTERP_IN,
+	WRAPPER_SUBTYPE_INTERP_LMF
 } WrapperSubtype;
 
 typedef struct {
@@ -637,7 +638,7 @@ mono_icall_end (MonoThreadInfo *info, HandleStackMark *stackmark, MonoError *err
 MonoObjectHandle
 mono_icall_handle_new (gpointer rawobj);
 
-MonoObjectHandle
+gpointer
 mono_icall_handle_new_interior (gpointer rawobj);
 
 void*
@@ -667,7 +668,7 @@ MonoString *
 ves_icall_System_Runtime_InteropServices_Marshal_PtrToStringBSTR (gpointer ptr);
 
 guint32
-ves_icall_System_Runtime_InteropServices_Marshal_GetComSlotForMethodInfoInternal (MonoReflectionMethod *m);
+ves_icall_System_Runtime_InteropServices_Marshal_GetComSlotForMethodInfoInternal (MonoReflectionMethodHandle m, MonoError *error);
 
 guint32 
 ves_icall_System_Runtime_InteropServices_Marshal_GetLastWin32Error (void);
@@ -751,10 +752,10 @@ MonoObject*
 ves_icall_System_Runtime_InteropServices_Marshal_GetObjectForCCW (void* pUnk);
 
 void*
-ves_icall_System_Runtime_InteropServices_Marshal_GetIDispatchForObjectInternal (MonoObject* object);
+ves_icall_System_Runtime_InteropServices_Marshal_GetIDispatchForObjectInternal (MonoObjectHandle object, MonoError *error);
 
 void*
-ves_icall_System_Runtime_InteropServices_Marshal_GetCCW (MonoObject* object, MonoReflectionType* type);
+ves_icall_System_Runtime_InteropServices_Marshal_GetCCW (MonoObjectHandle object, MonoReflectionTypeHandle type, MonoError *error);
 
 MonoBoolean
 ves_icall_System_Runtime_InteropServices_Marshal_IsComObject (MonoObject* object);
@@ -762,20 +763,20 @@ ves_icall_System_Runtime_InteropServices_Marshal_IsComObject (MonoObject* object
 gint32
 ves_icall_System_Runtime_InteropServices_Marshal_ReleaseComObjectInternal (MonoObject* object);
 
-MonoObject *
-ves_icall_System_ComObject_CreateRCW (MonoReflectionType *type);
+MonoObjectHandle
+ves_icall_System_ComObject_CreateRCW (MonoReflectionTypeHandle ref_type, MonoError *error);
 
 void
 ves_icall_System_ComObject_ReleaseInterfaces(MonoComObject* obj);
 
 gpointer
-ves_icall_System_ComObject_GetInterfaceInternal (MonoComObject* obj, MonoReflectionType* type, MonoBoolean throw_exception);
+ves_icall_System_ComObject_GetInterfaceInternal (MonoComObjectHandle obj, MonoReflectionTypeHandle ref_type, MonoBoolean throw_exception, MonoError *error);
 
 void
-ves_icall_Mono_Interop_ComInteropProxy_AddProxy (gpointer pUnk, MonoComInteropProxy* proxy);
+ves_icall_Mono_Interop_ComInteropProxy_AddProxy (gpointer pUnk, MonoComInteropProxyHandle proxy, MonoError *error);
 
-MonoComInteropProxy*
-ves_icall_Mono_Interop_ComInteropProxy_FindProxy (gpointer pUnk);
+MonoComInteropProxyHandle
+ves_icall_Mono_Interop_ComInteropProxy_FindProxy (gpointer pUnk, MonoError *error);
 
 MONO_API void
 mono_win32_compat_CopyMemory (gpointer dest, gconstpointer source, gsize length);
@@ -846,5 +847,3 @@ mono_mb_create_and_cache_full (GHashTable *cache, gpointer key,
 G_END_DECLS
 
 #endif /* __MONO_MARSHAL_H__ */
-
-

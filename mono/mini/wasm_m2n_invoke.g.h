@@ -282,6 +282,16 @@ wasm_invoke_ff (void *target_func, InterpMethodArguments *margs)
 }
 
 static void
+wasm_invoke_fff (void *target_func, InterpMethodArguments *margs)
+{
+	float (*func)(float arg_0, float arg_1) = target_func;
+
+	float res = func (*(float*)&margs->fargs [FIDX (0)], *(float*)&margs->fargs [FIDX (1)]);
+	*(float*)margs->retval = res;
+
+}
+
+static void
 wasm_invoke_di (void *target_func, InterpMethodArguments *margs)
 {
 	double (*func)(int arg_0) = target_func;
@@ -327,6 +337,16 @@ wasm_invoke_iillli (void *target_func, InterpMethodArguments *margs)
 	int (*func)(int arg_0, gint64 arg_1, gint64 arg_2, gint64 arg_3, int arg_4) = target_func;
 
 	int res = func ((int)margs->iargs [0], get_long_arg (margs, 1), get_long_arg (margs, 3), get_long_arg (margs, 5), (int)margs->iargs [7]);
+	*(int*)margs->retval = res;
+
+}
+
+static void
+wasm_invoke_idiii (void *target_func, InterpMethodArguments *margs)
+{
+	int (*func)(double arg_0, int arg_1, int arg_2, int arg_3) = target_func;
+
+	int res = func (margs->fargs [FIDX (0)], (int)margs->iargs [0], (int)margs->iargs [1], (int)margs->iargs [2]);
 	*(int*)margs->retval = res;
 
 }
@@ -488,6 +508,8 @@ icall_trampoline_dispatch (const char *cookie, void *target_func, InterpMethodAr
 		wasm_invoke_vifffffi (target_func, margs);
 	else if (!strcmp ("FF", cookie))
 		wasm_invoke_ff (target_func, margs);
+	else if (!strcmp ("FFF", cookie))
+		wasm_invoke_fff (target_func, margs);
 	else if (!strcmp ("DI", cookie))
 		wasm_invoke_di (target_func, margs);
 	else if (!strcmp ("FI", cookie))
@@ -498,6 +520,8 @@ icall_trampoline_dispatch (const char *cookie, void *target_func, InterpMethodAr
 		wasm_invoke_iili (target_func, margs);
 	else if (!strcmp ("IILLLI", cookie))
 		wasm_invoke_iillli (target_func, margs);
+	else if (!strcmp ("IDIII", cookie))
+		wasm_invoke_idiii (target_func, margs);
 	else if (!strcmp ("LII", cookie))
 		wasm_invoke_lii (target_func, margs);
 	else if (!strcmp ("VID", cookie))

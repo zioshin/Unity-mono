@@ -1,3 +1,5 @@
+include $(top_srcdir)/mk/common.mk
+
 AM_CPPFLAGS = \
 	-DSUPPRESSION_DIR=\""$(datadir)/mono-$(API_VER)/mono/profiler"\" \
 	-I$(top_srcdir) \
@@ -33,8 +35,10 @@ suppression_DATA = mono-profiler-coverage.suppression
 # sampling infrastructure depends on signals being available.
 #
 # See: https://bugzilla.xamarin.com/show_bug.cgi?id=57011
-if !ENABLE_COOP
+if !ENABLE_COOP_SUSPEND
+if !ENABLE_HYBRID_SUSPEND
 check_targets = testlog
+endif
 endif
 
 endif
@@ -81,7 +85,16 @@ else
 if HOST_TIZEN
 libmono_dep = $(top_builddir)/mono/mini/$(LIBMONO_LA)
 else
+# BITCODE => -no-undefined
+if HOST_DARWIN
+if BITCODE
+libmono_dep = $(top_builddir)/mono/mini/$(LIBMONO_LA)
+else
 libmono_dep =
+endif
+else
+libmono_dep =
+endif
 endif
 endif
 endif

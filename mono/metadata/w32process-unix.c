@@ -538,6 +538,9 @@ static const gunichar2 *utf16_space = utf16_space_bytes;
 static const gunichar2 utf16_quote_bytes [2] = { 0x22, 0 };
 static const gunichar2 *utf16_quote = utf16_quote_bytes;
 
+static MonoBoolean
+mono_get_exit_code_process (gpointer handle, gint32 *exitcode);
+
 /* Check if a pid is valid - i.e. if a process exists with this pid. */
 static gboolean
 process_is_alive (pid_t pid)
@@ -2161,7 +2164,9 @@ ves_icall_System_Diagnostics_Process_ShellExecuteEx_internal (MonoW32ProcessStar
 		 * if that fails, try to use gnome-open, then kfmclient
 		 */
 		handler = g_find_program_in_path ("xdg-open");
-		if (handler == NULL){
+		if (handler != NULL)
+			handler_needswait = TRUE;
+		else {
 			handler = g_find_program_in_path ("gnome-open");
 			if (handler == NULL){
 				handler = g_find_program_in_path ("kfmclient");
@@ -2208,7 +2213,7 @@ ves_icall_System_Diagnostics_Process_ShellExecuteEx_internal (MonoW32ProcessStar
 			gint32 exitcode;
 			MonoW32HandleWaitRet waitret;
 			waitret = process_wait (process_info->process_handle, MONO_INFINITE_WAIT, NULL);
-			ves_icall_Microsoft_Win32_NativeMethods_GetExitCodeProcess (process_info->process_handle, &exitcode);
+			mono_get_exit_code_process (process_info->process_handle, &exitcode);
 			if (exitcode != 0)
 				ret = FALSE;
 		}
@@ -2329,7 +2334,8 @@ ves_icall_System_Diagnostics_Process_GetProcesses_internal (void)
 
 	pidarray = mono_process_list (&count);
 	if (!pidarray) {
-		mono_set_pending_exception (mono_get_exception_not_supported ("This system does not support EnumProcesses"));
+		mono_error_set_not_supported (error, "This system does not support EnumProcesses");
+		mono_error_set_pending_exception (error);
 		return NULL;
 	}
 	procs = mono_array_new_checked (mono_domain_get (), mono_get_int32_class (), count, error);
@@ -2356,13 +2362,19 @@ mono_w32process_set_cli_launcher (gchar *path)
 }
 
 gpointer
-ves_icall_Microsoft_Win32_NativeMethods_GetCurrentProcess (void)
+ves_icall_Microsoft_Win32_NativeMethods_GetCurrentProcess (MonoError *error)
 {
 	return current_process;
 }
 
 MonoBoolean
-ves_icall_Microsoft_Win32_NativeMethods_GetExitCodeProcess (gpointer handle, gint32 *exitcode)
+ves_icall_Microsoft_Win32_NativeMethods_GetExitCodeProcess (gpointer handle, gint32 *exitcode, MonoError *error)
+{
+	return mono_get_exit_code_process (handle, exitcode);
+}
+
+static MonoBoolean
+mono_get_exit_code_process (gpointer handle, gint32 *exitcode)
 {
 	MonoW32Handle *handle_data;
 	MonoW32HandleProcess *process_handle;
@@ -2405,13 +2417,13 @@ ves_icall_Microsoft_Win32_NativeMethods_GetExitCodeProcess (gpointer handle, gin
 }
 
 MonoBoolean
-ves_icall_Microsoft_Win32_NativeMethods_CloseProcess (gpointer handle)
+ves_icall_Microsoft_Win32_NativeMethods_CloseProcess (gpointer handle, MonoError *error)
 {
 	return mono_w32handle_close (handle);
 }
 
 MonoBoolean
-ves_icall_Microsoft_Win32_NativeMethods_TerminateProcess (gpointer handle, gint32 exitcode)
+ves_icall_Microsoft_Win32_NativeMethods_TerminateProcess (gpointer handle, gint32 exitcode, MonoError *error)
 {
 #ifdef HAVE_KILL
 	MonoW32Handle *handle_data;
@@ -2454,7 +2466,7 @@ ves_icall_Microsoft_Win32_NativeMethods_TerminateProcess (gpointer handle, gint3
 }
 
 MonoBoolean
-ves_icall_Microsoft_Win32_NativeMethods_GetProcessWorkingSetSize (gpointer handle, gsize *min, gsize *max)
+ves_icall_Microsoft_Win32_NativeMethods_GetProcessWorkingSetSize (gpointer handle, gsize *min, gsize *max, MonoError *error)
 {
 	MonoW32Handle *handle_data;
 	MonoW32HandleProcess *process_handle;
@@ -2490,7 +2502,7 @@ ves_icall_Microsoft_Win32_NativeMethods_GetProcessWorkingSetSize (gpointer handl
 }
 
 MonoBoolean
-ves_icall_Microsoft_Win32_NativeMethods_SetProcessWorkingSetSize (gpointer handle, gsize min, gsize max)
+ves_icall_Microsoft_Win32_NativeMethods_SetProcessWorkingSetSize (gpointer handle, gsize min, gsize max, MonoError *error)
 {
 	MonoW32Handle *handle_data;
 	MonoW32HandleProcess *process_handle;
@@ -2523,7 +2535,7 @@ ves_icall_Microsoft_Win32_NativeMethods_SetProcessWorkingSetSize (gpointer handl
 }
 
 gint32
-ves_icall_Microsoft_Win32_NativeMethods_GetPriorityClass (gpointer handle)
+ves_icall_Microsoft_Win32_NativeMethods_GetPriorityClass (gpointer handle, MonoError *error)
 {
 #ifdef HAVE_GETPRIORITY
 	MonoW32Handle *handle_data;
@@ -2589,7 +2601,7 @@ ves_icall_Microsoft_Win32_NativeMethods_GetPriorityClass (gpointer handle)
 }
 
 MonoBoolean
-ves_icall_Microsoft_Win32_NativeMethods_SetPriorityClass (gpointer handle, gint32 priorityClass)
+ves_icall_Microsoft_Win32_NativeMethods_SetPriorityClass (gpointer handle, gint32 priorityClass, MonoError *error)
 {
 #ifdef HAVE_SETPRIORITY
 	MonoW32Handle *handle_data;
@@ -2668,7 +2680,7 @@ ticks_to_processtime (guint64 ticks, ProcessTime *processtime)
 }
 
 MonoBoolean
-ves_icall_Microsoft_Win32_NativeMethods_GetProcessTimes (gpointer handle, gint64 *creation_time, gint64 *exit_time, gint64 *kernel_time, gint64 *user_time)
+ves_icall_Microsoft_Win32_NativeMethods_GetProcessTimes (gpointer handle, gint64 *creation_time, gint64 *exit_time, gint64 *kernel_time, gint64 *user_time, MonoError *error)
 {
 	MonoW32Handle *handle_data;
 	MonoW32HandleProcess *process_handle;
@@ -3012,14 +3024,15 @@ find_pe_file_resources (gpointer file_map, guint32 map_size, guint32 res_id, gui
 static gpointer
 map_pe_file (gunichar2 *filename, gint32 *map_size, void **handle)
 {
-	gchar *filename_ext;
-	int fd;
+	gchar *filename_ext = NULL;
+	gchar *located_filename = NULL;
+	int fd = -1;
 	struct stat statbuf;
-	gpointer file_map;
+	gpointer file_map = NULL;
 
 	/* According to the MSDN docs, a search path is applied to
 	 * filename.  FIXME: implement this, for now just pass it
-	 * straight to fopen
+	 * straight to open
 	 */
 
 	filename_ext = mono_unicode_to_external (filename);
@@ -3027,49 +3040,35 @@ map_pe_file (gunichar2 *filename, gint32 *map_size, void **handle)
 		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_PROCESS, "%s: unicode conversion returned NULL", __func__);
 
 		mono_w32error_set_last (ERROR_INVALID_NAME);
-		return(NULL);
+		goto exit;
 	}
 
 	fd = open (filename_ext, O_RDONLY, 0);
 	if (fd == -1 && (errno == ENOENT || errno == ENOTDIR) && IS_PORTABILITY_SET) {
-		gint saved_errno;
-		gchar *located_filename;
-
-		saved_errno = errno;
+		gint saved_errno = errno;
 
 		located_filename = mono_portability_find_file (filename_ext, TRUE);
 		if (!located_filename) {
 			errno = saved_errno;
 
 			mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_PROCESS, "%s: Error opening file %s (1): %s", __func__, filename_ext, strerror (errno));
-
-			g_free (filename_ext);
-
-			mono_w32error_set_last (mono_w32error_unix_to_win32 (errno));
-			return NULL;
+			goto error;
 		}
 
 		fd = open (located_filename, O_RDONLY, 0);
 		if (fd == -1) {
 			mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_PROCESS, "%s: Error opening file %s (2): %s", __func__, filename_ext, strerror (errno));
-
-			g_free (filename_ext);
-			g_free (located_filename);
-
-			mono_w32error_set_last (mono_w32error_unix_to_win32 (errno));
-			return NULL;
+			goto error;
 		}
-
-		g_free (located_filename);
+	}
+	else if (fd == -1) {
+		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_PROCESS, "%s: Error opening file %s (3): %s", __func__, filename_ext, strerror (errno));
+		goto error;
 	}
 
 	if (fstat (fd, &statbuf) == -1) {
 		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_PROCESS, "%s: Error stat()ing file %s: %s", __func__, filename_ext, strerror (errno));
-
-		mono_w32error_set_last (mono_w32error_unix_to_win32 (errno));
-		g_free (filename_ext);
-		close (fd);
-		return(NULL);
+		goto error;
 	}
 	*map_size = statbuf.st_size;
 
@@ -3078,26 +3077,23 @@ map_pe_file (gunichar2 *filename, gint32 *map_size, void **handle)
 		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_PROCESS, "%s: File %s is too small: %lld", __func__, filename_ext, (long long) statbuf.st_size);
 
 		mono_w32error_set_last (ERROR_BAD_LENGTH);
-		g_free (filename_ext);
-		close (fd);
-		return(NULL);
+		goto exit;
 	}
 
 	file_map = mono_file_map (statbuf.st_size, MONO_MMAP_READ | MONO_MMAP_PRIVATE, fd, 0, handle);
 	if (file_map == NULL) {
 		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_PROCESS, "%s: Error mmap()int file %s: %s", __func__, filename_ext, strerror (errno));
-
-		mono_w32error_set_last (mono_w32error_unix_to_win32 (errno));
-		g_free (filename_ext);
-		close (fd);
-		return(NULL);
+		goto error;
 	}
-
-	/* Don't need the fd any more */
-	close (fd);
+exit:
+	if (fd != -1)
+		close (fd);
+	g_free (located_filename);
 	g_free (filename_ext);
-
-	return(file_map);
+	return file_map;
+error:
+	mono_w32error_set_last (mono_w32error_unix_to_win32 (errno));
+	goto exit;
 }
 
 static void

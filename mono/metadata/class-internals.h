@@ -1016,6 +1016,7 @@ GENERATE_GET_CLASS_WITH_CACHE_DECL (variant)
 
 GENERATE_GET_CLASS_WITH_CACHE_DECL (appdomain_unloaded_exception)
 
+/* If you need a MonoType, use one of the mono_get_*_type () functions in class-inlines.h */
 extern MonoDefaults mono_defaults;
 
 void
@@ -1428,6 +1429,9 @@ mono_class_compute_gc_descriptor (MonoClass *klass);
 void
 mono_class_contextbound_bit_offset (int* byte_offset_out, guint8* mask_out);
 #endif
+
+gboolean
+mono_class_init_checked (MonoClass *klass, MonoError *error);
 
 /*Now that everything has been defined, let's include the inline functions */
 #include <mono/metadata/class-inlines.h>

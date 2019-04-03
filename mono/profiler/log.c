@@ -186,34 +186,8 @@ typedef struct {
 
 // Do not use these TLS macros directly unless you know what you're doing.
 
-#ifdef HOST_WIN32
-
-#define PROF_TLS_SET(VAL) (TlsSetValue (profiler_tls, (VAL)))
-#define PROF_TLS_GET() ((MonoProfilerThread *) TlsGetValue (profiler_tls))
-#define PROF_TLS_INIT() (profiler_tls = TlsAlloc ())
-#define PROF_TLS_FREE() (TlsFree (profiler_tls))
-
-static DWORD profiler_tls;
-
-#elif HAVE_KW_THREAD
-
-#define PROF_TLS_SET(VAL) (profiler_tls = (VAL))
-#define PROF_TLS_GET() (profiler_tls)
-#define PROF_TLS_INIT()
-#define PROF_TLS_FREE()
-
-static __thread MonoProfilerThread *profiler_tls;
-
-#else
-
-#define PROF_TLS_SET(VAL) (pthread_setspecific (profiler_tls, (VAL)))
-#define PROF_TLS_GET() ((MonoProfilerThread *) pthread_getspecific (profiler_tls))
-#define PROF_TLS_INIT() (pthread_key_create (&profiler_tls, NULL))
-#define PROF_TLS_FREE() (pthread_key_delete (profiler_tls))
-
-static pthread_key_t profiler_tls;
-
-#endif
+#define PROF_TLS_SET(VAL) mono_thread_info_set_tools_data (VAL)
+#define PROF_TLS_GET mono_thread_info_get_tools_data
 
 static uintptr_t
 thread_id (void)
@@ -560,7 +534,7 @@ init_thread (gboolean add_to_lls)
 		clear_hazard_pointers (hp);
 	}
 
-	PROF_TLS_SET (thread);
+	g_assert (PROF_TLS_SET (thread));
 
 	return thread;
 }
@@ -1962,7 +1936,7 @@ method_leave (MonoProfiler *prof, MonoMethod *method, MonoProfilerCallContext *c
 }
 
 static void
-tail_call (MonoProfiler *prof, MonoMethod *method, MonoMethod *target)
+tailcall (MonoProfiler *prof, MonoMethod *method, MonoMethod *target)
 {
 	method_leave (prof, method, NULL);
 }
@@ -3049,8 +3023,6 @@ log_shutdown (MonoProfiler *prof)
 
 	mono_coop_mutex_destroy (&log_profiler.api_mutex);
 
-	PROF_TLS_FREE ();
-
 	g_free (prof->args);
 }
 
@@ -3116,6 +3088,7 @@ new_filename (const char* filename)
 static MonoProfilerThread *
 profiler_thread_begin (const char *name, gboolean send)
 {
+	mono_thread_info_attach ();
 	MonoProfilerThread *thread = init_thread (FALSE);
 
 	mono_thread_attach (mono_get_root_domain ());
@@ -3453,7 +3426,9 @@ writer_thread (void *arg)
 	MonoProfilerThread *thread = profiler_thread_begin ("Profiler Writer", FALSE);
 
 	while (mono_atomic_load_i32 (&log_profiler.run_writer_thread)) {
+		MONO_ENTER_GC_SAFE;
 		mono_os_sem_wait (&log_profiler.writer_queue_sem, MONO_SEM_FLAGS_NONE);
+		MONO_EXIT_GC_SAFE;
 		handle_writer_queue_entry ();
 
 		profiler_thread_check_detach (thread);
@@ -3566,11 +3541,15 @@ dumper_thread (void *arg)
 	MonoProfilerThread *thread = profiler_thread_begin ("Profiler Dumper", TRUE);
 
 	while (mono_atomic_load_i32 (&log_profiler.run_dumper_thread)) {
+		gboolean timedout = FALSE;
+		MONO_ENTER_GC_SAFE;
 		/*
 		 * Flush samples every second so it doesn't seem like the profiler is
 		 * not working if the program is mostly idle.
 		 */
-		if (mono_os_sem_timedwait (&log_profiler.dumper_queue_sem, 1000, MONO_SEM_FLAGS_NONE) == MONO_SEM_TIMEDWAIT_RET_TIMEDOUT)
+		timedout = mono_os_sem_timedwait (&log_profiler.dumper_queue_sem, 1000, MONO_SEM_FLAGS_NONE) == MONO_SEM_TIMEDWAIT_RET_TIMEDOUT;
+		MONO_EXIT_GC_SAFE;
+		if (timedout)
 			send_log_unsafe (FALSE);
 
 		handle_dumper_queue_entry ();
@@ -4187,8 +4166,6 @@ mono_profiler_init_log (const char *desc)
 
 	init_time ();
 
-	PROF_TLS_INIT ();
-
 	create_profiler (desc, log_config.output_filename, filters);
 
 	mono_lls_init (&log_profiler.profiler_thread_list, NULL);
@@ -4278,7 +4255,7 @@ mono_profiler_init_log (const char *desc)
 	if (log_config.enter_leave) {
 		mono_profiler_set_method_enter_callback (handle, method_enter);
 		mono_profiler_set_method_leave_callback (handle, method_leave);
-		mono_profiler_set_method_tail_call_callback (handle, tail_call);
+		mono_profiler_set_method_tail_call_callback (handle, tailcall);
 		mono_profiler_set_method_exception_leave_callback (handle, method_exc_leave);
 	}
 

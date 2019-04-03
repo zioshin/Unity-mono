@@ -3,6 +3,7 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">net_4_x</Platform>
     <ProjectGuid>{34C81B37-6DD2-4356-AAAB-842EED0F4AB6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoWarn>1699</NoWarn>
@@ -27,7 +28,7 @@
   <PropertyGroup Condition=" '$(Platform)' == 'net_4_x' ">
     <OutputPath>./../../class/lib/net_4_x-$(HostPlatform)</OutputPath>
     <IntermediateOutputPath>./../../class/obj/$(AssemblyName)-net_4_x-$(HostPlatform)</IntermediateOutputPath>
-    <DefineConstants>NET_4_0;NET_4_5;NET_4_6;MONO;WIN_PLATFORM;MULTIPLEX_OS</DefineConstants>
+    <DefineConstants>NET_4_0;NET_4_5;NET_4_6;MONO;WIN_PLATFORM</DefineConstants>
   </PropertyGroup>
   <!-- @ALL_PROFILE_PROPERTIES@ -->
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -47,12 +48,12 @@
     <Compile Include="..\..\build\common\Consts.cs" />
     <Compile Include="..\..\build\common\Locale.cs" />
     <Compile Include="..\..\build\common\MonoTODOAttribute.cs" />
-    <Compile Include=".\Assembly\AssemblyInfo.cs" />
-    <Compile Include=".\Microsoft.Web.Infrastructure.DynamicModuleHelper\DynamicModuleUtility.cs" />
-    <Compile Include=".\Microsoft.Web.Infrastructure.DynamicValidationHelper\LazyWebROCollection.cs" />
-    <Compile Include=".\Microsoft.Web.Infrastructure.DynamicValidationHelper\ValidationUtility.cs" />
-    <Compile Include=".\Microsoft.Web.Infrastructure\HttpContextHelper.cs" />
-    <Compile Include=".\Microsoft.Web.Infrastructure\InfrastructureHelper.cs" />
+    <Compile Include="Assembly\AssemblyInfo.cs" />
+    <Compile Include="Microsoft.Web.Infrastructure.DynamicModuleHelper\DynamicModuleUtility.cs" />
+    <Compile Include="Microsoft.Web.Infrastructure.DynamicValidationHelper\LazyWebROCollection.cs" />
+    <Compile Include="Microsoft.Web.Infrastructure.DynamicValidationHelper\ValidationUtility.cs" />
+    <Compile Include="Microsoft.Web.Infrastructure\HttpContextHelper.cs" />
+    <Compile Include="Microsoft.Web.Infrastructure\InfrastructureHelper.cs" />
   </ItemGroup>
   <!-- @ALL_SOURCES@ -->
   <!-- @COMMON_PROJECT_REFERENCES@ -->

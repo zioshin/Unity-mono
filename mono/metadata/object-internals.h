@@ -47,15 +47,15 @@
        };				}G_STMT_END
 
 /* Use this as MONO_ARG_NULL (arg,) in functions returning void */
-#define MONO_CHECK_NULL(arg, retval)	    G_STMT_START{		  \
-		if (G_UNLIKELY (arg == NULL))						  \
-       {								  \
-		MonoException *ex;					  \
-		if (arg) {} /* check if the name exists */		  \
-		ex = mono_get_exception_null_reference ();		  \
-		mono_set_pending_exception (ex);					  \
-		return retval;										  \
-       };				}G_STMT_END
+#define MONO_CHECK_NULL(arg, retval) do { 			\
+	if (G_UNLIKELY (arg == NULL))				\
+	{							\
+		ERROR_DECL (error);				\
+		mono_error_set_null_reference (error);		\
+		mono_error_set_pending_exception (error);	\
+		return retval;					\
+	} 							\
+} while (0)
 
 #define mono_string_builder_capacity(sb) sb->chunkOffset + sb->chunkChars->max_length
 #define mono_string_builder_string_length(sb) sb->chunkOffset + sb->chunkLength
@@ -324,11 +324,15 @@ typedef struct {
 	MonoObject *synchronization_context;
 } MonoComObject;
 
+TYPED_HANDLE_DECL (MonoComObject);
+
 typedef struct {
 	MonoRealProxy real_proxy;
 	MonoComObject *com_object;
 	gint32 ref_count;
 } MonoComInteropProxy;
+
+TYPED_HANDLE_DECL (MonoComInteropProxy);
 
 typedef struct {
 	MonoObject	 object;
@@ -616,7 +620,7 @@ typedef struct {
 	gpointer (*get_imt_trampoline) (MonoVTable *vtable, int imt_slot_index);
 	gboolean (*imt_entry_inited) (MonoVTable *vtable, int imt_slot_index);
 	void     (*set_cast_details) (MonoClass *from, MonoClass *to);
-	void     (*debug_log) (int level, MonoString *category, MonoString *message);
+	void     (*debug_log) (int level, MonoStringHandle category, MonoStringHandle message);
 	gboolean (*debug_log_is_enabled) (void);
 	void     (*init_delegate) (MonoDelegate *del);
 	MonoObject* (*runtime_invoke) (MonoMethod *method, void *obj, void **params, MonoObject **exc, MonoError *error);
@@ -629,6 +633,9 @@ typedef struct {
 	gpointer (*create_delegate_trampoline) (MonoDomain *domain, MonoClass *klass);
 	gpointer (*interp_get_remoting_invoke) (gpointer imethod, MonoError *error);
 	GHashTable *(*get_weak_field_indexes) (MonoImage *image);
+#ifdef TARGET_OSX
+	void     (*install_state_summarizer) (void);
+#endif
 } MonoRuntimeCallbacks;
 
 typedef gboolean (*MonoInternalStackWalk) (MonoStackFrameInfo *frame, MonoContext *ctx, gpointer data);
@@ -646,12 +653,12 @@ typedef struct {
 	gboolean (*mono_above_abort_threshold) (void);
 	void (*mono_clear_abort_threshold) (void);
 	void (*mono_reraise_exception) (MonoException *ex);
+#ifdef TARGET_OSX
+	void (*mono_summarize_stack) (MonoDomain *domain, MonoThreadSummary *out, MonoContext *crash_ctx);
+#endif
 } MonoRuntimeExceptionHandlingCallbacks;
 
 MONO_COLD void mono_set_pending_exception (MonoException *exc);
-
-MONO_COLD void
-mono_set_pending_exception_handle (MonoExceptionHandle exc);
 
 /* remoting and async support */
 
@@ -794,6 +801,7 @@ struct _MonoDelegate {
 	 * the compiled code of the method, or NULL if it is not yet compiled.
 	 */
 	guint8 **method_code;
+	gpointer interp_method;
 	MonoReflectionMethod *method_info;
 	MonoReflectionMethod *original_method_info;
 	MonoObject *data;
@@ -1635,6 +1643,9 @@ mono_nullable_box (gpointer buf, MonoClass *klass, MonoError *error);
 MonoObjectHandle
 mono_nullable_box_handle (gpointer buf, MonoClass *klass, MonoError *error);
 
+MonoObjectHandle
+mono_new_null (void); // A code size optimization (source and object).
+
 #ifdef MONO_SMALL_CONFIG
 #define MONO_IMT_SIZE 9
 #else
@@ -1717,8 +1728,8 @@ mono_method_clear_object (MonoDomain *domain, MonoMethod *method);
 gsize*
 mono_class_compute_bitmap (MonoClass *klass, gsize *bitmap, int size, int offset, int *max_set, gboolean static_fields);
 
-MonoObject*
-mono_object_xdomain_representation (MonoObject *obj, MonoDomain *target_domain, MonoError *error);
+MonoObjectHandle
+mono_object_xdomain_representation (MonoObjectHandle obj, MonoDomain *target_domain, MonoError *error);
 
 gboolean
 mono_class_is_reflection_method_or_constructor (MonoClass *klass);
@@ -1819,6 +1830,11 @@ mono_object_new_checked (MonoDomain *domain, MonoClass *klass, MonoError *error)
 
 MonoObjectHandle
 mono_object_new_handle (MonoDomain *domain, MonoClass *klass, MonoError *error);
+
+// This function skips handling of remoting and COM.
+// "alloc" means "less".
+MonoObjectHandle
+mono_object_new_alloc_by_vtable (MonoVTable *vtable, MonoError *error);
 
 MonoObject*
 mono_object_new_mature (MonoVTable *vtable, MonoError *error);
@@ -1981,5 +1997,8 @@ mono_runtime_object_init_handle (MonoObjectHandle this_obj, MonoError *error);
 /* GC write barriers support */
 void
 mono_gc_wbarrier_object_copy_handle (MonoObjectHandle obj, MonoObjectHandle src);
+
+MonoMethod*
+mono_class_get_virtual_method (MonoClass *klass, MonoMethod *method, gboolean is_proxy, MonoError *error);
 
 #endif /* __MONO_OBJECT_INTERNALS_H__ */

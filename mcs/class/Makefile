@@ -437,7 +437,7 @@ DISTFILES = \
 	MicrosoftAjaxLibrary/License.htm	\
 	test-helpers/NetworkHelpers.cs	\
 	test-helpers/SocketResponder.cs	\
-	$(foreach HOST_PLATFORM,darwin linux win32,lib/$(monolite_dir)/mcs.exe $(monolite_files))
+	$(foreach HOST_PLATFORM,macos linux win32 unix,lib/$(monolite_dir)/mcs.exe $(monolite_files))
 
 .PHONY: all-local $(STD_TARGETS:=-local)
 all-local $(STD_TARGETS:=-local):
@@ -449,7 +449,7 @@ monolite_dir = monolite-$(HOST_PLATFORM)/$(MONO_CORLIB_VERSION)
 
 # Files needed to bootstrap C# compiler and cil-stringreplacer
 build_files := mscorlib.dll System.dll System.Xml.dll Mono.Security.dll System.Core.dll System.Security.dll System.Configuration.dll \
-	System.Numerics.dll System.Xml.Linq.dll \
+	System.Numerics.dll System.Xml.Linq.dll System.IO.Compression.dll \
 	Facades/System.Collections.Concurrent.dll Facades/System.Linq.dll Facades/System.Runtime.dll Facades/System.Collections.dll	\
 	Facades/System.Reflection.Extensions.dll Facades/System.Text.Encoding.Extensions.dll Facades/System.Diagnostics.Debug.dll \
 	Facades/System.Reflection.Primitives.dll Facades/System.Text.Encoding.dll Facades/System.Diagnostics.Tools.dll Facades/System.Reflection.dll \
@@ -482,9 +482,10 @@ $(build_files:%=lib/build-$(HOST_PLATFORM)/%):
 dist-monolite: $(monolite_files) lib/$(monolite_dir)/mcs.exe
 
 dist-monolite-all-platforms:
-	$(MAKE) dist-monolite HOST_PLATFORM=darwin
+	$(MAKE) dist-monolite HOST_PLATFORM=macos
 	$(MAKE) dist-monolite HOST_PLATFORM=linux
 	$(MAKE) dist-monolite HOST_PLATFORM=win32
+	$(MAKE) dist-monolite HOST_PLATFORM=unix
 
 package-monolite-latest:
 	MONOLITE=monolite-$(HOST_PLATFORM)-$(MONO_CORLIB_VERSION)-latest; \
@@ -492,9 +493,10 @@ package-monolite-latest:
 	tar zcvpf $$MONOLITE.tar.gz --directory=lib $$MONOLITE/
 
 package-monolite-latest-all-platforms:
-	$(MAKE) package-monolite-latest HOST_PLATFORM=darwin
+	$(MAKE) package-monolite-latest HOST_PLATFORM=macos
 	$(MAKE) package-monolite-latest HOST_PLATFORM=linux
 	$(MAKE) package-monolite-latest HOST_PLATFORM=win32
+	$(MAKE) package-monolite-latest HOST_PLATFORM=unix
 
 monolite_url = https://download.mono-project.com/monolite/monolite-$(BUILD_PLATFORM)-$(MONO_CORLIB_VERSION)-latest.tar.gz
 

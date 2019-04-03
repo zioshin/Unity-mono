@@ -54,6 +54,8 @@ typedef struct
 	/* Maps MonoMethod -> 	MonoMethodRuntimeGenericContext */
 	GHashTable *mrgctx_hash;
 	GHashTable *method_rgctx_hash;
+	/* Maps gpointer -> InterpMethod */
+	GHashTable *interp_method_pointer_hash;
 } MonoJitDomainInfo;
 
 #define domain_jit_info(domain) ((MonoJitDomainInfo*)((domain)->runtime_info))
@@ -216,9 +218,20 @@ typedef struct MonoDebugOptions {
 	 * identify the stack on some platforms
 	 */
 	gboolean disable_omit_fp;
+	/*
+	 * Make gdb output on native crashes more verbose.
+	 */
+	gboolean verbose_gdb;
 
 	// Internal testing feature.
 	gboolean test_tailcall_require;
+
+	/*
+	 * Internal testing feature
+	 * Testing feature, skip loading the Nth aot loadable method.
+	 */
+	gboolean aot_skip_set;
+	int aot_skip;
 } MonoDebugOptions;
 
 
@@ -522,6 +535,10 @@ gboolean MONO_SIG_HANDLER_SIGNATURE (mono_chain_signal);
 //have a global view of sdb disable
 #if !defined(MONO_ARCH_SOFT_DEBUG_SUPPORTED) || defined (DISABLE_DEBUGGER_AGENT)
 #define DISABLE_SDB 1
+#endif
+
+#ifdef TARGET_OSX
+void mini_register_sigterm_handler (void);
 #endif
 
 #endif /* __MONO_MINI_RUNTIME_H__ */
