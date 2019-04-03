@@ -113,6 +113,66 @@ load_profiler_from_installation (const char *libname, const char *name, const ch
 }
 
 /**
+ * Basic read/write lock implementation
+ *
+ * Used primarily when accessing mono_profiler_state.profilers_readers
+ */
+static const gint32 WriterLock = -1;
+
+static void
+profilers_acquire_read(volatile gint32* lock)
+{
+	while(1) {
+		gint32 readers = mono_atomic_load_i32(lock);
+		if(readers != WriterLock) {
+			if(mono_atomic_cas_i32(lock, readers+1, readers) == readers)
+				break;
+		}
+		mono_thread_info_yield();
+	};
+}
+
+static void
+profilers_release_read(volatile gint32* lock)
+{
+	while(1) {
+		gint32 readers = mono_atomic_load_i32(lock);
+		if(readers != WriterLock) {
+			if(mono_atomic_cas_i32(lock, readers-1, readers) == readers)
+				break;
+		}
+		mono_thread_info_yield();
+	};
+}
+
+static void
+profilers_acquire_write(volatile gint32* lock)
+{
+	while(1) {
+		gint32 readers = mono_atomic_load_i32(lock);
+		if(readers == 0) {
+			if(mono_atomic_cas_i32(lock, WriterLock, readers) == 0)
+				break;
+		}
+		mono_thread_info_yield();
+	};
+}
+
+static void
+profilers_release_write(volatile gint32* lock)
+{
+	while(1) {
+		gint32 readers = mono_atomic_load_i32(lock);
+		if(readers == WriterLock) {
+			if(mono_atomic_cas_i32(lock, 0, readers) == WriterLock)
+				break;
+		}
+		mono_thread_info_yield();
+	};
+}
+
+
+/**
  * mono_profiler_load:
  *
  * Loads a profiler module based on the specified description. \p desc can be
@@ -205,7 +265,9 @@ mono_profiler_create (MonoProfiler *prof)
 	handle->prof = prof;
 	handle->next = mono_profiler_state.profilers;
 
+	profilers_acquire_write(&mono_profiler_state.profilers_readers);
 	mono_profiler_state.profilers = handle;
+	profilers_release_write(&mono_profiler_state.profilers_readers);
 
 	return handle;
 }
@@ -620,12 +682,14 @@ mono_profiler_coverage_alloc (MonoDomain *domain, MonoMethod *method, guint32 en
 
 	gboolean cover = FALSE;
 
+	profilers_acquire_read(&mono_profiler_state.profilers_readers);
 	for (MonoProfilerHandle handle = mono_profiler_state.profilers; handle; handle = handle->next) {
 		MonoProfilerCoverageFilterCallback cb = handle->coverage_filter;
 
 		if (cb)
 			cover |= cb (handle->prof, method);
 	}
+	profilers_release_read(&mono_profiler_state.profilers_readers);
 
 	if (!cover)
 		return NULL;
@@ -957,12 +1021,14 @@ mono_profiler_get_call_instrumentation_flags (MonoMethod *method)
 {
 	MonoProfilerCallInstrumentationFlags flags = MONO_PROFILER_CALL_INSTRUMENTATION_NONE;
 
+	profilers_acquire_read(&mono_profiler_state.profilers_readers);
 	for (MonoProfilerHandle handle = mono_profiler_state.profilers; handle; handle = handle->next) {
 		MonoProfilerCallInstrumentationFilterCallback cb = handle->call_instrumentation_filter;
 
 		if (cb)
 			flags |= cb (handle->prof, method);
 	}
+	profilers_release_read(&mono_profiler_state.profilers_readers);
 
 	return flags;
 }
@@ -1025,28 +1091,12 @@ mono_profiler_cleanup (void)
 #undef MONO_PROFILER_EVENT_5
 #undef _MONO_PROFILER_EVENT
 
-	/* Aqcuire the write lock */
-	do {
-		gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers);
-		if(readers == 0) {
-			if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, -1, readers) == 0)
-				break;
-		}
-		mono_thread_info_yield();
-	} while(1);
-
+	/* Lock while we take the profiler linked list */
+	profilers_acquire_write(&mono_profiler_state.profilers_readers);
 	MonoProfilerHandle head = mono_profiler_state.profilers;
 	mono_profiler_state.profilers = NULL;
+	profilers_release_write(&mono_profiler_state.profilers_readers);
 
-	/* Release the write lock */
-	do {
-		gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers);
-		if(readers == -1) {
-			if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, 0, readers) == -1)
-				break;
-		}
-		mono_thread_info_yield();
-	} while(1);
 
 	while (head) {
 		MonoProfilerCleanupCallback cb = head->cleanup_callback;
@@ -1120,32 +1170,14 @@ update_callback (volatile gpointer *location, gpointer new_, volatile gint32 *co
 	void \
 	mono_profiler_raise_ ## name params \
 	{ \
-		/* Acquire the read lock */ \
-		do { \
-			gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers); \
-			if(readers != -1) { \
-				gint32 new_readers = readers+1; \
-				if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, new_readers, readers) == readers) \
-					break; \
-			} \
-			mono_thread_info_yield(); \
-		} while(1); \
+		profilers_acquire_read(&mono_profiler_state.profilers_readers); \
 		/* Call the callbacks */ \
 		for (MonoProfilerHandle h = mono_profiler_state.profilers; h; h = h->next) { \
 			MonoProfiler ## type ## Callback cb = h->name ## _cb; \
 			if (cb) \
 				cb args; \
 		} \
-		/* Release the read lock */ \
-		do { \
-			gint32 readers = mono_atomic_load_i32(&mono_profiler_state.profilers_readers); \
-			if(readers != -1) { \
-				gint32 new_readers = readers-1; \
-				if(mono_atomic_cas_i32(&mono_profiler_state.profilers_readers, new_readers, readers) == readers) \
-					break; \
-			} \
-			mono_thread_info_yield(); \
-		} while(1); \
+		profilers_release_read(&mono_profiler_state.profilers_readers); \
 	}
 #define MONO_PROFILER_EVENT_0(name, type) \
 	_MONO_PROFILER_EVENT(name, type, (void), (h->prof))
