@@ -444,7 +444,7 @@ void mono_unity_liveness_calculation_from_statics(LivenessState* liveness_state)
 				{
 					mono_add_process_object(val, liveness_state);
 				}
-				mono_error_cleanup (&error);
+				mono_error_cleanup (error);
 			}
 		}
 	}

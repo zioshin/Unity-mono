@@ -6,7 +6,6 @@
 #include <mono/metadata/object.h>
 #include <mono/metadata/marshal.h>
 
-typedef void(*vprintf_func)(const char* msg, va_list args);
 typedef struct {
 	void* (*malloc_func)(size_t size);
 	void(*free_func)(void *ptr);

@@ -688,7 +688,7 @@ MonoMethod* mono_unity_method_get_aot_array_helper_from_wrapper(MonoMethod *meth
 	if (m->is_generic) {
 		MonoError error;
 		memset(&ctx, 0, sizeof(ctx));
-		args[0] = &method->klass->element_class->byval_arg;
+		args[0] = m_class_get_byval_arg (method->klass->element_class);
 		ctx.method_inst = mono_metadata_get_generic_inst(1, args);
 		m = mono_class_inflate_generic_method_checked(m, &ctx, &error);
 		g_assert(mono_error_ok(&error)); /* FIXME don't swallow the error */

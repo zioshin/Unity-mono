@@ -173,7 +173,7 @@ AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 		MonoVTable *vtable;
 		void *statics_data;
 
-		type->flags = (klass->valuetype || klass->byval_arg.type == MONO_TYPE_PTR) ? kValueType : kNone;
+		type->flags = (klass->valuetype || m_class_get_byval_arg (klass)->type == MONO_TYPE_PTR) ? kValueType : kNone;
 		type->fieldCount = 0;
 		fieldCount = mono_class_num_fields (klass);
 		if (fieldCount > 0) {
@@ -219,7 +219,7 @@ AddMetadataType (gpointer key, gpointer value, gpointer user_data)
 	}
 
 	type->assemblyName = mono_class_get_image (klass)->assembly->aname.name;
-	type->name = mono_type_get_name_full (&klass->byval_arg, MONO_TYPE_NAME_FORMAT_IL);
+	type->name = mono_type_get_name_full (m_class_get_byval_arg (klass), MONO_TYPE_NAME_FORMAT_IL);
 	type->typeInfoAddress = (uint64_t)klass;
 	type->size = (klass->valuetype) != 0 ? (mono_class_instance_size (klass) - sizeof (MonoObject)) : mono_class_instance_size (klass);
 }

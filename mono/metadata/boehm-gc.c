@@ -1536,8 +1536,8 @@ mono_gc_get_write_barrier (void)
 
 	/* Create the IL version of mono_gc_barrier_generic_store () */
 	sig = mono_metadata_signature_alloc (mono_defaults.corlib, 1);
-	sig->ret = &mono_defaults.void_class->byval_arg;
-	sig->params [0] = &mono_defaults.int_class->byval_arg;
+	sig->ret = mono_class_get_type (mono_defaults.void_class);
+	sig->params [0] = mono_class_get_type (mono_defaults.int_class);
 
 	mb = mono_mb_new (mono_defaults.object_class, "wbarrier_conc", MONO_WRAPPER_WRITE_BARRIER);
 
@@ -1709,7 +1709,9 @@ void
 mono_gc_skip_thread_changing (gboolean skip)
 {
 #ifdef HAVE_BDWGC_GC
+#ifdef UNITY_MERGE_FIXME
 	g_assert_not_reached ();
+#endif
 #else
 	/*
 	 * Unlike SGen, Boehm doesn't respect our thread info flags. We need to
