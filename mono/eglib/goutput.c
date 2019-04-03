@@ -36,7 +36,6 @@ static GLogLevelFlags fatal = G_LOG_LEVEL_ERROR;
 static GLogFunc default_log_func;
 static gpointer default_log_func_user_data;
 static GPrintFunc stdout_handler, stderr_handler;
-typedef void (*vprintf_func)(const char* msg, va_list args);
 static vprintf_func our_vprintf = vprintf;
 
 static void default_stdout_handler (const gchar *string);
