@@ -3857,7 +3857,7 @@ get_shared_type (MonoType *t, MonoType *type)
 	if (type->type == MONO_TYPE_VALUETYPE) {
 		ttype = mono_class_enum_basetype_internal (type->data.klass)->type;
 	} else if (type->type == MONO_TYPE_GENERICINST && type->data.generic_class->container_class->enumtype) {
-		ttype = mono_class_enum_basetype (mono_class_create_generic_inst (type->data.generic_class))->type;
+		ttype = mono_class_enum_basetype_internal (mono_class_create_generic_inst (type->data.generic_class))->type;
 	} else if (MONO_TYPE_IS_REFERENCE (type)) {
 		ttype = MONO_TYPE_OBJECT;
 	} else if (type->type == MONO_TYPE_VAR || type->type == MONO_TYPE_MVAR) {

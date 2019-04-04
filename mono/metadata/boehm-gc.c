@@ -118,7 +118,7 @@ mono_gc_warning (char *msg, GC_word arg)
 }
 
 static void on_gc_notification (GC_EventType event);
-static void on_gc_heap_resize (size_t new_size);
+static void on_gc_heap_resize (GC_word new_size);
 
 void
 mono_gc_base_init (void)
@@ -653,7 +653,7 @@ on_gc_notification (GC_EventType event)
 
  
 static void
-on_gc_heap_resize (size_t new_size)
+on_gc_heap_resize (GC_word new_size)
 {
 	guint64 heap_size = GC_get_heap_size ();
 #ifndef DISABLE_PERFCOUNTERS
@@ -1543,13 +1543,13 @@ mono_gc_get_write_barrier (void)
 
 	/* Create the IL version of mono_gc_barrier_generic_store () */
 	sig = mono_metadata_signature_alloc (mono_defaults.corlib, 1);
-	sig->ret = mono_class_get_type (mono_defaults.void_class);
-	sig->params [0] = mono_class_get_type (mono_defaults.int_class);
+	sig->ret = m_class_get_byval_arg (mono_defaults.void_class);
+	sig->params [0] = m_class_get_byval_arg (mono_defaults.int_class);
 
 	mb = mono_mb_new (mono_defaults.object_class, "wbarrier_conc", MONO_WRAPPER_WRITE_BARRIER);
 
 	mono_mb_emit_ldarg (mb, 0);
-	mono_mb_emit_icall (mb, mono_gc_wbarrier_generic_nostore);
+	mono_mb_emit_icall (mb, mono_gc_wbarrier_generic_nostore_internal);
 	mono_mb_emit_byte (mb, MONO_CEE_RET);
 
 	res = mono_mb_create_method (mb, sig, 16);

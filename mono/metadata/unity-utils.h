@@ -200,4 +200,9 @@ mono_unity_set_enable_handler_block_guards (mono_bool allow);
 mono_bool
 mono_unity_get_enable_handler_block_guards (void);
 
+// UNITY
+guint32
+ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData (guint32 year, MonoArray **data, MonoArray **names, MonoBoolean *daylight_inverted);
+
+
 #endif

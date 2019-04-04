@@ -35,6 +35,7 @@
 #include <mono/utils/mono-publib.h>
 #include <mono/utils/bsearch.h>
 #include <mono/metadata/icalls.h>
+#include <mono/metadata/unity-utils.h>
 #include "handle-decl.h"
 #include "icall-decl.h"
 

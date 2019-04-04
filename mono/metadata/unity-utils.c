@@ -434,7 +434,7 @@ const char* mono_unity_method_get_name(const MonoMethod *method)
 
 
 //must match the hash in il2cpp code generation
-static guint32 hash_string_djb2(guchar *str)
+static guint32 hash_string_djb2(const guchar *str)
 {
 	guint32 hash = 5381;
 	int c;
@@ -1065,7 +1065,7 @@ MonoType* mono_unity_reflection_type_get_type(MonoReflectionType *type)
 MONO_API void
 mono_unity_runtime_set_main_args (int argc, const char* argv[])
 {
-	mono_runtime_set_main_args (argc, argv);
+	mono_runtime_set_main_args (argc, (char**)argv);
 }
 
 MONO_API MonoString*
@@ -1125,7 +1125,7 @@ mono_unity_set_data_dir(const char* dir)
     if (data_dir)
         g_free(data_dir);
 
-    data_dir = g_new(char*, strlen(dir) + 1);
+    data_dir = g_new(char, strlen(dir) + 1);
     strcpy(data_dir, dir);
 }
 
@@ -1304,7 +1304,7 @@ ves_icall_System_IO_MonoIO_RemapPath  (MonoString *path, MonoString **new_path)
 
 	mono_gc_wbarrier_generic_store (new_path, (MonoObject*)mono_string_from_utf16_checked (path_remapped, &error));
 
-	g_free (path_remapped);
+	g_free ((gunichar2*)path_remapped);
 
 	mono_error_set_pending_exception (&error);
 
@@ -1314,7 +1314,7 @@ ves_icall_System_IO_MonoIO_RemapPath  (MonoString *path, MonoString **new_path)
 const char*
 mono_unity_remap_path (const char* path)
 {
-	const char* path_remap = NULL;
+	char* path_remap = NULL;
 	call_remapper (path, &path_remap);
 
 	return path_remap;

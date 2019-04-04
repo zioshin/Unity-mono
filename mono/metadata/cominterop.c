@@ -3648,7 +3648,7 @@ ves_icall_System_Runtime_InteropServices_Marshal_QueryInterfaceInternal (MonoIUn
 #endif /* DISABLE_COM */
 
 MonoBoolean
-ves_icall_System_Runtime_InteropServices_Marshal_IsComObject (MonoObject* object)
+ves_icall_System_Runtime_InteropServices_Marshal_IsComObject (MonoObjectHandle object, MonoError *error)
 {
 #ifndef DISABLE_COM
 	MonoRealProxyHandle real_proxy;

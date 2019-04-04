@@ -114,8 +114,8 @@ ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData (guint32 year, MonoArray 
 	MONO_CHECK_ARG_NULL (data, FALSE);
 	MONO_CHECK_ARG_NULL (names, FALSE);
 
-	mono_gc_wbarrier_generic_store (data, (MonoObject*) mono_array_new_checked (domain, mono_defaults.int64_class, 4, &error));
-	mono_gc_wbarrier_generic_store (names, (MonoObject*) mono_array_new_checked (domain, mono_defaults.string_class, 2, &error));
+	mono_gc_wbarrier_generic_store_internal (data, (MonoObject*) mono_array_new_checked (domain, mono_defaults.int64_class, 4, &error));
+	mono_gc_wbarrier_generic_store_internal (names, (MonoObject*) mono_array_new_checked (domain, mono_defaults.string_class, 2, &error));
 
 	/* 
 	 * no info is better than crashing: we'll need our own tz data
@@ -136,8 +136,8 @@ ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData (guint32 year, MonoArray 
 		t = time (NULL);
 		tt = *localtime (&t);
 		strftime (tzone, sizeof (tzone), "%Z", &tt);
-		mono_array_setref ((*names), 0, mono_string_new_checked (domain, tzone, &error));
-		mono_array_setref ((*names), 1, mono_string_new_checked (domain, tzone, &error));
+		mono_array_setref_internal ((*names), 0, mono_string_new_checked (domain, tzone, &error));
+		mono_array_setref_internal ((*names), 1, mono_string_new_checked (domain, tzone, &error));
 		*daylight_inverted = 0;
 		return 1;
 	}
@@ -176,29 +176,29 @@ ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData (guint32 year, MonoArray 
 			/* Write data, if we're already in daylight saving, we're done. */
 			if (is_transitioned) {
 				if (!start.tm_isdst)
-					mono_array_setref ((*names), 0, mono_string_new_checked (domain, tzone, &error));
+					mono_array_setref_internal ((*names), 0, mono_string_new_checked (domain, tzone, &error));
 				else
-					mono_array_setref ((*names), 1, mono_string_new_checked (domain, tzone, &error));
+					mono_array_setref_internal ((*names), 1, mono_string_new_checked (domain, tzone, &error));
 
-				mono_array_set ((*data), gint64, 1, ((gint64)t1 + EPOCH_ADJUST) * 10000000L);
+				mono_array_set_internal ((*data), gint64, 1, ((gint64)t1 + EPOCH_ADJUST) * 10000000L);
 				return 1;
 			} else {
 				if (!start.tm_isdst)
-					mono_array_setref ((*names), 1, mono_string_new_checked (domain, tzone, &error));
+					mono_array_setref_internal ((*names), 1, mono_string_new_checked (domain, tzone, &error));
 				else
-					mono_array_setref ((*names), 0, mono_string_new_checked (domain, tzone, &error));
+					mono_array_setref_internal ((*names), 0, mono_string_new_checked (domain, tzone, &error));
 
-				mono_array_set ((*data), gint64, 0, ((gint64)t1 + EPOCH_ADJUST) * 10000000L);
+				mono_array_set_internal ((*data), gint64, 0, ((gint64)t1 + EPOCH_ADJUST) * 10000000L);
 				is_transitioned = 1;
 			}
 
 			/* This is only set once when we enter daylight saving. */
 			if (*daylight_inverted == 0) {
-				mono_array_set ((*data), gint64, 2, (gint64)gmtoff * 10000000L);
-				mono_array_set ((*data), gint64, 3, (gint64)(gmt_offset (&tt, t) - gmtoff) * 10000000L);
+				mono_array_set_internal ((*data), gint64, 2, (gint64)gmtoff * 10000000L);
+				mono_array_set_internal ((*data), gint64, 3, (gint64)(gmt_offset (&tt, t) - gmtoff) * 10000000L);
 			} else {
-				mono_array_set ((*data), gint64, 2, (gint64)(gmtoff_start + (gmt_offset (&tt, t) - gmtoff)) * 10000000L);
-				mono_array_set ((*data), gint64, 3, (gint64)(gmtoff - gmt_offset (&tt, t)) * 10000000L);
+				mono_array_set_internal ((*data), gint64, 2, (gint64)(gmtoff_start + (gmt_offset (&tt, t) - gmtoff)) * 10000000L);
+				mono_array_set_internal ((*data), gint64, 3, (gint64)(gmtoff - gmt_offset (&tt, t)) * 10000000L);
 			}
 
 
@@ -208,12 +208,12 @@ ves_icall_System_CurrentSystemTimeZone_GetTimeZoneData (guint32 year, MonoArray 
 
 	if (!is_transitioned) {
 		strftime (tzone, sizeof (tzone), "%Z", &tt);
-		mono_array_setref ((*names), 0, mono_string_new_checked (domain, tzone, &error));
-		mono_array_setref ((*names), 1, mono_string_new_checked (domain, tzone, &error));
-		mono_array_set ((*data), gint64, 0, 0);
-		mono_array_set ((*data), gint64, 1, 0);
-		mono_array_set ((*data), gint64, 2, (gint64) gmtoff * 10000000L);
-		mono_array_set ((*data), gint64, 3, 0);
+		mono_array_setref_internal ((*names), 0, mono_string_new_checked (domain, tzone, &error));
+		mono_array_setref_internal ((*names), 1, mono_string_new_checked (domain, tzone, &error));
+		mono_array_set_internal ((*data), gint64, 0, 0);
+		mono_array_set_internal ((*data), gint64, 1, 0);
+		mono_array_set_internal ((*data), gint64, 2, (gint64) gmtoff * 10000000L);
+		mono_array_set_internal ((*data), gint64, 3, 0);
 		*daylight_inverted = 0;
 	}
 

@@ -210,7 +210,7 @@ create_domain_objects (MonoDomain *domain)
 	mono_error_assert_ok (error);
 	mono_field_static_set_value_internal (string_vt, string_empty_fld, MONO_HANDLE_RAW (empty_str));
 	domain->empty_string = MONO_HANDLE_RAW (empty_str);
-	mono_gc_wbarrier_generic_nostore (&domain->empty_string);
+	mono_gc_wbarrier_generic_nostore_internal (&domain->empty_string);
 
 	/*
 	 * Create an instance early since we can't do it when there is no memory.
@@ -309,9 +309,9 @@ mono_runtime_init_checked (MonoDomain *domain, MonoThreadStartCB start_cb, MonoT
 
 		MONO_HANDLE_SETVAL (ad, data, MonoDomain*, domain);
 		domain->domain = MONO_HANDLE_RAW (ad);
-		mono_gc_wbarrier_generic_nostore (&domain->domain);
+		mono_gc_wbarrier_generic_nostore_internal (&domain->domain);
 		domain->setup = MONO_HANDLE_RAW (setup);
-		mono_gc_wbarrier_generic_nostore (&domain->setup);
+		mono_gc_wbarrier_generic_nostore_internal (&domain->setup);
 	}
 
 	mono_thread_attach (domain);
@@ -701,7 +701,7 @@ mono_domain_create_appdomain_internal (char *friendly_name, MonoAppDomainSetupHa
 	goto_if_nok (error, leave);
 	MONO_HANDLE_SETVAL (ad, data, MonoDomain*, data);
 	data->domain = MONO_HANDLE_RAW (ad);
-	mono_gc_wbarrier_generic_nostore (&data->domain);	
+	mono_gc_wbarrier_generic_nostore_internal (&data->domain);	
 	data->friendly_name = g_strdup (friendly_name);
 
 	MONO_PROFILER_RAISE (domain_name, (data, data->friendly_name));
@@ -730,7 +730,7 @@ mono_domain_create_appdomain_internal (char *friendly_name, MonoAppDomainSetupHa
 	goto_if_nok (error, leave);
 
 	data->setup = MONO_HANDLE_RAW (copy_app_domain_setup (data, setup, error));
-	mono_gc_wbarrier_generic_nostore (&data->setup);
+	mono_gc_wbarrier_generic_nostore_internal (&data->setup);
 	if (!mono_error_ok (error)) {
 		g_free (data->friendly_name);
 		goto leave;

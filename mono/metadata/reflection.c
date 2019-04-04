@@ -549,7 +549,7 @@ mono_type_get_object_checked (MonoDomain *domain, MonoType *type, MonoError *err
 	if (type->type == MONO_TYPE_VOID)
 	{
 		domain->typeof_void = (MonoObject*)res;
-		mono_gc_wbarrier_generic_nostore (&domain->typeof_void);
+		mono_gc_wbarrier_generic_nostore_internal (&domain->typeof_void);
 	}
 
 	mono_domain_unlock (domain);
