@@ -179,7 +179,7 @@ mono_install_image_loader (const MonoImageLoader *loader)
 guint32
 mono_cli_rva_image_map (MonoImage *image, guint32 addr)
 {
-	MonoCLIImageInfo *iinfo = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *iinfo = image->image_info;
 	const int top = iinfo->cli_section_count;
 	MonoSectionTable *tables = iinfo->cli_section_tables;
 	int i;
@@ -215,7 +215,7 @@ mono_cli_rva_image_map (MonoImage *image, guint32 addr)
 char *
 mono_image_rva_map (MonoImage *image, guint32 addr)
 {
-	MonoCLIImageInfo *iinfo = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *iinfo = image->image_info;
 	const int top = iinfo->cli_section_count;
 	MonoSectionTable *tables = iinfo->cli_section_tables;
 	int i;
@@ -304,7 +304,7 @@ mono_images_cleanup (void)
 int
 mono_image_ensure_section_idx (MonoImage *image, int section)
 {
-	MonoCLIImageInfo *iinfo = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *iinfo = image->image_info;
 	MonoSectionTable *sect;
 	
 	g_return_val_if_fail (section < iinfo->cli_section_count, FALSE);
@@ -339,7 +339,7 @@ mono_image_ensure_section_idx (MonoImage *image, int section)
 int
 mono_image_ensure_section (MonoImage *image, const char *section)
 {
-	MonoCLIImageInfo *ii = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *ii = image->image_info;
 	int i;
 	
 	for (i = 0; i < ii->cli_section_count; i++){
@@ -724,7 +724,7 @@ mono_image_load_module_checked (MonoImage *image, int idx, MonoError *error)
 		name = mono_metadata_string_heap (image, cols [MONO_MODULEREF_NAME]);
 		for (list_iter = valid_modules; list_iter; list_iter = list_iter->next) {
 			/* be safe with string dups, but we could just compare string indexes  */
-			if (strcmp (list_iter->data, name) == 0) {
+			if (strcmp ((const char*)list_iter->data, name) == 0) {
 				valid = TRUE;
 				break;
 			}
@@ -976,7 +976,7 @@ pe_image_load_pe_data (MonoImage *image)
 	MonoMSDOSHeader msdos;
 	gint32 offset = 0;
 
-	iinfo = (MonoCLIImageInfo *)image->image_info;
+	iinfo = image->image_info;
 	header = &iinfo->cli_header;
 
 #ifdef HOST_WIN32
@@ -1045,7 +1045,7 @@ pe_image_load_cli_data (MonoImage *image)
 	MonoCLIImageInfo *iinfo;
 	MonoDotNetHeader *header;
 
-	iinfo = (MonoCLIImageInfo *)image->image_info;
+	iinfo = image->image_info;
 	header = &iinfo->cli_header;
 
 	/* Load the CLI header */
@@ -1151,7 +1151,7 @@ static const char *ignored_assemblies_file_names[] = {
 	"System.Threading.Overlapped.dll"
 };
 
-#define IGNORED_ASSEMBLY(HASH, NAME, GUID, VER_STR)	{ .hash = HASH, .assembly_name = NAME, .guid = GUID }
+#define IGNORED_ASSEMBLY(HASH, NAME, GUID, VER_STR) { (int)HASH, NAME, GUID }
 
 static const IgnoredAssembly ignored_assemblies [] = {
 	IGNORED_ASSEMBLY (0x10CADA75, SYS_NET_HTTP, "EA2EC6DC-51DD-479C-BFC2-E713FB9E7E47", "4.1.1 net46"),
@@ -1221,7 +1221,7 @@ static const char *ignored_assemblies_names[] = {
 	"System.Threading.Overlapped"
 };
 
-#define IGNORED_ASM_VER(NAME, MAJOR, MINOR, BUILD, REVISION) { .assembly_name = NAME, .major = MAJOR, .minor = MINOR, .build = BUILD, .revision = REVISION }
+#define IGNORED_ASM_VER(NAME, MAJOR, MINOR, BUILD, REVISION) { NAME, MAJOR, MINOR, BUILD, REVISION }
 
 static const IgnoredAssemblyVersion ignored_assembly_versions [] = {
 	IGNORED_ASM_VER (SYS_GLOBALIZATION_EXT, 4, 0, 0, 0),
@@ -1319,7 +1319,7 @@ do_mono_image_load (MonoImage *image, MonoImageOpenStatus *status,
 
 	mono_image_init (image);
 
-	iinfo = (MonoCLIImageInfo *)image->image_info;
+	iinfo = image->image_info;
 	header = &iinfo->cli_header;
 
 	if (!image->metadata_only) {
@@ -1612,7 +1612,11 @@ mono_image_open_from_data_internal (char *data, guint32 data_len, gboolean need_
 MonoImage *
 mono_image_open_from_data_with_name (char *data, guint32 data_len, gboolean need_copy, MonoImageOpenStatus *status, gboolean refonly, const char *name)
 {
-	return mono_image_open_from_data_internal (data, data_len, need_copy, status, refonly, FALSE, name);
+	MonoImage *result;
+	MONO_ENTER_GC_UNSAFE;
+	result = mono_image_open_from_data_internal (data, data_len, need_copy, status, refonly, FALSE, name);
+	MONO_EXIT_GC_UNSAFE;
+	return result;
 }
 
 /**
@@ -1621,7 +1625,11 @@ mono_image_open_from_data_with_name (char *data, guint32 data_len, gboolean need
 MonoImage *
 mono_image_open_from_data_full (char *data, guint32 data_len, gboolean need_copy, MonoImageOpenStatus *status, gboolean refonly)
 {
-  return mono_image_open_from_data_with_name (data, data_len, need_copy, status, refonly, NULL);
+	MonoImage *result;
+	MONO_ENTER_GC_UNSAFE;
+	result = mono_image_open_from_data_internal (data, data_len, need_copy, status, refonly, FALSE, NULL);
+	MONO_EXIT_GC_UNSAFE;
+	return result;
 }
 
 /**
@@ -1630,7 +1638,11 @@ mono_image_open_from_data_full (char *data, guint32 data_len, gboolean need_copy
 MonoImage *
 mono_image_open_from_data (char *data, guint32 data_len, gboolean need_copy, MonoImageOpenStatus *status)
 {
-	return mono_image_open_from_data_full (data, data_len, need_copy, status, FALSE);
+	MonoImage *result;
+	MONO_ENTER_GC_UNSAFE;
+	result = mono_image_open_from_data_internal (data, data_len, need_copy, status, FALSE, FALSE, NULL);
+	MONO_EXIT_GC_UNSAFE;
+	return result;
 }
 
 #ifdef HOST_WIN32
@@ -1681,7 +1693,7 @@ mono_image_open_a_lot (const char *fname, MonoImageOpenStatus *status, gboolean 
 	// then assemblies need to be loaded with LoadLibrary:
 	if (!refonly && coree_module_handle) {
 		HMODULE module_handle;
-		guint16 *fname_utf16;
+		gunichar2 *fname_utf16;
 		DWORD last_error;
 
 		absfname = mono_path_resolve_symlinks (fname);
@@ -1689,7 +1701,7 @@ mono_image_open_a_lot (const char *fname, MonoImageOpenStatus *status, gboolean 
 
 		/* There is little overhead because the OS loader lock is held by LoadLibrary. */
 		mono_images_lock ();
-		image = g_hash_table_lookup (loaded_images, absfname);
+		image = (MonoImage*)g_hash_table_lookup (loaded_images, absfname);
 		if (image) { // Image already loaded
 			if (!load_from_context && mono_is_problematic_image (image)) {
 				// If we previously loaded a problematic image, don't
@@ -1726,7 +1738,7 @@ mono_image_open_a_lot (const char *fname, MonoImageOpenStatus *status, gboolean 
 			last_error = mono_w32error_get_last ();
 
 		/* mono_image_open_from_module_handle is called by _CorDllMain. */
-		image = g_hash_table_lookup (loaded_images, absfname);
+		image = (MonoImage*)g_hash_table_lookup (loaded_images, absfname);
 		if (image)
 			mono_image_addref (image);
 		mono_images_unlock ();
@@ -1895,7 +1907,7 @@ mono_image_fixup_vtable (MonoImage *image)
 		slot_count = vtfixup->count;
 		if (slot_type & VTFIXUP_TYPE_32BIT)
 			while (slot_count--) {
-				*((guint32*) slot) = (guint32) mono_marshal_get_vtfixup_ftnptr (image, *((guint32*) slot), slot_type);
+				*((guint32*) slot) = (guint32)(gsize)mono_marshal_get_vtfixup_ftnptr (image, *((guint32*) slot), slot_type);
 				slot = ((guint32*) slot) + 1;
 			}
 		else if (slot_type & VTFIXUP_TYPE_64BIT)
@@ -1969,12 +1981,11 @@ mono_wrapper_caches_free (MonoWrapperCaches *cache)
 	free_hash (cache->delegate_invoke_cache);
 	free_hash (cache->delegate_begin_invoke_cache);
 	free_hash (cache->delegate_end_invoke_cache);
-	free_hash (cache->runtime_invoke_cache);
-	free_hash (cache->runtime_invoke_vtype_cache);
+	free_hash (cache->runtime_invoke_signature_cache);
 	
 	free_hash (cache->delegate_abstract_invoke_cache);
 
-	free_hash (cache->runtime_invoke_direct_cache);
+	free_hash (cache->runtime_invoke_method_cache);
 	free_hash (cache->managed_wrapper_cache);
 
 	free_hash (cache->native_wrapper_cache);
@@ -2102,7 +2113,7 @@ mono_image_close_except_pools (MonoImage *image)
 	if (image->raw_data_allocated) {
 		/* FIXME: do we need this? (image is disposed anyway) */
 		/* image->raw_metadata and cli_sections might lie inside image->raw_data */
-		MonoCLIImageInfo *ii = (MonoCLIImageInfo *)image->image_info;
+		MonoCLIImageInfo *ii = image->image_info;
 
 		if ((image->raw_metadata > image->raw_data) &&
 			(image->raw_metadata <= (image->raw_data + image->raw_data_len)))
@@ -2144,7 +2155,6 @@ mono_image_close_except_pools (MonoImage *image)
 	}
 
 	free_hash (image->delegate_bound_static_invoke_cache);
-	free_hash (image->runtime_invoke_vcall_cache);
 	free_hash (image->ldfld_wrapper_cache);
 	free_hash (image->ldflda_wrapper_cache);
 	free_hash (image->stfld_wrapper_cache);
@@ -2192,7 +2202,7 @@ mono_image_close_except_pools (MonoImage *image)
 		mono_bitset_free (image->interface_bitset);
 	}
 	if (image->image_info){
-		MonoCLIImageInfo *ii = (MonoCLIImageInfo *)image->image_info;
+		MonoCLIImageInfo *ii = image->image_info;
 
 		g_free (ii->cli_section_tables);
 		g_free (ii->cli_sections);
@@ -2463,7 +2473,7 @@ mono_image_lookup_resource (MonoImage *image, guint32 res_id, guint32 lang_id, g
 guint32
 mono_image_get_entry_point (MonoImage *image)
 {
-	return ((MonoCLIImageInfo*)image->image_info)->cli_cli_header.ch_entry_point;
+	return image->image_info->cli_cli_header.ch_entry_point;
 }
 
 /**
@@ -2481,7 +2491,7 @@ mono_image_get_entry_point (MonoImage *image)
 const char*
 mono_image_get_resource (MonoImage *image, guint32 offset, guint32 *size)
 {
-	MonoCLIImageInfo *iinfo = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *iinfo = image->image_info;
 	MonoCLIHeader *ch = &iinfo->cli_cli_header;
 	const char* data;
 
@@ -2593,7 +2603,7 @@ mono_image_load_file_for_image (MonoImage *image, int fileidx)
 const char*
 mono_image_get_strong_name (MonoImage *image, guint32 *size)
 {
-	MonoCLIImageInfo *iinfo = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *iinfo = image->image_info;
 	MonoPEDirEntry *de = &iinfo->cli_cli_header.ch_strong_name;
 	const char* data;
 
@@ -2621,7 +2631,7 @@ mono_image_get_strong_name (MonoImage *image, guint32 *size)
 guint32
 mono_image_strong_name_position (MonoImage *image, guint32 *size)
 {
-	MonoCLIImageInfo *iinfo = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *iinfo = image->image_info;
 	MonoPEDirEntry *de = &iinfo->cli_cli_header.ch_strong_name;
 	guint32 pos;
 
@@ -2769,7 +2779,7 @@ mono_image_is_dynamic (MonoImage *image)
 gboolean
 mono_image_has_authenticode_entry (MonoImage *image)
 {
-	MonoCLIImageInfo *iinfo = (MonoCLIImageInfo *)image->image_info;
+	MonoCLIImageInfo *iinfo = image->image_info;
 	MonoDotNetHeader *header = &iinfo->cli_header;
 	if (!header)
 		return FALSE;

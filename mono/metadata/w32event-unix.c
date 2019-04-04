@@ -112,7 +112,7 @@ static gsize namedevent_typesize (void)
 void
 mono_w32event_init (void)
 {
-	static MonoW32HandleOps event_ops = {
+	static const MonoW32HandleOps event_ops = {
 		NULL,			/* close */
 		event_handle_signal,		/* signal */
 		event_handle_own,		/* own */
@@ -124,7 +124,7 @@ mono_w32event_init (void)
 		event_typesize, /* typesize */
 	};
 
-	static MonoW32HandleOps namedevent_ops = {
+	static const MonoW32HandleOps namedevent_ops = {
 		NULL,			/* close */
 		event_handle_signal,	/* signal */
 		event_handle_own,		/* own */
@@ -228,10 +228,10 @@ static gpointer namedevent_create (gboolean manual, gboolean initial, const gcha
 	mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_EVENT, "%s: creating %s handle",
 		__func__, mono_w32handle_get_typename (MONO_W32TYPE_NAMEDEVENT));
 
+	glong utf8_len = strlen (utf8_name);
+
 	/* w32 seems to guarantee that opening named objects can't race each other */
 	mono_w32handle_namespace_lock ();
-
-	glong utf8_len = strlen (utf8_name);
 
 	handle = mono_w32handle_namespace_search_handle (MONO_W32TYPE_NAMEDEVENT, utf8_name);
 	if (handle == INVALID_HANDLE_VALUE) {
@@ -395,26 +395,26 @@ mono_w32event_open (const gchar *utf8_name, gint32 rights G_GNUC_UNUSED, gint32 
 	gpointer handle;
 	*error = ERROR_SUCCESS;
 
+	mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_EVENT, "%s: Opening named event [%s]", __func__, utf8_name);
+
 	/* w32 seems to guarantee that opening named objects can't race each other */
 	mono_w32handle_namespace_lock ();
 
-	mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_EVENT, "%s: Opening named event [%s]", __func__, utf8_name);
-
 	handle = mono_w32handle_namespace_search_handle (MONO_W32TYPE_NAMEDEVENT, utf8_name);
+
+	mono_w32handle_namespace_unlock ();
+
 	if (handle == INVALID_HANDLE_VALUE) {
 		/* The name has already been used for a different object. */
 		*error = ERROR_INVALID_HANDLE;
-		goto cleanup;
+		return handle;
 	} else if (!handle) {
 		/* This name doesn't exist */
 		*error = ERROR_FILE_NOT_FOUND;
-		goto cleanup;
+		return handle;
 	}
 
 	mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_IO_LAYER_EVENT, "%s: returning named event handle %p", __func__, handle);
-
-cleanup:
-	mono_w32handle_namespace_unlock ();
 
 	return handle;
 }

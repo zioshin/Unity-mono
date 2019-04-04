@@ -245,6 +245,11 @@
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(MONO_COMPILE_AS_CPP)'=='true'">
+    <ClCompile>
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="genmdesc.vcxproj">
       <Project>{b7098dfa-31e6-4006-8a15-1c9a4e925149}</Project>
@@ -262,6 +267,40 @@
   <Import Project="libmini.targets" />
   <Import Project="libgcmonosgen.targets" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="mono.external.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="_SetupMonoLLVMCompileItems" Condition="$(MONO_ENABLE_LLVM)=='true'">
+    <ItemGroup>
+      <ClCompile>
+        <AdditionalIncludeDirectories>$(MONO_LLVM_INCLUDE_DIR);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        <PreprocessorDefinitions>LLVM_API_VERSION=$(MONO_LLVM_API_VERSION);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      </ClCompile>
+    </ItemGroup>
+    <ItemGroup>
+      <ClCompile Condition="'%(ClCompile._MonoLLVMSourceFile)' == 'true'">
+        <ExcludedFromBuild>false</ExcludedFromBuild>
+      </ClCompile>
+    </ItemGroup>
+  </Target>
+  <Target Name="_SetupMonoLLVMLinkItems" Condition="$(MONO_ENABLE_LLVM)=='true'">
+    <ItemGroup>
+      <Link>
+        <AdditionalLibraryDirectories>$(MONO_LLVM_LIB_DIR);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+        <AdditionalDependencies>$(MONO_LLVM_LIBS);%(Link.AdditionalDependencies)</AdditionalDependencies>
+      </Link>
+    </ItemGroup>
+  </Target>
+  <Target Name="_ConfigureExternalCompileDependency" DependsOnTargets="_ConfigureExternalMonoBuildEnvironment;_SetupMonoLLVMBuildProperties;_SetupMonoLLVMCompileItems" />
+  <Target Name="_ConfigureExternalLinkDependency" DependsOnTargets="_ConfigureExternalMonoBuildEnvironment;_SetupMonoLLVMBuildProperties;_SetupMonoLLVMLinkItems" />
+  <PropertyGroup>
+    <PrepareForBuildDependsOn>
+      _ConfigureExternalCompileDependency;
+      $(PrepareForBuildDependsOn);
+    </PrepareForBuildDependsOn>
+    <ComputeLinkInputsTargets>
+      $(ComputeLinkInputsTargets);
+      _ConfigureExternalLinkDependency;
+    </ComputeLinkInputsTargets>
+  </PropertyGroup>
 </Project>

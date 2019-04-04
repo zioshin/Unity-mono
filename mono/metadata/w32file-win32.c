@@ -91,7 +91,7 @@ cancel_w32_io (HANDLE file_handle)
 }
 
 gboolean
-mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *bytesread)
+mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *bytesread, gint32 *win32error)
 {
 
 	gboolean interrupted;
@@ -103,11 +103,9 @@ mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *
 		return res;
 
 	MONO_ENTER_GC_SAFE;
-	res = ReadFile ((HANDLE)handle, buffer, numbytes, (PDWORD)bytesread, NULL);
-	/* need to save and restore since clients expect error code set for
-	 * failed IO calls and mono_thread_info_uninstall_interrupt overwrites value */
-	last_error = mono_w32error_get_last ();
-
+	res = ReadFile (handle, buffer, numbytes, (PDWORD)bytesread, NULL);
+	if (!res)
+		*win32error = GetLastError ();
 	MONO_EXIT_GC_SAFE;
 	mono_thread_info_uninstall_interrupt (&interrupted);
 	mono_w32error_set_last (last_error);
@@ -117,7 +115,7 @@ mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *
 }
 
 gboolean
-mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, guint32 *byteswritten)
+mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, guint32 *byteswritten, gint32 *win32error)
 {
 	gboolean interrupted;
 	guint32 last_error;
@@ -128,10 +126,9 @@ mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, gui
 		return res;
 
 	MONO_ENTER_GC_SAFE;
-	res = WriteFile ((HANDLE)handle, buffer, numbytes, (PDWORD)byteswritten, NULL);
-	/* need to save and restore since clients expect error code set for
-	* failed IO calls and mono_thread_info_uninstall_interrupt overwrites value */
-	last_error = mono_w32error_get_last ();
+	res = WriteFile (handle, buffer, numbytes, (PDWORD)byteswritten, NULL);
+	if (!res)
+		*win32error = GetLastError ();
 	MONO_EXIT_GC_SAFE;
 	mono_thread_info_uninstall_interrupt (&interrupted);
 	mono_w32error_set_last (last_error);
@@ -164,7 +161,7 @@ mono_w32file_seek (gpointer handle, gint32 movedistance, gint32 *highmovedistanc
 {
 	guint32 res;
 	MONO_ENTER_GC_SAFE;
-	res = SetFilePointer (handle, movedistance, highmovedistance, method);
+	res = SetFilePointer (handle, movedistance, (PLONG)highmovedistance, method);
 	MONO_EXIT_GC_SAFE;
 	return res;
 }
@@ -263,12 +260,12 @@ mono_w32file_get_attributes (const gunichar2 *name)
 
 	MONO_ENTER_GC_SAFE;
 	res = GetFileAttributes (name);
+	error = GetLastError ();
 	MONO_EXIT_GC_SAFE;
 
 	if (res != INVALID_FILE_ATTRIBUTES)
 		return res;
 
-	error = GetLastError ();
 	if (error != ERROR_SHARING_VIOLATION)
 		return INVALID_FILE_ATTRIBUTES;
 
@@ -303,6 +300,7 @@ mono_w32file_get_attributes_ex (const gunichar2 *name, MonoIOStat *stat)
 
 	MONO_ENTER_GC_SAFE;
 	res = GetFileAttributesEx (name, GetFileExInfoStandard, &file_attribute_data);
+	error = GetLastError ();
 	MONO_EXIT_GC_SAFE;
 	if (res) {
 		stat->attributes = file_attribute_data.dwFileAttributes;
@@ -313,7 +311,6 @@ mono_w32file_get_attributes_ex (const gunichar2 *name, MonoIOStat *stat)
 		return TRUE;
 	}
 
-	error = GetLastError ();
 	if (error != ERROR_SHARING_VIOLATION)
 		return FALSE;
 
@@ -380,35 +377,37 @@ mono_w32file_create_pipe (gpointer *readpipe, gpointer *writepipe, guint32 size)
 	return res;
 }
 
+#ifndef PLATFORM_NO_DRIVEINFO
 gboolean
 mono_w32file_get_disk_free_space (const gunichar2 *path_name, guint64 *free_bytes_avail, guint64 *total_number_of_bytes, guint64 *total_number_of_free_bytes)
 {
 	gboolean result;
-	ULARGE_INTEGER wapi_free_bytes_avail;
-	ULARGE_INTEGER wapi_total_number_of_bytes;
-	ULARGE_INTEGER wapi_total_number_of_free_bytes;
+	ULARGE_INTEGER wapi_free_bytes_avail = { 0 };
+	ULARGE_INTEGER wapi_total_number_of_bytes = { 0 };
+	ULARGE_INTEGER wapi_total_number_of_free_bytes = { 0 };
+
+	g_assert (free_bytes_avail);
+	g_assert (total_number_of_bytes);
+	g_assert (total_number_of_free_bytes);
 
 	MONO_ENTER_GC_SAFE;
-	result = GetDiskFreeSpaceEx (path_name, &wapi_free_bytes_avail, &wapi_total_number_of_bytes, &wapi_total_number_of_free_bytes);
+	result = GetDiskFreeSpaceExW (path_name, &wapi_free_bytes_avail, &wapi_total_number_of_bytes, &wapi_total_number_of_free_bytes);
 	MONO_EXIT_GC_SAFE;
-	if (result) {
-		if (free_bytes_avail)
-			*free_bytes_avail = wapi_free_bytes_avail.QuadPart;
-		if (total_number_of_bytes)
-			*total_number_of_bytes = wapi_total_number_of_bytes.QuadPart;
-		if (total_number_of_free_bytes)
-			*total_number_of_free_bytes = wapi_total_number_of_free_bytes.QuadPart;
-	}
+
+	*free_bytes_avail = wapi_free_bytes_avail.QuadPart;
+	*total_number_of_bytes = wapi_total_number_of_bytes.QuadPart;
+	*total_number_of_free_bytes = wapi_total_number_of_free_bytes.QuadPart;
 
 	return result;
 }
+#endif // PLATFORM_NO_DRIVEINFO
 
 gboolean
-mono_w32file_get_volume_information (const gunichar2 *path, gunichar2 *volumename, gint volumesize, gint *outserial, gint *maxcomp, gint *fsflags, gunichar2 *fsbuffer, gint fsbuffersize)
+mono_w32file_get_file_system_type (const gunichar2 *path, gunichar2 *fsbuffer, gint fsbuffersize)
 {
 	gboolean res;
 	MONO_ENTER_GC_SAFE;
-	res = GetVolumeInformation (path, volumename, volumesize, outserial, maxcomp, fsflags, fsbuffer, fsbuffersize);
+	res = GetVolumeInformationW (path, NULL, 0, NULL, NULL, NULL, fsbuffer, fsbuffersize);
 	MONO_EXIT_GC_SAFE;
 	return res;
 }
@@ -561,8 +560,7 @@ mono_w32file_get_file_size (HANDLE handle, gint32 *error)
 	return length.QuadPart;
 }
 
-#if HAVE_API_SUPPORT_WIN32_GET_DRIVE_TYPE
-// Support older UWP SDK?
+// Support older UWP SDK.
 WINBASEAPI
 UINT
 WINAPI
@@ -571,15 +569,21 @@ GetDriveTypeW (
 	);
 
 guint32
-mono_w32file_get_drive_type (const gunichar2 *root_path_name)
+ves_icall_System_IO_DriveInfo_GetDriveType (const gunichar2 *root_path_name, gint32 root_path_name_length, MonoError *error)
 {
+	// FIXME Check for embedded nuls here or in native.
+#if HAVE_API_SUPPORT_WIN32_GET_DRIVE_TYPE
 	guint32 res;
 	MONO_ENTER_GC_SAFE;
-	res = GetDriveType (root_path_name);
+	res = GetDriveTypeW (root_path_name);
 	MONO_EXIT_GC_SAFE;
 	return res;
-}
+#else
+	g_unsupported_api ("GetDriveType");
+	mono_error_set_not_supported (error, G_UNSUPPORTED_API, "GetDriveType");
+	return DRIVE_UNKNOWN;
 #endif
+}
 
 #if HAVE_API_SUPPORT_WIN32_GET_LOGICAL_DRIVE_STRINGS
 gint32

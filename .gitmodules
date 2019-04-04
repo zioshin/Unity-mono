@@ -61,3 +61,10 @@
 [submodule "external/bdwgc"]
 	path = external/bdwgc
 	url = git://github.com/Unity-Technologies/bdwgc.git
+[submodule "external/llvm"]
+	path = external/llvm
+	url = git://github.com/mono/llvm.git
+	branch = release_60
+[submodule "external/helix-binaries"]
+	path = external/helix-binaries
+	url = git://github.com/mono/helix-binaries.git

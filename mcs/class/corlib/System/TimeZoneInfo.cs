@@ -153,7 +153,7 @@ namespace System
 			return true;
 		}
 
-#if !MONODROID && !MONOTOUCH && !XAMMAC
+#if !MONODROID && !MONOTOUCH && !XAMMAC && !WASM
 		static TimeZoneInfo CreateLocal ()
 		{
 #if WIN_PLATFORM
@@ -276,7 +276,7 @@ namespace System
 			throw new NotImplementedException ("This method is not implemented for this platform");
 #endif
 		}
-#endif // !MONODROID && !MONOTOUCH && !XAMMAC
+#endif // !MONODROID && !MONOTOUCH && !XAMMAC && !WASM
 
 		string standardDisplayName;
 		public string StandardName {
