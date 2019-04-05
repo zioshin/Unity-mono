@@ -939,7 +939,7 @@ namespace System.Net.Sockets
 				throw new ArgumentNullException("e");
 
 			if (e.in_progress != 0 && e.LastOperation == SocketAsyncOperation.Connect)
-				e.current_socket.Close();
+				e.current_socket?.Close ();
 		}
 
 		static AsyncCallback ConnectAsyncCallback = new AsyncCallback (ares => {
@@ -1380,6 +1380,20 @@ namespace System.Net.Sockets
 			errorCode = (SocketError) nativeError;
 
 			return ret;
+		}
+
+		public int Receive(Span<byte> buffer, SocketFlags socketFlags, out SocketError errorCode)
+		{
+			byte[] tempBuffer = new byte[buffer.Length];
+			int result = Receive(tempBuffer, 0, tempBuffer.Length, socketFlags, out errorCode);
+			tempBuffer.CopyTo (buffer);
+			return result;
+		}
+
+		public int Send(ReadOnlySpan<byte> buffer, SocketFlags socketFlags, out SocketError errorCode)
+		{
+			byte[] bufferBytes = buffer.ToArray();
+			return Send(bufferBytes, 0, bufferBytes.Length, socketFlags, out errorCode);
 		}
 
 		public int Receive (Span<byte> buffer, SocketFlags socketFlags)
@@ -2607,13 +2621,25 @@ namespace System.Net.Sockets
 
 		public void Shutdown (SocketShutdown how)
 		{
+			const int enotconn = 10057;
+
 			ThrowIfDisposedAndClosed ();
 
 			if (!is_connected)
-				throw new SocketException (10057); // Not connected
+				throw new SocketException (enotconn); // Not connected
 
 			int error;
 			Shutdown_internal (m_Handle, how, out error);
+
+			if (error == enotconn) {
+				// POSIX requires this error to be returned from shutdown in some cases,
+				//  even if the socket is actually connected.
+				// We have already checked is_connected so it isn't meaningful or useful for
+				//  us to throw if the OS says the socket was already closed when we tried to
+				//  shut it down.
+				// See https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=227259
+				return;
+			}
 
 			if (error != 0)
 				throw new SocketException (error);

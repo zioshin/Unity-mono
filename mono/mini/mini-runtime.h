@@ -175,6 +175,14 @@ typedef struct MonoDebugOptions {
 	gboolean gdb;
 	gboolean lldb;
 	gboolean unity_mixed_callstack;
+
+	/*
+	 * With LLVM codegen, this option will cause methods to be called indirectly through the
+	 * PLT (As they are in other FullAOT modes, without LLVM). 
+	 *
+	 * Enable this to debug problems with direct calls in llvm
+	 */
+	gboolean llvm_disable_self_init;
 	gboolean use_fallback_tls;
 	/*
 	 * Whenever data such as next sequence points and flags is required.
@@ -268,7 +276,12 @@ typedef struct MonoJumpInfoImtTramp {
  * object described by DATA.
  */
 struct MonoJumpInfoRgctxEntry {
-	MonoMethod *method;
+	union {
+		/* If in_mrgctx is TRUE */
+		MonoMethod *method;
+		/* If in_mrgctx is FALSE */
+		MonoClass *klass;
+	} d;
 	gboolean in_mrgctx;
 	MonoJumpInfo *data; /* describes the data to be loaded */
 	MonoRgctxInfoType info_type;
@@ -440,8 +453,8 @@ gconstpointer     mono_icall_get_wrapper       (MonoJitICallInfo* callinfo) MONO
 gconstpointer     mono_icall_get_wrapper_full  (MonoJitICallInfo* callinfo, gboolean do_compile);
 
 MonoJumpInfo* mono_patch_info_dup_mp        (MonoMemPool *mp, MonoJumpInfo *patch_info);
-guint     mono_patch_info_hash (gconstpointer data);
-gint      mono_patch_info_equal (gconstpointer ka, gconstpointer kb);
+guint     mono_patch_info_hash (gconstpointer data) MONO_LLVM_INTERNAL;
+gint      mono_patch_info_equal (gconstpointer ka, gconstpointer kb) MONO_LLVM_INTERNAL;
 MonoJumpInfo *mono_patch_info_list_prepend  (MonoJumpInfo *list, int ip, MonoJumpInfoType type, gconstpointer target);
 MonoJumpInfoToken* mono_jump_info_token_new (MonoMemPool *mp, MonoImage *image, guint32 token);
 MonoJumpInfoToken* mono_jump_info_token_new2 (MonoMemPool *mp, MonoImage *image, guint32 token, MonoGenericContext *context);
@@ -514,10 +527,16 @@ void
 mono_cross_helpers_run (void);
 
 void
-mono_dump_native_crash_info (const char *signal, void *ctx, MONO_SIG_HANDLER_INFO_TYPE *info);
+mono_init_native_crash_info (void);
 
 void
-mono_post_native_crash_handler (const char *signal, void *ctx, MONO_SIG_HANDLER_INFO_TYPE *info, gboolean crash_chaining);
+mono_cleanup_native_crash_info (void);
+
+void
+mono_dump_native_crash_info (const char *signal, MonoContext *mctx, MONO_SIG_HANDLER_INFO_TYPE *info);
+
+void
+mono_post_native_crash_handler (const char *signal, MonoContext *mctx, MONO_SIG_HANDLER_INFO_TYPE *info, gboolean crash_chaining);
 
 /*
  * Signal handling
@@ -533,12 +552,6 @@ void MONO_SIG_HANDLER_SIGNATURE (mono_sigill_signal_handler) ;
 void MONO_SIG_HANDLER_SIGNATURE (mono_sigsegv_signal_handler);
 void MONO_SIG_HANDLER_SIGNATURE (mono_sigint_signal_handler) ;
 gboolean MONO_SIG_HANDLER_SIGNATURE (mono_chain_signal);
-
-#ifdef MONO_ARCH_VARARG_ICALLS
-#define ARCH_VARARG_ICALLS 1
-#else
-#define ARCH_VARARG_ICALLS 0
-#endif
 
 #if defined (HOST_WASM)
 

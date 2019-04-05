@@ -651,10 +651,13 @@ mono_arch_unwind_frame (MonoDomain *domain, MonoJitTlsData *jit_tls,
 		for (i = 0; i < AMD64_NREG; ++i)
 			regs [i] = new_ctx->gregs [i];
 
-		mono_unwind_frame (unwind_info, unwind_info_len, (guint8 *)ji->code_start,
+		gboolean success = mono_unwind_frame (unwind_info, unwind_info_len, (guint8 *)ji->code_start,
 						   (guint8*)ji->code_start + ji->code_size,
 						   (guint8 *)ip, epilog ? &epilog : NULL, regs, MONO_MAX_IREGS + 1,
 						   save_locations, MONO_MAX_IREGS, &cfa);
+
+		if (!success)
+			return FALSE;
 
 		for (i = 0; i < AMD64_NREG; ++i)
 			new_ctx->gregs [i] = regs [i];
@@ -864,7 +867,7 @@ altstack_handle_and_restore (MonoContext *ctx, MonoObject *obj, gboolean stack_o
 	MonoJitInfo *ji = mini_jit_info_table_find (mono_domain_get (), MONO_CONTEXT_GET_IP (ctx), NULL);
 
 	if (!ji)
-		mono_handle_native_crash ("SIGSEGV", NULL, NULL);
+		mono_handle_native_crash ("SIGSEGV", ctx, NULL);
 
 	mctx = *ctx;
 
@@ -959,7 +962,7 @@ mono_arch_exceptions_init (void)
 		mono_register_jit_icall (tramp, "llvm_throw_corlib_exception_abs_trampoline", NULL, TRUE);
 		tramp = mono_aot_get_trampoline ("llvm_resume_unwind_trampoline");
 		mono_register_jit_icall (tramp, "llvm_resume_unwind_trampoline", NULL, TRUE);
-	} else {
+	} else if (!mono_llvm_only) {
 		/* Call this to avoid initialization races */
 		tramps = mono_amd64_get_exception_trampolines (FALSE);
 		for (l = tramps; l; l = l->next) {

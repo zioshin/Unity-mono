@@ -92,7 +92,7 @@ if INSTALL_WASM
 build_profiles += wasm wasm_tools
 endif
 
-if INSTALL_NETCORE
+if ENABLE_NETCORE
 build_profiles += netcore
 endif
 
@@ -227,7 +227,7 @@ mcs-compileall: mono-wrapper etc/mono/config
 	  else \
 		  MONO_PATH="$$mcs_topdir/class/lib/$$profile$(PLATFORM_PATH_SEPARATOR)$$save_MONO_PATH"; \
 	  fi; \
-	  export verifiable_files=`ls "$(mcs_topdir)/class/lib/$$profile/" | grep -E '\.(dll|exe)$$' $(foreach asm,$(VERIFY_TESTS_FILTER), | grep -v $(asm))` ; \
+	  export verifiable_files=`ls "$(mcs_topdir)/class/lib/$$profile/" | grep -E '\.(dll|exe)$$' | grep -v '\.dll\.dll$$' | grep -v '\.exe\.dll$$' $(foreach asm,$(VERIFY_TESTS_FILTER), | grep -v $(asm))` ; \
 	  export MONO_PATH; \
 	  for stub in $$verifiable_files; do \
 	  i=$(mcs_topdir)/class/lib/$$profile/$$stub ; \

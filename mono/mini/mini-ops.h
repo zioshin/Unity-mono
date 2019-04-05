@@ -715,6 +715,18 @@ MINI_OP(OP_SINF,     "sinf", FREG, FREG, NONE)
 MINI_OP(OP_COSF,     "cosf", FREG, FREG, NONE)
 MINI_OP(OP_ABSF,     "absf", FREG, FREG, NONE)
 MINI_OP(OP_SQRTF,    "sqrtf", FREG, FREG, NONE)
+
+/* Operations that can be computed at constants at JIT time  */
+MINI_OP(OP_ACOS,     "acos", FREG, FREG, NONE)
+MINI_OP(OP_SINH,     "sinh", FREG, FREG, NONE)
+MINI_OP(OP_ACOSH,    "acosh", FREG, FREG, NONE)
+MINI_OP(OP_ASIN,     "asin", FREG, FREG, NONE)
+MINI_OP(OP_ASINH,    "asinh", FREG, FREG, NONE)
+MINI_OP(OP_ATANH,    "atanh2", FREG, FREG, NONE)
+MINI_OP(OP_CBRT,     "cbrt", FREG, FREG, NONE)
+MINI_OP(OP_COSH,     "cosh", FREG, FREG, NONE)
+MINI_OP(OP_TANH,     "tanh", FREG, FREG, NONE)
+
 /* to optimize strings */
 MINI_OP(OP_STRLEN, "strlen", IREG, IREG, NONE)
 MINI_OP(OP_NEWARR, "newarr", IREG, IREG, NONE)
@@ -1178,6 +1190,7 @@ MINI_OP(OP_AMD64_AND_MEMBASE_IMM,        "amd64_and_membase_imm", NONE, IREG, NO
 MINI_OP(OP_AMD64_OR_MEMBASE_IMM,         "amd64_or_membase_imm", NONE, IREG, NONE)
 MINI_OP(OP_AMD64_XOR_MEMBASE_IMM,        "amd64_xor_membase_imm", NONE, IREG, NONE)
 MINI_OP(OP_AMD64_MUL_MEMBASE_IMM,        "amd64_mul_membase_imm", NONE, IREG, NONE)
+MINI_OP(OP_AMD64_LEA_MEMBASE,            "amd64_lea_membase", IREG, IREG, NONE)
 
 MINI_OP(OP_AMD64_ADD_REG_MEMBASE,        "amd64_add_reg_membase", IREG, IREG, IREG)
 MINI_OP(OP_AMD64_SUB_REG_MEMBASE,        "amd64_sub_reg_membase", IREG, IREG, IREG)
@@ -1193,7 +1206,10 @@ MINI_OP(OP_AMD64_SAVE_SP_TO_LMF,         "amd64_save_sp_to_lmf", NONE, NONE, NON
 #if  defined(TARGET_POWERPC)
 MINI_OP(OP_PPC_SUBFIC,             "ppc_subfic", IREG, IREG, NONE)
 MINI_OP(OP_PPC_SUBFZE,             "ppc_subfze", IREG, IREG, NONE)
-MINI_OP(OP_PPC_CHECK_FINITE,           "ppc_check_finite", NONE, IREG, NONE)
+MINI_OP(OP_PPC_CHECK_FINITE,       "ppc_check_finite", NONE, IREG, NONE)
+MINI_OP(OP_PPC_CEIL,               "ppc_ceil", FREG, FREG, NONE)
+MINI_OP(OP_PPC_FLOOR,              "ppc_floor", FREG, FREG, NONE)
+MINI_OP(OP_PPC_TRUNC,              "ppc_trunc", FREG, FREG, NONE)
 #endif
 
 #if defined(TARGET_ARM) || defined(TARGET_ARM64)

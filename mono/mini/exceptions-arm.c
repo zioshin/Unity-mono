@@ -484,10 +484,13 @@ mono_arch_unwind_frame (MonoDomain *domain, MonoJitTlsData *jit_tls,
 			regs [MONO_MAX_IREGS + i] = *(guint64*)&(new_ctx->fregs [8 + i]);
 #endif
 
-		mono_unwind_frame (unwind_info, unwind_info_len, (guint8*)ji->code_start,
+		gboolean success = mono_unwind_frame (unwind_info, unwind_info_len, (guint8*)ji->code_start,
 						   (guint8*)ji->code_start + ji->code_size,
 						   (guint8*)ip, NULL, regs, MONO_MAX_IREGS + 8,
 						   save_locations, MONO_MAX_IREGS, &cfa);
+
+		if (!success)
+			return FALSE;
 
 		for (i = 0; i < 16; ++i)
 			new_ctx->regs [i] = regs [i];
@@ -579,7 +582,7 @@ get_handle_signal_exception_addr (void)
 gboolean
 mono_arch_handle_exception (void *ctx, gpointer obj)
 {
-#if defined(MONO_CROSS_COMPILE) || !defined(MONO_ARCH_HAVE_SIGCTX_TO_MONOCTX)
+#if defined(MONO_CROSS_COMPILE)
 	g_assert_not_reached ();
 #elif defined(MONO_ARCH_USE_SIGACTION)
 	arm_ucontext *sigctx = (arm_ucontext*)ctx;

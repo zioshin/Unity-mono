@@ -1,92 +1,111 @@
-@ECHO off
-SetLocal
+@echo off
+setlocal
 
-SET CONFIG_H="%~dp0..\config.h"
-SET CYG_CONFIG_H="%~dp0..\cygconfig.h"
-SET WIN_CONFIG_H="%~dp0..\winconfig.h"
-SET CONFIGURE_AC="%~dp0..\configure.ac"
-SET VERSION_H="%~dp0..\mono\mini\version.h"
-SET OPTIONAL_DEFINES=%~1
+set BUILD_RESULT=1
 
-ECHO Setting up Mono configuration headers...
+:: Make sure we can restore current working directory after setting up environment.
+:: Some of the VS scripts can change the current working directory.
+set CALLER_WD=%CD%
 
-:: generate unique temp file path
-uuidgen > nul 2>&1 || goto no_uuidgen
-for /f %%a in ('uuidgen') do set CONFIG_H_TEMP=%%a
-goto :got_temp
-
-:no_uuidgen
-:: Random isn't very random or unique. %time% and %date% is not random but fairly unique.
-set CONFIG_H_TEMP=%~n0%random%%time%%date%
-
-:got_temp
-:: Remove special characters.
-set CONFIG_H_TEMP=%CONFIG_H_TEMP:-=%
-set CONFIG_H_TEMP=%CONFIG_H_TEMP:\=%
-set CONFIG_H_TEMP=%CONFIG_H_TEMP:/=%
-set CONFIG_H_TEMP=%CONFIG_H_TEMP::=%
-set CONFIG_H_TEMP=%CONFIG_H_TEMP: =%
-set CONFIG_H_TEMP=%CONFIG_H_TEMP:.=%
-set CONFIG_H_TEMP=%temp%\CONFIG_H_TEMP%CONFIG_H_TEMP%
-mkdir "%CONFIG_H_TEMP%\.." 2>nul
-set CONFIG_H_TEMP="%CONFIG_H_TEMP%"
-
-REM Backup existing config.h into cygconfig.h if its not already replaced.
-findstr /i /r /c:"#include *\"cygconfig.h\"" %CONFIG_H% >nul || copy /y %CONFIG_h% %CYG_CONFIG_H%
-
-:: Extract MONO_VERSION from configure.ac.
-for /f "delims=[] tokens=2" %%a in ('findstr /b /c:"AC_INIT(mono, [" %CONFIGURE_AC%') do (
-	set MONO_VERSION=%%a
+:: Visual Studio 2015 == 14.0
+if "%VisualStudioVersion%" == "14.0" (
+    goto SETUP_VS_2015
 )
 
-:: Split MONO_VERSION into three parts.
-for /f "delims=. tokens=1-3" %%a in ('echo %MONO_VERSION%') do (
-	set MONO_VERSION_MAJOR=%%a
-	set MONO_VERSION_MINOR=%%b
-	set MONO_VERSION_PATCH=%%c
-)
-:: configure.ac hardcodes this.
-set MONO_VERSION_PATCH=00
-
-:: Extract MONO_CORLIB_VERSION from configure.ac.
-for /f "tokens=*" %%a in ('findstr /b /c:MONO_CORLIB_VERSION= %CONFIGURE_AC%') do set %%a
-
-:: Pad out version pieces to 2 characters with zeros on left.
-if "%MONO_VERSION_MAJOR:~1%" == "" set MONO_VERSION_MAJOR=0%MONO_VERSION_MAJOR%
-if "%MONO_VERSION_MINOR:~1%" == "" set MONO_VERSION_MINOR=0%MONO_VERSION_MINOR%
-
-:: Remove every define VERSION from winconfig.h and add what we want.
-findstr /v /b /i /c:"#define PACKAGE_VERSION " /c:"#define VERSION " /c:"#define MONO_CORLIB_VERSION " %WIN_CONFIG_H% > %CONFIG_H_TEMP%
-
-: Setup dynamic section of config.h
-echo #ifdef _MSC_VER >> %CONFIG_H_TEMP%
-echo #define PACKAGE_VERSION "%MONO_VERSION%" >> %CONFIG_H_TEMP%
-echo #define VERSION "%MONO_VERSION%" >> %CONFIG_H_TEMP%
-echo #define MONO_CORLIB_VERSION "%MONO_CORLIB_VERSION%" >> %CONFIG_H_TEMP%
-
-:: Add dynamic configuration parameters affecting msvc build.
-for %%a in (%OPTIONAL_DEFINES%) do (
-	echo #ifndef %%a >> %CONFIG_H_TEMP%
-	echo #define %%a 1 >> %CONFIG_H_TEMP%
-	echo #endif >> %CONFIG_H_TEMP%
+:: Visual Studio 2017 == 15.0
+if "%VisualStudioVersion%" == "15.0" (
+    goto SETUP_VS_2017
 )
 
-echo #endif >> %CONFIG_H_TEMP%
+:SETUP_VS_2015
 
-echo #if defined(ENABLE_LLVM) ^&^& defined(HOST_WIN32) ^&^& defined(TARGET_WIN32) ^&^& (!defined(TARGET_AMD64) ^|^| !defined(_MSC_VER)) >> %CONFIG_H_TEMP%
-echo #error LLVM for host=Windows and target=Windows is only supported on x64 MSVC build. >> %CONFIG_H_TEMP%
-echo #endif >> %CONFIG_H_TEMP%
+:SETUP_VS_2015_BUILD_TOOLS
 
-:: If the file is different, replace it.
-fc %CONFIG_H_TEMP% %CONFIG_H% >nul 2>&1 || move /y %CONFIG_H_TEMP% %CONFIG_H%
-del %CONFIG_H_TEMP% 2>nul
+:: Try to locate VS2015 build tools installation.
+set VS_2015_BUILD_TOOLS_CMD=%ProgramFiles(x86)%\Microsoft Visual C++ Build Tools\vcbuildtools_msbuild.bat
 
-echo #define FULL_VERSION "Visual Studio built mono" > %CONFIG_H_TEMP%
-fc %CONFIG_H_TEMP% %VERSION_H% >nul 2>&1 || move /y %CONFIG_H_TEMP% %VERSION_H%
-del %CONFIG_H_TEMP% 2>nul
+:: Setup VS2015 VC development environment using build tools installation.
+call :setup_build_env "%VS_2015_BUILD_TOOLS_CMD%" "%CALLER_WD%" && (
+    goto ON_BUILD
+)
 
-:: Log environment variables that start "mono".
-set MONO
+:SETUP_VS_2015_VC
 
-ECHO Successfully setup Mono configuration headers.
-EXIT /b 0
+:: Try to locate installed VS2015 VC environment.
+set VS_2015_DEV_CMD=%ProgramFiles(x86)%\Microsoft Visual Studio 14.0\Common7\Tools\VsMSBuildCmd.bat
+
+:: Setup VS2015 VC development environment using VS installation.
+call :setup_build_env "%VS_2015_DEV_CMD%" "%CALLER_WD%" && (
+    goto ON_BUILD
+)
+
+:SETUP_VS_2017
+
+:SETUP_VS_2017_BUILD_TOOLS
+
+:: Try to locate VS2017 build tools installation.
+set VS_2017_BUILD_TOOLS_CMD=%ProgramFiles(x86)%\Microsoft Visual Studio\2017\BuildTools\Common7\Tools\VsMSBuildCmd.bat
+
+:: Setup VS2017 VC development environment using build tools installation.
+call :setup_build_env "%VS_2017_BUILD_TOOLS_CMD%" "%CALLER_WD%" && (
+    goto ON_BUILD
+)
+
+:SETUP_VS_2017_VC
+
+:: VS2017 includes vswhere.exe that can be used to locate current VS2017 installation.
+set VSWHERE_TOOLS_BIN=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe
+set VS_2017_DEV_CMD=
+
+:: Try to locate installed VS2017 VC environment.
+if exist "%VSWHERE_TOOLS_BIN%" (
+    for /f "tokens=*" %%a in ('"%VSWHERE_TOOLS_BIN%" -latest -property installationPath') do (
+        set VS_2017_DEV_CMD=%%a\Common7\Tools\VsMSBuildCmd.bat
+    )
+)
+
+:: Setup VS2017 VC development environment using VS installation.
+call :setup_build_env "%VS_2017_DEV_CMD%" "%CALLER_WD%" && (
+    goto ON_BUILD
+)
+
+:ON_ENV_ERROR
+
+echo Warning, failed to setup build environment needed by msbuild.exe.
+echo Incomplete build environment can cause build error's due to missing compiler, linker and platform libraries.
+
+:ON_BUILD
+
+call "msbuild.exe" /t:RunWinConfigSetup mono.winconfig.targets && (
+    set BUILD_RESULT=0
+) || (
+    set BUILD_RESULT=1
+    if not %ERRORLEVEL% == 0 (
+        set BUILD_RESULT=%ERRORLEVEL%
+    )
+)
+
+exit /b %BUILD_RESULT%
+
+:setup_build_env
+
+:: Check if VS build environment script exists.
+if not exist "%~1" (
+    goto setup_build_env_error
+)
+
+:: Run VS build environment script.
+call "%~1" > NUL
+
+:: Restore callers working directory in case it has been changed by VS scripts.
+cd /d "%~2"
+
+goto setup_build_env_exit
+
+:setup_build_env_error
+exit /b 1
+
+:setup_build_env_exit
+goto :EOF
+
+@echo on

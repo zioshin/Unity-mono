@@ -71,7 +71,11 @@ namespace Mono {
 		internal uint hash_alg;
 		internal uint hash_len;
 		internal uint flags;
+#if NETCORE
+		internal int major, minor, build, revision;
+#else
 		internal ushort major, minor, build, revision;
+#endif
 		internal ushort arch;
 	}
 
@@ -79,6 +83,10 @@ namespace Mono {
 	// See mini-generic-sharing.c
 	// We use these instead of the normal ValueTuple types to avoid linking in the
 	// c# methods belonging to those types
+	internal struct ValueTuple
+	{
+	}
+
     internal struct ValueTuple<T1>
     {
         public T1 Item1;

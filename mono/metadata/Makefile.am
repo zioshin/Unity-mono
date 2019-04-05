@@ -162,8 +162,12 @@ libmonoruntime_config_la_CPPFLAGS = $(AM_CPPFLAGS) -DMONO_BINDIR=\"$(bindir)/\" 
 #
 libmonoruntime_support_la_SOURCES = $(support_sources)
 libmonoruntime_support_la_CFLAGS = $(filter-out @CXX_REMOVE_CFLAGS@, @CFLAGS@)
+if HAVE_STATIC_ZLIB
+libmonoruntime_support_la_LDFLAGS = $(STATIC_ZLIB_PATH)
+else
 if HAVE_ZLIB
 libmonoruntime_support_la_LDFLAGS = -lz
+endif
 endif
 
 #
@@ -269,7 +273,6 @@ common_sources = \
 	domain-internals.h	\
 	environment.c		\
 	environment.h		\
-	environment-internal.h	\
 	exception.c		\
 	exception.h		\
 	exception-internals.h	\
@@ -285,6 +288,7 @@ common_sources = \
 	icall-decl.h		\
 	icall-def.h		\
 	icall-internals.h \
+	icall-signatures.h \
 	icall-table.h	\
 	image.c			\
 	image-internals.h	\

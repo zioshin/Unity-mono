@@ -64,7 +64,7 @@ typedef struct  {
 } AssemblyVersionMap;
 
 /* the default search path is empty, the first slot is replaced with the computed value */
-static const char*
+static char*
 default_path [] = {
 	NULL,
 	NULL,
@@ -849,7 +849,8 @@ mono_assembly_setrootdir (const char *root_dir)
 	/*
 	 * Override the MONO_ASSEMBLIES directory configured at compile time.
 	 */
-	/* Leak if called more than once */
+	if (default_path [0])
+		g_free (default_path [0]);
 	default_path [0] = g_strdup (root_dir);
 }
 
@@ -1047,8 +1048,12 @@ mono_set_rootdir (void)
 	int  s;
 	char *str;
 
+#if defined(HAVE_READLINK)
 	/* Linux style */
 	s = readlink ("/proc/self/exe", buf, sizeof (buf)-1);
+#else
+	s = -1;
+#endif
 
 	if (s != -1){
 		buf [s] = 0;
@@ -1058,7 +1063,13 @@ mono_set_rootdir (void)
 
 	/* Solaris 10 style */
 	str = g_strdup_printf ("/proc/%d/path/a.out", getpid ());
+
+#if defined(HAVE_READLINK)
 	s = readlink (str, buf, sizeof (buf)-1);
+#else
+	s = -1;
+#endif
+
 	g_free (str);
 	if (s != -1){
 		buf [s] = 0;
@@ -1094,7 +1105,7 @@ mono_assemblies_init (void)
 	assembly_remapping_table = g_hash_table_new (g_str_hash, g_str_equal);
 
 	int i;
-	for (i = 0; i < G_N_ELEMENTS (framework_assemblies) - 1; ++i)
+	for (i = 0; i < G_N_ELEMENTS (framework_assemblies); ++i)
 		g_hash_table_insert (assembly_remapping_table, (void*)framework_assemblies [i].assembly_name, (void*)&framework_assemblies [i]);
 
 #endif
@@ -1506,7 +1517,7 @@ load_reference_by_aname_refonly_asmctx (MonoAssemblyName *aname, MonoAssembly *a
 	*status = MONO_IMAGE_OK;
 	{
 		/* We use the loaded corlib */
-		if (!strcmp (aname->name, "mscorlib")) {
+		if (!strcmp (aname->name, MONO_ASSEMBLY_CORLIB_NAME)) {
 			MonoAssemblyByNameRequest req;
 			mono_assembly_request_prepare (&req.request, sizeof (req), MONO_ASMCTX_DEFAULT);
 			req.requesting_assembly = assm;
@@ -1961,13 +1972,13 @@ static AssemblyPreLoadHook *assembly_preload_hook = NULL;
 static AssemblyPreLoadHook *assembly_refonly_preload_hook = NULL;
 
 static MonoAssembly *
-invoke_assembly_preload_hook (MonoAssemblyName *aname, gchar **assemblies_path)
+invoke_assembly_preload_hook (MonoAssemblyName *aname, gchar **apath)
 {
 	AssemblyPreLoadHook *hook;
 	MonoAssembly *assembly;
 
 	for (hook = assembly_preload_hook; hook; hook = hook->next) {
-		assembly = hook->func (aname, assemblies_path, hook->user_data);
+		assembly = hook->func (aname, apath, hook->user_data);
 		if (assembly != NULL)
 			return assembly;
 	}
@@ -1976,13 +1987,13 @@ invoke_assembly_preload_hook (MonoAssemblyName *aname, gchar **assemblies_path)
 }
 
 static MonoAssembly *
-invoke_assembly_refonly_preload_hook (MonoAssemblyName *aname, gchar **assemblies_path)
+invoke_assembly_refonly_preload_hook (MonoAssemblyName *aname, gchar **apath)
 {
 	AssemblyPreLoadHook *hook;
 	MonoAssembly *assembly;
 
 	for (hook = assembly_refonly_preload_hook; hook; hook = hook->next) {
-		assembly = hook->func (aname, assemblies_path, hook->user_data);
+		assembly = hook->func (aname, apath, hook->user_data);
 		if (assembly != NULL)
 			return assembly;
 	}
@@ -2850,7 +2861,7 @@ mono_assembly_request_load_from (MonoImage *image, const char *fname,
 
 	mono_assembly_fill_assembly_name (image, &ass->aname);
 
-	if (mono_defaults.corlib && strcmp (ass->aname.name, "mscorlib") == 0) {
+	if (mono_defaults.corlib && strcmp (ass->aname.name, MONO_ASSEMBLY_CORLIB_NAME) == 0) {
 		// MS.NET doesn't support loading other mscorlibs
 		g_free (ass);
 		g_free (base_dir);
@@ -3096,7 +3107,6 @@ parse_public_key (const gchar *key, gchar** pubkey, gboolean *is_ecma)
 static gboolean
 build_assembly_name (const char *name, const char *version, const char *culture, const char *token, const char *key, guint32 flags, guint32 arch, MonoAssemblyName *aname, gboolean save_public_key)
 {
-	gint major, minor, build, revision;
 	gint len;
 	gint version_parts;
 	gchar *pkeyptr, *encoded, tok [8];
@@ -3104,6 +3114,50 @@ build_assembly_name (const char *name, const char *version, const char *culture,
 	memset (aname, 0, sizeof (MonoAssemblyName));
 
 	if (version) {
+#ifdef ENABLE_NETCORE
+		int parts [4];
+		int i;
+		int part_len;
+
+		parts [2] = -1;
+		parts [3] = -1;
+		const char *s = version;
+		version_parts = 0;
+		for (i = 0; i < 4; ++i) {
+			int n = sscanf (s, "%u%n", &parts [i], &part_len);
+			if (n != 1)
+				return FALSE;
+			if (parts [i] < 0 || parts [i] > 65535)
+				return FALSE;
+			if (i < 2 && parts [i] == 65535)
+				return FALSE;
+			version_parts ++;
+			s += part_len;
+			if (s [0] == '\0')
+				break;
+			if (i < 3) {
+				if (s [0] != '.')
+					return FALSE;
+				s ++;
+			}
+		}
+		if (s [0] != '\0')
+			return FALSE;
+		if (version_parts < 2 || version_parts > 4)
+			return FALSE;
+		aname->major = parts [0];
+		aname->minor = parts [1];
+		if (version_parts >= 3)
+			aname->build = parts [2];
+		else
+			aname->build = -1;
+		if (version_parts == 4)
+			aname->revision = parts [3];
+		else
+			aname->revision = -1;
+#else
+		gint major, minor, build, revision;
+
 		version_parts = sscanf (version, "%u.%u.%u.%u", &major, &minor, &build, &revision);
 		if (version_parts < 2 || version_parts > 4)
 			return FALSE;
@@ -3121,6 +3175,7 @@ build_assembly_name (const char *name, const char *version, const char *culture,
 			aname->revision = revision;
 		else
 			aname->revision = 0;
+#endif
 	}
 	
 	aname->flags = flags;
@@ -3332,6 +3387,8 @@ mono_assembly_name_parse_full (const char *name, MonoAssemblyName *aname, gboole
 				arch = MONO_PROCESSOR_ARCHITECTURE_IA64;
 			else if (!g_ascii_strcasecmp (procarch, "AMD64"))
 				arch = MONO_PROCESSOR_ARCHITECTURE_AMD64;
+			else if (!g_ascii_strcasecmp (procarch, "ARM"))
+				arch = MONO_PROCESSOR_ARCHITECTURE_ARM;
 			else {
 				g_free (procarch_uq);
 				goto cleanup_and_fail;
@@ -4156,7 +4213,6 @@ mono_assembly_load_from_gac (MonoAssemblyName *aname,  gchar *filename, MonoImag
 MonoAssembly*
 mono_assembly_load_corlib (const MonoRuntimeInfo *runtime, MonoImageOpenStatus *status)
 {
-	char *corlib_file;
 	MonoAssemblyName *aname;
 	MonoAssemblyOpenRequest req;
 	mono_assembly_request_prepare (&req.request, sizeof (req), MONO_ASMCTX_DEFAULT);
@@ -4166,6 +4222,13 @@ mono_assembly_load_corlib (const MonoRuntimeInfo *runtime, MonoImageOpenStatus *
 		return corlib;
 	}
 
+#ifdef ENABLE_NETCORE
+	aname = mono_assembly_name_new (MONO_ASSEMBLY_CORLIB_NAME);
+	corlib = invoke_assembly_preload_hook (aname, NULL);
+	/* MonoCore preload hook should know how to find it */
+	/* FIXME: AOT compiler comes here without an installed hook. */
+	g_assert (corlib);
+#else
 	// A nonstandard preload hook may provide a special mscorlib assembly
 	aname = mono_assembly_name_new ("mscorlib.dll");
 	corlib = invoke_assembly_preload_hook (aname, assemblies_path);
@@ -4182,6 +4245,7 @@ mono_assembly_load_corlib (const MonoRuntimeInfo *runtime, MonoImageOpenStatus *
 	}
 
 	/* Normal case: Load corlib from mono/<version> */
+	char *corlib_file;
 	corlib_file = g_build_filename ("mono", runtime->framework_version, "mscorlib.dll", NULL);
 	if (assemblies_path) { // Custom assemblies path
 		corlib = load_in_path (corlib_file, (const char**)assemblies_path, &req, status);
@@ -4190,12 +4254,13 @@ mono_assembly_load_corlib (const MonoRuntimeInfo *runtime, MonoImageOpenStatus *
 			goto return_corlib_and_facades;
 		}
 	}
-	corlib = load_in_path (corlib_file, default_path, &req, status);
+	corlib = load_in_path (corlib_file, (const char**) default_path, &req, status);
 	g_free (corlib_file);
 
 return_corlib_and_facades:
 	if (corlib)  // FIXME: stop hardcoding 4.5 here
 		default_path [1] = g_strdup_printf ("%s/Facades", corlib->basedir);
+#endif /*!ENABLE_NETCORE*/
 		
 	return corlib;
 }
@@ -4252,7 +4317,13 @@ mono_assembly_candidate_predicate_sn_same_name (MonoAssembly *candidate, gpointe
 gboolean
 exact_sn_match (MonoAssemblyName *wanted_name, MonoAssemblyName *candidate_name)
 {
+#if ENABLE_NETCORE
+	gboolean result = mono_assembly_names_equal_flags (wanted_name, candidate_name, MONO_ANAME_EQ_IGNORE_VERSION);
+	if (result && assembly_names_compare_versions (wanted_name, candidate_name, -1) > 0)
+		result = false;
+#else
 	gboolean result = mono_assembly_names_equal (wanted_name, candidate_name);
+#endif
 
 	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_ASSEMBLY, "Predicate: candidate and wanted names %s\n",
 		    result ? "match, returning TRUE" : "don't match, returning FALSE");
@@ -4344,7 +4415,12 @@ mono_assembly_load_full_gac_base_default (MonoAssemblyName *aname,
 	/* Currently we retrieve the loaded corlib for reflection 
 	 * only requests, like a common reflection only assembly 
 	 */
-	if (strcmp (aname->name, "mscorlib") == 0 || strcmp (aname->name, "mscorlib.dll") == 0) {
+	gboolean name_is_corlib = strcmp (aname->name, MONO_ASSEMBLY_CORLIB_NAME) == 0;
+	/* Assembly.Load (new AssemblyName ("mscorlib.dll")) (respectively,
+	 * "System.Private.CoreLib.dll" for netcore) is treated the same as
+	 * "mscorlib" (resp "System.Private.CoreLib"). */
+	name_is_corlib = name_is_corlib || strcmp (aname->name, MONO_ASSEMBLY_CORLIB_NAME ".dll") == 0;
+	if (name_is_corlib) {
 		return mono_assembly_load_corlib (mono_get_runtime_info (), status);
 	}
 
@@ -4392,7 +4468,7 @@ mono_assembly_load_full_gac_base_default (MonoAssemblyName *aname,
 			}
 		}
 
-		result = load_in_path (filename, default_path, &req, status);
+		result = load_in_path (filename, (const char**) default_path, &req, status);
 		if (result)
 			result->in_gac = FALSE;
 		g_free (filename);

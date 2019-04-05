@@ -4833,8 +4833,6 @@ mono_arch_output_basic_block (MonoCompile *cfg, MonoBasicBlock *bb)
 		case OP_GC_SAFE_POINT: {
 			guint8 *br [1];
 
-			g_assert (mono_threads_are_safepoints_enabled ());
-
 			x86_test_membase_imm (code, ins->sreg1, 0, 1);
 			br[0] = code; x86_branch8 (code, X86_CC_EQ, 0, FALSE);
 			code = emit_call (cfg, code, MONO_PATCH_INFO_JIT_ICALL, "mono_threads_state_poll");
@@ -6171,7 +6169,7 @@ mono_arch_decompose_long_opts (MonoCompile *cfg, MonoInst *long_ins)
 
 		MONO_INST_NEW (cfg, ins, OP_PSHUFLED);
 		ins->dreg = long_ins->dreg;
-		ins->sreg1 = long_ins->dreg;;
+		ins->sreg1 = long_ins->dreg;
 		ins->inst_c0 = 0x44; /*Magic number for swizzling (X,Y,X,Y)*/
 		ins->klass = long_ins->klass;
 		ins->type = STACK_VTYPE;

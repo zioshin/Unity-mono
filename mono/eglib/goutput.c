@@ -41,6 +41,23 @@ static vprintf_func our_vprintf = vprintf;
 static void default_stdout_handler (const gchar *string);
 static void default_stderr_handler (const gchar *string);
 
+static GAbortFunc internal_abort_func;
+
+void
+g_assertion_disable_global (GAbortFunc abort_func)
+{
+	internal_abort_func = abort_func;
+}
+
+void
+g_assert_abort (void)
+{
+	if (internal_abort_func)
+		internal_abort_func ();
+	else
+		abort ();
+}
+
 void
 g_printv (const gchar *format, va_list args)
 {
@@ -123,8 +140,12 @@ g_logv_nofree (const gchar *log_domain, GLogLevelFlags log_level, const gchar *f
 {
 	char *msg;
 
-	if (g_vasprintf (&msg, format, args) < 0)
+	if (internal_abort_func) {
+		g_async_safe_vprintf (format, args);
 		return NULL;
+	} else if (g_vasprintf (&msg, format, args) < 0) {
+		return NULL;
+	}
 
 	g_logstr (log_domain, log_level, msg);
 	return msg;
@@ -237,7 +258,7 @@ g_log_default_handler (const gchar *log_domain, GLogLevelFlags log_level, const 
 {
 	android_log (to_android_priority (log_level), log_domain, message);
 	if (log_level & fatal)
-		abort ();
+		g_assert_abort ();
 }
 
 static void
@@ -278,7 +299,7 @@ g_log_default_handler (const gchar *log_domain, GLogLevelFlags log_level, const 
 {
 	asl_log (NULL, NULL, to_asl_priority (log_level), "%s", message);
 	if (log_level & fatal)
-		abort ();
+		g_assert_abort ();
 }
 
 static void
@@ -308,7 +329,7 @@ g_log_default_handler (const gchar *log_domain, GLogLevelFlags log_level, const 
 	if (log_level & fatal) {
 		fflush (stdout);
 		fflush (stderr);
-		abort ();
+		g_assert_abort ();
 	}
 }
 

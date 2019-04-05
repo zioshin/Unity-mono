@@ -947,7 +947,7 @@ namespace System {
 				InternalPushDomainRef (domain);
 				pushed = true;
 				InternalSetDomain (domain);
-				object o = ((MonoMethod) method).InternalInvoke (obj, args, out exc);
+				object o = ((RuntimeMethodInfo) method).InternalInvoke (obj, args, out exc);
 				if (exc != null)
 					throw exc;
 				return o;
@@ -969,7 +969,7 @@ namespace System {
 				InternalPushDomainRefByID (domain_id);
 				pushed = true;
 				InternalSetDomainByID (domain_id);
-				object o = ((MonoMethod) method).InternalInvoke (obj, args, out exc);
+				object o = ((RuntimeMethodInfo) method).InternalInvoke (obj, args, out exc);
 				if (exc != null)
 					throw exc;
 				return o;
@@ -1338,19 +1338,20 @@ namespace System {
 			}
 		}
 
-		internal Assembly DoTypeResolve (Object name_or_tb)
+#if MONO_FEATURE_SRE
+		internal Assembly DoTypeBuilderResolve (TypeBuilder tb)
 		{
 			if (TypeResolve == null)
 				return null;
 
-			string name;
-
-#if MONO_FEATURE_SRE
-			if (name_or_tb is TypeBuilder)
-				name = ((TypeBuilder) name_or_tb).FullName;
-			else
+			return DoTypeResolve (tb.FullName);
+		}
 #endif
-				name = (string) name_or_tb;
+
+		internal Assembly DoTypeResolve (string name)
+		{
+			if (TypeResolve == null)
+				return null;
 
 			/* Prevent infinite recursion */
 			var ht = type_resolve_in_progress;

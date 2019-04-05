@@ -833,10 +833,13 @@ mono_arch_unwind_frame (MonoDomain *domain, MonoJitTlsData *jit_tls,
 		regs [X86_EDI] = new_ctx->edi;
 		regs [X86_NREG] = new_ctx->eip;
 
-		mono_unwind_frame ((guint8*)unwind_info, unwind_info_len, (guint8*)ji->code_start,
+		gboolean success = mono_unwind_frame ((guint8*)unwind_info, unwind_info_len, (guint8*)ji->code_start,
 						   (guint8*)ji->code_start + ji->code_size,
 						   (guint8*)ip, NULL, regs, MONO_MAX_IREGS + 1,
 						   save_locations, MONO_MAX_IREGS, &cfa);
+
+		if (!success)
+			return FALSE;
 
 		new_ctx->eax = regs [X86_EAX];
 		new_ctx->ebx = regs [X86_EBX];
@@ -1122,8 +1125,11 @@ mono_arch_handle_altstack_exception (void *sigctx, MONO_SIG_HANDLER_INFO_TYPE *s
 	}
 	if (stack_ovf)
 		exc = mono_domain_get ()->stack_overflow_ex;
-	if (!ji)
-		mono_handle_native_crash ("SIGSEGV", sigctx, siginfo);
+	if (!ji) {
+		MonoContext mctx;
+		mono_sigctx_to_monoctx (sigctx, &mctx);
+		mono_handle_native_crash ("SIGSEGV", &mctx, siginfo);
+	}
 	/* setup a call frame on the real stack so that control is returned there
 	 * and exception handling can continue.
 	 * If this was a stack overflow the caller already ensured the stack pages

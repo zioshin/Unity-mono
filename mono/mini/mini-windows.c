@@ -245,6 +245,18 @@ mono_runtime_cleanup_handlers (void)
 #endif
 }
 
+void
+mono_init_native_crash_info (void)
+{
+	return;
+}
+
+void
+mono_cleanup_native_crash_info (void)
+{
+	return;
+}
+
 #if G_HAVE_API_SUPPORT (HAVE_CLASSIC_WINAPI_SUPPORT | HAVE_UWP_WINAPI_SUPPORT)
 /* mono_chain_signal:
  *
@@ -262,13 +274,13 @@ MONO_SIG_HANDLER_SIGNATURE (mono_chain_signal)
 
 #ifndef MONO_CROSS_COMPILE
 void
-mono_dump_native_crash_info (const char *signal, void *ctx, MONO_SIG_HANDLER_INFO_TYPE *info)
+mono_dump_native_crash_info (const char *signal, MonoContext *mctx, MONO_SIG_HANDLER_INFO_TYPE *info)
 {
 	//TBD
 }
 
 void
-mono_post_native_crash_handler (const char *signal, void *ctx, MONO_SIG_HANDLER_INFO_TYPE *info, gboolean crash_chaining)
+mono_post_native_crash_handler (const char *signal, MonoContext *mctx, MONO_SIG_HANDLER_INFO_TYPE *info, gboolean crash_chaining)
 {
 	if (!crash_chaining)
 		abort ();

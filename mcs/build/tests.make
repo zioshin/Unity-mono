@@ -62,13 +62,25 @@ xunit_class_deps :=
 xunit_libs_ref = $(patsubst %,-r:$(topdir)/../external/xunit-binaries/%.dll,$(xunit_core))
 xunit_libs_ref += $(patsubst %,-r:$(topdir)/class/lib/$(PROFILE)/Facades/%.dll,$(xunit_deps))
 
-xunit_libs_dep = $(xunit_class_deps:%=$(topdir)/class/lib/$(PROFILE)/$(PARENT_PROFILE)%.dll)
+xunit_libs_dep = $(xunit_class_deps:%=$(topdir)/class/lib/$(PROFILE)/%.dll)
 xunit_libs_ref += $(xunit_libs_dep:%=-r:%)
 
-TEST_LIB_MCS_FLAGS = $(patsubst %,-r:$(topdir)/class/lib/$(PROFILE)/%.dll,$(TEST_LIB_REFS) $(DEFAULT_REFERENCES))
+TEST_LIB_REFS_ALL = $(TEST_LIB_REFS) $(DEFAULT_REFERENCES)
+
+ifdef TARGET_NET_REFERENCE
+# System*, mscorlib references come from the TARGET_NET_REFERENCE dir, others from the profile dir
+TEST_LIB_REFS_MONO = $(call _FILTER_OUT,System,$(call _FILTER_OUT,mscorlib,$(TEST_LIB_REFS_ALL)))
+TEST_LIB_REFS_SYSTEM = $(filter-out $(TEST_LIB_REFS_MONO),$(TEST_LIB_REFS_ALL))
+
+TEST_LIB_MCS_FLAGS = $(patsubst %,-r:$(topdir)/../external/binary-reference-assemblies/$(TARGET_NET_REFERENCE)/%.dll,$(TEST_LIB_REFS_SYSTEM))
+TEST_LIB_MCS_FLAGS += $(patsubst %,-r:$(topdir)/class/lib/$(PROFILE_DIRECTORY)/%.dll,$(TEST_LIB_REFS_MONO))
+else
+TEST_LIB_MCS_FLAGS = $(patsubst %,-r:$(topdir)/class/lib/$(PROFILE_DIRECTORY)/%.dll,$(TEST_LIB_REFS_ALL))
+endif
+
 XTEST_LIB_MCS_FLAGS = $(patsubst %,-r:$(topdir)/class/lib/$(PROFILE)/%.dll,$(XTEST_LIB_REFS) $(DEFAULT_REFERENCES))
 
-test_nunit_dep = $(test_nunit_lib:%=$(topdir)/class/lib/$(PROFILE)/$(PARENT_PROFILE)%)
+test_nunit_dep = $(test_nunit_lib:%=$(topdir)/class/lib/$(PROFILE)/%)
 test_nunit_ref = $(test_nunit_dep:%=-r:%)
 tests_CLEAN_FILES += TestResult*.xml
 
@@ -92,7 +104,8 @@ endif
 tests_CLEAN_FILES += $(test_lib_output) $(test_lib_output:$(ASSEMBLY_EXT)=.pdb)
 
 xtest_sourcefile_base = $(PROFILE_PLATFORM)_$(PROFILE)_$(ASSEMBLY:$(ASSEMBLY_EXT)=_xtest.dll.sources)
-xtest_sourcefile_base_excludes = $(PROFILE)_$(ASSEMBLY:$(ASSEMBLY_EXT)=_xtest.dll.exclude.sources)
+xtest_sourcefile_base_excludes_full = $(PROFILE_PLATFORM)_$(PROFILE)_$(ASSEMBLY:$(ASSEMBLY_EXT)=_xtest.dll.exclude.sources)
+xtest_sourcefile_base_excludes = $(xtest_sourcefile_base_excludes_full:_%=%)
 
 xunit_test_lib = $(PROFILE)_$(ASSEMBLY:$(ASSEMBLY_EXT)=_xunit-test.dll)
 xtest_lib_output = $(test_lib_dir)/$(xunit_test_lib)
@@ -119,9 +132,7 @@ $(test_nunit_dep): $(topdir)/build/deps/nunit-$(PROFILE).stamp
 	@if test -f $@; then :; else rm -f $<; $(MAKE) $<; fi
 
 $(topdir)/build/deps/nunit-$(PROFILE).stamp:
-ifndef PARENT_PROFILE
 	cd ${topdir}/tools/nunit-lite && $(MAKE)
-endif
 	echo "stamp" >$@
 
 tests_CLEAN_FILES += $(topdir)/build/deps/nunit-$(PROFILE).stamp
@@ -209,7 +220,7 @@ MKBUNDLE_EXE = $(topdir)/class/lib/$(PROFILE)/mkbundle.exe
 TEST_ASSEMBLIES:=$(sort $(patsubst .//%,%,$(filter-out %.exe.static %.dll.dll %.exe.dll %bare% %plaincore% %secxml% %Facades% %ilasm%,$(filter %.dll,$(wildcard $(topdir)/class/lib/$(PROFILE)/tests/*)))))
 
 $(MKBUNDLE_EXE): $(topdir)/tools/mkbundle/mkbundle.cs
-	make -C $(topdir)/tools/mkbundle
+	$(MAKE) -C $(topdir)/tools/mkbundle
 
 mkbundle-all-tests:
 	$(Q_AOT) $(MAKE) -C $(topdir)/class do-test
@@ -265,7 +276,7 @@ test_library = $(ASSEMBLY:$(ASSEMBLY_EXT)=)_test$(ASSEMBLY_EXT)
 
 test_sourcefile = $(depsdir)/$(PROFILE_PLATFORM)_$(PROFILE)_$(test_library).sources
 $(test_sourcefile): $(test_sourcefile_base) $(wildcard *_test.dll.sources) $(wildcard *_test.dll.exclude.sources) $(depsdir)/.stamp
-	$(GENSOURCES) --trace:4 --basedir:./Test --strict --platformsdir:$(topdir)/build "$@" "$(test_library)" "$(PROFILE_PLATFORM)" "$(PROFILE)"
+	$(GENSOURCES) --basedir:./Test --strict --platformsdir:$(topdir)/build "$@" "$(test_library)" "$(PROFILE_PLATFORM)" "$(PROFILE)"
 
 test_response = $(depsdir)/$(PROFILE_PLATFORM)_$(PROFILE)_$(test_library).response
 $(test_response): $(test_sourcefile) $(topdir)/build/tests.make $(depsdir)/.stamp
@@ -301,7 +312,11 @@ XTEST_HARNESS_PATH := $(topdir)/../external/xunit-binaries
 XTEST_HARNESS = $(XTEST_HARNESS_PATH)/xunit.console.exe
 XTEST_RESULT_FILE := TestResult-$(PROFILE)-xunit.xml
 XTEST_HARNESS_FLAGS := -noappdomain -noshadow -parallel none -nunit $(XTEST_RESULT_FILE)
+ifdef OUTER_LOOP
+XTEST_TRAIT := -notrait category=failing -notrait category=nonmonotests -notrait Benchmark=true
+else
 XTEST_TRAIT := -notrait category=failing -notrait category=nonmonotests -notrait Benchmark=true -notrait category=outerloop
+endif
 # The logic is double inverted so this actually excludes tests not intented for current platform
 # best to search for `property name="category"` in the xml output to see what's going on
 # https://github.com/dotnet/buildtools/blob/master/src/xunit.netcore.extensions/Discoverers/PlatformSpecificDiscoverer.cs

@@ -21,7 +21,7 @@ endif
 
 SUBDIRS = $(build_with_msvc) mk po $(libgc_dir) $(bdwgc_dir) llvm mono $(ikvm_native_dir) support data runtime scripts man samples $(tools_dir) $(build_without_msvc) $(docs_dir) acceptance-tests
 # Keep in sync with SUBDIRS
-DIST_SUBDIRS = $(build_with_msvc) m4 mk po $(libgc_dir) $(bdwgc_dir) llvm mono ikvm-native support data runtime scripts man samples tools $(build_without_msvc) docs acceptance-tests
+DIST_SUBDIRS = $(build_with_msvc) m4 mk po $(libgc_dir) $(bdwgc_dir) llvm mono ikvm-native support data runtime scripts man samples tools $(build_without_msvc) docs acceptance-tests netcore
 
 all: update_submodules
 
@@ -59,7 +59,7 @@ dist-hook:
 	rm -f `find $(top_distdir)/external -name '\.dirstamp'`
 	rm -f `find $(top_distdir)/external -path '*\.exe' -not -path '*/roslyn-binaries/*'`
 	rm -f `find $(top_distdir)/external -path '*\.dll' -not -path '*/binary-reference-assemblies/*' -not -path '*/roslyn-binaries/*' -not -path '*/helix-binaries/*'`
-	rm -rf "$(top_distdir)/external/linker/linker/Tests"
+	rm -rf "$(top_distdir)/external/linker/test"
 
 pkgconfigdir = $(libdir)/pkgconfig
 noinst_DATA = mono-uninstalled.pc

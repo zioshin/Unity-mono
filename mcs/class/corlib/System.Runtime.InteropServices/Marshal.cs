@@ -41,13 +41,13 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 using System.Runtime.ConstrainedExecution;
-#if !FULL_AOT_RUNTIME
+#if !FULL_AOT_RUNTIME && !NETCORE
 using Mono.Interop;
 #endif
 
 namespace System.Runtime.InteropServices
 {
-	public static class Marshal
+	public static partial class Marshal
 	{
 		/* fields */
 		public static readonly int SystemMaxDBCSCharSize = 2; // don't know what this is
@@ -69,13 +69,13 @@ namespace System.Runtime.InteropServices
 #endif
 		}
 
-		[MonoTODO]
+
 		public static bool AreComObjectsAvailableForCleanup ()
 		{
 			return false;
 		}
 
-		[MonoTODO]
+
 		public static void CleanupUnusedObjectsInCurrentContext ()
 		{
 			if (Environment.IsRunningOnWindows)
@@ -98,13 +98,13 @@ namespace System.Runtime.InteropServices
 			return AllocHGlobal ((IntPtr)cb);
 		}
 
-		[MonoTODO]
+
 		public static object BindToMoniker (string monikerName)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static void ChangeWrapperHandleStrength (object otp, bool fIsWeak)
 		{
 			throw new NotImplementedException ();
@@ -296,7 +296,7 @@ namespace System.Runtime.InteropServices
 		{
 #if UNITY_AOT
             throw new NotImplementedException("Marshal.CreateWrapperOfType is not implemented.");
-#elif FULL_AOT_RUNTIME
+#elif FULL_AOT_RUNTIME || NETCORE
 			throw new PlatformNotSupportedException ();
 #else
 			__ComObject co = o as __ComObject;
@@ -422,13 +422,13 @@ namespace System.Runtime.InteropServices
 			return type.FullName;
 		}
 
-		[MonoTODO]
+
 		public static object GetActiveObject (string progID)
 		{
 			throw new NotImplementedException ();
 		}
 
-#if !MOBILE || UNITY_AOT
+#if (!MOBILE && !NETCORE) || UNITY_AOT
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		private extern static IntPtr GetCCW (object o, Type T);
 
@@ -446,7 +446,7 @@ namespace System.Runtime.InteropServices
 
 		public static IntPtr GetComInterfaceForObject (object o, Type T)
 		{
-#if MOBILE && !UNITY_AOT
+#if (MOBILE || NETCORE) && !UNITY_AOT
 			throw new PlatformNotSupportedException ();
 #else
 			IntPtr pItf = GetComInterfaceForObjectInternal (o, T);
@@ -455,24 +455,25 @@ namespace System.Runtime.InteropServices
 #endif
 		}
 
-		[MonoTODO]
+
+#if !NETCORE
 		public static IntPtr GetComInterfaceForObject (object o, Type T, CustomQueryInterfaceMode mode)
 		{
 			throw new NotImplementedException ();
 		}
+#endif
 
 		public static IntPtr GetComInterfaceForObject<T, TInterface> (T o) {
 			return GetComInterfaceForObject ((object)o, typeof (T));
 		}
 
-#if !FULL_AOT_RUNTIME || UNITY_AOT
-		[MonoTODO]
+#if (!FULL_AOT_RUNTIME && !NETCORE)  || UNITY_AOT
+
 		public static IntPtr GetComInterfaceForObjectInContext (object o, Type t)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoNotSupportedAttribute ("MSDN states user code should never need to call this method.")]
 		public static object GetComObjectData (object obj, object key)
 		{
 			throw new NotSupportedException ("MSDN states user code should never need to call this method.");
@@ -498,13 +499,13 @@ namespace System.Runtime.InteropServices
 #endif
 		}
 
-		[MonoTODO]
+
 		public static int GetEndComSlot (Type t)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		[ComVisible (true)]
 		public static IntPtr GetExceptionPointers()
 		{
@@ -516,9 +517,20 @@ namespace System.Runtime.InteropServices
 			if (m == null)
 				throw new ArgumentNullException ("m");
 
-			return m.GetHINSTANCE ();
+			if (m is RuntimeModule rm)
+				return RuntimeModule.GetHINSTANCE (rm.MonoModule);
+
+			return (IntPtr)(-1);
 		}
-#endif // !FULL_AOT_RUNTIME || UNITY_AOT
+#else
+		public static IntPtr GetHINSTANCE (Module m) => throw new PlatformNotSupportedException();
+		public static IntPtr GetIDispatchForObject (object o) => throw new PlatformNotSupportedException();
+		public static object GetTypedObjectForIUnknown (IntPtr pUnk, Type t) => throw new PlatformNotSupportedException();
+		public static bool SetComObjectData (object obj, object key, object data) => throw new PlatformNotSupportedException();
+		public static object GetComObjectData (object obj, object key) => throw new PlatformNotSupportedException();
+		public static string GenerateProgIdForType (Type type) => throw new PlatformNotSupportedException();
+		public static Guid GenerateGuidForType (Type type) => throw new PlatformNotSupportedException();
+#endif // !FULL_AOT_RUNTIME
 
 		public static int GetExceptionCode ()
 		{
@@ -537,7 +549,7 @@ namespace System.Runtime.InteropServices
 			return e._HResult;
 		}
 
-		[MonoTODO]
+
 		[ReliabilityContract (Consistency.WillNotCorruptState, Cer.Success)]
 		public static int GetHRForLastWin32Error()
 		{
@@ -561,38 +573,35 @@ namespace System.Runtime.InteropServices
 		}
 #endif // !FULL_AOT_RUNTIME || UNITY_AOT
 
-#if !FULL_AOT_RUNTIME
-		[MonoTODO]
 		public static IntPtr GetIDispatchForObjectInContext (object o)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static IntPtr GetITypeInfoForType (Type t)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static IntPtr GetIUnknownForObjectInContext (object o)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		[Obsolete ("This method has been deprecated")]
 		public static IntPtr GetManagedThunkForUnmanagedMethodPtr (IntPtr pfnMethodToWrap, IntPtr pbSignature, int cbSignature)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static MemberInfo GetMethodInfoForComSlot (Type t, int slot, ref ComMemberType memberType)
 		{
 			throw new NotImplementedException ();
 		}
-#endif // !FULL_AOT_RUNTIME
 
 #if !FULL_AOT_RUNTIME || UNITY_AOT
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
@@ -613,7 +622,7 @@ namespace System.Runtime.InteropServices
 
 		public static void GetNativeVariantForObject (object obj, IntPtr pDstNativeVariant)
 		{
-#if FULL_AOT_RUNTIME && !UNITY_AOT
+#if (FULL_AOT_RUNTIME || NETCORE) && !UNITY_AOT
 			throw new PlatformNotSupportedException ();
 #else
 			Variant vt = new Variant();
@@ -633,7 +642,7 @@ namespace System.Runtime.InteropServices
 
 		public static object GetObjectForIUnknown (IntPtr pUnk)
 		{
-#if (MOBILE || FULL_AOT_RUNTIME) && !UNITY_AOT
+#if (MOBILE || FULL_AOT_RUNTIME || NETCORE) && !UNITY_AOT
 			throw new PlatformNotSupportedException ();
 #else
 			object obj = GetObjectForCCW (pUnk);
@@ -650,7 +659,7 @@ namespace System.Runtime.InteropServices
 
 		public static object GetObjectForNativeVariant (IntPtr pSrcNativeVariant)
 		{
-#if FULL_AOT_RUNTIME && !UNITY_AOT
+#if (FULL_AOT_RUNTIME || NETCORE) && !UNITY_AOT
 			throw new PlatformNotSupportedException ();
 #else
 			Variant vt = (Variant)Marshal.PtrToStructure(pSrcNativeVariant, typeof(Variant));
@@ -660,7 +669,7 @@ namespace System.Runtime.InteropServices
 
 		public static T GetObjectForNativeVariant<T> (IntPtr pSrcNativeVariant)
 		{
-#if FULL_AOT_RUNTIME && !UNITY_AOT
+#if (FULL_AOT_RUNTIME || NETCORE) && !UNITY_AOT
 			throw new PlatformNotSupportedException ();
 #else
 			Variant vt = (Variant)Marshal.PtrToStructure(pSrcNativeVariant, typeof(Variant));
@@ -670,7 +679,7 @@ namespace System.Runtime.InteropServices
 
 		public static object[] GetObjectsForNativeVariants (IntPtr aSrcNativeVariant, int cVars)
 		{
-#if FULL_AOT_RUNTIME && !UNITY_AOT
+#if (FULL_AOT_RUNTIME || NETCORE) && !UNITY_AOT
 			throw new PlatformNotSupportedException ();
 #else
 			if (cVars < 0)
@@ -685,7 +694,7 @@ namespace System.Runtime.InteropServices
 
 		public static T[] GetObjectsForNativeVariants<T> (IntPtr aSrcNativeVariant, int cVars)
 		{
-#if FULL_AOT_RUNTIME && !UNITY_AOT
+#if (FULL_AOT_RUNTIME || NETCORE) && !UNITY_AOT
 			throw new PlatformNotSupportedException ();
 #else
 			if (cVars < 0)
@@ -698,7 +707,7 @@ namespace System.Runtime.InteropServices
 #endif
 		}
 
-		[MonoTODO]
+
 		public static int GetStartComSlot (Type t)
 		{
 #if FULL_AOT_RUNTIME && !UNITY_AOT
@@ -709,15 +718,21 @@ namespace System.Runtime.InteropServices
 		}
 
 #if !FULL_AOT_RUNTIME
-		[MonoTODO]
+
+#if !NETCORE
+
 		[Obsolete ("This method has been deprecated")]
 		public static Thread GetThreadFromFiberCookie (int cookie)
 		{
 			throw new NotImplementedException ();
 		}
+#endif
 
 		public static object GetTypedObjectForIUnknown (IntPtr pUnk, Type t)
 		{
+#if NETCORE
+			throw new NotImplementedException ();
+#else
 			ComInteropProxy proxy = new ComInteropProxy (pUnk, t);
 			__ComObject co = (__ComObject)proxy.GetTransparentProxy ();
 			foreach (Type itf in t.GetInterfaces ()) {
@@ -727,86 +742,93 @@ namespace System.Runtime.InteropServices
 				}
 			}
 			return co;
+#endif
 		}
 
-		[MonoTODO]
+
 		public static Type GetTypeForITypeInfo (IntPtr piTypeInfo)
 		{
 			throw new NotImplementedException ();
 		}
 
+#if !NETCORE
 		[Obsolete]
-		[MonoTODO]
+
 		public static string GetTypeInfoName (UCOMITypeInfo pTI)
 		{
 			throw new NotImplementedException ();
 		}
 
 		[Obsolete]
-		[MonoTODO]
+
 		public static Guid GetTypeLibGuid (UCOMITypeLib pTLB)
 		{
 			throw new NotImplementedException ();
 		}
+#endif
 
-		[MonoTODO]
+
 		public static Guid GetTypeLibGuid (ITypeLib typelib)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static Guid GetTypeLibGuidForAssembly (Assembly asm)
 		{
 			throw new NotImplementedException ();
 		}
 
+#if !NETCORE
 		[Obsolete]
-		[MonoTODO]
+
 		public static int GetTypeLibLcid (UCOMITypeLib pTLB)
 		{
 			throw new NotImplementedException ();
 		}
+#endif
 
-		[MonoTODO]
+
 		public static int GetTypeLibLcid (ITypeLib typelib)
 		{
 			throw new NotImplementedException ();
 		}
 
+#if !NETCORE
 		[Obsolete]
-		[MonoTODO]
+
 		public static string GetTypeLibName (UCOMITypeLib pTLB)
 		{
 			throw new NotImplementedException ();
 		}
+#endif
 
-		[MonoTODO]
+
 		public static string GetTypeLibName (ITypeLib typelib)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static void GetTypeLibVersionForAssembly (Assembly inputAssembly, out int majorVersion, out int minorVersion)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		[Obsolete ("This method has been deprecated")]
 		public static IntPtr GetUnmanagedThunkForManagedMethodPtr (IntPtr pfnMethodToWrap, IntPtr pbSignature, int cbSignature)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static bool IsTypeVisibleFromCom (Type t)
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoTODO]
+
 		public static int NumParamBytes (MethodInfo m)
 		{
 			throw new NotImplementedException ();
@@ -818,10 +840,12 @@ namespace System.Runtime.InteropServices
 			throw new PlatformNotSupportedException ();
 		}
 
+#if !NETCORE
 		public static string GetTypeInfoName (ITypeInfo typeInfo)
 		{
 			throw new PlatformNotSupportedException ();
 		}
+#endif
 
 		public static object GetUniqueObjectForIUnknown (IntPtr unknown)
 		{
@@ -937,7 +961,7 @@ namespace System.Runtime.InteropServices
 			}
 		}
 
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static byte ReadByte ([In, MarshalAs (UnmanagedType.AsAny)] object ptr, int ofs)
 		{
@@ -971,7 +995,7 @@ namespace System.Runtime.InteropServices
 			return s;
 		}
 
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static short ReadInt16 ([In, MarshalAs(UnmanagedType.AsAny)] object ptr, int ofs)
 		{
@@ -1006,7 +1030,7 @@ namespace System.Runtime.InteropServices
 		}
 
 		[ReliabilityContractAttribute (Consistency.WillNotCorruptState, Cer.Success)]
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static int ReadInt32 ([In, MarshalAs(UnmanagedType.AsAny)] object ptr, int ofs)
 		{
@@ -1041,7 +1065,7 @@ namespace System.Runtime.InteropServices
 		}
 
 		[ReliabilityContractAttribute (Consistency.WillNotCorruptState, Cer.Success)]
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static long ReadInt64 ([In, MarshalAs (UnmanagedType.AsAny)] object ptr, int ofs)
 		{
@@ -1067,7 +1091,7 @@ namespace System.Runtime.InteropServices
 		}
 
 		[ReliabilityContractAttribute (Consistency.WillNotCorruptState, Cer.Success)]
-		[MonoTODO]
+
 		public static IntPtr ReadIntPtr ([In, MarshalAs (UnmanagedType.AsAny)] object ptr, int ofs)
 		{
 			throw new NotImplementedException ();
@@ -1118,13 +1142,12 @@ namespace System.Runtime.InteropServices
 
 #if !FULL_AOT_RUNTIME
 		[Obsolete]
-		[MonoTODO]
+
 		public static void ReleaseThreadCache()
 		{
 			throw new NotImplementedException ();
 		}
 
-		[MonoNotSupportedAttribute ("MSDN states user code should never need to call this method.")]
 		public static bool SetComObjectData (object obj, object key, object data)
 		{
 			throw new NotSupportedException ("MSDN states user code should never need to call this method.");
@@ -1251,6 +1274,9 @@ namespace System.Runtime.InteropServices
 			if (s == null)
 				throw new ArgumentNullException ("s");
 
+#if NETCORE
+			return s.MarshalToBSTR ();
+#else
 			byte[] buffer = s.GetBuffer ();
 			int len = s.Length;
 			
@@ -1265,14 +1291,31 @@ namespace System.Runtime.InteropServices
 			}
 			fixed (byte* fixed_buffer = buffer)
 				return BufferToBSTR ((char*)fixed_buffer, len);
+#endif
 		}
 
-		public static IntPtr SecureStringToCoTaskMemAnsi (SecureString s)
+		internal delegate IntPtr SecureStringAllocator(int len);
+
+		internal static IntPtr SecureStringCoTaskMemAllocator (int len)
+		{
+			return AllocCoTaskMem (len);
+		}
+
+		internal static IntPtr SecureStringGlobalAllocator (int len)
+		{
+			return AllocHGlobal (len);
+		}
+
+		internal static IntPtr SecureStringToAnsi (SecureString s, SecureStringAllocator allocator)
 		{
 			if (s == null)
 				throw new ArgumentNullException ("s");
+
+#if NETCORE
+			return s.MarshalToString (false, false);
+#else
 			int len = s.Length;
-			IntPtr ctm = AllocCoTaskMem (len + 1);
+			IntPtr ctm = allocator (len + 1);
 			byte [] copy = new byte [len+1];
 
 			try {
@@ -1293,14 +1336,18 @@ namespace System.Runtime.InteropServices
 				}
 			}
 			return ctm;
+#endif
 		}
 
-		public static IntPtr SecureStringToCoTaskMemUnicode (SecureString s)
+		internal static IntPtr SecureStringToUnicode (SecureString s, SecureStringAllocator allocator)
 		{
 			if (s == null)
 				throw new ArgumentNullException ("s");
+#if NETCORE
+			return s.MarshalToString (false, true);
+#else
 			int len = s.Length;
-			IntPtr ctm = AllocCoTaskMem (len * 2 + 2);
+			IntPtr ctm = allocator (len * 2 + 2);
 			byte [] buffer = null;
 			try {
 				buffer = s.GetBuffer ();
@@ -1315,20 +1362,40 @@ namespace System.Runtime.InteropServices
 					}
 			}
 			return ctm;
+#endif
+
+		}
+
+		public static IntPtr SecureStringToCoTaskMemAnsi (SecureString s)
+		{
+			return SecureStringToAnsi (s, SecureStringCoTaskMemAllocator);
+		}
+
+		public static IntPtr SecureStringToCoTaskMemUnicode (SecureString s)
+		{
+			return SecureStringToUnicode (s, SecureStringCoTaskMemAllocator);
 		}
 
 		public static IntPtr SecureStringToGlobalAllocAnsi (SecureString s)
 		{
 			if (s == null)
 				throw new ArgumentNullException ("s");
-			return SecureStringToCoTaskMemAnsi (s);
+#if NETCORE
+			return s.MarshalToString (true, false);
+#else
+			return SecureStringToAnsi (s, SecureStringGlobalAllocator);
+#endif
 		}
 
 		public static IntPtr SecureStringToGlobalAllocUnicode (SecureString s)
 		{
 			if (s == null)
 				throw new ArgumentNullException ("s");
-			return SecureStringToCoTaskMemUnicode (s);
+#if NETCORE
+			return s.MarshalToString (true, true);
+#else
+			return SecureStringToUnicode (s, SecureStringGlobalAllocator);
+#endif
 		}
 
 		[ReliabilityContractAttribute (Consistency.WillNotCorruptState, Cer.MayFail)]
@@ -1376,7 +1443,7 @@ namespace System.Runtime.InteropServices
 			}
 		}
 
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static void WriteByte ([In, Out, MarshalAs (UnmanagedType.AsAny)] object ptr, int ofs, byte val)
 		{
@@ -1404,7 +1471,7 @@ namespace System.Runtime.InteropServices
 			}
 		}
 
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static void WriteInt16 ([In, Out, MarshalAs (UnmanagedType.AsAny)] object ptr, int ofs, short val)
 		{
@@ -1421,7 +1488,7 @@ namespace System.Runtime.InteropServices
 			WriteInt16 (ptr, ofs, (short)val);
 		}
 
-		[MonoTODO]
+
 		public static void WriteInt16([In, Out] object ptr, int ofs, char val)
 		{
 			throw new NotImplementedException ();
@@ -1449,7 +1516,7 @@ namespace System.Runtime.InteropServices
 			}
 		}
 
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static void WriteInt32([In, Out, MarshalAs(UnmanagedType.AsAny)] object ptr, int ofs, int val)
 		{
@@ -1480,7 +1547,7 @@ namespace System.Runtime.InteropServices
 				Buffer.Memcpy (addr, (byte*)&val, 8);
 		}
 
-		[MonoTODO]
+
 		[SuppressUnmanagedCodeSecurity]
 		public static void WriteInt64 ([In, Out, MarshalAs (UnmanagedType.AsAny)] object ptr, int ofs, long val)
 		{
@@ -1503,7 +1570,7 @@ namespace System.Runtime.InteropServices
 				WriteInt64 (ptr, ofs, (long)val);
 		}
 
-		[MonoTODO]
+
 		public static void WriteIntPtr([In, Out, MarshalAs(UnmanagedType.AsAny)] object ptr, int ofs, IntPtr val)
 		{
 			throw new NotImplementedException ();
@@ -1579,6 +1646,9 @@ namespace System.Runtime.InteropServices
 			//const int COR_E_WEAKREFERENCE = unchecked ((int)?);
 			//const int COR_E_VTABLECALLSNOTSUPPORTED = unchecked ((int));
 
+#if NETCORE
+			return new COMException ("", errorCode);
+#else
 			switch (errorCode) {
 				case MSEE_E_APPDOMAINUNLOADED:
 					return new AppDomainUnloadedException ();
@@ -1720,6 +1790,7 @@ namespace System.Runtime.InteropServices
 			if (errorCode < 0)
 				return new COMException ("", errorCode);
 			return null;
+#endif
 		}
 
 #if FEATURE_COMINTEROP
@@ -1867,6 +1938,18 @@ namespace System.Runtime.InteropServices
 		{
 		}
 
+#if NETCORE
+		internal static IntPtr AllocBSTR (int length)
+		{
+			throw new NotImplementedException ();
+		}
+
+		internal static bool IsPinnable (object obj)
+		{
+			throw new NotImplementedException ();
+		}
+#endif
+
 #if FEATURE_COMINTEROP || MONO_COM || UNITY_AOT
 		// Copied from referencesource/mscorlib/system/runtime/interopservices/marshal.cs
 		//====================================================================
@@ -1934,9 +2017,9 @@ namespace System.Runtime.InteropServices
 				gotExistingInstance = MarshalerInstanceCache.TryGetValue (key, out result);
 
 			if (!gotExistingInstance) {
-				MonoMethod getInstanceMethod;
+				RuntimeMethodInfo getInstanceMethod;
 				try {
-					getInstanceMethod = (MonoMethod)type.GetMethod (
+					getInstanceMethod = (RuntimeMethodInfo)type.GetMethod (
 						"GetInstance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.InvokeMethod,
 						null, new Type[] { typeof(string) }, null
 					);
@@ -1972,6 +2055,30 @@ namespace System.Runtime.InteropServices
 			}
 
 			return result;
+		}
+
+		public static unsafe IntPtr StringToCoTaskMemUTF8(string s)
+		{
+			if (s == null)
+			{
+				return IntPtr.Zero;
+			}
+
+			int nb = Encoding.UTF8.GetMaxByteCount(s.Length);
+
+			IntPtr pMem = AllocCoTaskMem(nb + 1);
+
+			int nbWritten;
+			byte* pbMem = (byte*)pMem;
+
+			fixed (char* firstChar = s)
+			{
+				nbWritten = Encoding.UTF8.GetBytes(firstChar, s.Length, pbMem, nb);
+			}
+
+			pbMem[nbWritten] = 0;
+
+			return pMem;
 		}
 	}
 }

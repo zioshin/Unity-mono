@@ -11,9 +11,8 @@
 #include <winsock2.h>
 #include <windows.h>
 #include "mono/metadata/w32file-win32-internals.h"
-#include "mono/metadata/profiler-private.h"
-#include "mono/metadata/w32error.h"
 #include "mono/metadata/w32subset.h"
+#include "icall-decl.h"
 
 void
 mono_w32file_init (void)
@@ -84,32 +83,19 @@ mono_w32file_delete (const gunichar2 *name)
 	return res;
 }
 
-static void
-cancel_w32_io (HANDLE file_handle)
-{
-	CancelIoEx (file_handle, NULL);
-}
-
 gboolean
-mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *bytesread, gint32 *win32error)
+mono_w32file_read(gpointer handle, gpointer buffer, guint32 numbytes, guint32 *bytesread, gint32 *win32error)
 {
+	gboolean res;
+	MonoThreadInfo *info = mono_thread_info_current ();
 
-	gboolean interrupted;
-	guint32 last_error;
-	gboolean res = FALSE;
-
-	mono_thread_info_install_interrupt (cancel_w32_io, handle, &interrupted);
-	if (interrupted)
-		return res;
-
+	mono_win32_enter_blocking_io_call (info, (HANDLE)handle);
 	MONO_ENTER_GC_SAFE;
-	res = ReadFile (handle, buffer, numbytes, (PDWORD)bytesread, NULL);
+	res = ReadFile ((HANDLE)handle, buffer, numbytes, (PDWORD)bytesread, NULL);
 	if (!res)
 		*win32error = GetLastError ();
 	MONO_EXIT_GC_SAFE;
-	mono_thread_info_uninstall_interrupt (&interrupted);
-	mono_w32error_set_last (last_error);
-
+	mono_win32_leave_blocking_io_call (info, (HANDLE)handle);
 
 	return res;
 }
@@ -117,21 +103,16 @@ mono_w32file_read (gpointer handle, gpointer buffer, guint32 numbytes, guint32 *
 gboolean
 mono_w32file_write (gpointer handle, gconstpointer buffer, guint32 numbytes, guint32 *byteswritten, gint32 *win32error)
 {
-	gboolean interrupted;
-	guint32 last_error;
-	gboolean res = FALSE;
-	
-	mono_thread_info_install_interrupt (cancel_w32_io, handle, &interrupted);
-	if (interrupted)
-		return res;
+	gboolean res;
+	MonoThreadInfo *info = mono_thread_info_current ();
 
+	mono_win32_enter_blocking_io_call (info, (HANDLE)handle);
 	MONO_ENTER_GC_SAFE;
-	res = WriteFile (handle, buffer, numbytes, (PDWORD)byteswritten, NULL);
+	res = WriteFile ((HANDLE)handle, buffer, numbytes, (PDWORD)byteswritten, NULL);
 	if (!res)
 		*win32error = GetLastError ();
 	MONO_EXIT_GC_SAFE;
-	mono_thread_info_uninstall_interrupt (&interrupted);
-	mono_w32error_set_last (last_error);
+	mono_win32_leave_blocking_io_call (info, (HANDLE)handle);
 
 	return res;
 }
@@ -544,6 +525,8 @@ mono_w32file_get_console_error (void)
 }
 #endif // HAVE_API_SUPPORT_WIN32_GET_STD_HANDLE
 
+#if HAVE_API_SUPPORT_WIN32_GET_FILE_SIZE_EX
+
 gint64
 mono_w32file_get_file_size (HANDLE handle, gint32 *error)
 {
@@ -559,6 +542,8 @@ mono_w32file_get_file_size (HANDLE handle, gint32 *error)
 	MONO_EXIT_GC_SAFE;
 	return length.QuadPart;
 }
+
+#endif // HAVE_API_SUPPORT_WIN32_GET_FILE_SIZE_EX
 
 // Support older UWP SDK.
 WINBASEAPI

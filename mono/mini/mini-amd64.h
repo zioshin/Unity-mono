@@ -381,12 +381,6 @@ typedef struct {
 
 #endif
 
-/*
- * some icalls like mono_array_new_va needs to be called using a different 
- * calling convention.
- */
-#define MONO_ARCH_VARARG_ICALLS 1
-
 #if !defined( HOST_WIN32 ) && !defined(__HAIKU__) && defined (HAVE_SIGACTION)
 
 #define MONO_ARCH_USE_SIGACTION 1
@@ -435,7 +429,6 @@ typedef struct {
 #define MONO_ARCH_HAVE_CMOV_OPS 1
 #define MONO_ARCH_HAVE_EXCEPTIONS_INIT 1
 #define MONO_ARCH_HAVE_GENERALIZED_IMT_TRAMPOLINE 1
-#define MONO_ARCH_HAVE_SIGCTX_TO_MONOCTX 1
 #define MONO_ARCH_HAVE_GET_TRAMPOLINES 1
 
 #define MONO_ARCH_INTERPRETER_SUPPORTED 1
@@ -480,7 +473,7 @@ typedef struct {
 #define MONO_ARCH_GSHAREDVT_SUPPORTED 1
 
 
-#if defined(TARGET_APPLETVOS)
+#if defined(HOST_TVOS)
 /* No signals */
 #define MONO_ARCH_NEED_DIV_CHECK 1
 #endif

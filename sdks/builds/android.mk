@@ -2,7 +2,9 @@
 ANDROID_URI?=https://dl.google.com/android/repository/
 ANT_URI?=https://archive.apache.org/dist/ant/binaries/
 
+ANDROID_SDK_PREFIX?=$(ANDROID_TOOLCHAIN_DIR)/sdk
 ANDROID_TOOLCHAIN_PREFIX?=$(ANDROID_TOOLCHAIN_DIR)/toolchains
+ANDROID_NEW_NDK=$(shell if test `grep 'Pkg\.Revision' $(ANDROID_TOOLCHAIN_DIR)/ndk/source.properties | cut -d '=' -f 2 | tr -d ' ' | cut -d '.' -f 1` -ge 18; then echo yes; else echo no; fi)
 
 ##
 # Parameters:
@@ -30,12 +32,14 @@ endef
 ifeq ($(UNAME),Darwin)
 $(eval $(call AndroidProvisioningTemplate,android-ndk-$(ANDROID_NDK_VERSION)-darwin-x86_64,ndk,,ndk))
 $(eval $(call AndroidProvisioningTemplate,platform-tools_r$(ANDROID_PLATFORM_TOOLS_VERSION)-darwin,sdk,platform-tools))
-$(eval $(call AndroidProvisioningTemplate,sdk-tools-darwin-4333796,sdk,tools))
+$(eval $(call AndroidProvisioningTemplate,sdk-tools-darwin-$(ANDROID_SDKTOOLS_VERSION),sdk,tools))
+$(eval $(call AndroidProvisioningTemplate,cmake-$(ANDROID_CMAKE_VERSION)-darwin-x86_64,sdk,cmake/$(ANDROID_CMAKE_VERSION)))
 else
 ifeq ($(UNAME),Linux)
 $(eval $(call AndroidProvisioningTemplate,android-ndk-$(ANDROID_NDK_VERSION)-linux-x86_64,ndk,,ndk))
 $(eval $(call AndroidProvisioningTemplate,platform-tools_r$(ANDROID_PLATFORM_TOOLS_VERSION)-linux,sdk,platform-tools))
-$(eval $(call AndroidProvisioningTemplate,sdk-tools-linux-4333796,sdk,tools))
+$(eval $(call AndroidProvisioningTemplate,sdk-tools-linux-$(ANDROID_SDKTOOLS_VERSION),sdk,tools))
+$(eval $(call AndroidProvisioningTemplate,cmake-$(ANDROID_CMAKE_VERSION)-linux-x86_64,sdk,cmake/$(ANDROID_CMAKE_VERSION)))
 endif
 endif
 
@@ -56,12 +60,13 @@ _android-$(1)_AR=$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-ar
 _android-$(1)_AS=$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-as
 _android-$(1)_CC=$$(CCACHE) $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-clang
 _android-$(1)_CXX=$$(CCACHE) $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-clang++
-_android-$(1)_CPP=$$(CCACHE) $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-cpp
-_android-$(1)_CXXCPP=$$(CCACHE) $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-cpp
+_android-$(1)_CPP=$$(CCACHE) $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-$$(if $(wildcard $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-cpp),cpp,clang -E)
+_android-$(1)_CXXCPP=$$(CCACHE) $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-$$(if $(wildcard $$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-cpp),cpp,clang++ -E)
 _android-$(1)_DLLTOOL=
 _android-$(1)_LD=$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-ld
 _android-$(1)_OBJDUMP="$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-objdump"
 _android-$(1)_RANLIB=$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-ranlib
+_android-$(1)_CMAKE=$$(ANDROID_SDK_PREFIX)/cmake/$(ANDROID_CMAKE_VERSION)/bin/cmake
 _android-$(1)_STRIP=$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/bin/$(3)-strip
 
 _android-$(1)_AC_VARS= \
@@ -72,17 +77,18 @@ _android-$(1)_AC_VARS= \
 
 _android-$(1)_CFLAGS= \
 	-fstack-protector \
-	-DMONODROID=1
+	-DMONODROID=1 $$(if $$(filter $$(ANDROID_NEW_NDK),yes),-D__ANDROID_API__=$$(ANDROID_SDK_VERSION_$(1)))
 
 _android-$(1)_CXXFLAGS= \
 	-fstack-protector \
-	-DMONODROID=1
+	-DMONODROID=1 $$(if $$(filter $$(ANDROID_NEW_NDK),yes),-D__ANDROID_API__=$$(ANDROID_SDK_VERSION_$(1)))
+
 
 _android-$(1)_CPPFLAGS= \
-	-I$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/usr/include
+	-I$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/sysroot/usr/include
 
 _android-$(1)_CXXCPPFLAGS= \
-	-I$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/usr/include
+	-I$$(ANDROID_TOOLCHAIN_PREFIX)/$(1)-clang/sysroot/usr/include
 
 _android-$(1)_LDFLAGS= \
 	-z now -z relro -z noexecstack \
@@ -101,6 +107,9 @@ _android-$(1)_CONFIGURE_FLAGS= \
 	--enable-minimal=ssa,portability,attach,verifier,full_messages,sgen_remset,sgen_marksweep_par,sgen_marksweep_fixed,sgen_marksweep_fixed_par,sgen_copying,logging,security,shared_handles,interpreter \
 	--enable-monodroid \
 	--with-btls-android-ndk=$$(ANDROID_TOOLCHAIN_DIR)/ndk \
+	--with-btls-android-api=$$(ANDROID_SDK_VERSION_$(1)) \
+	$$(if $$(filter $$(ANDROID_NEW_NDK),yes),--with-btls-android-ndk-asm-workaround) \
+	--with-btls-android-cmake-toolchain=$$(ANDROID_TOOLCHAIN_DIR)/ndk/build/cmake/android.toolchain.cmake \
 	--with-sigaltstack=yes \
 	--with-tls=pthread \
 	--without-ikvm-native \
@@ -186,25 +195,25 @@ define AndroidHostMxeTemplate
 
 _android-$(1)_PATH=$$(MXE_PREFIX)/bin
 
-_android-$(1)_AR=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-ar
-_android-$(1)_AS=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-as
-_android-$(1)_CC=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-gcc
-_android-$(1)_CXX=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-g++
-_android-$(1)_DLLTOOL=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-dlltool
-_android-$(1)_LD=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-ld
-_android-$(1)_OBJDUMP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-objdump
-_android-$(1)_RANLIB=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-ranlib
-_android-$(1)_STRIP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-strip
+_android-$(1)_AR=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-ar
+_android-$(1)_AS=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-as
+_android-$(1)_CC=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-gcc
+_android-$(1)_CXX=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-g++
+_android-$(1)_DLLTOOL=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-dlltool
+_android-$(1)_LD=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-ld
+_android-$(1)_OBJDUMP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-objdump
+_android-$(1)_RANLIB=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-ranlib
+_android-$(1)_STRIP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-strip
 
 _android-$(1)_AC_VARS= \
 	ac_cv_header_zlib_h=no \
 	ac_cv_search_dlopen=no
 
 _android-$(1)_CFLAGS= \
-	-DXAMARIN_PRODUCT_VERSION=0
+	-DXAMARIN_PRODUCT_VERSION=0 -I$$(MXE_PREFIX)/opt/mingw-zlib/usr/$(2)-w64-mingw32/include
 
 _android-$(1)_CXXFLAGS= \
-	-DXAMARIN_PRODUCT_VERSION=0
+	-DXAMARIN_PRODUCT_VERSION=0 -I$$(MXE_PREFIX)/opt/mingw-zlib/usr/$(2)-w64-mingw32/include
 
 _android-$(1)_CONFIGURE_FLAGS= \
 	--disable-boehm \
@@ -216,12 +225,17 @@ _android-$(1)_CONFIGURE_FLAGS= \
 	--with-monodroid \
 	--disable-crash-reporting
 
+ifeq ($(UNAME),Darwin)
+_android-$(1)_LDFLAGS= \
+	$$(MXE_PREFIX)/opt/mingw-zlib/usr/$(2)-w64-mingw32/lib/libz.a
+endif
+
 .stamp-android-$(1)-toolchain:
 	touch $$@
 
 .stamp-android-$(1)-$$(CONFIGURATION)-configure: | $(if $(IGNORE_PROVISION_MXE),,provision-mxe)
 
-$$(eval $$(call RuntimeTemplate,android,$(1),$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)))
+$$(eval $$(call RuntimeTemplate,android,$(1),$(2)-w64-mingw32))
 
 endef
 
@@ -263,7 +277,6 @@ _android-$(1)_CONFIGURE_FLAGS= \
 	--disable-boehm \
 	--disable-mcs-build \
 	--disable-nls \
-	--enable-extension-module \
 	--enable-maintainer-mode \
 	--with-tls=pthread
 
@@ -290,44 +303,46 @@ _android-$(1)_OFFSETS_DUMPER_ARGS=--gen-android --android-ndk="$$(ANDROID_TOOLCH
 
 _android-$(1)_PATH=$$(MXE_PREFIX)/bin
 
-_android-$(1)_AR=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-ar
-_android-$(1)_AS=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-as
-_android-$(1)_CC=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-gcc
-_android-$(1)_CXX=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-g++
-_android-$(1)_DLLTOOL=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-dlltool
-_android-$(1)_LD=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-ld
-_android-$(1)_OBJDUMP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-objdump
-_android-$(1)_RANLIB=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-ranlib
-_android-$(1)_STRIP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static)-strip
+_android-$(1)_AR=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-ar
+_android-$(1)_AS=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-as
+_android-$(1)_CC=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-gcc
+_android-$(1)_CXX=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-g++
+_android-$(1)_DLLTOOL=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-dlltool
+_android-$(1)_LD=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-ld
+_android-$(1)_OBJDUMP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-objdump
+_android-$(1)_RANLIB=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-ranlib
+_android-$(1)_STRIP=$$(MXE_PREFIX)/bin/$(2)-w64-mingw32-strip
 
 _android-$(1)_CFLAGS= \
 	$$(if $$(RELEASE),,-DDEBUG_CROSS) \
-	-static \
 	-static-libgcc \
-	-DXAMARIN_PRODUCT_VERSION=0
+	-DXAMARIN_PRODUCT_VERSION=0 \
+	-I$$(MXE_PREFIX)/opt/mingw-zlib/usr/$(2)-w64-mingw32/include
 
 _android-$(1)_CXXFLAGS= \
 	$$(if $$(RELEASE),,-DDEBUG_CROSS) \
-	-static \
 	-static-libgcc \
-	-DXAMARIN_PRODUCT_VERSION=0
+	-DXAMARIN_PRODUCT_VERSION=0 \
+	-I$$(MXE_PREFIX)/opt/mingw-zlib/usr/$(2)-w64-mingw32/include
 
 _android-$(1)_LDFLAGS= \
-	-static \
-	-static-libgcc \
-	-static-libstdc++
+	-static-libgcc
 
 _android-$(1)_CONFIGURE_FLAGS= \
 	--disable-boehm \
 	--disable-mcs-build \
 	--disable-nls \
-	--enable-extension-module \
 	--enable-maintainer-mode \
 	--with-tls=pthread
 
+ifeq ($(UNAME),Darwin)
+_android-$(1)_CONFIGURE_FLAGS += \
+	--with-static-zlib=$$(MXE_PREFIX)/opt/mingw-zlib/usr/$(2)-w64-mingw32/lib/libz.a
+endif
+
 .stamp-android-$(1)-$$(CONFIGURATION)-configure: | $(if $(IGNORE_PROVISION_MXE),,provision-mxe)
 
-$$(eval $$(call CrossRuntimeTemplate,android,$(1),$(2)-w64-mingw32$$(if $$(filter $(UNAME),Darwin),.static),$(3)-linux-android,$(4),$(5),$(6)))
+$$(eval $$(call CrossRuntimeTemplate,android,$(1),$(2)-w64-mingw32,$(3)-linux-android,$(4),$(5),$(6)))
 
 endef
 
@@ -336,4 +351,4 @@ $(eval $(call AndroidCrossMXETemplate,cross-arm64-win,x86_64,aarch64-v8a,arm64-v
 $(eval $(call AndroidCrossMXETemplate,cross-x86-win,i686,i686,x86,llvm-llvmwin32,i686-none-linux-android))
 $(eval $(call AndroidCrossMXETemplate,cross-x86_64-win,x86_64,x86_64,x86_64,llvm-llvmwin64,x86_64-none-linux-android))
 
-$(eval $(call BclTemplate,android,monodroid monodroid_tools,monodroid))
+$(eval $(call BclTemplate,android,monodroid monodroid_tools,monodroid monodroid_tools))
