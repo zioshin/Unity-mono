@@ -172,10 +172,12 @@ build_win_bare_minimum:
 
 build_linux_x64:
   stage: build
+  image: slough-ops/ubuntu-18.04-base:stable
   tags:
-  - buildfarm
-  - linux
+    - bokken-job
   script:
+  - sudo apt-get install -y git
+  - sudo apt-get install -y perl
   - git submodule update --init --recursive
   - cd external/buildscripts
   - ./bee
