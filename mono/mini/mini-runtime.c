@@ -841,7 +841,7 @@ mono_jit_thread_attach (MonoDomain *domain)
 
 	if (!domain) {
 		/* Happens when called from AOTed code which is only used in the root domain. */
-		domain = mono_get_root_domain ();
+		domain = mono_aot_domain_get ();
 	}
 
 	g_assert (domain);
@@ -2074,7 +2074,7 @@ lookup_start:
 			g_assert (info);
 			if (info->subtype == WRAPPER_SUBTYPE_INTERP_IN)
 				/* AOT'd wrappers for interp must be owned by root domain */
-				domain = mono_get_root_domain ();
+				domain = mono_aot_domain_get ();
 		}
 
 		if (!domain)

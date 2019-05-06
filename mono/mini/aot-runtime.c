@@ -1919,7 +1919,7 @@ init_amodule_got (MonoAotModule *amodule)
 		} else if (ji->type == MONO_PATCH_INFO_AOT_MODULE) {
 			amodule->shared_got [i] = amodule;
 		} else {
-			amodule->shared_got [i] = mono_resolve_patch_target (NULL, mono_get_root_domain (), NULL, ji, FALSE, &error);
+			amodule->shared_got [i] = mono_resolve_patch_target (NULL, mono_aot_domain_get (), NULL, ji, FALSE, &error);
 			mono_error_assert_ok (&error);
 		}
 	}
@@ -1962,7 +1962,7 @@ load_aot_module (MonoAssembly *assembly, gpointer user_data)
 		 */
 		return;
 
-	if (image_is_dynamic (assembly->image) || assembly->ref_only || mono_domain_get () != mono_get_root_domain ())
+	if (image_is_dynamic (assembly->image) || assembly->ref_only || mono_domain_get () != mono_aot_domain_get ())
 		return;
 
 	mono_aot_lock ();
@@ -3359,7 +3359,7 @@ mono_aot_find_jit_info (MonoDomain *domain, MonoImage *image, gpointer addr)
 
 	nmethods = amodule->info.nmethods;
 
-	if (domain != mono_get_root_domain ())
+	if (domain != mono_aot_domain_get ())
 		/* FIXME: */
 		return NULL;
 
@@ -3956,7 +3956,7 @@ load_method (MonoDomain *domain, MonoAotModule *amodule, MonoImage *image, MonoM
 
 	init_amodule_got (amodule);
 
-	if (domain != mono_get_root_domain ())
+	if (domain != mono_aot_domain_get ())
 		/* Non shared AOT code can't be used in other appdomains */
 		return NULL;
 
@@ -4488,7 +4488,7 @@ mono_aot_get_method_checked (MonoDomain *domain, MonoMethod *method, MonoError *
 
 	error_init (error);
 
-	if (domain != mono_get_root_domain ())
+	if (domain != mono_aot_domain_get ())
 		/* Non shared AOT code can't be used in other appdomains */
 		return NULL;
 
@@ -4832,7 +4832,7 @@ mono_aot_patch_plt_entry (guint8 *code, guint8 *plt_entry, gpointer *got, mgreg_
 	 * is AppDomain:InvokeInDomain, so this is the same check as in 
 	 * mono_method_same_domain () but without loading the metadata for the method.
 	 */
-	if (mono_domain_get () == mono_get_root_domain ()) {
+	if (mono_domain_get () == mono_aot_domain_get ()) {
 		if (!got) {
 			amodule = find_aot_module (code);
 			if (amodule)
@@ -4958,7 +4958,7 @@ init_plt (MonoAotModule *amodule)
 		return;
 	}
 
-	tramp = mono_create_specific_trampoline (amodule, MONO_TRAMPOLINE_AOT_PLT, mono_get_root_domain (), NULL);
+	tramp = mono_create_specific_trampoline (amodule, MONO_TRAMPOLINE_AOT_PLT, mono_aot_domain_get (), NULL);
 
 	/*
 	 * Initialize the PLT entries in the GOT to point to the default targets.
@@ -5172,7 +5172,7 @@ load_function_full (MonoAotModule *amodule, const char *name, MonoTrampInfo **ou
 
 					res = sscanf (ji->data.name, "specific_trampoline_lazy_fetch_%u", &slot);
 					g_assert (res == 1);
-					target = mono_create_specific_trampoline (GUINT_TO_POINTER (slot), MONO_TRAMPOLINE_RGCTX_LAZY_FETCH, mono_get_root_domain (), NULL);
+					target = mono_create_specific_trampoline (GUINT_TO_POINTER (slot), MONO_TRAMPOLINE_RGCTX_LAZY_FETCH, mono_aot_domain_get (), NULL);
 					target = mono_create_ftnptr_malloc ((guint8 *)target);
 				} else if (!strcmp (ji->data.name, "debugger_agent_single_step_from_context")) {
 					target = debugger_agent_single_step_from_context;
@@ -5724,9 +5724,9 @@ mono_aot_get_lazy_fetch_trampoline (guint32 slot)
 		 */
 		if (!addr)
 			addr = load_function (amodule, "rgctx_fetch_trampoline_general");
-		info = (void **)mono_domain_alloc0 (mono_get_root_domain (), sizeof (gpointer) * 2);
+		info = (void **)mono_domain_alloc0 (mono_aot_domain_get (), sizeof (gpointer) * 2);
 		info [0] = GUINT_TO_POINTER (slot);
-		info [1] = mono_create_specific_trampoline (GUINT_TO_POINTER (slot), MONO_TRAMPOLINE_RGCTX_LAZY_FETCH, mono_get_root_domain (), NULL);
+		info [1] = mono_create_specific_trampoline (GUINT_TO_POINTER (slot), MONO_TRAMPOLINE_RGCTX_LAZY_FETCH, mono_aot_domain_get (), NULL);
 		code = mono_aot_get_static_rgctx_trampoline (info, addr);
 		return mono_create_ftnptr (mono_domain_get (), code);
 	}

@@ -76,6 +76,12 @@ MONO_API void
 mono_domain_set_config (MonoDomain *domain, const char *base_dir, const char *config_file_name);
 
 MONO_API MonoDomain *
+mono_aot_domain_get (void);
+
+MONO_API void
+mono_aot_domain_set (MonoDomain *domain);
+
+MONO_API MonoDomain *
 mono_domain_get            (void);
 
 MONO_API MonoDomain *

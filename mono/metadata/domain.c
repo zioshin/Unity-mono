@@ -76,6 +76,7 @@ gboolean mono_dont_free_domains;
 static MonoCoopMutex appdomains_mutex;
 
 static MonoDomain *mono_root_domain = NULL;
+static MonoDomain *mono_aot_domain = NULL;
 
 /* some statistics */
 static int max_domain_code_size = 0;
@@ -534,6 +535,7 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 
 	domain = mono_domain_create ();
 	mono_root_domain = domain;
+	mono_aot_domain = mono_root_domain;
 
 	SET_APPDOMAIN (domain);
 	
@@ -893,6 +895,18 @@ MonoDomain*
 mono_get_root_domain (void)
 {
 	return mono_root_domain;
+}
+
+MonoDomain *
+mono_aot_domain_get (void)
+{
+	return mono_aot_domain;
+}
+
+void
+mono_aot_domain_set (MonoDomain *domain)
+{
+	mono_aot_domain = domain;
 }
 
 /**
