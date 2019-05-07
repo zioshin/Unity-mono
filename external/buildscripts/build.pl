@@ -182,7 +182,7 @@ else
 	else
 	{
 		$externalBuildDeps = "$monoroot/../../mono-build-deps/build";
-	}	
+	}
 }
 print(">>> External build deps = $externalBuildDeps\n");
 
@@ -376,7 +376,7 @@ if ($build)
 		my $automakeDir = "$externalBuildDeps/automake-1-16-1/automake-$automakeVersion";
 		my $libtoolDir = "$externalBuildDeps/libtool-2-4-6/libtool-$libtoolVersion";
 		my $builtToolsDir = "$externalBuildDeps/built-tools";
-		
+
 		$ENV{PATH} = "$builtToolsDir/bin:$ENV{PATH}";
 
 		if ($stevedoreBuildDeps)
@@ -396,9 +396,9 @@ if ($build)
 			system("./configure --prefix=$builtToolsDir") eq 0 or die ("failed to configure autoconf\n");
 			system("make") eq 0 or die ("failed to make autoconf\n");
 			system("make install") eq 0 or die ("failed to make install autoconf\n");
-			chdir("$monoroot") eq 1 or die ("failed to chdir to $monoroot\n"); 
+			chdir("$monoroot") eq 1 or die ("failed to chdir to $monoroot\n");
 		}
-		
+
 		if ($stevedoreBuildDeps and $windowsSubsystemForLinux)
 		{
 			$texinfoDir = "$externalBuildDeps/texinfo-src/texinfo-$texinfoVersion";
@@ -1729,12 +1729,14 @@ if ($artifact)
 			system("mkdir -p $distDirArchEtc/mono");
 
 			system("ln", "-f", "$monoroot/mono/mini/mono-sgen","$distDirArchBin/mono") eq 0 or die("failed symlinking mono executable\n");
+			system("ln", "-f", "$monoroot/mono/mini/mono-bdwgc","$distDirArchBin/mono-bdwgc") eq 0 or die("failed symlinking mono-bdwgc executable\n");
 			system("ln", "-f", "$monoroot/tools/pedump/pedump","$distDirArchBin/pedump") eq 0 or die("failed symlinking pedump executable\n");
 			system('cp', "$monoroot/data/config","$distDirArchEtc/mono/config") eq 0 or die("failed to copy config\n");
 		}
 		elsif($^O eq 'darwin')
 		{
 			system("ln", "-f", "$monoroot/mono/mini/mono","$distDirArchBin/mono") eq 0 or die("failed hardlinking mono executable\n");
+			system("ln", "-f", "$monoroot/mono/mini/mono-bdwgc","$distDirArchBin/mono-bdwgc") eq 0 or die("failed hardlinking mono-bdwgc executable\n");
 			system("ln", "-f", "$monoroot/tools/pedump/pedump","$distDirArchBin/pedump") eq 0 or die("failed hardlinking pedump executable\n");
 		}
 		else
