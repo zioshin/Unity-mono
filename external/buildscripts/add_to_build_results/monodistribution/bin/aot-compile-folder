@@ -1,0 +1,12 @@
+#!/bin/bash
+. $(dirname $0)/mono-env
+
+CUR_MONO_PATH=$MONO_PATH
+for FOLDER in "$@"
+do
+    [[ -d "$FOLDER" ]] && DIR=$FOLDER || DIR=$(dirname ${FOLDER})
+    [[ -z "$CUR_MONO_PATH" ]] && MONO_PATH=$DIR || MONO_PATH="$DIR:$CUR_MONO_PATH"
+
+    export MONO_PATH
+    find $FOLDER -name "*.dll" -exec $MONO_BDWGC --aot=soft-debug --debug --runtime=v4.0.30319 {} \;
+done
