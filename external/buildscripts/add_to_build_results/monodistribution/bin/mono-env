@@ -2,8 +2,10 @@
 
 export MONO_PREFIX=$(dirname $0)/..
 MONO=$MONO_PREFIX/$MONOBINDIR/mono
+MONO_BDWGC=$MONO_PREFIX/$MONOBINDIR/mono-bdwgc
 # remove //.. pattern as it causes problem on OSX High Sierra
 MONO=${MONO/\/\/\./\/\.}
+MONO_BDWGC=${MONO_BDWGC/\/\/\./\/\.}
 LD_LIBRARY_PATH=$MONO_PREFIX/lib
 [ "$MONOLIBDIR" ] && LD_LIBRARY_PATH="$MONO_PREFIX/$MONOLIBDIR:$LD_LIBRARY_PATH"
 export LD_LIBRARY_PATH

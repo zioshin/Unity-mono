@@ -1,0 +1,9 @@
+#!/bin/bash
+. $(dirname $0)/mono-env
+
+CUR_MONO_PATH=$MONO_PATH
+for path in "$@"
+do
+    [[ -z "$CUR_MONO_PATH" ]] && MONO_PATH=$path || MONO_PATH="$path:$CUR_MONO_PATH"
+    find $path -name "*.dll" -exec $MONO_BDWGC --aot=soft-debug --debug --runtime=v4.0.30319 {} \;
+done
