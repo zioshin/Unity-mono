@@ -139,7 +139,7 @@ if ($artifact)
 		die("Expected source directory not found : $distDirSourceBin64\n");
 	}
 
-	for my $file ('mono','pedump')
+	for my $file ('mono','mono-bdwgc','pedump')
 	{
 		print(">>> lipo $distDirSourceBin32/$file $distDirSourceBin64/$file -create -output $distDirDestinationBin/$file\n\n");
 		system ('lipo', "$distDirSourceBin32/$file", "$distDirSourceBin64/$file", '-create', '-output', "$distDirDestinationBin/$file");
