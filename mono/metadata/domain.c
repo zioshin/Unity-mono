@@ -898,8 +898,13 @@ mono_get_root_domain (void)
 }
 
 MonoDomain *
-mono_aot_domain_get (void)
+mono_aot_domain_get (MonoImage *image)
 {
+	if(image && image == mono_get_corlib ())
+	{
+		return mono_get_root_domain ();
+	}
+
 	return mono_aot_domain;
 }
 

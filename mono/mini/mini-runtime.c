@@ -841,7 +841,7 @@ mono_jit_thread_attach (MonoDomain *domain)
 
 	if (!domain) {
 		/* Happens when called from AOTed code which is only used in the root domain. */
-		domain = mono_aot_domain_get ();
+		domain = mono_aot_domain_get (NULL);
 	}
 
 	g_assert (domain);
@@ -2074,13 +2074,13 @@ lookup_start:
 			g_assert (info);
 			if (info->subtype == WRAPPER_SUBTYPE_INTERP_IN)
 				/* AOT'd wrappers for interp must be owned by root domain */
-				domain = mono_aot_domain_get ();
+				domain = mono_aot_domain_get (NULL);
 		}
 
-		if (!domain)
-			domain = mono_domain_get ();
-
 		mono_class_init (method->klass);
+        
+        if (!domain)
+            domain = mono_aot_domain_get (method->klass->image);
 
 		if ((code = mono_aot_get_method_checked (domain, method, error))) {
 			MonoVTable *vtable;
