@@ -43,6 +43,7 @@ sub CompileVCProj
 	
 	if (($ENV{YAMATO_PROJECT_ID}) || ($ENV{USERNAME} == "bokken"))
 	{
+		print ">>> running in yamato/gitlab\n";
 		$msbuild = $ENV{"ProgramFiles(x86)"}."/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe";
 	}
 

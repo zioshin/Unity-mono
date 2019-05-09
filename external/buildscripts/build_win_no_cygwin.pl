@@ -42,6 +42,7 @@ my $stevedoreBuildDeps=1;
 if($ENV{YAMATO_PROJECT_ID} || ($ENV{USERNAME} == "bokken"))
 {
 	$msBuildVersion = "15.0";			
+	print ">>> setting msbuild version to = $msBuildVersion\n";
 }
 
 print(">>> Build All Args = @ARGV\n");
