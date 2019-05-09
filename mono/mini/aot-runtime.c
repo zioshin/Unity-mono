@@ -2376,6 +2376,46 @@ mono_aot_register_module (gpointer *aot_info)
 }
 
 void
+mono_aot_reset (void)
+{
+	mono_aot_lock ();
+
+	if(aot_jit_icall_hash)
+		g_hash_table_remove_all (aot_jit_icall_hash);
+
+	if (aot_modules)
+		g_hash_table_remove_all (aot_modules);
+
+	if(ji_to_amodule)
+		g_hash_table_remove_all (ji_to_amodule);
+
+	enable_aot_cache = FALSE;
+	mscorlib_aot_loaded = FALSE;
+
+	aot_code_low_addr = (gssize)-1;
+	aot_code_high_addr = 0;
+
+	async_jit_info_size = 0;
+
+	mono_aot_unlock ();
+}
+
+void
+mono_aot_image_aot_module_destroy (MonoImage* image)
+{
+	if(image->aot_module == NULL)
+		return;
+
+    MonoAotModule* aot_module = (MonoAotModule*)image->aot_module;
+    
+    if(aot_module->sofile)
+        mono_dl_close (aot_module->sofile);
+    
+	g_free(image->aot_module);
+	image->aot_module = NULL;
+}
+
+void
 mono_aot_init (void)
 {
 	mono_os_mutex_init_recursive (&aot_mutex);
@@ -2390,6 +2430,9 @@ mono_aot_init (void)
 		mono_last_aot_method = atoi (lastaot);
 		g_free (lastaot);
 	}
+
+	mono_domain_install_aot_callbacks(mono_aot_reset, mono_aot_image_aot_module_destroy);
+
 	aot_cache_init ();
 }
 
@@ -3877,7 +3920,9 @@ decode_patches (MonoAotModule *amodule, MonoMemPool *mp, int n_patches, gboolean
 		ji->type = (MonoJumpInfoType)decode_value (p, &p);
 
 		/* See load_method () for SFLDA */
-		if (got && got [got_offsets [i]] && ji->type != MONO_PATCH_INFO_SFLDA) {
+		if (got && got [got_offsets [i]] && ji->type != MONO_PATCH_INFO_SFLDA)
+        {
+            int a = 0;
 			/* Already loaded */
 		} else {
 			res = decode_patch (amodule, mp, ji, p, &p);

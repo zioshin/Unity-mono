@@ -77,6 +77,7 @@ static MonoCoopMutex appdomains_mutex;
 
 static MonoDomain *mono_root_domain = NULL;
 static MonoDomain *mono_aot_domain = NULL;
+static gboolean mono_aot_domain_init_root_domain = TRUE;
 
 /* some statistics */
 static int max_domain_code_size = 0;
@@ -535,7 +536,11 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 
 	domain = mono_domain_create ();
 	mono_root_domain = domain;
-	mono_aot_domain = mono_root_domain;
+
+	if(mono_aot_domain_init_root_domain)
+	{
+		mono_aot_domain = mono_root_domain;
+	}
 
 	SET_APPDOMAIN (domain);
 	
@@ -909,6 +914,12 @@ mono_aot_domain_set (MonoDomain *domain)
 	mono_aot_domain = domain;
 }
 
+void
+mono_aot_domain_init_root_domain_set (gboolean init_root_domain)
+{
+	mono_aot_domain_init_root_domain = init_root_domain;
+}
+
 /**
  * mono_domain_get:
  *
@@ -1066,6 +1077,16 @@ unregister_vtable_reflection_type (MonoVTable *vtable)
 		MONO_GC_UNREGISTER_ROOT_IF_MOVING (vtable->type);
 }
 
+static MonoAOTResetFunc domain_unload_aot_reset = NULL;
+static MonoImageAOTModuleDestroyFunc domain_unload_image_aot_module_destroy = NULL;
+
+void 
+mono_domain_install_aot_callbacks(MonoAOTResetFunc aot_reset, MonoImageAOTModuleDestroyFunc image_aot_module_destroy)
+{
+	domain_unload_aot_reset = aot_reset;
+	domain_unload_image_aot_module_destroy = image_aot_module_destroy;
+}
+
 /**
  * mono_domain_free:
  * \param domain the domain to release
@@ -1161,6 +1182,10 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 		if (!ass->image || image_is_dynamic (ass->image))
 			continue;
 		mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_ASSEMBLY, "Unloading domain %s[%p], assembly %s[%p], ref_count=%d", domain->friendly_name, domain, ass->aname.name, ass, ass->ref_count);
+
+        if(domain_unload_image_aot_module_destroy)
+            domain_unload_image_aot_module_destroy(ass->image);
+
 		if (!mono_assembly_close_except_image_pools (ass))
 			tmp->data = NULL;
 	}
@@ -1173,6 +1198,8 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 	g_slist_free (domain->domain_assemblies);
 	domain->domain_assemblies = NULL;
 
+	if(domain_unload_aot_reset)
+		domain_unload_aot_reset();
 	/* 
 	 * Send this after the assemblies have been unloaded and the domain is still in a 
 	 * usable state.
