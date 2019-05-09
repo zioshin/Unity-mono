@@ -999,6 +999,11 @@ void mono_unity_memory_barrier()
 	mono_memory_barrier();
 }
 
+gboolean mono_unity_image_has_aot_module(MonoImage* image)
+{
+	return image->aot_module != NULL;
+}
+
 MonoObject* mono_unity_delegate_get_target(MonoDelegate *delegate)
 {
 	return delegate->target;
