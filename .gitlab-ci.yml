@@ -1,16 +1,17 @@
 stages:
-- runall
+- runall-and-report-to-github-pending
 - build
 - collate
-
-# This is just a config to help trigger rest of the builds
-run_all_builds:
-  image: ubuntu:latest
-  stage: runall
-  variables:
-    GIT_STRATEGY: none
+- report-to-github-done
+  
+###############################################################################
+# report result to github
+###############################################################################
+runall-and-report-to-github-pending:
+  image: python:2.7
+  stage: runall-and-report-to-github-pending
   script:
-  - pwd
+  - python reportCiResult.py "gitlab-ci" "pending"
   when: manual
   allow_failure: false
 
@@ -18,15 +19,25 @@ run_all_builds:
 build_osx_runtime:
   stage: build
   tags:
-    - buildfarm
-    - darwin
+    - bokken-job
+  variables:
+    BOKKEN_VM: build_osx_runtime_vm
+    BOKKEN_JOB: |
+      resources:
+        - name: build_osx_runtime_vm
+          image: buildfarm/mac:latest
+          flavor: m1.mac
+          type: Unity::VM::osx
+          num_instances: 1
+          config:
+            env_vars:
+              - PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin
   script:
   - git submodule update --init --recursive
-  - chmod +x external/buildscripts/bee
   - cd external/buildscripts
   - ./bee
   - cd ../..
-  - perl external/buildscripts/build_runtime_osx.pl
+  - perl external/buildscripts/build_runtime_osx.pl --stevedorebuilddeps=1
   - mkdir -p incomingbuilds/osx-i386
   - cp -r builds/ incomingbuilds/osx-i386/
   artifacts:
@@ -40,15 +51,25 @@ build_osx_runtime:
 build_osx_classlibs:
   stage: build
   tags:
-    - buildfarm
-    - darwin
+    - bokken-job
+  variables:
+    BOKKEN_VM: build_osx_classlibs_vm
+    BOKKEN_JOB: |
+      resources:
+        - name: build_osx_classlibs_vm
+          image: buildfarm/mac:latest
+          flavor: m1.mac
+          type: Unity::VM::osx
+          num_instances: 1
+          config:
+            env_vars:
+              - PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin
   script:
   - git submodule update --init --recursive
-  - chmod +x external/buildscripts/bee
   - cd external/buildscripts
   - ./bee
   - cd ../..
-  - perl external/buildscripts/build_classlibs_osx.pl
+  - perl external/buildscripts/build_classlibs_osx.pl --stevedorebuilddeps=1
   - mkdir -p incomingbuilds/classlibs
   - cp -r ZippedClasslibs.tar.gz incomingbuilds/classlibs/
   - cd incomingbuilds/classlibs
@@ -66,15 +87,25 @@ build_osx_classlibs:
 build_android:
   stage: build
   tags:
-    - buildfarm
-    - darwin
+    - bokken-job
+  variables:
+    BOKKEN_VM: build_android_vm
+    BOKKEN_JOB: |
+      resources:
+        - name: build_android_vm
+          image: buildfarm/mac:latest
+          flavor: m1.mac
+          type: Unity::VM::osx
+          num_instances: 1
+          config:
+            env_vars:
+              - PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin
   script:
   - git submodule update --init --recursive
-  - chmod +x external/buildscripts/bee
   - cd external/buildscripts
   - ./bee
   - cd ../..
-  - bash external/buildscripts/build_runtime_android.sh
+  - perl external/buildscripts/build_runtime_android.pl --stevedorebuilddeps=1
   - mkdir -p incomingbuilds/android/
   - cp -r builds/* incomingbuilds/android/
   artifacts:
@@ -88,16 +119,20 @@ build_android:
 build_win:
   stage: build
   tags:
-  - buildfarm
-  - windows
+    - bokken-job
+  variables:
+    BOKKEN_VM: build_win_vm
+    BOKKEN_JOB: |
+      resources:
+        - name: build_win_vm
+          image: platform-foundation/windows-mono-bokken:latest
+          flavor: b1.xlarge
+          type: Unity::VM
   script:
   - git submodule update --init --recursive
-  - cd external/buildscripts
-  - ./bee.exe
-  - cd ../..
-  - perl external/buildscripts/build_runtime_win64.pl
-  - mkdir -p incomingbuilds/win64
-  - cp -r builds/* incomingbuilds/win64/
+  - perl external/buildscripts/build_runtime_win64.pl --stevedorebuilddeps=1
+  - powershell mkdir -p incomingbuilds/win64
+  - powershell cp -r builds/* incomingbuilds/win64/
   artifacts:
     paths:
     - incomingbuilds/win64
@@ -109,16 +144,20 @@ build_win:
 build_win_x86:
   stage: build
   tags:
-  - buildfarm
-  - windows
+    - bokken-job
+  variables:
+    BOKKEN_VM: build_win_x86_vm
+    BOKKEN_JOB: |
+      resources:
+        - name: build_win_x86_vm
+          image: platform-foundation/windows-mono-bokken:latest
+          flavor: b1.xlarge
+          type: Unity::VM
   script:
   - git submodule update --init --recursive
-  - cd external/buildscripts
-  - ./bee.exe
-  - cd ../..
-  - perl external/buildscripts/build_runtime_win.pl
-  - mkdir -p incomingbuilds/win32
-  - cp -r builds/* incomingbuilds/win32/
+  - perl external/buildscripts/build_runtime_win.pl --stevedorebuilddeps=1
+  - powershell mkdir -p incomingbuilds/win32
+  - powershell cp -r builds/* incomingbuilds/win32/
   artifacts:
     paths:
     - incomingbuilds/win32
@@ -130,16 +169,20 @@ build_win_x86:
 build_win_bare_minimum:
   stage: build
   tags:
-  - buildfarm
-  - windows
+    - bokken-job
+  variables:
+    BOKKEN_VM: build_win_bare_minimum
+    BOKKEN_JOB: |
+      resources:
+        - name: build_win_bare_minimum
+          image: platform-foundation/windows-mono-bokken:latest
+          flavor: b1.xlarge
+          type: Unity::VM
   script:
   - git submodule update --init --recursive
-  - cd external/buildscripts
-  - ./bee.exe
-  - cd ../..
   - perl external/buildscripts/build_unityscript_bareminimum_win.pl
-  - mkdir -p incomingbuilds/bareminimum
-  - cp -r builds/* incomingbuilds/bareminimum/
+  - powershell mkdir -p incomingbuilds/bareminimum
+  - powershell cp -r builds/* incomingbuilds/bareminimum/
   artifacts:
     paths:
     - incomingbuilds/bareminimum
@@ -155,11 +198,10 @@ build_linux_x64:
   - linux
   script:
   - git submodule update --init --recursive
-  - chmod +x external/buildscripts/bee
   - cd external/buildscripts
   - ./bee
   - cd ../..
-  - perl external/buildscripts/build_runtime_linux.pl -build64=1
+  - perl external/buildscripts/build_runtime_linux.pl -build64=1 --stevedorebuilddeps=1
   - mkdir -p incomingbuilds/linux64
   - cp -r builds/* incomingbuilds/linux64/
   artifacts:
@@ -177,11 +219,10 @@ build_linux_x86:
   - linux
   script:
   - git submodule update --init --recursive
-  - chmod +x external/buildscripts/bee
   - cd external/buildscripts
   - ./bee
   - cd ../..
-  - perl external/buildscripts/build_runtime_linux.pl
+  - perl external/buildscripts/build_runtime_linux.pl --stevedorebuilddeps=1
   - mkdir -p incomingbuilds/linux32
   - cp -r builds/* incomingbuilds/linux32/
   artifacts:
@@ -217,3 +258,21 @@ collate_builds:
     paths:
     - collectedbuilds/builds.7z
     expire_in: 1 week
+
+    
+###############################################################################
+# report result to github
+###############################################################################
+report-to-github-done:failure:
+  image: python:2.7
+  when: on_failure
+  stage: report-to-github-done
+  script:
+  - python reportCiResult.py "gitlab-ci" "failure"
+
+report-to-github-done:success:
+  image: python:2.7
+  when: on_success
+  stage: report-to-github-done
+  script:
+  - python reportCiResult.py "gitlab-ci" "success"
