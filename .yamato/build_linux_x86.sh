@@ -1,6 +1,7 @@
 sudo apt-get install -y schroot
 sudo apt-get install -y binutils debootstrap
 sudo apt-get install -y m4
+sudo apt-get install -y curl
 sudo apt-get install -y libc6-i386
 sudo apt-get install -y libc6-dev-i386
 sudo apt-get install -y libncurses5-i386

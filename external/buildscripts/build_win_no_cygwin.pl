@@ -39,7 +39,7 @@ my $msBuildVersion = "14.0";
 my $buildDeps = "";
 my $stevedoreBuildDeps=1;
 
-if($ENV{YAMATO_PROJECT_ID} || ($ENV{USERNAME} == "bokken"))
+if($ENV{YAMATO_PROJECT_ID} || ($ENV{USERNAME} eq "bokken"))
 {
 	$msBuildVersion = "15.0";			
 }
@@ -69,6 +69,7 @@ chdir("$monoroot") eq 1 or die ("failed to chdir : $monoroot\n");
 
 print(">>> Mono Revision = $monoRevision\n");
 print(">>> Build Scripts Revision = $buildScriptsRevision\n");
+print(">>> MSBuild version = $msBuildVersion\n");
 
 # Do any settings agnostic per-platform stuff
 my $externalBuildDeps = "";
