@@ -43,22 +43,22 @@ typedef struct {
 
 G_BEGIN_DECLS
 
-MONO_API void
+void
 mono_error_init (MonoError *error);
 
-MONO_API void
+void
 mono_error_init_flags (MonoError *error, unsigned short flags);
 
-MONO_API void
+void
 mono_error_cleanup (MonoError *error);
 
-MONO_API gboolean
+gboolean
 mono_error_ok (MonoError *error);
 
-MONO_API unsigned short
+unsigned short
 mono_error_get_error_code (MonoError *error);
 
-MONO_API const char*
+const char*
 mono_error_get_message (MonoError *error);
 
 G_END_DECLS
