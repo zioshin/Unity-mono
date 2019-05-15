@@ -748,6 +748,7 @@ mono_string_new_utf16
 mono_string_new_wrapper
 mono_string_to_utf16
 mono_string_to_utf8
+mono_string_to_utf8_checked
 mono_stringify_assembly_name
 mono_table_info_get_rows
 mono_thread_abort_all_other_threads
