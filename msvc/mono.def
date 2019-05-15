@@ -826,6 +826,12 @@ mono_runtime_unhandled_exception_policy_set
 set_vprintf_func
 mono_type_is_reference
 mono_array_addr_with_size
+mono_error_init
+mono_error_init_flags
+mono_error_cleanup
+mono_error_ok
+mono_error_get_error_code
+mono_error_get_message
 
 mono_unity_runtime_set_main_args
 mono_unity_string_empty_wrapper
