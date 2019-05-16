@@ -7,6 +7,7 @@ sudo apt-get install -y libncurses5-i386
 git submodule update --init --recursive
 # try again in case previous update failed
 git submodule update --init --recursive
+cp .yamato/config/Stevedore.conf ~/Stevedore.conf
 cd external/buildscripts
 ./bee
 cd ../..
