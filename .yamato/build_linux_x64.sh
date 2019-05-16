@@ -1,6 +1,7 @@
 sudo apt-get install -y schroot
 sudo apt-get install -y binutils debootstrap
 sudo apt-get install -y curl
+sudo apt-get install -y m4
 git submodule update --init --recursive
 # try again in case previous update failed
 git submodule update --init --recursive
