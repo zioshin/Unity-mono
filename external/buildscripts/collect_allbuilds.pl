@@ -1,7 +1,13 @@
 use lib ('external/buildscripts/perl_lib');
+use Cwd 'abs_path';
+use File::Basename;
 use File::Copy::Recursive qw(dircopy rmove);
 use File::Path;
 use Tools qw(InstallNameTool);
+
+
+my $monoroot = File::Spec->rel2abs(dirname(__FILE__) . "/../..");
+my $monoroot = abs_path($monoroot);
 
 my $path = "incomingbuilds/";
 
@@ -44,3 +50,30 @@ print MYFILE "TC buildconfigname was: $ENV{TEAMCITY_BUILDCONF_NAME}\n";
 close(MYFILE);
 
 system("zip -r builds.zip *") eq 0 or die("failed zipping up builds");
+
+my $externalzip = "";
+if($^O eq "linux")
+{
+	$externalzip = "$monoroot/../../mono-build-deps/build/7z/linux64/7za";
+}
+elsif($^O eq 'darwin')
+{
+	$externalzip = "$monoroot/../../mono-build-deps/build/7z/osx/7za";
+}
+
+if($^O eq "linux" || $^O eq 'darwin')
+{
+	if(-f $externalzip)
+	{
+		system("$externalzip a builds.7z * -x!builds.zip") eq 0 or die("failed 7z up builds");
+	}
+	else
+	{
+		#Use 7z installed on the machine. If its not installed, please install it.
+		system("7z a builds.7z * -x!builds.zip") eq 0 or die("failed 7z up builds");
+	}
+}
+else
+{
+	die("Unsupported platform for build collection.")
+}
