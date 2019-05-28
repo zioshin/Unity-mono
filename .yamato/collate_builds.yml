@@ -19,6 +19,6 @@ commands:
   - .yamato/collate_builds.sh
 
 artifacts: 
-  builds.zip:
+  builds:
     paths:
       - collectedbuilds/builds.7z
