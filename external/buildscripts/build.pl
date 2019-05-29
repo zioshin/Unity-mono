@@ -943,7 +943,7 @@ if ($build)
 			}
 			else
 			{
-				system("git", "clone", "--branch", "master", "$kraitPatchRepo", "$kraitPatchPath") eq 0 or die ('failing cloning Krait patch');
+				system("git", "clone", "--branch", "unity-trunk", "$kraitPatchRepo", "$kraitPatchPath") eq 0 or die ('failing cloning Krait patch');
 			}
 
 			chdir("$kraitPatchPath") eq 1 or die ("failed to chdir to krait patch directory\n");
