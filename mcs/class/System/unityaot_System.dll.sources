@@ -2,3 +2,10 @@
 ../System.Web/System.Web/HttpUtility.cs
 ../System.Web/System.Web.Util/Helpers.cs
 ../System.Web/System.Web.Util/HttpEncoder.cs
+
+System.IO/DefaultWatcher.cs
+System.IO/FileAction.cs
+System.IO/FileSystemWatcher.cs
+System.IO/IFileWatcher.cs
+System.IO/NullFileWatcher.cs
+System.IO/SearchPattern.cs
