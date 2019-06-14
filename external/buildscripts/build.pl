@@ -1167,7 +1167,11 @@ if ($build)
 				
 				if($ENV{YAMATO_PROJECT_ID})
 				{
-					system('sudo', 'cp', "$monoroot/.yamato/config/LinuxBuildEnvironment-20170609.conf", '/etc/schroot/chroot.d/') eq 0 or die ("failed to copy conf file\n");
+					print(">>> Building on Yamato\n");
+					print(">>> Contents of LinuxBuildEnvironment-20170609.conf for Yamato\n");
+					system('sudo', 'cat', "$monoroot/.yamato/config/LinuxBuildEnvironment-20170609.conf") eq 0 or die ("failed to list contents on /etc/schroot/chroot.d\n");
+					system('sudo', 'yes | cp -f', "$monoroot/.yamato/config/LinuxBuildEnvironment-20170609.conf", '/etc/schroot/chroot.d/') eq 0 or die ("failed to copy conf file\n");
+					print(">>> Contents of LinuxBuildEnvironment-20170609.conf in schroot\n");
 					system('sudo', 'cat', '/etc/schroot/chroot.d/LinuxBuildEnvironment-20170609.conf') eq 0 or die ("failed to list contents on /etc/schroot/chroot.d\n");					
 				}
 				else
