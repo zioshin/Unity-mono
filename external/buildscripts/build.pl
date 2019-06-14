@@ -1165,7 +1165,7 @@ if ($build)
 				system('tar', 'xaf', $depsSdkArchive, '-C', $depsSdkFinal) eq 0 or die ("failed to extract Linux SDK\n");
 				system('sudo', 'cp', '-R', "$depsSdkFinal/linux-sdk-$sdkVersion", '/etc/schroot') eq 0 or die ("failed to copy SDK\n");
 				
-				if($ENV{YAMATO_PROJECT_ID})
+				if($ENV{YAMATO_PROJECT_ID} || $ENV{YAMATO_JOBDEFINITION_NAME})
 				{
 					print(">>> Building on Yamato\n");
 					print(">>> Contents of LinuxBuildEnvironment-20170609.conf for Yamato\n");
