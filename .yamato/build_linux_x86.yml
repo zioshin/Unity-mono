@@ -2,7 +2,7 @@ name: build_linux_x86
 
 agent:
   type: Unity::VM
-  image: cds-ops/ubuntu-18.04-katana-agent:latest
+  image: cds-ops/cds-ubuntu-18.04-katana-agent:latest
   flavor: b1.large
 
 commands:
