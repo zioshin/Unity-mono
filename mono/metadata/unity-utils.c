@@ -1379,3 +1379,238 @@ mono_unity_get_enable_handler_block_guards (void)
 {
 	return enable_handler_block_guards;
 }
+
+//helper structures for VM information extraction functions
+typedef struct {
+	GFunc callback;
+	gpointer user_data;
+} execution_ctx;
+
+typedef struct
+{
+	gpointer start;
+	size_t size;
+} mono_heap_chunk;
+
+// class metadata memory
+static void
+handle_mem_pool_chunk(gpointer chunkStart, gpointer chunkEnd, gpointer userData)
+{
+	mono_heap_chunk chunk;
+	chunk.start = chunkStart;
+	chunk.size = (uint8_t *)chunkEnd - (uint8_t *)chunkStart;
+
+	execution_ctx *ctx = (execution_ctx *)userData;
+	ctx->callback(&chunk, ctx->user_data);
+}
+
+static void
+handle_image_set_mem_pool(MonoImageSet *imageSet, gpointer user_data)
+{
+	mono_mempool_foreach_block(imageSet->mempool, handle_mem_pool_chunk, user_data);
+}
+
+MONO_API void
+mono_unity_image_set_mempool_chunk_foreach(GFunc callback, gpointer user_data)
+{
+	execution_ctx ctx;
+	ctx.callback = callback;
+	ctx.user_data = user_data;
+
+	mono_metadata_image_set_foreach(handle_image_set_mem_pool, &ctx);
+}
+
+MONO_API void
+mono_unity_domain_mempool_chunk_foreach(MonoDomain *domain, GFunc callback, gpointer user_data)
+{
+	mono_domain_lock(domain);
+
+	execution_ctx ctx;
+	ctx.callback = callback;
+	ctx.user_data = user_data;
+	mono_mempool_foreach_block(domain->mp, handle_mem_pool_chunk, &ctx);
+
+	mono_domain_unlock(domain);
+}
+
+MONO_API void
+mono_unity_root_domain_mempool_chunk_foreach(GFunc callback, gpointer user_data)
+{
+	MonoDomain *domain = mono_get_root_domain();
+	mono_domain_lock(domain);
+
+	execution_ctx ctx;
+	ctx.callback = callback;
+	ctx.user_data = user_data;
+	mono_mempool_foreach_block(domain->mp, handle_mem_pool_chunk, &ctx);
+
+	mono_domain_unlock(domain);
+}
+
+MONO_API void
+mono_unity_assembly_mempool_chunk_foreach(MonoAssembly *assembly, GFunc callback, gpointer user_data)
+{
+	MonoImage *image = assembly->image;
+	mono_image_lock(image);
+
+	execution_ctx ctx;
+	ctx.callback = callback;
+	ctx.user_data = user_data;
+	mono_mempool_foreach_block(image->mempool, handle_mem_pool_chunk, &ctx);
+
+	if (image->module_count > 0) {
+		guint32 i;
+
+		for (i = 0; i < image->module_count; ++i) {
+			MonoImage *moduleImage = image->modules[i];
+
+			if (moduleImage) {
+				mono_mempool_foreach_block(moduleImage->mempool, handle_mem_pool_chunk, &ctx);
+			}
+		}
+	}
+	mono_image_unlock(image);
+}
+
+// class metadata
+
+MONO_API void
+mono_unity_type_get_name_full_chunked(MonoType *type, GFunc chunkReportFunc, gpointer userData)
+{
+	mono_type_get_name_chunked(type, MONO_TYPE_NAME_FORMAT_IL, chunkReportFunc, userData);
+}
+
+MONO_API gboolean
+mono_unity_type_is_pointer_type(MonoType *type)
+{
+	return type->type == MONO_TYPE_PTR;
+}
+
+MONO_API gboolean
+mono_unity_type_is_static(MonoType *type)
+{
+	return (type->attrs & FIELD_ATTRIBUTE_STATIC) != 0;
+}
+
+MONO_API MonoVTable *
+mono_unity_class_try_get_vtable(MonoDomain *domain, MonoClass *klass)
+{
+	return mono_class_try_get_vtable(domain, klass);
+}
+
+MONO_API uint32_t
+mono_unity_class_get_data_size(MonoClass *klass)
+{
+	return mono_class_data_size(klass);
+}
+
+MONO_API void *
+mono_unity_vtable_get_static_field_data(MonoVTable *vTable)
+{
+	return mono_vtable_get_static_field_data(vTable);
+}
+
+MONO_API gboolean
+mono_unity_class_field_is_literal(MonoClassField *field)
+{
+	return (field->type->attrs & FIELD_ATTRIBUTE_LITERAL) != 0;
+}
+
+// GC world control
+MONO_API void
+mono_unity_stop_gc_world()
+{
+#if HAVE_BDWGC_GC
+	GC_stop_world_external();
+#else
+	g_assert_not_reached();
+#endif
+}
+
+MONO_API void
+mono_unity_start_gc_world()
+{
+#if HAVE_BDWGC_GC
+	GC_start_world_external();
+#else
+	g_assert_not_reached();
+#endif
+}
+
+
+//GC memory
+static void
+handle_gc_heap_chunk(void *userdata, gpointer chunk_start, gpointer chunk_end)
+{
+	execution_ctx *ctx = (execution_ctx *)userdata;
+	mono_heap_chunk chunk;
+	chunk.start = chunk_start;
+	chunk.size = (uint8_t *)chunk_end - (uint8_t *)chunk_start;
+	ctx->callback(&chunk, ctx->user_data);
+}
+
+MONO_API void
+mono_unity_gc_heap_foreach(GFunc callback, gpointer user_data)
+{
+#if HAVE_BDWGC_GC
+	execution_ctx ctx;
+	ctx.callback = callback;
+	ctx.user_data = user_data;
+
+	GC_foreach_heap_section(&ctx, handle_gc_heap_chunk);
+#else
+	g_assert_not_reached();
+#endif
+}
+
+//GC handles
+static void
+handle_gc_handle(gpointer handle_target, gpointer handle_report_callback)
+{
+	execution_ctx *ctx = (execution_ctx *)handle_report_callback;
+	ctx->callback(handle_target, ctx->user_data);
+}
+
+MONO_API void
+mono_unity_gc_handles_foreach_get_target(GFunc callback, gpointer user_data)
+{
+#if HAVE_BDWGC_GC
+	execution_ctx ctx;
+	ctx.callback = callback;
+	ctx.user_data = user_data;
+	mono_gc_strong_handle_foreach(handle_gc_handle, &ctx);
+#else
+	g_assert_not_reached();
+#endif
+}
+
+// VM runtime info
+MONO_API uint32_t
+mono_unity_object_header_size()
+{
+	return (uint32_t)(sizeof(MonoObject));
+}
+
+MONO_API uint32_t
+mono_unity_array_object_header_size()
+{
+	return offsetof(MonoArray, vector);
+}
+
+MONO_API uint32_t
+mono_unity_offset_of_array_length_in_array_object_header()
+{
+	return offsetof(MonoArray, max_length);
+}
+
+MONO_API uint32_t
+mono_unity_offset_of_array_bounds_in_array_object_header()
+{
+	return offsetof(MonoArray, bounds);
+}
+
+MONO_API uint32_t
+mono_unity_allocation_granularity()
+{
+	return (uint32_t)(2 * sizeof(void *));
+}
