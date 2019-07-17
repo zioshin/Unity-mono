@@ -734,7 +734,7 @@ mono_unity_class_for_each(ClassReportFunc callback, void *user_data)
 {
 	ClassReportContext reportContext;
 	reportContext.callback = callback;
-	reportContext.user_data;
+	reportContext.user_data = user_data;
 	mono_domain_assembly_foreach(mono_domain_get(), ReportClassesFromAssembly, &reportContext);
 	mono_metadata_generic_class_foreach(ReportGenericClasses, &reportContext);
 }
