@@ -6,6 +6,7 @@ git submodule update --init --recursive
 # try again in case previous update failed
 git submodule update --init --recursive
 cp .yamato/config/Stevedore.conf ~/Stevedore.conf
+export UNITY_THISISABUILDMACHINE=1
 cd external/buildscripts
 ./bee
 cd ../..
