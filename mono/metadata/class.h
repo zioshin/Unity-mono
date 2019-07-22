@@ -122,9 +122,6 @@ mono_ldtoken               (MonoImage *image, uint32_t token, MonoClass **retcla
 MONO_API char*         
 mono_type_get_name         (MonoType *type);
 
-MONO_API void
-mono_type_get_name_chunked(MonoType *type, uint32_t format, void(*namePieceReportCallback)(void* data, void* userData), void* userData);
-
 MONO_API MonoType*
 mono_type_get_underlying_type (MonoType *type);
 

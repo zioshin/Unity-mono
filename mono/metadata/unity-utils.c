@@ -1475,10 +1475,289 @@ mono_unity_assembly_mempool_chunk_foreach(MonoAssembly *assembly, GFunc callback
 
 // class metadata
 
+static char *
+mono_identifier_escape_type_append(char *bufferPtr, const char *identifier)
+{
+	for (const char *s = identifier; *s != 0; ++s) {
+		switch (*s) {
+		case ',':
+		case '+':
+		case '&':
+		case '*':
+		case '[':
+		case ']':
+		case '\\':
+			*bufferPtr++ = '\\';
+			*bufferPtr++ = *s;
+
+			return bufferPtr;
+		default:
+			*bufferPtr++ = *s;
+
+			return bufferPtr;
+		}
+	}
+
+	return bufferPtr;
+}
+
+enum {
+	//max digits on uint16 is 5(used to convert the number of generic args) + max 3 other slots taken;
+	kNameChunkBufferSize = 8
+};
+
+static inline char *
+flush_name_buffer(char *buffer, GFunc callback, void *userData)
+{
+	callback(buffer, userData);
+	memset(buffer, 0x00, kNameChunkBufferSize);
+
+	return buffer;
+}
+
+static void
+mono_unity_type_get_name_foreach_name_chunk_recurse(MonoType *type, gboolean is_recursed, MonoTypeNameFormat format, GFunc nameChunkReport, void *userData)
+{
+	MonoClass *klass = NULL;
+	char buffer[kNameChunkBufferSize + 1]; //null terminate the buffer
+	memset(buffer, 0x00, kNameChunkBufferSize + 1);
+	char *bufferPtr = buffer;
+	char *bufferIter = buffer;
+
+	switch (type->type) {
+	case MONO_TYPE_ARRAY: {
+		int i, rank = type->data.array->rank;
+		MonoTypeNameFormat nested_format;
+
+		nested_format = format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED ? MONO_TYPE_NAME_FORMAT_FULL_NAME : format;
+
+		mono_unity_type_get_name_foreach_name_chunk_recurse(
+			&type->data.array->eklass->byval_arg, FALSE, nested_format, nameChunkReport, userData);
+
+		*bufferIter++ = '[';
+
+		if (rank == 1) {
+			*bufferIter++ = '*';
+		}
+
+		for (i = 1; i < rank; i++) {
+
+			*bufferIter++ = ',';
+
+			if (kNameChunkBufferSize - (bufferIter - bufferPtr) < 2) {
+				bufferIter = flush_name_buffer(bufferPtr, nameChunkReport, userData);
+			}
+		}
+
+		*bufferIter++ = ']';
+
+		if (type->byref) {
+			*bufferIter++ = '&';
+		}
+
+		nameChunkReport(bufferPtr, userData);
+
+		if (format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED) {
+			MonoClass *klass = mono_class_from_mono_type(type);
+			MonoImage *klassImg = mono_class_get_image(klass);
+			char *imgName = mono_image_get_name(klassImg);
+			nameChunkReport(imgName, userData);
+		}
+		break;
+	}
+	case MONO_TYPE_SZARRAY: {
+		MonoTypeNameFormat nested_format;
+
+		nested_format = format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED ? MONO_TYPE_NAME_FORMAT_FULL_NAME : format;
+
+		mono_unity_type_get_name_foreach_name_chunk_recurse(&type->data.klass->byval_arg, FALSE, nested_format, nameChunkReport, userData);
+
+		*bufferIter++ = '[';
+		*bufferIter++ = ']';
+
+		if (type->byref)
+			*bufferIter++ = '&';
+
+		nameChunkReport(bufferPtr, userData);
+
+		if (format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED) {
+			MonoClass *klass = mono_class_from_mono_type(type);
+			MonoImage *klassImg = mono_class_get_image(klass);
+			char *imgName = mono_image_get_name(klassImg);
+			nameChunkReport(imgName, userData);
+		}
+		break;
+	}
+	case MONO_TYPE_PTR: {
+		MonoTypeNameFormat nested_format;
+
+		nested_format = format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED ? MONO_TYPE_NAME_FORMAT_FULL_NAME : format;
+
+		mono_unity_type_get_name_foreach_name_chunk_recurse(type->data.type, FALSE, nested_format, nameChunkReport, userData);
+		*bufferIter++ = '*';
+
+		if (type->byref)
+			*bufferIter++ = '&';
+
+		nameChunkReport(bufferPtr, userData);
+
+		if (format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED) {
+			MonoClass *klass = mono_class_from_mono_type(type);
+			MonoImage *klassImg = mono_class_get_image(klass);
+			char *imgName = mono_image_get_name(klassImg);
+			nameChunkReport(imgName, userData);
+		}
+		break;
+	}
+	case MONO_TYPE_VAR:
+	case MONO_TYPE_MVAR:
+		if (!mono_generic_param_info(type->data.generic_param)) {
+
+			if (type->type == MONO_TYPE_VAR) {
+				*bufferIter++ = '!';
+			}
+			else {
+				*bufferIter++ = '!';
+				*bufferIter++ = '!';
+			}
+			sprintf(bufferIter, "%d", type->data.generic_param->num);
+		}
+		else
+			nameChunkReport(mono_generic_param_info(type->data.generic_param)->name, userData);
+
+		if (type->byref)
+			*bufferIter++ = '&';
+
+		nameChunkReport(bufferPtr, userData);
+		break;
+	default:
+		klass = mono_class_from_mono_type(type);
+		if (klass->nested_in) {
+			mono_unity_type_get_name_foreach_name_chunk_recurse(&klass->nested_in->byval_arg, TRUE, format, nameChunkReport, userData);
+			if (format == MONO_TYPE_NAME_FORMAT_IL)
+				*bufferIter++ = '.';
+			else
+				*bufferIter++ = '+';
+		}
+		else if (*klass->name_space) {
+			if (format == MONO_TYPE_NAME_FORMAT_IL)
+				nameChunkReport(klass->name_space, userData);
+			else
+				bufferIter = mono_identifier_escape_type_append(bufferIter, klass->name_space);
+
+			*bufferIter++ = '.';
+		}
+
+		if (format == MONO_TYPE_NAME_FORMAT_IL) {
+			char *s = strchr(klass->name, '`');
+			int len = s ? s - klass->name : strlen(klass->name);
+
+			for (int i = 0; i < len; ++i) {
+
+				*bufferIter++ = *(klass->name + i);
+				if (kNameChunkBufferSize - (bufferIter - bufferPtr) == 0) {
+					bufferIter = flush_name_buffer(bufferPtr, nameChunkReport, userData);
+				}
+			}
+
+			if (bufferPtr != bufferIter) {
+				bufferIter = flush_name_buffer(bufferPtr, nameChunkReport, userData);
+			}
+
+		}
+		else {
+			bufferIter = mono_identifier_escape_type_append(bufferIter, klass->name);
+		}
+
+		if (!is_recursed) {
+			if (bufferIter != bufferPtr)
+				bufferIter = flush_name_buffer(bufferPtr, nameChunkReport, userData);
+
+			if (mono_class_is_ginst(klass)) {
+				MonoGenericClass *gclass = mono_class_get_generic_class(klass);
+				MonoGenericInst *inst = gclass->context.class_inst;
+				MonoTypeNameFormat nested_format;
+				int i;
+
+				nested_format = format == MONO_TYPE_NAME_FORMAT_FULL_NAME ? MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED : format;
+
+				if (format == MONO_TYPE_NAME_FORMAT_IL)
+					*bufferIter++ = '<';
+				else
+					*bufferIter++ = '[';
+
+				for (i = 0; i < inst->type_argc; i++) {
+					MonoType *t = inst->type_argv[i];
+
+					if (i)
+						*bufferIter++ = ',';
+					if ((nested_format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED) &&
+						(t->type != MONO_TYPE_VAR) && (type->type != MONO_TYPE_MVAR))
+						*bufferIter++ = '[';
+
+					//flush the buffer before recursing
+					bufferIter = flush_name_buffer(bufferPtr, nameChunkReport, userData);
+					mono_unity_type_get_name_foreach_name_chunk_recurse(inst->type_argv[i], FALSE, nested_format, nameChunkReport, userData);
+
+					if ((nested_format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED) &&
+						(t->type != MONO_TYPE_VAR) && (type->type != MONO_TYPE_MVAR))
+						*bufferIter++ = ']';
+				}
+				if (format == MONO_TYPE_NAME_FORMAT_IL)
+					*bufferIter++ = '>';
+				else
+					*bufferIter++ = ']';
+			}
+			else if (mono_class_is_gtd(klass) &&
+				(format != MONO_TYPE_NAME_FORMAT_FULL_NAME) &&
+				(format != MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED)) {
+				int i;
+
+				if (format == MONO_TYPE_NAME_FORMAT_IL)
+					*bufferIter++ = '<';
+				else
+					*bufferIter++ = '[';
+
+				bufferIter = flush_name_buffer(bufferPtr, nameChunkReport, userData);
+
+				for (i = 0; i < mono_class_get_generic_container(klass)->type_argc; i++) {
+					if (i)
+						nameChunkReport(",", userData);
+					nameChunkReport(mono_generic_container_get_param_info(mono_class_get_generic_container(klass), i)->name, userData);
+				}
+				if (format == MONO_TYPE_NAME_FORMAT_IL)
+					*bufferIter++ = '>';
+				else
+					*bufferIter++ = ']';
+			}
+
+			if (type->byref)
+				*bufferIter++ = '&';
+		}
+
+		if (bufferPtr != bufferIter)
+			nameChunkReport(bufferPtr, userData);
+
+		if ((format == MONO_TYPE_NAME_FORMAT_ASSEMBLY_QUALIFIED) &&
+			(type->type != MONO_TYPE_VAR) && (type->type != MONO_TYPE_MVAR)) {
+			MonoImage *klassImg = mono_class_get_image(klass);
+			char *imgName = mono_image_get_name(klassImg);
+			nameChunkReport(imgName, userData);
+		}
+		break;
+	}
+}
+
+/**
+ * mono_unity_type_get_name_full_chunked:
+ * \param type a type
+ * \reports chunks null terminated of a type's name via a callback.
+ */
+
 MONO_API void
 mono_unity_type_get_name_full_chunked(MonoType *type, GFunc chunkReportFunc, gpointer userData)
 {
-	mono_type_get_name_chunked(type, MONO_TYPE_NAME_FORMAT_IL, chunkReportFunc, userData);
+	mono_unity_type_get_name_foreach_name_chunk_recurse(type, FALSE, MONO_TYPE_NAME_FORMAT_IL, chunkReportFunc, userData);
 }
 
 MONO_API gboolean
