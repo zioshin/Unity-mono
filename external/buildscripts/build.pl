@@ -437,7 +437,7 @@ if ($build)
 			if($windowsSubsystemForLinux)
 			{
 				#Windows subsystem needs to run bootstrap, and make needs to be run with -i due to one doc failing to build
-				system("./bootstrap.sh") eq 0 or die ("failed to bootstrap automake\n");
+				system("./bootstrap") eq 0 or die ("failed to bootstrap automake\n");
 				$automakeMakeFlags = "-i";
 			}
 			system("./configure --prefix=$builtToolsDir") eq 0 or die ("failed to configure automake\n");
@@ -1161,10 +1161,19 @@ if ($build)
 			else
 			{
 				print(">>> Linux SDK needs to be extracted\n");
-				system('mkdir', '-p', $depsSdkFinal);
-				system('tar', 'xaf', $depsSdkArchive, '-C', $depsSdkFinal) eq 0  or die ("failed to extract Linux SDK\n");
-				system('sudo', 'cp', '-R', "$depsSdkFinal/linux-sdk-$sdkVersion", '/etc/schroot');
-				system("sed 's,^directory=.*,directory=$depsSdkFinal/$schroot,' \"$depsSdkFinal/$schroot.conf\" | sudo tee /etc/schroot/chroot.d/$schroot.conf") eq 0 or die ("failed to deploy Linux SDK\n");
+				system('mkdir', '-p', $depsSdkFinal) eq 0 or die ("failed to create directory $depsSdkFinal\n");
+				system('tar', 'xaf', $depsSdkArchive, '-C', $depsSdkFinal) eq 0 or die ("failed to extract Linux SDK\n");
+				system('sudo', 'cp', '-R', "$depsSdkFinal/linux-sdk-$sdkVersion", '/etc/schroot') eq 0 or die ("failed to copy SDK\n");
+				
+				if($ENV{YAMATO_PROJECT_ID})
+				{
+					system('sudo', 'cp', "$monoroot/.yamato/config/LinuxBuildEnvironment-20170609.conf", '/etc/schroot/chroot.d/') eq 0 or die ("failed to copy conf file\n");
+					system('sudo', 'cat', '/etc/schroot/chroot.d/LinuxBuildEnvironment-20170609.conf') eq 0 or die ("failed to list contents on /etc/schroot/chroot.d\n");					
+				}
+				else
+				{
+					system("sed 's,^directory=.*,directory=$depsSdkFinal/$schroot,' \"$depsSdkFinal/$schroot.conf\" | sudo tee /etc/schroot/chroot.d/$schroot.conf") eq 0 or die ("failed to deploy Linux SDK\n");
+				}	
 			}
 
 			@commandPrefix = @linuxToolchain;

@@ -286,9 +286,10 @@ typedef struct {
 typedef struct {
 	const char *name;
 	void (*connect) (const char *address);
+	int (*wait_for_attach) (void);
 	void (*close1) (void);
 	void (*close2) (void);
-	gboolean (*send) (void *buf, int len);
+	int (*send) (void *buf, int len);
 	int (*recv) (void *buf, int len);
 } DebuggerTransport;
 
@@ -1049,6 +1050,63 @@ mono_debugger_agent_parse_options (char *options)
 	}
 }
 
+static gboolean disable_optimizations = TRUE;
+
+static void
+update_mdb_optimizations ()
+{
+	gboolean enable = disable_optimizations;
+#ifndef RUNTIME_IL2CPP
+	mini_get_debug_options ()->gen_sdb_seq_points = enable;
+	/*
+	 * This is needed because currently we don't handle liveness info.
+	 */
+	mini_get_debug_options ()->mdb_optimizations = enable;
+
+#ifndef MONO_ARCH_HAVE_CONTEXT_SET_INT_REG
+	/* This is needed because we can't set local variables in registers yet */
+	mono_disable_optimizations (MONO_OPT_LINEARS);
+#endif
+
+	/*
+	 * The stack walk done from thread_interrupt () needs to be signal safe, but it
+	 * isn't, since it can call into mono_aot_find_jit_info () which is not signal
+	 * safe (#3411). So load AOT info eagerly when the debugger is running as a
+	 * workaround.
+	 */
+	mini_get_debug_options ()->load_aot_jit_info_eagerly = enable;
+#endif // !RUNTIME_IL2CPP
+}
+
+MONO_API void
+mono_debugger_set_generate_debug_info (gboolean enable)
+{
+	disable_optimizations = enable;
+	update_mdb_optimizations ();
+}
+
+MONO_API gboolean
+mono_debugger_get_generate_debug_info ()
+{
+	return disable_optimizations;
+}
+
+MONO_API void
+mono_debugger_disconnect ()
+{
+	stop_debugger_thread ();
+	transport_connect (agent_config.address);
+	start_debugger_thread ();
+}
+
+typedef void (*MonoDebuggerAttachFunc)(gboolean attached);
+static MonoDebuggerAttachFunc attach_func;
+MONO_API void
+mono_debugger_install_attach_detach_callback (MonoDebuggerAttachFunc func)
+{
+	attach_func = func;
+}
+
 void
 mono_debugger_agent_init (void)
 {
@@ -1116,26 +1174,7 @@ mono_debugger_agent_init (void)
 	breakpoints_init ();
 	suspend_init ();
 
-#ifndef RUNTIME_IL2CPP
-	mini_get_debug_options ()->gen_sdb_seq_points = TRUE;
-	/* 
-	 * This is needed because currently we don't handle liveness info.
-	 */
-	mini_get_debug_options ()->mdb_optimizations = TRUE;
-
-#ifndef MONO_ARCH_HAVE_CONTEXT_SET_INT_REG
-	/* This is needed because we can't set local variables in registers yet */
-	mono_disable_optimizations (MONO_OPT_LINEARS);
-#endif
-
-	/*
-	 * The stack walk done from thread_interrupt () needs to be signal safe, but it
-	 * isn't, since it can call into mono_aot_find_jit_info () which is not signal
-	 * safe (#3411). So load AOT info eagerly when the debugger is running as a
-	 * workaround.
-	 */
-	mini_get_debug_options ()->load_aot_jit_info_eagerly = TRUE;
-#endif // !RUNTIME_IL2CPP
+	update_mdb_optimizations ();
 
 #ifdef HAVE_SETPGID
 	if (agent_config.setpgid)
@@ -1328,6 +1367,26 @@ socket_transport_accept (int socket_fd)
 	}
 	
 	return conn_fd;
+}
+
+static int
+socket_transport_wait_for_attach(void)
+{
+	if (listen_fd == -1) {
+		DEBUG_PRINTF(1, "[dbg] Invalid listening socket\n");
+		return 0;
+	}
+
+	/* Block and wait for client connection */
+	conn_fd = socket_transport_accept(listen_fd);
+
+	DEBUG_PRINTF(1, "Accepted connection on %d\n", conn_fd);
+	if (conn_fd == -1) {
+		DEBUG_PRINTF(1, "[dbg] Bad client connection\n");
+		return 0;
+	}
+	
+	return 1;
 }
 
 static gboolean
@@ -1560,6 +1619,7 @@ register_socket_transport (void)
 
 	trans.name = "dt_socket";
 	trans.connect = socket_transport_connect;
+	trans.wait_for_attach = socket_transport_wait_for_attach;
 	trans.close1 = socket_transport_close1;
 	trans.close2 = socket_transport_close2;
 	trans.send = socket_transport_send;
@@ -1595,6 +1655,7 @@ register_socket_fd_transport (void)
 	/* This is the same as the 'dt_socket' transport, but receives an already connected socket fd */
 	trans.name = "socket-fd";
 	trans.connect = socket_fd_transport_connect;
+	trans.wait_for_attach = socket_transport_wait_for_attach;
 	trans.close1 = socket_transport_close1;
 	trans.close2 = socket_transport_close2;
 	trans.send = socket_transport_send;
@@ -1662,6 +1723,12 @@ void
 transport_connect (const char *address)
 {
 	transport->connect (address);
+}
+
+int
+transport_wait_for_attach(void)
+{
+	return transport->wait_for_attach ();
 }
 
 static void
@@ -3176,37 +3243,44 @@ suspend_current (void)
 	tls = (DebuggerTlsData *)mono_native_tls_get_value (debugger_tls_id);
 	g_assert (tls);
 
-	mono_coop_mutex_lock (&suspend_mutex);
+	gboolean do_resume = FALSE;
+	while (!do_resume) {
+		mono_coop_mutex_lock (&suspend_mutex);
 
-	tls->suspending = FALSE;
-	tls->really_suspended = TRUE;
+		tls->suspending = FALSE;
+		tls->really_suspended = TRUE;
 
-	if (!tls->suspended) {
-		tls->suspended = TRUE;
-		mono_coop_sem_post (&suspend_sem);
-	}
+		if (!tls->suspended) {
+			tls->suspended = TRUE;
+			mono_coop_sem_post (&suspend_sem);
+		}
 
-	DEBUG_PRINTF (1, "[%p] Suspended.\n", (gpointer) (gsize) mono_native_thread_id_get ());
+		DEBUG_PRINTF (1, "[%p] Suspended.\n", (gpointer) (gsize) mono_native_thread_id_get ());
 
-	while (suspend_count - tls->resume_count > 0) {
-		mono_coop_cond_wait (&suspend_cond, &suspend_mutex);
-	}
+		while (suspend_count - tls->resume_count > 0) {
+			mono_coop_cond_wait (&suspend_cond, &suspend_mutex);
+		}
 
-	tls->suspended = FALSE;
-	tls->really_suspended = FALSE;
+		tls->suspended = FALSE;
+		tls->really_suspended = FALSE;
 
-	threads_suspend_count --;
+		threads_suspend_count --;
 
-	mono_coop_mutex_unlock (&suspend_mutex);
+		mono_coop_mutex_unlock (&suspend_mutex);
 
-	DEBUG_PRINTF (1, "[%p] Resumed.\n", (gpointer) (gsize) mono_native_thread_id_get ());
+		DEBUG_PRINTF (1, "[%p] Resumed.\n", (gpointer) (gsize) mono_native_thread_id_get ());
 
-	if (tls->pending_invoke) {
-		/* Save the original context */
-		tls->pending_invoke->has_ctx = TRUE;
-		tls->pending_invoke->ctx = tls->context.ctx;
+		if (tls->pending_invoke) {
+			/* Save the original context */
+			tls->pending_invoke->has_ctx = TRUE;
+			tls->pending_invoke->ctx = tls->context.ctx;
 
-		invoke_method ();
+			invoke_method ();
+
+			/* Have to suspend again */
+		} else {
+			do_resume = TRUE;
+		}
 	}
 
 	/* The frame info becomes invalid after a resume */
@@ -3824,7 +3898,7 @@ create_event_list (EventKind event, GPtrArray *reqs, MonoJitInfo *ji, DebuggerEv
 							break;
 					}
 #else
-					while (!found && (method = mono_class_get_methods (ei->klass, &iter))) {
+					while ((method = mono_class_get_methods (ei->klass, &iter))) {
 						MonoDebugMethodInfo *minfo = mono_debug_lookup_method (method);
 
 						if (minfo) {
@@ -4630,6 +4704,8 @@ insert_breakpoint (MonoSeqPointInfo *seq_points, MonoDomain *domain, MonoJitInfo
 			mini_get_interp_callbacks ()->set_breakpoint (ji, inst->ip);
 		} else {
 #ifdef MONO_ARCH_SOFT_DEBUG_SUPPORTED
+			if (ji->dbg_ignore)
+				return;
 			mono_arch_set_breakpoint (ji, inst->ip);
 #else
 			NOT_IMPLEMENTED;
@@ -5316,7 +5392,10 @@ get_set_notification_method (MonoClass* async_builder_class)
 	MonoError error;
 	GPtrArray* array = mono_class_get_methods_by_name (async_builder_class, "SetNotificationForWaitCompletion", 0x24, FALSE, FALSE, &error);
 	mono_error_assert_ok (&error);
-	g_assert (array->len == 1);
+	if (array->len == 0) {
+		g_ptr_array_free (array, TRUE);
+		return NULL;
+	}
 	MonoMethod* set_notification_method = (MonoMethod *)g_ptr_array_index (array, 0);
 	g_ptr_array_free (array, TRUE);
 	return set_notification_method;
@@ -5402,7 +5481,9 @@ get_this_async_id (StackFrame *frame)
 	return get_objid (obj);
 }
 
-static void
+// Returns true if TaskBuilder has NotifyDebuggerOfWaitCompletion method
+// false if not(AsyncVoidBuilder)
+static gboolean
 set_set_notification_for_wait_completion_flag (StackFrame *frame)
 {
 	MonoClassField *builder_field = mono_class_get_field_from_name (frame->method->klass, "<>t__builder");
@@ -5414,16 +5495,20 @@ set_set_notification_for_wait_completion_flag (StackFrame *frame)
 	gboolean arg = TRUE;
 	MonoError error;
 	args [0] = &arg;
-	mono_runtime_invoke_checked (get_set_notification_method (mono_class_from_mono_type (mono_field_get_type (builder_field))), builder, args, &error);
+	MonoMethod *method = get_set_notification_method (mono_class_from_mono_type (mono_field_get_type (builder_field)));
+	if (method == NULL)
+		return FALSE;
+	mono_runtime_invoke_checked (method, builder, args, &error);
 	mono_error_assert_ok (&error);
+	return TRUE;
 }
 
-static MonoMethod* notify_debugger_of_wait_completion_method_cache = NULL;
+static MonoMethod* notify_debugger_of_wait_completion_method_cache;
 
 static MonoMethod*
 get_notify_debugger_of_wait_completion_method (void)
 {
-#if IL2CPP_TINY
+#if IL2CPP_DOTS
 	return NULL;
 #else
 	if (notify_debugger_of_wait_completion_method_cache != NULL)
@@ -5436,7 +5521,7 @@ get_notify_debugger_of_wait_completion_method (void)
 	notify_debugger_of_wait_completion_method_cache = (MonoMethod *)g_ptr_array_index (array, 0);
 	g_ptr_array_free (array, TRUE);
 	return notify_debugger_of_wait_completion_method_cache;
-#endif // IL2CPP_TINY
+#endif // IL2CPP_DOTS
 }
 
 #ifndef RUNTIME_IL2CPP
@@ -6409,14 +6494,16 @@ ss_start (SingleStepReq *ss_req, MonoMethod *method, SeqPoint* sp, MonoSeqPointI
 				ss_req->depth = STEP_DEPTH_OUT;//setting depth to step-out is important, don't inline IF, because code later depends on this
 			}
 			if (ss_req->depth == STEP_DEPTH_OUT) {
-				set_set_notification_for_wait_completion_flag (frames [0]);
-				ss_req->async_id = get_this_async_id (frames [0]);
-				ss_req->async_stepout_method = get_notify_debugger_of_wait_completion_method ();
-				ss_bp_add_one (ss_req, &ss_req_bp_count, &ss_req_bp_cache, ss_req->async_stepout_method, 0);
-				if (ss_req_bp_cache)
-					g_hash_table_destroy (ss_req_bp_cache);
-				mono_debug_free_method_async_debug_info (asyncMethod);
-				return;
+				//If we are inside `async void` method, do normal step-out
+				if (set_set_notification_for_wait_completion_flag (frames [0])) {
+					ss_req->async_id = get_this_async_id (frames [0]);
+					ss_req->async_stepout_method = get_notify_debugger_of_wait_completion_method ();
+					ss_bp_add_one (ss_req, &ss_req_bp_count, &ss_req_bp_cache, ss_req->async_stepout_method, 0);
+					if (ss_req_bp_cache)
+						g_hash_table_destroy (ss_req_bp_cache);
+					mono_debug_free_method_async_debug_info (asyncMethod);
+					return;
+				}
 			}
 		}
 
@@ -6823,20 +6910,27 @@ mono_debugger_agent_unhandled_exception (MonoException *exc)
 #endif
 
 #ifdef RUNTIME_IL2CPP
-static Il2CppSequencePoint* il2cpp_find_catch_sequence_point_in_method(Il2CppSequencePoint* callSp, MonoException *exc)
+static Il2CppCatchPoint* il2cpp_find_catch_point_in_method(const MonoMethod *method, int8_t tryId, MonoException *exc)
 {
-	uint8_t tryDepth = callSp->tryDepth;
-	MonoMethod *method = il2cpp_get_seq_point_method(callSp);
-	int32_t ilOffset = callSp->ilOffset;
-	Il2CppSequencePoint *sp;
+	Il2CppCatchPoint *cp;
+	int8_t nextId = tryId, id;
 
-	void *seqPointIter = NULL;
-	while (sp = il2cpp_get_method_sequence_points(method, &seqPointIter))
+	while(nextId >= 0)
 	{
-		MonoClass *catchType = il2cpp_get_class_from_index(sp->catchTypeIndex);
-		if (sp->tryDepth == tryDepth && sp->ilOffset > ilOffset && catchType != NULL && mono_class_is_assignable_from (catchType, mono_object_get_class (&exc->object)))
-			return sp;
-	}
+		id = nextId;
+		nextId = -1;
+		void *catchPointIter = NULL;
+		while (cp = il2cpp_get_method_catch_points(method, &catchPointIter))
+		{
+			if (cp->tryId == id)
+			{
+				MonoClass *catchType = il2cpp_get_class_from_index(cp->catchTypeIndex);
+				nextId = cp->parentTryId;
+				if (catchType != NULL && mono_class_is_assignable_from (catchType, mono_object_get_class (&exc->object)))
+					return cp;
+			}
+		}
+	} 
 
 	return NULL;
 }
@@ -6846,9 +6940,15 @@ static Il2CppSequencePoint* il2cpp_find_catch_sequence_point(DebuggerTlsData *tl
 	int frameIndex = tls->il2cpp_context->frameCount - 1;
 	while (frameIndex >= 0)
 	{
-		Il2CppSequencePoint* sp = il2cpp_find_catch_sequence_point_in_method(tls->il2cpp_context->executionContexts[frameIndex]->currentSequencePoint, tls->exception);
-		if (sp)
-			return sp;
+		Il2CppCatchPoint* cp = il2cpp_find_catch_point_in_method(tls->il2cpp_context->executionContexts[frameIndex]->method, tls->il2cpp_context->executionContexts[frameIndex]->tryId, tls->exception);
+		if (cp)
+		{
+			Il2CppSequencePoint* sp = il2cpp_get_seq_point_from_catch_point(cp);
+			if (sp)
+				return sp;
+			else
+				return NULL;
+		}
 
 		--frameIndex;
 	}
@@ -6856,32 +6956,29 @@ static Il2CppSequencePoint* il2cpp_find_catch_sequence_point(DebuggerTlsData *tl
 	return NULL;
 }
 
-static Il2CppSequencePoint* il2cpp_find_catch_sequence_point_from_exeption(DebuggerTlsData *tls, MonoException *exc, Il2CppSequencePoint *firstSp)
+static void il2cpp_find_catch_sequence_point_from_exeption(DebuggerTlsData *tls, MonoException *exc, Il2CppCatchPoint **catchPt, Il2CppSequencePoint **seqPt)
 {
-	Il2CppSequencePoint* sp;
-
-	if (firstSp)
-	{
-		sp = il2cpp_find_catch_sequence_point_in_method(firstSp, exc);
-		if (sp)
-			return sp;
-	}
+	*catchPt = NULL;
+	*seqPt = NULL;
 
 	int frameIndex = tls->il2cpp_context->frameCount - 1;
 	while (frameIndex >= 0)
 	{
-		sp = il2cpp_find_catch_sequence_point_in_method(tls->il2cpp_context->executionContexts[frameIndex]->currentSequencePoint, exc);
-		if (sp)
-			return sp;
+		*catchPt = il2cpp_find_catch_point_in_method(tls->il2cpp_context->executionContexts[frameIndex]->method, tls->il2cpp_context->executionContexts[frameIndex]->tryId, exc);
+		if (*catchPt)
+		{
+			*seqPt = il2cpp_get_seq_point_from_catch_point(*catchPt);
+			return;
+		}
 
 		--frameIndex;
 	}
 
-	return NULL;
+	return;
 }
 
 void
-unity_debugger_agent_handle_exception(MonoException *exc, Il2CppSequencePoint *sequencePoint)
+unity_debugger_agent_handle_exception(MonoException *exc)
 {
 	int i, j, suspend_policy;
 	GSList *events;
@@ -6906,18 +7003,19 @@ unity_debugger_agent_handle_exception(MonoException *exc, Il2CppSequencePoint *s
 
 	ei.exc = (MonoObject*)exc;
 	ei.caught = FALSE;
-	Il2CppSequencePoint *catchSp = NULL;
+	Il2CppCatchPoint *catchPt;
+	Il2CppSequencePoint *seqPt;
 
 	if (tls)
 	{
-		catchSp = il2cpp_find_catch_sequence_point_from_exeption(tls, exc, sequencePoint);
-		if (catchSp)
+		il2cpp_find_catch_sequence_point_from_exeption(tls, exc, &catchPt, &seqPt);
+		if (catchPt)
 			ei.caught = TRUE;
 	}
 
 	mono_loader_lock();
 
-	MonoMethod *sp_method = il2cpp_get_seq_point_method(sequencePoint);
+	MonoMethod *method = tls->il2cpp_context->executionContexts[tls->il2cpp_context->frameCount - 1]->method;
 
 	/* Treat exceptions which are caught in non-user code as unhandled */
 	for (i = 0; i < event_requests->len; ++i)
@@ -6930,7 +7028,7 @@ unity_debugger_agent_handle_exception(MonoException *exc, Il2CppSequencePoint *s
 		{
 			Modifier *mod = &req->modifiers[j];
 
-			if (mod->kind == MOD_KIND_ASSEMBLY_ONLY && sequencePoint)
+			if (mod->kind == MOD_KIND_ASSEMBLY_ONLY && method)
 			{
 				int k;
 				gboolean found = FALSE;
@@ -6939,7 +7037,7 @@ unity_debugger_agent_handle_exception(MonoException *exc, Il2CppSequencePoint *s
 				if (assemblies)
 				{
 					for (k = 0; assemblies[k]; ++k)
-						if (assemblies[k] == mono_image_get_assembly (mono_class_get_image (mono_method_get_class (sp_method))))
+						if (assemblies[k] == mono_image_get_assembly (mono_class_get_image (mono_method_get_class (method))))
 							found = TRUE;
 				}
 				if (!found)
@@ -6955,11 +7053,11 @@ unity_debugger_agent_handle_exception(MonoException *exc, Il2CppSequencePoint *s
 	{
 		if (!ss_req || !ss_req->bps) {
 			tls->exception = exc;
-		} else if (ss_req->bps && catchSp) {
+		} else if (ss_req->bps && seqPt) {
 			int ss_req_bp_count = g_slist_length(ss_req->bps);
 			GHashTable *ss_req_bp_cache = NULL;
 
-			ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, catchSp);
+			ss_bp_add_one_il2cpp(ss_req, &ss_req_bp_count, &ss_req_bp_cache, seqPt);
 
 			if (ss_req_bp_cache)
 				g_hash_table_destroy(ss_req_bp_cache);
@@ -8597,8 +8695,6 @@ invoke_method (void)
 
 	g_free (invoke->p);
 	g_free (invoke);
-
-	suspend_current ();
 }
 
 static gboolean
@@ -11892,19 +11988,8 @@ static gboolean
 wait_for_attach (void)
 {
 #ifndef DISABLE_SOCKET_TRANSPORT
-	if (listen_fd == -1) {
-		DEBUG_PRINTF (1, "[dbg] Invalid listening socket\n");
+	if (!transport_wait_for_attach())
 		return FALSE;
-	}
-
-	/* Block and wait for client connection */
-	conn_fd = socket_transport_accept (listen_fd);
-
-	DEBUG_PRINTF (1, "Accepted connection on %d\n", conn_fd);
-	if (conn_fd == -1) {
-		DEBUG_PRINTF (1, "[dbg] Bad client connection\n");
-		return FALSE;
-	}
 #else
 	g_assert_not_reached ();
 #endif
@@ -11963,6 +12048,8 @@ debugger_thread (void *arg)
 			attach_failed = TRUE; // Don't abort process when we can't listen
 		} else {
 			mono_set_is_debugger_attached (TRUE);
+			if (attach_func)
+				attach_func (TRUE);
 			/* Send start event to client */
 			process_profiler_event (EVENT_KIND_VM_START, mono_thread_get_main ());
 #ifdef RUNTIME_IL2CPP
@@ -11979,6 +12066,8 @@ debugger_thread (void *arg)
 		}
 	} else {
 		mono_set_is_debugger_attached (TRUE);
+		if (attach_func)
+			attach_func (TRUE);
 	}
 	
 	while (!attach_failed) {
@@ -12113,6 +12202,8 @@ debugger_thread (void *arg)
 	}
 
 	mono_set_is_debugger_attached (FALSE);
+	if (attach_func)
+		attach_func (FALSE);
 
 #ifdef RUNTIME_IL2CPP
 	il2cpp_mono_free_method_signatures();
