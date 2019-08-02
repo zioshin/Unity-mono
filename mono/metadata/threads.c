@@ -3061,6 +3061,8 @@ void mono_thread_init (MonoThreadStartCB start_cb,
 
 void mono_thread_cleanup (void)
 {
+	mono_threads_join_threads ();
+
 #if !defined(RUN_IN_SUBTHREAD) && !defined(HOST_WIN32)
 	/* The main thread must abandon any held mutexes (particularly
 	 * important for named mutexes as they are shared across
