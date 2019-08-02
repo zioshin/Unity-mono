@@ -2686,7 +2686,7 @@ mono_thread_internal_stop (MonoInternalThread *thread)
 {
 	g_assert (thread != mono_thread_internal_current ());
 
-	if (!request_thread_abort (internal, NULL, FALSE))
+	if (!request_thread_abort (thread, NULL, FALSE))
 		return;
 	
 	async_abort_internal (thread, TRUE);

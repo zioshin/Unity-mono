@@ -188,7 +188,7 @@ cleanup (void)
 	for (i = 0; i < threadpool->threads->len; ++i) {
 		MonoInternalThread *thread = (MonoInternalThread*) g_ptr_array_index (threadpool->threads, i);
 		if (thread != current)
-			mono_thread_internal_abort (thread);
+			mono_thread_internal_abort (thread, TRUE);
 	}
 
 	mono_coop_mutex_unlock (&threadpool->threads_lock);
