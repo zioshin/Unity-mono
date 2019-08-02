@@ -491,6 +491,8 @@ unregister_thread (void *arg)
 	mono_threads_signal_thread_handle (handle);
 
 	mono_threads_close_thread_handle (handle);
+
+	mono_native_tls_set_value (thread_info_key, NULL);
 }
 
 static void
