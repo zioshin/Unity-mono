@@ -37,6 +37,11 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
+#ifdef HOST_ANDROID
+#include <android/log.h>
+#include <jni.h>
+#endif
+
 #undef DEBUG
 
 static gint32 string_invariant_compare_char (gunichar2 c1, gunichar2 c2,
@@ -561,6 +566,9 @@ get_current_locale_name (void)
 	locale = get_darwin_locale ();
 	if (!locale)
 		locale = get_posix_locale ();
+#elif defined HOST_ANDROID
+    __android_log_print(ANDROID_LOG_INFO, "MONO", "Getting locale");
+    locale = "ru-RU";
 #else
 	locale = get_posix_locale ();
 #endif
