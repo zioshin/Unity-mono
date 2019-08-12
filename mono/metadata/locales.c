@@ -61,7 +61,7 @@ get_android_locale (void)
 {
     static gchar *cached_locale = NULL;
     JNIEnv* env = NULL;
-    bool detached;
+    jint detached;
     jclass localeClass;
 
     if (cached_locale != NULL)
@@ -101,7 +101,6 @@ get_android_locale (void)
     mono_memory_barrier ();
     return cached_locale ? g_strdup (cached_locale) : NULL;
 }
-
 #endif
 
 #undef DEBUG
