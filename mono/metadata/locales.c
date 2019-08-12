@@ -88,7 +88,7 @@ get_android_locale (void)
             jobject def = (*env)->CallStaticObjectMethod(env, localeClass, getDefault);
             toLanguageTag = (*env)->GetMethodID(env, localeClass, "toLanguageTag", "()Ljava/lang/String;");
             tag = (jstring)(*env)->CallObjectMethod(env, def, toLanguageTag);
-            nativeTag = (*env)->GetStringUTFChars(env, tag, nullptr);
+            nativeTag = (*env)->GetStringUTFChars(env, tag, NULL);
             __android_log_print(ANDROID_LOG_INFO, "Mono", "Locale %s", nativeTag);
             cached_locale = g_strdup (nativeTag);
             (*env)->ReleaseStringUTFChars(env, tag, nativeTag);
