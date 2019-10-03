@@ -914,7 +914,7 @@ mono_gc_alloc_vector (MonoVTable *vtable, size_t size, uintptr_t max_length)
 		obj->obj.synchronisation = NULL;
 
 		memset ((char *) obj + sizeof (MonoObject), 0, size - sizeof (MonoObject));
-#if HAVE_BDWGC_GC
+#if 0
 	} else if (vtable->klass->element_class->valuetype && 
 		vtable->klass->element_class->gc_descr != GC_NO_DESCRIPTOR &&
 		vtable->domain == mono_get_root_domain () /* &&
