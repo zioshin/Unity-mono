@@ -1,0 +1,14 @@
+name: build_linux_aarch64
+
+agent:
+  type: Unity::VM
+  image: slough-ops/ubuntu-16.04-arm64-base:latest
+  flavor: m1.large
+
+commands:
+  - .yamato/build_linux_aarch64.sh
+
+artifacts: 
+  linux_aarch64:
+    paths:
+      - incomingbuilds/linux_aarch64/**
