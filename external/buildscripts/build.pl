@@ -49,6 +49,7 @@ my $checkoutOnTheFly=0;
 my $forceDefaultBuildDeps=0;
 my $existingMonoRootPath = '';
 my $sdk = '';
+my $arch = "";
 my $arch32 = 0;
 my $winPerl = "";
 my $winMonoRoot = "";
@@ -94,6 +95,7 @@ GetOptions(
 	'buildusandboo=i'=>\$buildUsAndBoo,
 	'runtimetests=i'=>\$runRuntimeTests,
 	'classlibtests=i'=>\$runClasslibTests,
+	'arch=s'=>\$arch,
 	'arch32=i'=>\$arch32,
 	'jobs=i'=>\$jobs,
 	'sdk=s'=>\$sdk,
@@ -200,7 +202,14 @@ my $monoprefix = "$monoroot/tmp";
 my $runningOnWindows=0;
 if($^O eq "linux")
 {
-	$monoHostArch = $arch32 ? "i686" : "x86_64";
+	if ($arch ne '')
+	{
+		$monoHostArch = $arch;
+	}
+	else
+	{
+		$monoHostArch = $arch32 ? "i686" : "x86_64";
+	}
 	$existingExternalMono = "$existingExternalMonoRoot";
 	$existingExternalMonoBinDir = "bin-linux64";
 }
