@@ -189,6 +189,12 @@ null_gc_sources = \
 	null-gc-handles.h \
 	null-gc-handles.c
 
+unity_sources = \
+	unity-memory-info.c \
+	unity-memory-info.h \
+	unity-utils.c \
+	unity-utils.h
+
 if !DISABLE_ICALL_TABLES
 icall_tables_sources = \
 	icall-table.c
@@ -207,6 +213,7 @@ endif
 
 common_sources = \
 	$(platform_sources)	\
+	$(unity_sources)	\
 	appdomain.c	\
 	assembly-load-context.c	\
 	domain.c	\
