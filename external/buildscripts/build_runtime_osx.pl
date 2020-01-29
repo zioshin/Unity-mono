@@ -151,7 +151,7 @@ my $arch = 'x86_64';
 	print "Building for architecture: $arch\n";
 
 	my $macversion = '10.6';
-	my $sdkversion = '10.6';
+	my $sdkversion = '10.11';
 
 	# Set up clang toolchain
 	$sdkPath = "$externalBuildDeps/MacBuildEnvironment/builds/MacOSX$sdkversion.sdk";
