@@ -16,7 +16,7 @@ my $libmono = "$lib/mono";
 my $monoprefix = "$root/tmp/monoprefix";
 my $xcodePath = '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform';
 my $macversion = '10.6';
-my $sdkversion = '10.6';
+my $sdkversion = '10.11';
 my $externalBuildDeps = "$root/../../mono-build-deps/build";
 
 my $dependencyBranchToUse = "unity3.0";
@@ -188,7 +188,7 @@ if (not $skipbuild)
 		print(">>>Calling autoreconf in mono\n");
 		system("autoreconf -i");
 		print(">>>Calling configure in mono\n");
-		system("./configure","--prefix=$monoprefix","--with-monotouch=$withMonotouch","-with-unity=$withUnity", "--with-glib=embedded","--with-mcs-docs=no","--with-macversion=10.5", "--disable-nls") eq 0 or die ("failing autogenning mono");
+		system("./configure","--prefix=$monoprefix","--with-monotouch=$withMonotouch","-with-unity=$withUnity", "--with-glib=embedded","--with-mcs-docs=no","--with-macversion=10.9", "--disable-nls") eq 0 or die ("failing autogenning mono");
 		print("calling make clean in mono\n");
 		system("make","clean");
 	}
