@@ -4138,6 +4138,9 @@ register_icalls (void)
 	register_icall (mono_thread_interruption_checkpoint, "mono_thread_interruption_checkpoint", "object", FALSE);
 	register_icall (mono_thread_force_interruption_checkpoint_noraise, "mono_thread_force_interruption_checkpoint_noraise", "object", FALSE);
 
+	
+	register_icall (mini_hack_record_memory, "mini_hack_record_memory", "void ptr", TRUE);
+
 	if (mono_threads_is_coop_enabled ())
 		register_icall (mono_threads_state_poll, "mono_threads_state_poll", "void", FALSE);
 

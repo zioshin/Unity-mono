@@ -178,6 +178,36 @@ copy_1:
 	}
 }
 
+static FILE *debug_file;
+
+void
+mini_hack_record_memory (char *msg)
+{
+	if (!debug_file) {
+		debug_file = fopen ("C:\\dev\\jon.txt", "w");
+	}
+	fprintf (debug_file, "%s", msg);
+}
+
+void
+mini_emit_record_memory_copy (MonoCompile *cfg, MonoClass *klass)
+{
+	MonoInst *iargs[2];
+
+	char *method_full_name = mono_method_full_name (cfg->method, TRUE);
+	char *type_full_name = mono_type_get_name (&klass->byval_arg);
+
+	char *result = g_strdup_printf ("%s,%s,%s,%d\n", cfg->method->klass->image->assembly_name, method_full_name, type_full_name, (int)(klass->instance_size - sizeof (MonoObject)));
+
+	g_free (method_full_name);
+	g_free (type_full_name);
+
+	//EMIT_NEW_METHODCONST (cfg, iargs[0], cfg->method);
+	EMIT_NEW_PCONST (cfg, iargs[0], result);
+
+	mono_emit_jit_icall (cfg, mini_hack_record_memory, iargs);
+}
+
 static void
 mini_emit_memcpy_internal (MonoCompile *cfg, MonoInst *dest, MonoInst *src, MonoInst *size_ins, int size, int align)
 {
@@ -354,6 +384,8 @@ mini_emit_memory_copy_internal (MonoCompile *cfg, MonoInst *dest, MonoInst *src,
 
 	if (cfg->gshared)
 		klass = mono_class_from_mono_type (mini_get_underlying_type (&klass->byval_arg));
+
+	mini_emit_record_memory_copy (cfg, klass);
 
 	/*
 	 * This check breaks with spilled vars... need to handle it during verification anyway.

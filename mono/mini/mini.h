@@ -2277,6 +2277,8 @@ void              mini_emit_memory_store (MonoCompile *cfg, MonoType *type, Mono
 void              mini_emit_memory_copy_bytes (MonoCompile *cfg, MonoInst *dest, MonoInst *src, MonoInst *size, int ins_flag);
 void              mini_emit_memory_init_bytes (MonoCompile *cfg, MonoInst *dest, MonoInst *value, MonoInst *size, int ins_flag);
 void              mini_emit_memory_copy (MonoCompile *cfg, MonoInst *dest, MonoInst *src, MonoClass *klass, gboolean native, int ins_flag);
+void              mini_emit_record_memory_copy (MonoCompile *cfg, MonoClass *klass);
+void              mini_hack_record_memory (char* msg);
 
 MonoMethod*       mini_get_memcpy_method (void);
 MonoMethod*       mini_get_memset_method (void);
