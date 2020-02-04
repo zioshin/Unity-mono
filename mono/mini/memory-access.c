@@ -178,34 +178,50 @@ copy_1:
 	}
 }
 
-static FILE *debug_file;
+static FILE *debug_file_1;
+static FILE *debug_file_2;
 
 void
-mini_hack_record_memory (char *msg)
+mini_hack_record_memory (int id)
 {
-	if (!debug_file) {
-		debug_file = fopen ("C:\\dev\\jon.txt", "w");
+	if (!debug_file_2) {
+		debug_file_2 = fopen ("C:\\temp\\log.bin", "wb");
 	}
-	fprintf (debug_file, "%s", msg);
+	if (debug_file_2) {
+		fwrite (&id, 4, 1, debug_file_2);
+	}
 }
+
+static volatile LONG id_seq;
 
 void
 mini_emit_record_memory_copy (MonoCompile *cfg, MonoClass *klass)
 {
-	MonoInst *iargs[2];
+	int struct_size = (int)(klass->instance_size - sizeof (MonoObject));
 
-	char *method_full_name = mono_method_full_name (cfg->method, TRUE);
-	char *type_full_name = mono_type_get_name (&klass->byval_arg);
+	if (struct_size > 8) {
 
-	char *result = g_strdup_printf ("%s,%s,%s,%d\n", cfg->method->klass->image->assembly_name, method_full_name, type_full_name, (int)(klass->instance_size - sizeof (MonoObject)));
+		if (!debug_file_1) {
+			debug_file_1 = fopen ("C:\\temp\\log.txt", "wb");
+		}
 
-	g_free (method_full_name);
-	g_free (type_full_name);
+		if (debug_file_1) {
+			MonoInst *iargs[2];
+			int id = (int)InterlockedIncrement (&id_seq);
 
-	//EMIT_NEW_METHODCONST (cfg, iargs[0], cfg->method);
-	EMIT_NEW_PCONST (cfg, iargs[0], result);
+			char *method_full_name = mono_method_full_name (cfg->method, TRUE);
+			char *type_full_name = mono_type_get_name (&klass->byval_arg);
 
-	mono_emit_jit_icall (cfg, mini_hack_record_memory, iargs);
+			fprintf (debug_file_1, "%d\001%s\001%s\001%s\001%d\n", id, cfg->method->klass->image->assembly_name, method_full_name, type_full_name, struct_size);
+
+			g_free (type_full_name);
+			g_free (method_full_name);
+
+			EMIT_NEW_ICONST (cfg, iargs[0], id);
+			mono_emit_jit_icall (cfg, mini_hack_record_memory, iargs);
+		}
+	}
+
 }
 
 static void
