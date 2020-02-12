@@ -150,7 +150,7 @@ for my $arch (@arches)
 	print "Building for architecture: $arch\n";
 
 	my $macversion = '10.5';
-	my $sdkversion = '10.6';
+	my $sdkversion = '10.10';
 	if ($arch eq 'x86_64') {
 		$macversion = '10.6';
 	}
