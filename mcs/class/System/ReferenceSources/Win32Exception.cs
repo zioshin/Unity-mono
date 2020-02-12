@@ -24,7 +24,7 @@ namespace System.ComponentModel
 
 		internal static string GetErrorMessage (int error)
 		{
-#if !MOBILE
+#if !UNITY && !MOBILE
 			if (Environment.IsRunningOnWindows) {
 				StringBuilder sb = new StringBuilder (256);
 
