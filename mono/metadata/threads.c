@@ -3622,20 +3622,6 @@ append_quick (QuickDumpUserData *ud, const char *str)
 	ud->bufp += copylen;
 }
 
-static int
-append_parent_types (QuickDumpUserData *ud, const MonoClass *k)
-{
-	if (!k)
-		return 0;
-
-	if (append_parent_types (ud, k->parent)) {
-		append_quick (ud, ".");
-	}
-
-	append_quick (ud, k->name);
-	return 1;
-}
-
 static mono_bool
 collect_frame_text (MonoMethod *method, int32_t native_offset, int32_t il_offset, mono_bool managed, void *data)
 {
