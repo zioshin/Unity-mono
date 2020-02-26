@@ -9,6 +9,25 @@ dependencies:
   - .yamato/Collate Builds.yml
   
 commands:
-  - curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
-  - mono StevedoreUpload.exe --repo=testing --version-len=12 --version="$GIT_REVISION" stevedore/MonoBleedingEdge.7z
+  - |
+    curl -sSo StevedoreUpload.exe "$STEVEDORE_UPLOAD_TOOL_URL"
+    mono StevedoreUpload.exe --repo=testing --version-len=12 --version="$GIT_REVISION" stevedore/MonoBleedingEdge.7z
+    pwd
+    git clone git@github.cds.internal.unity3d.com:unity/il2cpp.git
+    cd il2cpp
+    pwd
+    git checkout master
+    git submodule update --init --recursive
+    git checkout -b update-mbe
+    git branch
+    cd ..
+    cp -v stevedore_artifact_id/artifactid.txt il2cpp
+    cd il2cpp
+    git branch
+    ls artifactid.txt
+    git status
+    git add artifactid.txt
+    git commit -m "Update mbe artifact"
+    git push --set-upstream origin update-mbe
+    git request-pull -p origin/master update-mbe
 
