@@ -21,6 +21,8 @@ commands:
     git checkout -b update-mbe
     git branch
     cd ..
+    pwd
+    ls
     cp -v stevedore_artifact_id/artifactid.txt il2cpp
     cd il2cpp
     git branch
