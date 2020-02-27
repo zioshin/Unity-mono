@@ -1258,7 +1258,7 @@ mono_get_domainvar (MonoCompile *cfg)
 	if (!cfg->domainvar) {
 		/* Make sure we don't generate references after checking whenever to init this */
 		g_assert (!cfg->domainvar_inited);
-		cfg->domainvar = mono_compile_create_var (cfg, mono_get_int_type (), OP_LOCAL);
+		cfg->domainvar = mono_compile_create_var (cfg, &mono_defaults.int_class->byval_arg, OP_LOCAL);
 		/* Avoid optimizing it away */
 		cfg->domainvar->flags |= MONO_INST_VOLATILE;
 	}
@@ -3852,7 +3852,7 @@ mini_emit_box (MonoCompile *cfg, MonoInst *val, MonoClass *klass, int context_us
 	if (!alloc)
 		return NULL;
 
-	EMIT_NEW_STORE_MEMBASE_TYPE (cfg, ins, m_class_get_byval_arg (klass), alloc->dreg, sizeof (MonoObject), val->dreg);
+	EMIT_NEW_STORE_MEMBASE_TYPE (cfg, ins, &klass->byval_arg, alloc->dreg, sizeof (MonoObject), val->dreg);
 	return alloc;
 }
 
