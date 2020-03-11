@@ -127,7 +127,7 @@ namespace System.Net.NetworkInformation {
 	sealed class Win32IPv4InterfaceProperties : IPv4InterfaceProperties
 	{
 		[DllImport ("iphlpapi.dll")]
-		static extern int GetPerAdapterInfo (int IfIndex, Win32_IP_PER_ADAPTER_INFO pPerAdapterInfo, ref int pOutBufLen);
+		static extern int GetPerAdapterInfo (int IfIndex, IntPtr pPerAdapterInfo, ref int pOutBufLen);
 
 		Win32_IP_ADAPTER_ADDRESSES addr;
 		Win32_IP_PER_ADAPTER_INFO painfo;
@@ -140,11 +140,21 @@ namespace System.Net.NetworkInformation {
 
 			// get per-adapter info.
 			int size = 0;
-			GetPerAdapterInfo (mib.Index, null, ref size);
-			painfo = new Win32_IP_PER_ADAPTER_INFO ();
-			int ret = GetPerAdapterInfo (mib.Index, painfo, ref size);
+			int ret = GetPerAdapterInfo (mib.Index, IntPtr.Zero, ref size);
 			if (ret != 0)
 				throw new NetworkInformationException (ret);
+
+			var ptr = Marshal.AllocHGlobal(size);
+			try {
+				ret = GetPerAdapterInfo (mib.Index, ptr, ref size);
+
+				if (ret != 0)
+					throw new NetworkInformationException (ret);
+
+				painfo = Marshal.PtrToStructure<Win32_IP_PER_ADAPTER_INFO>(ptr);
+			} finally {
+				Marshal.FreeHGlobal(ptr);
+			}
 		}
 
 		public override int Index {
@@ -178,7 +188,7 @@ namespace System.Net.NetworkInformation {
 	}
 
 	[StructLayout (LayoutKind.Sequential)]
-	class Win32_IP_PER_ADAPTER_INFO
+	struct Win32_IP_PER_ADAPTER_INFO
 	{
 		public uint AutoconfigEnabled;
 		public uint AutoconfigActive;
