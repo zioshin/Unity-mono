@@ -434,13 +434,13 @@ sub build_osx
 		print "Building $os for architecture: $arch\n";
 
 		my $macversion = '10.7';
-		my $sdkversion = '10.7';
+		my $sdkversion = '10.11';
 
 		if ($ENV{"UNITY_THISISABUILDMACHINE"}) {
 			$macversion = '10.4' unless $arch eq 'x86_64';
 			$sdkversion = '10.4u' unless $arch eq 'x86_64';
 			$macversion = '10.6' if $arch eq 'x86_64';
-			$sdkversion = '10.6' if $arch eq 'x86_64';
+			$sdkversion = '10.11' if $arch eq 'x86_64';
 		}
 
 		# Make architecture-specific targets and lipo at the end
@@ -504,7 +504,7 @@ sub build_osx
 
 	# Create universal binaries
 	for my $file ('libmono.0.dylib','libmono.a','libMonoPosixHelper.dylib') {
-		system ('lipo', "$embeddir/$os-i386/$file", "$embeddir/$os-x86_64/$file", '-create', '-output', "$embeddir/$os/$file");
+		system ('cp', "$embeddir/$os-x86_64/$file", "$embeddir/$os/$file");
 	}
 
 	if (not $ENV{"UNITY_THISISABUILDMACHINE"})
@@ -519,9 +519,7 @@ sub build_osx
 
 	mkpath ("$distdir");
 	for my $file ('mono','pedump') {
-		system ('lipo', "$distdir-i386/$file", '-create', '-output', "$distdir/$file");
-		# Don't add 64bit executables for now...
-		# system ('lipo', "$buildsroot/monodistribution/bin-i386/$file", "$buildsroot/monodistribution/bin-x86_64/$file", '-create', '-output', "$buildsroot/monodistribution/bin/$file");
+		system ('lipo', "$buildsroot/monodistribution/bin-i386/$file", "$buildsroot/monodistribution/bin-x86_64/$file", '-create', '-output', "$buildsroot/monodistribution/bin/$file");
 	}
 
 	if ($ENV{"UNITY_THISISABUILDMACHINE"}) {
