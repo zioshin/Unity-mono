@@ -7,6 +7,8 @@ agent:
 
 commands:
   - python --version
+  - sudo apt-get install -y python3
+  - python --version
   - .yamato/build_linux_x64.sh
 
 artifacts: 
