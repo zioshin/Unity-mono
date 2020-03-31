@@ -6,6 +6,7 @@ agent:
   flavor: b1.large
 
 commands:
+  - python --version
   - .yamato/build_linux_x64.sh
 
 artifacts: 
