@@ -47,25 +47,20 @@ namespace BuildProgram
 
 		private static void RegisterCommonArtifacts()
 		{
-			Artifacts.Add("7z",
-				new Tuple<string, string>(
-					"7z/9df1e3b3b120_12ed325f6a47f0e5cebc247dbe9282a5da280d392cce4e6c9ed227d57ff1e2ff.7z",
-					"testing"));
-
             Artifacts.Add("mono",
                 new Tuple<string, string>(
                     "mono/9df1e3b3b120_f81c172b91f45b2e045f4ba52d5f65cc54041da1527f2c854bf9db3a99495007.7z",
-                    "testing"));
+                    "unity-internal"));
 
             Artifacts.Add("MonoBleedingEdge",
 				new Tuple<string, string>(
 					"MonoBleedingEdge/9df1e3b3b120_ab6d2f131e6bd4fe2aacafb0f683e8fa4e1ccba35552b6fe89bf359b6ee16215.7z",
-					"testing"));
+					"unity-internal"));
 
 			Artifacts.Add("reference-assemblies",
 				new Tuple<string, string>(
 					"reference-assemblies/9df1e3b3b120_bbb4750c6bf0a1784bec7d7c04b8ef5881f31f6212136e014694f3864a388886.7z",
-					"testing"));
+					"unity-internal"));
 		}
 
 		private static void RegisterWindowsArtifacts()
@@ -73,7 +68,7 @@ namespace BuildProgram
 			Artifacts.Add("android-ndk-r13b-windows",
 				new Tuple<string, string>(
                     "android-ndk-r13b-windows/9df1e3b3b120_f661b301a2c7d3e6fc41f6d16482aba0b9e0dca396ec10c76f5eaafef9bf6d09.7z",
-					"testing"));
+					"unity-internal"));
 		}
 
 		private static void RegisterOSXArtifacts()
@@ -81,17 +76,17 @@ namespace BuildProgram
 			Artifacts.Add("android-ndk-r13b-darwin",
 				new Tuple<string, string>(
                     "android-ndk-r13b-darwin/9df1e3b3b120_86d029249c4cd611f22dbe1aacbccf4a939dc1c967affa9e89c50310a5e9dde0.7z",
-					"testing"));
+					"unity-internal"));
 
 			Artifacts.Add("MacBuildEnvironment",
 				new Tuple<string, string>(
 					"MacBuildEnvironment/9df1e3b3b120_2fc8e616a2e5dfb7907fc42d9576b427e692223c266dc3bc305de4bf03714e30.7z",
-					"testing"));
+					"unity-internal"));
 
 			Artifacts.Add("mono-build-tools-extra",
 				new Tuple<string, string>(
 					"mono-build-tools-extra/70f9c4060363d11b3e69f000c8ff2c9ac8112bc2_e66148037ab6371658815c726e27e7ee7bdfdd705fb734708d07cbdfe7d8141e.7z",
-					"testing"));
+					"unity-internal"));
 		}
 
 		private static void RegisterLinuxArtifacts()
@@ -99,12 +94,12 @@ namespace BuildProgram
 			Artifacts.Add("android-ndk-r13b-linux",
 				new Tuple<string, string>(
                     "android-ndk-r13b-linux/9df1e3b3b120_9ca5e513bb12492968c896e1be5b07da77ca190915c9ab12464ea7c38acd710b.7z",
-					"testing"));
+					"unity-internal"));
 
 			Artifacts.Add("linux-sdk-20170609",
 				new Tuple<string, string>(
 					"linux-sdk-20170609/9df1e3b3b120_9a3a0847d5b3767579e908b5a9ce050936617b1b9275a79a8b71bb3229998957.7z",
-					"testing"));
+					"unity-internal"));
 		}
 
 		private static void RegisterCommonNonWindowsArtifacts()
@@ -129,10 +124,10 @@ namespace BuildProgram
 					"autoconf-src/2.69_0e4ba7a0363c68ad08a7d138b228596aecdaea68e1d8b8eefc645e6ac8fc85c7.7z",
 					"public"));
 
-			Artifacts.Add("libgdiplus",
+			Artifacts.Add("libgdiplus-mac",
 				new Tuple<string, string>(
-					"libgdiplus/9df1e3b3b120_4cf7c08770db93922f54f38d2461b9122cddc898db58585864446e70c5ad3057.7z",
-					"testing"));
+					"libgdiplus-mac/9df1e3b3b120_4cf7c08770db93922f54f38d2461b9122cddc898db58585864446e70c5ad3057.7z",
+					"unity-internal"));
 		}
 	}
 }

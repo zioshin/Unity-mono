@@ -761,7 +761,7 @@ if ($build)
 
 			if ($runningOnWindows)
 			{
-				my $sevenZip = "$externalBuildDeps/7z/win64/7za.exe";
+				my $sevenZip = "$externalBuildDeps/7za-win-x64/7za.exe";
 				my $winDepsNdkArchive = `cygpath -w $depsNdkArchive`;
 				my $winDepsNdkExtract = `cygpath -w $externalBuildDeps`;
 
