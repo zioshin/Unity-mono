@@ -1,0 +1,8 @@
+# The manifest dictates what version we're using of each artifact (and which repo to download them from).
+
+# Comments and whitespace can e.g. be used to group by OS (as below), or tool (e.g. all Nasm in one group).
+
+# Note that because we use 'EnforceManifest', we also need to list 7za (as used internally by Stevedore).
+
+# macOS
+testing: mono-iOS-simulator-runtime/0261e1a7f2cf_c0c1c0af198dc45d2821892105ade2e473bf99f7afd446e4fbf9b85b3824ccf6.7z

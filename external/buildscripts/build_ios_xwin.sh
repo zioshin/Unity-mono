@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 function compile_vcproj ()
 {
@@ -39,13 +40,13 @@ done
 if [[ $f_dobuild -eq 1 ]] ; then
 	pushd mono/arch/arm
 
-	bash ./dpiops.sh > arm_dpimacros.ht
+	sh ./dpiops.sh > arm_dpimacros.ht
 	mv arm_dpimacros.ht arm_dpimacros.h
 
-	bash ./fpaops.sh > arm_fpamacros.ht
+	sh ./fpaops.sh > arm_fpamacros.ht
 	mv arm_fpamacros.ht arm_fpamacros.h
 
-	bash ./vfpops.sh > arm_vfpmacros.ht
+	sh ./vfpops.sh > arm_vfpmacros.ht
 	mv arm_vfpmacros.ht arm_vfpmacros.h
 
 	popd

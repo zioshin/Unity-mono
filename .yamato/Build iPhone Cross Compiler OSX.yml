@@ -1,0 +1,19 @@
+name: Build iPhone Cross Compiler OSX
+
+agent:
+  type: Unity::VM::osx
+  image: buildfarm/mac:latest
+  flavor: m1.mac
+
+commands:
+  - xcode-select --print-path
+  - ls /Applications | grep Xcode
+  - sudo xcode-select --switch /Applications/Xcode7.1.app
+  - xcode-select --print-path 
+  - .yamato/scripts/clone_mono_build_deps.sh
+  - .yamato/scripts/build_iphone_crosscompiler_osx.sh
+
+artifacts: 
+  iphonexcompiler:
+    paths:
+      - incomingbuilds/iphonexcompiler/**
