@@ -65,17 +65,16 @@ sub UnityBooc
 
 sub BuildUnityScriptForUnity
 {	
-	# Build system is handling this
-	if (!$ENV{UNITY_THISISABUILDMACHINE}) {
+	if (!(-d "$booCheckout")) {
 		GitClone("git://github.com/Unity-Technologies/boo.git", $booCheckout);
 	}
-
+	
 	my $commonDefines = "NO_SERIALIZATION_INFO,NO_SYSTEM_PROCESS,NO_ICLONEABLE,MSBUILD,IGNOREKEYFILE";
 
 	Build("$booCheckout/src/booc/Booc.csproj", undef, "/property:TargetFrameworkVersion=4.0 /property:DefineConstants=\"" . $commonDefines . "\" /property:OutputPath=$output/wp8");
 	Build("$booCheckout/src/booc/Booc.csproj", undef, "/property:TargetFrameworkVersion=4.0 /property:DefineConstants=\"" . $commonDefines . ",NO_SYSTEM_REFLECTION_EMIT\" /property:OutputPath=$output/wsa");
 	
-	if (!$ENV{UNITY_THISISABUILDMACHINE}) {
+	if (!(-d "$usCheckout")) {
 		GitClone("git://github.com/Unity-Technologies/unityscript.git", $usCheckout);
 	}
 	

@@ -1,0 +1,14 @@
+name: Build iPhone Simulator Runtime
+
+agent:
+  type: Unity::VM::osx
+  image: buildfarm/mac:latest
+  flavor: m1.mac
+
+commands:
+  - .yamato/scripts/build_iphone_simulator_runtime.sh
+
+artifacts: 
+  iphoneruntime:
+    paths:
+      - incomingbuilds/iphoneruntime/**

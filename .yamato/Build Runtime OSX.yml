@@ -1,0 +1,15 @@
+name: Build Runtime OSX
+
+agent:
+  type: Unity::VM::osx
+  image: buildfarm/mac:latest
+  flavor: m1.mac
+
+commands:
+  - .yamato/scripts/clone_mono_build_deps.sh
+  - .yamato/scripts/build_osx_runtime.sh
+
+artifacts: 
+  osx-i386:
+    paths:
+      - incomingbuilds/osx-i386/**

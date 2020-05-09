@@ -1,0 +1,14 @@
+name: Build Windows x86
+
+agent:
+  type: Unity::VM
+  image: platform-foundation/windows-vs2010-bokken:latest
+  flavor: b1.xlarge
+
+commands:
+  - .yamato/scripts/build_win_x86.bat
+
+artifacts: 
+  win32:
+    paths:
+      - incomingbuilds\win32\**
