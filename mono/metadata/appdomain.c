@@ -130,7 +130,7 @@ mono_domain_asmctx_from_path (const char *fname, MonoAssembly *requesting_assemb
 static void
 add_assemblies_to_domain (MonoDomain *domain, MonoAssembly *ass, GHashTable *hash);
 
-#if ENABLE_NETCORE
+#if ENABLE_ASSEMBLY_LOAD_CONTEXT
 
 static void
 add_assembly_to_alc (MonoAssemblyLoadContext *alc, MonoAssembly *ass);
@@ -1378,14 +1378,15 @@ leave:
 	return res;
 }
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 MonoArrayHandle
 ves_icall_System_Runtime_Loader_AssemblyLoadContext_InternalGetLoadedAssemblies (MonoError *error)
 {
 	MonoDomain *domain = mono_domain_get ();
 	return get_assembly_array_from_domain (domain, FALSE, error);
 }
-#else
+#endif
+#ifndef ENABLE_NETCORE
 MonoArrayHandle
 ves_icall_System_AppDomain_GetAssemblies (MonoAppDomainHandle ad, MonoBoolean refonly, MonoError *error)
 {
@@ -1557,7 +1558,7 @@ add_assemblies_to_domain (MonoDomain *domain, MonoAssembly *ass, GHashTable *ht)
 		g_hash_table_destroy (ht);
 }
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 static void
 add_assembly_to_alc (MonoAssemblyLoadContext *alc, MonoAssembly *ass)
 {
@@ -1672,7 +1673,7 @@ mono_domain_fire_assembly_load (MonoAssemblyLoadContext *alc, MonoAssembly *asse
 	mono_domain_assemblies_lock (domain);
 	add_assemblies_to_domain (domain, assembly, NULL);
 	mono_domain_assemblies_unlock (domain);
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	add_assembly_to_alc (alc, assembly);
 #endif
 
@@ -2755,7 +2756,8 @@ ves_icall_System_Reflection_Assembly_LoadFile_internal (MonoStringHandle fname, 
 leave:
 	return result;
 }
-#else
+#endif
+#if ENABLE_NETCORE || ENABLE_ASSEMBLY_LOAD_CONTEXT
 MonoReflectionAssemblyHandle
 ves_icall_System_Runtime_Loader_AssemblyLoadContext_InternalLoadFile (gpointer alc_ptr, MonoStringHandle fname, MonoStackCrawlMark *stack_mark, MonoError *error)
 {
@@ -2778,7 +2780,7 @@ leave:
 static MonoAssembly*
 mono_alc_load_raw_bytes (MonoAssemblyLoadContext *alc, guint8 *raw_assembly, guint32 raw_assembly_len, guint8 *raw_symbol_data, guint32 raw_symbol_len, gboolean refonly, MonoError *error);
 
-#ifdef ENABLE_NETCORE
+#if ENABLE_NETCORE || ENABLE_ASSEMBLY_LOAD_CONTEXT
 MonoReflectionAssemblyHandle
 ves_icall_System_Runtime_Loader_AssemblyLoadContext_InternalLoadFromStream (gpointer native_alc, gpointer raw_assembly_ptr, gint32 raw_assembly_len, gpointer raw_symbols_ptr, gint32 raw_symbols_len, MonoError *error)
 {
@@ -2794,7 +2796,9 @@ ves_icall_System_Runtime_Loader_AssemblyLoadContext_InternalLoadFromStream (gpoi
 leave:
 	return result;
 }
-#else
+#endif
+
+#ifndef ENABLE_NETCORE
 MonoReflectionAssemblyHandle
 ves_icall_System_AppDomain_LoadAssemblyRaw (MonoAppDomainHandle ad, 
 					    MonoArrayHandle raw_assembly,

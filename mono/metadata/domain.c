@@ -467,7 +467,7 @@ mono_domain_create (void)
 	mono_os_mutex_init_recursive (&domain->jit_code_hash_lock);
 	mono_os_mutex_init_recursive (&domain->finalizable_objects_hash_lock);
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	mono_coop_mutex_init (&domain->alcs_lock);
 #endif
 
@@ -482,7 +482,7 @@ mono_domain_create (void)
 
 	mono_debug_domain_create (domain);
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	mono_domain_create_default_alc (domain);
 #endif
 
@@ -1285,7 +1285,7 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 
 	mono_domain_alcs_destroy (domain);
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	mono_coop_mutex_destroy (&domain->alcs_lock);
 #endif
 
@@ -2058,14 +2058,14 @@ mono_domain_get_assemblies (MonoDomain *domain, gboolean refonly)
 MonoAssemblyLoadContext *
 mono_domain_default_alc (MonoDomain *domain)
 {
-#ifndef ENABLE_NETCORE
+#ifndef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	return NULL;
 #else
 	return domain->default_alc;
 #endif
 }
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 static inline void
 mono_domain_alcs_lock (MonoDomain *domain)
 {
@@ -2083,7 +2083,7 @@ mono_domain_alcs_unlock (MonoDomain *domain)
 static MonoAssemblyLoadContext *
 create_alc (MonoDomain *domain, gboolean is_default)
 {
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	MonoAssemblyLoadContext *alc = NULL;
 
 	mono_domain_alcs_lock (domain);
@@ -2107,14 +2107,14 @@ leave:
 void
 mono_domain_create_default_alc (MonoDomain *domain)
 {
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	if (domain->default_alc)
 		return;
 	create_alc (domain, TRUE);
 #endif
 }
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 MonoAssemblyLoadContext *
 mono_domain_create_individual_alc (MonoDomain *domain, uint32_t this_gchandle, gboolean collectible, MonoError *error)
 {
@@ -2128,7 +2128,7 @@ mono_domain_create_individual_alc (MonoDomain *domain, uint32_t this_gchandle, g
 static void
 mono_alc_free (MonoAssemblyLoadContext *alc)
 {
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	mono_alc_cleanup (alc);
 	g_free (alc);
 #endif
@@ -2137,7 +2137,7 @@ mono_alc_free (MonoAssemblyLoadContext *alc)
 void
 mono_domain_alcs_destroy (MonoDomain *domain)
 {
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 	mono_domain_alcs_lock (domain);
 	GSList *alcs = domain->alcs;
 	domain->alcs = NULL;

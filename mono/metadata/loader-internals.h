@@ -27,7 +27,7 @@ struct _MonoDllMap {
 };
 #endif
 
-#ifdef ENABLE_NETCORE
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT
 /* FIXME: this probably belongs somewhere else */
 struct _MonoAssemblyLoadContext {
 	MonoDomain *domain;

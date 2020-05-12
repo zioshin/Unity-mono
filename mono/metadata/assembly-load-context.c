@@ -1,7 +1,7 @@
 #include "config.h"
 #include "mono/utils/mono-compiler.h"
 
-#ifdef ENABLE_NETCORE // MonoAssemblyLoadContext support only in netcore Mono
+#ifdef ENABLE_ASSEMBLY_LOAD_CONTEXT // MonoAssemblyLoadContext support only in netcore Mono
 
 #include "mono/metadata/assembly.h"
 #include "mono/metadata/domain-internals.h"
@@ -61,7 +61,7 @@ mono_alc_cleanup (MonoAssemblyLoadContext *alc)
 
 	mono_loaded_images_free (alc->loaded_images);
 
-	g_assert_not_reached ();
+//	g_assert_not_reached ();
 }
 
 void
@@ -248,6 +248,6 @@ mono_alc_invoke_resolve_using_resolve_satellite_nofail (MonoAssemblyLoadContext 
 	return result;
 }
 
-#endif /* ENABLE_NETCORE */
+#endif /* ENABLE_ASSEMBLY_LOAD_CONTEXT */
 
 MONO_EMPTY_SOURCE_FILE (assembly_load_context)
