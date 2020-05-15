@@ -10,7 +10,7 @@ KEYFILE = $(LIBRARY_SNK)
 
 TEST_LIB_REFS = Mono.Cecil System System.Core
 
-ifneq ($(filter monodroid monotouch monotouch_tv monotouch_watch wasm net_4_x,$(PROFILE)),)
+ifneq ($(filter monodroid monotouch monotouch_tv monotouch_watch wasm net_4_x unityjit,$(PROFILE)),)
 test-local: build-dtest
 endif
 
