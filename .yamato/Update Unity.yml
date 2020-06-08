@@ -17,13 +17,13 @@ commands:
     cmd /c cibuildscript
     cmd /c xcopy build %PRTOOLS_BUILD_DIR% /s /Y /E /I
     cd %UNITY_SOURCE_PRTOOLS_DIR%
-    %PRTOOLS_BUILD_DIR%\prtools.exe --update-mbe-unity=%YAMATO_SOURCE_DIR%/collectedbuilds/builds.7z --backport=2019.3 --github-api-token=%GITHUB_TOKEN% --yamato-api-token=%YAMATO_TOKEN% --yamato-long-lived-token
+    %PRTOOLS_BUILD_DIR%\prtools.exe --update-mbe-unity=%YAMATO_SOURCE_DIR%/collectedbuilds/builds.7z --backport=2019.4 --github-api-token=%GITHUB_TOKEN% --yamato-api-token=%YAMATO_TOKEN% --yamato-long-lived-token
     if NOT %errorlevel% == 0 (
       echo "PRTools failed"
       EXIT /B %errorlevel%
     )
     cd %YAMATO_SOURCE_DIR%
     py -m pip install requests
-    py prtools/katana-ci/katana_launcher.py --verbose --dontwait --project="proj0-ABuildVerification" --repo=unity --branch=2019.3/mbe/staging --user="ashwini ashwini@unity3d.com" 
+    py prtools/katana-ci/katana_launcher.py --verbose --dontwait --project="proj0-ABuildVerification" --repo=unity --branch=2019.4/mbe/staging --user="ashwini ashwini@unity3d.com" 
 timeout: 1
 
