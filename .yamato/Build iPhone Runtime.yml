@@ -1,0 +1,15 @@
+name: Build iPhone Runtime
+
+agent:
+  type: Unity::VM::osx
+  image: buildfarm/mac:latest
+  flavor: m1.mac
+
+commands:
+  - .yamato/scripts/clone_mono_build_deps.sh
+  - .yamato/scripts/build_iphone_runtime.sh
+
+artifacts: 
+  iphoneruntime:
+    paths:
+      - incomingbuilds/iphoneruntime/**

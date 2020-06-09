@@ -1,0 +1,35 @@
+name: Collate Builds
+
+agent:
+  type: Unity::VM::osx
+  image: buildfarm/mac:latest
+  flavor: m1.mac
+
+dependencies:
+  - .yamato/Build Android.yml
+  - .yamato/Build Linux x64.yml
+  - .yamato/Build Linux x86.yml
+  - .yamato/Build Classlibs OSX.yml
+  - .yamato/Build Runtime OSX.yml
+  - .yamato/Build iPhone Cross Compiler OSX.yml
+  - .yamato/Build iPhone Cross Compiler Windows.yml
+  - .yamato/Build iPhone Runtime.yml
+  - .yamato/Build iPhone Simulator Runtime.yml
+  - .yamato/Build Windows x64.yml
+  - .yamato/Build Windows x86.yml
+  - .yamato/Build Windows Bare Minimum.yml
+  
+commands:
+  - .yamato/scripts/clone_mono_build_deps.sh
+  - perl external/buildscripts/collect_allbuilds.pl
+
+triggers:
+  pull_requests:
+    - targets:
+        only:
+          - "unity-trunk"
+
+artifacts: 
+  builds:
+    paths:
+      - collectedbuilds/builds.7z

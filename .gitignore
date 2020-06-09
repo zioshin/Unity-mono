@@ -56,3 +56,9 @@ libeglib_la-*.o
 /mono/tests/tests-config
 /scripts/lc
 /scripts/pdb2mdb
+
+# Bee
+artifacts
+.vs
+build.gen*
+!bee.exe

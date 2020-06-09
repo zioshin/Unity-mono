@@ -1,0 +1,15 @@
+name: Build Android
+
+agent:
+  type: Unity::VM::osx
+  image: buildfarm/mac:stable
+  flavor: m1.mac
+
+commands:
+  - .yamato/scripts/clone_mono_build_deps.sh
+  - .yamato/scripts/build_android.sh
+
+artifacts: 
+  android:
+    paths:
+      - incomingbuilds/android/**
