@@ -881,7 +881,7 @@ if ($build)
 		push @configureparams, "--disable-visibility-hidden";
 		push @configureparams, "mono_cv_uscore=yes";
 		push @configureparams, "ac_cv_header_zlib_h=no" if($runningOnWindows);
-		push @configureparams, "--disable-btls";
+		#push @configureparams, "--disable-btls";
 	}
 	elsif ($tizen)
 	{
