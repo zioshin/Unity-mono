@@ -272,11 +272,12 @@ if ($build)
 	push @configureparams, "--disable-mcs-build" if($disableMcs);
 	push @configureparams, "--with-glib=embedded";
 	push @configureparams, "--disable-nls";  #this removes the dependency on gettext package
+	push @configureparams, "--disable-btls";  #this removes the dependency on cmake to build btls for now
 	push @configureparams, "--with-mcs-docs=no";
 	push @configureparams, "--prefix=$monoprefix";
-	push @configureparams, "--enable-no-threads-discovery=yes";
-	push @configureparams, "--enable-ignore-dynamic-loading=yes";
-	push @configureparams, "--enable-dont-register-main-static-data=yes";
+	#push @configureparams, "--enable-no-threads-discovery=yes";
+	#push @configureparams, "--enable-ignore-dynamic-loading=yes";
+	#push @configureparams, "--enable-dont-register-main-static-data=yes";
 
 	if(!($disableMcs))
 	{
@@ -881,7 +882,7 @@ if ($build)
 		push @configureparams, "--disable-visibility-hidden";
 		push @configureparams, "mono_cv_uscore=yes";
 		push @configureparams, "ac_cv_header_zlib_h=no" if($runningOnWindows);
-		#push @configureparams, "--disable-btls";
+		push @configureparams, "--disable-btls";
 	}
 	elsif ($tizen)
 	{
@@ -1156,8 +1157,8 @@ if ($build)
 		$ENV{'CXX'} = "$macSdkPath/../usr/bin/clang++";
 		$ENV{'CFLAGS'} = $ENV{MACSDKOPTIONS} = "-mmacosx-version-min=$macversion -isysroot $macSdkPath -g";
 
-		$ENV{'CXXFLAGS'} = $ENV{CFLAGS};
-		$ENV{'CPPFLAGS'} = $ENV{CFLAGS};
+		#$ENV{'CXXFLAGS'} = $ENV{CFLAGS};
+		#$ENV{'CPPFLAGS'} = $ENV{CFLAGS};
 
 		$ENV{CFLAGS} = "$ENV{CFLAGS} -O0" if $debug;
 		$ENV{CFLAGS} = "$ENV{CFLAGS} -Os" if not $debug; #optimize for size
@@ -1186,8 +1187,8 @@ if ($build)
 		# Need to define because Apple's SIP gets in the way of us telling mono where to find this
 		push @configureparams, "--with-libgdiplus=$addtoresultsdistdir/lib/libgdiplus.dylib";
 		push @configureparams, "--enable-minimal=shared_perfcounters";
-		push @configureparams, "--disable-parallel-mark";
-		push @configureparams, "--enable-verify-defines";
+		#push @configureparams, "--disable-parallel-mark";
+		#push @configureparams, "--enable-verify-defines";
 
 		print "\n";
 		print ">>> Setting environment:\n";
