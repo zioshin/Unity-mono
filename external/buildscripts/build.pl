@@ -1167,7 +1167,7 @@ if ($build)
 		$ENV{CXX} = "$ENV{CXX} -arch $targetArch";
 
 		#Set SDKROOT to force cmake to use the right sysroot
-		$ENV{SDKROOT} = "$macSdkPath";
+		#$ENV{SDKROOT} = "$macSdkPath";
 
 		# Add OSX specific autogen args
 
