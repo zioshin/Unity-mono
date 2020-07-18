@@ -1156,8 +1156,8 @@ if ($build)
 		$ENV{'CXX'} = "$macSdkPath/../usr/bin/clang++";
 		$ENV{'CFLAGS'} = $ENV{MACSDKOPTIONS} = "-I$macSdkPath/../usr/include -mmacosx-version-min=$macversion -isysroot $macSdkPath -g";
 
-		#$ENV{'CXXFLAGS'} = $ENV{CFLAGS};
-		#$ENV{'CPPFLAGS'} = $ENV{CFLAGS};
+		$ENV{'CXXFLAGS'} = $ENV{CFLAGS};
+		$ENV{'CPPFLAGS'} = $ENV{CFLAGS};
 
 		$ENV{CFLAGS} = "$ENV{CFLAGS} -O0" if $debug;
 		$ENV{CFLAGS} = "$ENV{CFLAGS} -Os" if not $debug; #optimize for size
