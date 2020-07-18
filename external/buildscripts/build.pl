@@ -456,7 +456,6 @@ if ($build)
 	}
 
 	my $macSdkPath = "";
-	my $macBuildEnvDir = "";
 	my $macversion = '10.12';
 	my $darwinVersion = "10";
 	if ($^O eq 'darwin')
@@ -1155,7 +1154,7 @@ if ($build)
 
 		$ENV{'CC'} = "$macSdkPath/../usr/bin/clang";
 		$ENV{'CXX'} = "$macSdkPath/../usr/bin/clang++";
-		$ENV{'CFLAGS'} = $ENV{MACSDKOPTIONS} = "-mmacosx-version-min=$macversion -isysroot $macSdkPath -g";
+		$ENV{'CFLAGS'} = $ENV{MACSDKOPTIONS} = "-I$macSdkPath/../usr/include -mmacosx-version-min=$macversion -isysroot $macSdkPath -g";
 
 		#$ENV{'CXXFLAGS'} = $ENV{CFLAGS};
 		#$ENV{'CPPFLAGS'} = $ENV{CFLAGS};
