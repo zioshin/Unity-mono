@@ -21,4 +21,5 @@ commands:
       EXIT /B %errorlevel%
     )
 timeout: 1
+allow_failure: true
 
