@@ -808,6 +808,33 @@ void gchandle_process (void* data, void* user_data)
 extern void
 mono_gc_strong_handle_foreach (GFunc func, gpointer user_data);
 
+static void
+foreach_thread_static_field (gpointer key, gpointer value, gpointer user_data)
+{
+	MonoClassField* field = key;
+	guint32 offset = GPOINTER_TO_UINT (value);
+	LivenessState* liveness_state = user_data;
+
+	if (!mono_field_can_contain_references (field))
+		return;
+	// TODO
+	if (MONO_TYPE_ISSTRUCT (field->type))
+		return;
+
+	MonoInternalThread* thread;
+
+	thread = mono_thread_internal_current ();
+
+	gpointer data = mono_get_special_static_data_for_thread (thread, offset);
+
+	MonoObject* val = *(MonoObject**)data;
+
+	if (val) {
+		mono_add_and_validate_object (val, liveness_state);
+		validate_object_value (val, field->type);
+	}
+}
+
 void mono_unity_heap_validation_from_statics (LivenessState* liveness_state)
 {
 	int i, j;
@@ -816,6 +843,8 @@ void mono_unity_heap_validation_from_statics (LivenessState* liveness_state)
 	mono_reset_state (liveness_state);
 
 	mono_gc_strong_handle_foreach (gchandle_process, liveness_state);
+
+	g_hash_table_foreach (domain->special_static_fields, foreach_thread_static_field, liveness_state);
 
 	for (i = 0; i < domain->class_vtable_array->len; ++i)
 	{
