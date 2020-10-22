@@ -840,6 +840,9 @@ void mono_unity_heap_validation_from_statics (LivenessState* liveness_state)
 	int i, j;
 	MonoDomain* domain = mono_domain_get ();
 
+	if (!domain)
+		return;
+
 	mono_reset_state (liveness_state);
 
 	mono_gc_strong_handle_foreach (gchandle_process, liveness_state);
