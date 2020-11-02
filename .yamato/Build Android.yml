@@ -2,7 +2,7 @@ name: Build Android
 
 agent:
   type: Unity::VM::osx
-  image: buildfarm/mac:stable
+  image: platform-foundation/mac-bokken:stable
   flavor: m1.mac
 
 commands:
