@@ -27,6 +27,10 @@
 #endif
 #include <mono/utils/mono-stack-unwinding.h>
 
+typedef void (*MonoBreakpointSetFunc) (gboolean set, const char* methodName);
+MONO_API void
+mono_debugger_install_breakpoint_set_callback (MonoBreakpointSetFunc func);
+
 MONO_API void
 mono_debugger_agent_parse_options (char *options);
 

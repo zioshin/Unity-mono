@@ -644,6 +644,13 @@ typedef struct ReplyPacket {
 	Buffer *data;
 } ReplyPacket;
 
+static MonoBreakpointSetFunc breakpoint_set_func;
+MONO_API void
+mono_debugger_install_breakpoint_set_callback (MonoBreakpointSetFunc func)
+{
+	breakpoint_set_func = func;
+}
+
 #define DEBUG(level,s) do { if (G_UNLIKELY ((level) <= log_level)) { s; fflush (log_file); } } while (0)
 
 #ifdef HOST_ANDROID
@@ -4795,7 +4802,12 @@ remove_breakpoint (BreakpointInstance *inst)
 			mini_get_interp_callbacks ()->clear_breakpoint (ji, ip);
 		else
 			mono_arch_clear_breakpoint (ji, ip);
-		DEBUG_PRINTF (1, "[dbg] Clear breakpoint at %s [%p].\n", mono_method_full_name (jinfo_get_method (ji), TRUE), ip);
+
+		const char* method_full_name = mono_method_full_name (jinfo_get_method (ji), TRUE);
+		DEBUG_PRINTF (1, "[dbg] Clear breakpoint at %s [%p].\n", method_full_name, ip);
+
+		if (breakpoint_set_func)
+			breakpoint_set_func(FALSE, method_full_name);
 	}
 #else
 	NOT_IMPLEMENTED;
@@ -4983,6 +4995,11 @@ set_breakpoint (MonoMethod *method, long il_offset, EventRequest *req, MonoError
 	bp->children = g_ptr_array_new ();
 
 	DEBUG_PRINTF (1, "[dbg] Setting %sbreakpoint at %s:0x%x.\n", (req->event_kind == EVENT_KIND_STEP) ? "single step " : "", method ? mono_method_full_name (method, TRUE) : "<all>", (int)il_offset);
+
+	if (breakpoint_set_func && method)
+	{
+		breakpoint_set_func(TRUE, mono_method_full_name(method, 1));
+	}
 
 	methods = g_ptr_array_new ();
 	method_domains = g_ptr_array_new ();
