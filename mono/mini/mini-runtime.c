@@ -499,7 +499,7 @@ mono_tramp_info_register_internal (MonoTrampInfo *info, MonoDomain *domain, gboo
 
 	mono_save_trampoline_xdebug_info (info);
 	mono_lldb_save_trampoline_info (info);
-	mixed_callstack_plugin_save_trampoline_info (info);
+	mixed_callstack_plugin_save_trampoline_info (info, domain);
 
 #ifdef MONO_ARCH_HAVE_UNWIND_TABLE
 	if (!aot)
@@ -3927,9 +3927,6 @@ mini_init (const char *filename, const char *runtime_version)
 		mono_lldb_init ("");
 		mono_dont_free_domains = TRUE;
 	}
-	if (mini_get_debug_options()->unity_mixed_callstack || g_hasenv ("UNITY_MIXED_CALLSTACK")) {
-		mixed_callstack_plugin_init ("");
-	}
 
 #ifdef XDEBUG_ENABLED
 	char *mono_xdebug = g_getenv ("MONO_XDEBUG");
@@ -4003,6 +4000,10 @@ mini_init (const char *filename, const char *runtime_version)
 		domain = mono_init_version (filename, runtime_version);
 	else
 		domain = mono_init_from_assembly (filename, filename);
+
+	if (mini_get_debug_options()->unity_mixed_callstack || g_hasenv("UNITY_MIXED_CALLSTACK")) {
+		mixed_callstack_plugin_init("", domain);
+	}
 
 	if (mono_aot_only) {
 		/* This helps catch code allocation requests */
