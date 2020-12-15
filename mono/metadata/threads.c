@@ -5678,3 +5678,33 @@ MonoException* mono_unity_thread_check_exception()
 	unlock_thread(thread);
 	return NULL;
 }
+
+mono_bool mono_thread_has_sufficient_execution_stack (void)
+{
+	guint8* stack_addr;
+	guint8* current;
+	size_t stack_size;
+	size_t min_size;
+
+	mono_thread_info_get_stack_bounds (&stack_addr, &stack_size);
+	/* if we have no info we are optimistic and assume there is enough room */
+	if (!stack_addr || !stack_size)
+		return TRUE;
+
+	min_size = stack_size / 2;
+
+	// TODO: It's not always set
+	if (!min_size)
+		return TRUE;
+
+	current = (guint8*)&stack_addr;
+	if (current > stack_addr) {
+		if ((current - stack_addr) < min_size)
+			return FALSE;
+	}
+	else {
+		if (current - (stack_addr - stack_size) < min_size)
+			return FALSE;
+	}
+	return TRUE;
+}
