@@ -3436,8 +3436,10 @@ mini_parse_debug_option (const char *option)
 		debug_options.gdb = TRUE;
 	else if (!strcmp (option, "lldb"))
 		debug_options.lldb = TRUE;
-	else if (!strcmp (option, "unity-mixed-callstack"))
-		debug_options.unity_mixed_callstack = TRUE;
+	else if (!strncmp (option, "unity-mixed-callstack=", strlen("unity-mixed-callstack="))) {
+		gchar *arg = option + strlen ("unity-mixed-callstack=");
+		debug_options.unity_mixed_callstack = atoi(option + strlen ("unity-mixed-callstack="));
+	}
 	else if (!strcmp (option, "explicit-null-checks"))
 		debug_options.explicit_null_checks = TRUE;
 	else if (!strcmp (option, "gen-seq-points"))
@@ -4001,8 +4003,10 @@ mini_init (const char *filename, const char *runtime_version)
 	else
 		domain = mono_init_from_assembly (filename, filename);
 
-	if (mini_get_debug_options()->unity_mixed_callstack || g_hasenv("UNITY_MIXED_CALLSTACK")) {
-		mixed_callstack_plugin_init("", domain);
+	guint mono_mixed_options = g_getenv ("UNITY_MIXED_CALLSTACK") ? atoi(g_getenv("UNITY_MIXED_CALLSTACK")) : 0;
+	if (mini_get_debug_options()->unity_mixed_callstack || mono_mixed_options) {
+		mono_mixed_options = mini_get_debug_options()->unity_mixed_callstack ? mini_get_debug_options()->unity_mixed_callstack : mono_mixed_options;
+		mixed_callstack_plugin_init(mono_mixed_options, domain);
 	}
 
 	if (mono_aot_only) {

@@ -1850,7 +1850,7 @@ typedef struct {
 	gboolean dyn_runtime_invoke;
 	gboolean gdb;
 	gboolean lldb;
-	gboolean unity_mixed_callstack;
+	guint unity_mixed_callstack;
 	gboolean use_fallback_tls;
 	/*
 	 * Whenever data such as next sequence points and flags is required.

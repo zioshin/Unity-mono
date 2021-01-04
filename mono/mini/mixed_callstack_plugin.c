@@ -8,6 +8,7 @@
 static gboolean enabled;
 static mono_mutex_t mutex;
 static GPtrArray* domainHandles;
+static gboolean legacyMode;
 
 #define mixed_callstack_plugin_lock() mono_os_mutex_lock (&mutex)
 #define mixed_callstack_plugin_unlock() mono_os_mutex_unlock (&mutex)
@@ -22,6 +23,7 @@ DomainHandle*
 get_domain_handle(gint32 domain_id)
 {
 	DomainHandle* dHandle = NULL;
+	domain_id = legacyMode ? mono_get_root_domain()->domain_id : domain_id;
 	for (int i = 0; i < domainHandles->len; i++)
 	{
 		if (((DomainHandle*)domainHandles->pdata[i])->domain_id == domain_id)
@@ -53,8 +55,13 @@ create_next_pmip_file(gint32 domain_id)
 		fileHandle = dHandle->fileHandle;
 		pmipFileNum = ++dHandle->count;
 	}
-
-	file_name = g_strdup_printf("pmip_%d_%d_%d.txt", GetCurrentProcessId(), pmipFileNum, domain_id);
+	if (legacyMode)
+	{
+		version = "UnityMixedCallstacks:1.0\n";
+		file_name = g_strdup_printf("pmip_%d_%d.txt", GetCurrentProcessId(), pmipFileNum);
+	}
+	else
+		file_name = g_strdup_printf("pmip_%d_%d_%d.txt", GetCurrentProcessId(), pmipFileNum, domain_id);
 	path = path = g_build_filename(g_get_tmp_dir(), file_name, NULL);
 
 	if(fileHandle)
@@ -92,7 +99,7 @@ create_next_pmip_file(gint32 domain_id)
 }
 
 void
-mixed_callstack_plugin_init (const char *options, MonoDomain* domain)
+mixed_callstack_plugin_init (const guint options, MonoDomain* domain)
 {
 	mono_os_mutex_init_recursive(&mutex);
 
@@ -102,6 +109,9 @@ mixed_callstack_plugin_init (const char *options, MonoDomain* domain)
 	// TODO: Clean this thing up somewhere on close
 	domainHandles = g_ptr_array_new();
 
+	// 1 is legacy 2 is file per domain
+	legacyMode = options == 1;
+	mono_get_root_domain();
 	create_next_pmip_file(domain->domain_id);
 }
 
@@ -133,7 +143,8 @@ mixed_callstack_plugin_save_method_info (MonoCompile *cfg)
 
 	method_name = mono_method_full_name (cfg->method, TRUE);
 
-	seq_points = mono_get_seq_points (cfg->domain, cfg->method);
+	// No need to fetch sequence points if we're in legacy mode
+	seq_points = legacyMode ? NULL : mono_get_seq_points (cfg->domain, cfg->method);
 
 	// we can dump line numbers if we successfully access seq points
 	if (seq_points)

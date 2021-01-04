@@ -4,7 +4,7 @@
 #include "config.h"
 #include "mini.h"
 
-void mixed_callstack_plugin_init (const char *options);
+void mixed_callstack_plugin_init (const guint options);
 
 void mixed_callstack_plugin_save_method_info (MonoCompile *cfg);
 
