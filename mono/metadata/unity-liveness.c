@@ -15,13 +15,38 @@ typedef struct _custom_growable_array {
 	guint size; // reserved
 } custom_growable_array;
 
+#define k_block_size (8 * 1024)
+#define k_array_elements_per_block ((k_block_size - 2 * sizeof (guint) - sizeof (gpointer)) / sizeof (gpointer))
+
+typedef struct _custom_array_block custom_array_block;
+
+typedef struct _custom_array_block {
+	gpointer *next_item;
+	custom_array_block *next_block;
+	gpointer p_data[k_array_elements_per_block];
+} custom_array_block;
+
+typedef struct _custom_block_array_iterator custom_block_array_iterator;
+
+typedef struct _custom_growable_block_array {
+	custom_array_block *first_block;
+	custom_array_block *current_block;
+	custom_block_array_iterator *iterator;
+} custom_growable_block_array;
+
+typedef struct _custom_block_array_iterator {
+	custom_growable_block_array *array;
+	custom_array_block *current_block;
+	gpointer *current_position;
+} custom_block_array_iterator;
+
+
 typedef void (*register_object_callback) (gpointer *arr, int size, void *callback_userdata);
 typedef void (*WorldStateChanged) ();
 typedef void *(*ReallocateArray) (void *ptr, int size, void *callback_userdata);
 
 struct _LivenessState {
-	gint first_index_in_all_objects;
-	custom_growable_array *all_objects;
+	custom_growable_block_array *all_objects;
 
 	MonoClass *filter;
 
@@ -32,8 +57,72 @@ struct _LivenessState {
 
 	register_object_callback filter_callback;
 	ReallocateArray reallocateArray;
-	guint traverse_depth; // track recursion. Prevent stack overflow by limiting recurion
+	guint traverse_depth; // track recursion. Prevent stack overflow by limiting recursion
 };
+
+custom_growable_block_array *
+block_array_create (LivenessState *state)
+{
+	custom_growable_block_array *array = g_new0 (custom_growable_block_array, 1);
+	array->current_block = state->reallocateArray (NULL, k_block_size, state->callback_userdata);
+	array->current_block->next_block = NULL;
+	array->current_block->next_item = array->current_block->p_data;
+	array->first_block = array->current_block;
+
+	array->iterator = g_new0 (custom_block_array_iterator, 1);
+	array->iterator->array = array;
+	array->iterator->current_block = array->first_block;
+	array->iterator->current_position = array->first_block->p_data;
+	return array;
+}
+
+void
+block_array_push_back (custom_growable_block_array *block_array, gpointer value, LivenessState *state)
+{
+	if (block_array->current_block->next_item == block_array->current_block->p_data + k_array_elements_per_block) {
+		block_array->current_block->next_block = state->reallocateArray (NULL, k_block_size, state->callback_userdata);
+		block_array->current_block = block_array->current_block->next_block;
+		block_array->current_block->next_block = NULL;
+		block_array->current_block->next_item = block_array->current_block->p_data;
+	}
+	*block_array->current_block->next_item++ = value;
+}
+
+void
+block_array_reset_iterator (custom_growable_block_array *array)
+{
+	array->iterator->current_block = array->first_block;
+	array->iterator->current_position = array->first_block->p_data;
+}
+
+gpointer
+block_array_next (custom_growable_block_array *block_array)
+{
+	custom_block_array_iterator *iterator = block_array->iterator;
+	if (iterator->current_position != iterator->current_block->next_item)
+		return *iterator->current_position++;
+	if (iterator->current_block->next_block == NULL)
+		return NULL;
+	iterator->current_block = iterator->current_block->next_block;
+	iterator->current_position = iterator->current_block->p_data;
+	if (iterator->current_position == iterator->current_block->next_item)
+		return NULL;
+	return *iterator->current_position++;
+}
+
+void
+block_array_destroy (custom_growable_block_array *block_array, LivenessState *state)
+{
+	custom_array_block *block = block_array->first_block;
+	while (block != NULL) {
+		void *data_block = block;
+		block = block->next_block;
+		state->reallocateArray (data_block, 0, state->callback_userdata);
+	}
+	g_free (block_array->iterator);
+	g_free (block_array);
+}
+
 
 #define array_at_index(array, index) (array)->pdata[(index)]
 
@@ -88,7 +177,7 @@ array_create (LivenessState *state, guint reserved_size)
 }
 
 void
-array_destroy (LivenessState *state, custom_growable_array *array)
+array_destroy (custom_growable_array *array, LivenessState *state)
 {
 	array->pdata = state->reallocateArray (array->pdata, 0, state->callback_userdata);
 	g_free (array);
@@ -177,7 +266,6 @@ mono_filter_objects (LivenessState *state);
 void
 mono_reset_state (LivenessState *state)
 {
-	state->first_index_in_all_objects = state->all_objects->len;
 	array_clear (state->process_array);
 }
 
@@ -230,9 +318,7 @@ mono_add_process_object (MonoObject *object, LivenessState *state)
 	if (object && !IS_MARKED (object)) {
 		gboolean has_references = GET_VTABLE (object)->klass->has_references;
 		if (has_references || should_process_value (object, state->filter)) {
-			if (array_is_full (state->all_objects))
-				array_safe_grow (state, state->all_objects);
-			array_push_back (state->all_objects, object);
+			block_array_push_back (state->all_objects, object, state);
 			MARK_OBJ (object);
 		}
 		// Check if klass has further references - if not skip adding
@@ -262,7 +348,7 @@ mono_field_can_contain_references (MonoClassField *field)
 static gboolean
 mono_traverse_object_internal (MonoObject *object, gboolean isStruct, MonoClass *klass, LivenessState *state)
 {
-	int i;
+	guint32 i;
 	MonoClassField *field;
 	MonoClass *p;
 	gboolean added_objects = FALSE;
@@ -362,7 +448,7 @@ mono_traverse_array (MonoArray *array, LivenessState *state)
 	gboolean has_references;
 	MonoObject *object = (MonoObject *)array;
 	MonoClass *element_class;
-	size_t elementClassSize;
+	int32_t elementClassSize;
 	size_t array_length;
 
 	g_assert (object);
@@ -409,15 +495,16 @@ mono_filter_objects (LivenessState *state)
 	gpointer filtered_objects[64];
 	gint num_objects = 0;
 
-	int i = state->first_index_in_all_objects;
-	for (; i < state->all_objects->len; i++) {
-		MonoObject *object = state->all_objects->pdata[i];
+	gpointer value = block_array_next (state->all_objects);
+	while (value != NULL) {
+		MonoObject *object = value;
 		if (should_process_value (object, state->filter))
 			filtered_objects[num_objects++] = object;
 		if (num_objects == 64) {
 			state->filter_callback (filtered_objects, 64, state->callback_userdata);
 			num_objects = 0;
 		}
+		value = block_array_next (state->all_objects);
 	}
 
 	if (num_objects != 0)
@@ -433,7 +520,7 @@ mono_filter_objects (LivenessState *state)
 void
 mono_unity_liveness_calculation_from_statics (LivenessState *liveness_state)
 {
-	int i, j;
+	guint i, j;
 	MonoDomain *domain = mono_domain_get ();
 
 	mono_reset_state (liveness_state);
@@ -531,7 +618,6 @@ mono_unity_liveness_allocate_struct (MonoClass *filter, guint max_count, registe
 	state = g_new0 (LivenessState, 1);
 	max_count = max_count < 1000 ? 1000 : max_count;
 
-	state->first_index_in_all_objects = 0;
 	state->filter = filter;
 	state->traverse_depth = 0;
 
@@ -539,7 +625,7 @@ mono_unity_liveness_allocate_struct (MonoClass *filter, guint max_count, registe
 	state->filter_callback = callback;
 	state->reallocateArray = reallocateArray;
 
-	state->all_objects = array_create (state, max_count * 4);
+	state->all_objects = block_array_create (state);
 	state->process_array = array_create (state, max_count);
 
 	return state;
@@ -548,10 +634,12 @@ mono_unity_liveness_allocate_struct (MonoClass *filter, guint max_count, registe
 void
 mono_unity_liveness_finalize (LivenessState *state)
 {
-	int i;
-	for (i = 0; i < state->all_objects->len; i++) {
-		MonoObject *object = g_ptr_array_index (state->all_objects, i);
+	block_array_reset_iterator (state->all_objects);
+	gpointer it = block_array_next (state->all_objects);
+	while (it != NULL) {
+		MonoObject *object = it;
 		CLEAR_OBJ (object);
+		it = block_array_next (state->all_objects);
 	}
 }
 
@@ -559,8 +647,8 @@ void
 mono_unity_liveness_free_struct (LivenessState *state)
 {
 	//cleanup the liveness_state
-	array_destroy (state, state->all_objects);
-	array_destroy (state, state->process_array);
+	block_array_destroy (state->all_objects, state);
+	array_destroy (state->process_array, state);
 	g_free (state);
 }
 
