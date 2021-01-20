@@ -9,11 +9,6 @@
 #include <mono/utils/mono-error.h>
 
 typedef struct _LivenessState LivenessState;
-typedef struct _custom_growable_array {
-	gpointer *pdata;
-	guint len;  // used
-	guint size; // reserved
-} custom_growable_array;
 
 #define k_block_size (8 * 1024)
 #define k_array_elements_per_block ((k_block_size - 2 * sizeof (guint) - sizeof (gpointer)) / sizeof (gpointer))
@@ -22,6 +17,7 @@ typedef struct _custom_array_block custom_array_block;
 
 typedef struct _custom_array_block {
 	gpointer *next_item;
+	custom_array_block *prev_block;
 	custom_array_block *next_block;
 	gpointer p_data[k_array_elements_per_block];
 } custom_array_block;
@@ -50,7 +46,7 @@ struct _LivenessState {
 
 	MonoClass *filter;
 
-	custom_growable_array *process_array;
+	custom_growable_block_array *process_array;
 	guint initial_alloc_count;
 
 	void *callback_userdata;
@@ -64,6 +60,7 @@ custom_growable_block_array * block_array_create(LivenessState *state)
 {
 	custom_growable_block_array *array = g_new0(custom_growable_block_array, 1);
 	array->current_block = state->reallocateArray(NULL, k_block_size, state->callback_userdata);
+	array->current_block->prev_block = NULL;
 	array->current_block->next_block = NULL;
 	array->current_block->next_item = array->current_block->p_data;
 	array->first_block = array->current_block;
@@ -75,15 +72,37 @@ custom_growable_block_array * block_array_create(LivenessState *state)
 	return array;
 }
 
+gboolean block_array_is_empty(custom_growable_block_array *block_array)
+{
+	return block_array->first_block->next_item == block_array->first_block->p_data;
+}
+
 void block_array_push_back(custom_growable_block_array *block_array, gpointer value, LivenessState *state)
 {
 	if (block_array->current_block->next_item == block_array->current_block->p_data + k_array_elements_per_block) {
-		block_array->current_block->next_block = state->reallocateArray(NULL, k_block_size, state->callback_userdata);
-		block_array->current_block = block_array->current_block->next_block;
-		block_array->current_block->next_block = NULL;
-		block_array->current_block->next_item = block_array->current_block->p_data;
+		custom_array_block* new_block = block_array->current_block->next_block;
+		if (block_array->current_block->next_block == NULL)
+		{
+			new_block = state->reallocateArray(NULL, k_block_size, state->callback_userdata);
+			new_block->next_block = NULL;
+			new_block->prev_block = block_array->current_block;
+			new_block->next_item = new_block->p_data;
+			block_array->current_block->next_block = new_block;
+		}
+		block_array->current_block = new_block;
 	}
 	*block_array->current_block->next_item++ = value;
+}
+
+gpointer block_array_pop_back(custom_growable_block_array *block_array)
+{
+	if (block_array->current_block->next_item == block_array->current_block->p_data) {
+		if (block_array->current_block->prev_block == NULL)
+			return NULL;
+		block_array->current_block = block_array->current_block->prev_block;
+		block_array->current_block->next_item = block_array->current_block->p_data + k_array_elements_per_block;
+	}
+	return *--block_array->current_block->next_item;
 }
 
 void block_array_reset_iterator(custom_growable_block_array *array)
@@ -106,6 +125,15 @@ gpointer block_array_next(custom_growable_block_array *block_array)
 	return *iterator->current_position++;
 }
 
+void block_array_clear(custom_growable_block_array *block_array)
+{
+	custom_array_block *block = block_array->first_block;
+	while (block != NULL) {
+		block->next_item = block->p_data;
+		block = block->next_block;
+	}
+}
+
 void block_array_destroy(custom_growable_block_array *block_array, LivenessState *state)
 {
 	custom_array_block *block = block_array->first_block;
@@ -117,8 +145,6 @@ void block_array_destroy(custom_growable_block_array *block_array, LivenessState
 	g_free(block_array->iterator);
 	g_free(block_array);
 }
-
-#define array_at_index(array, index) (array)->pdata[(index)]
 
 #if defined(HAVE_SGEN_GC)
 void sgen_stop_world(int generation);
@@ -140,54 +166,6 @@ void GC_start_world_external()
 #else
 #error need to implement liveness GC API
 #endif
-
-custom_growable_array * array_create_and_initialize(guint capacity)
-{
-	custom_growable_array *array = g_ptr_array_sized_new(capacity);
-	array->len = 0;
-	return array;
-}
-
-gboolean array_is_full(custom_growable_array *array)
-{
-	return g_ptr_array_capacity(array) == array->len;
-}
-
-void array_destroy(custom_growable_array *array)
-{
-	g_ptr_array_free(array, TRUE);
-	g_free(array);
-}
-
-void array_push_back(custom_growable_array *array, gpointer value)
-{
-	g_assert(!array_is_full(array));
-	array->pdata[array->len] = value;
-	array->len++;
-}
-
-gpointer array_pop_back(custom_growable_array *array)
-{
-	array->len--;
-	return array->pdata[array->len];
-}
-
-void array_clear(custom_growable_array *array)
-{
-	array->len = 0;
-}
-
-void array_reserve(LivenessState *state, custom_growable_array *array, guint size)
-{
-	array->pdata = state->reallocateArray(array->pdata, size * sizeof(gpointer), state->callback_userdata);
-	array->size = size;
-}
-
-void array_grow(LivenessState *state, custom_growable_array *array)
-{
-	array->pdata = state->reallocateArray(array->pdata, array->size * 2 * sizeof(gpointer), state->callback_userdata);
-	array->size = array->size * 2;
-}
 
 /* number of sub elements of an array to process before recursing
  * we take a depth first approach to use stack space rather than re-allocating
@@ -228,12 +206,7 @@ void mono_filter_objects(LivenessState *state);
 
 void mono_reset_state(LivenessState *state)
 {
-	array_clear(state->process_array);
-}
-
-void array_safe_grow(LivenessState *state, custom_growable_array *array)
-{
-	array_grow(state, array);
+	block_array_clear(state->process_array);
 }
 
 static gboolean should_process_value(MonoObject *val, MonoClass *filter)
@@ -277,9 +250,7 @@ static gboolean mono_add_process_object(MonoObject *object, LivenessState *state
 		}
 		// Check if klass has further references - if not skip adding
 		if (has_references) {
-			if (array_is_full(state->process_array))
-				array_safe_grow(state, state->process_array);
-			array_push_back(state->process_array, object);
+			block_array_push_back(state->process_array, object, state);
 			return TRUE;
 		}
 	}
@@ -377,8 +348,8 @@ static void mono_traverse_objects(LivenessState *state)
 	MonoObject *object = NULL;
 
 	state->traverse_depth++;
-	while (state->process_array->len > 0) {
-		object = array_pop_back(state->process_array);
+	while (!block_array_is_empty(state->process_array)) {
+		object = block_array_pop_back(state->process_array);
 		mono_traverse_generic_object(object, state);
 	}
 	state->traverse_depth--;
@@ -524,16 +495,6 @@ void mono_unity_liveness_calculation_from_statics(LivenessState *liveness_state)
 	mono_filter_objects(liveness_state);
 }
 
-void mono_unity_liveness_add_object_callback(gpointer *objs, gint count, void *arr)
-{
-	int i;
-	custom_growable_array *objects = (custom_growable_array *)arr;
-	for (i = 0; i < count; i++) {
-		if (objects->size > objects->len)
-			objects->pdata[objects->len++] = objs[i];
-	}
-}
-
 /**
  * mono_unity_liveness_calculation_from_root:
  *
@@ -544,7 +505,7 @@ void mono_unity_liveness_calculation_from_root(MonoObject *root, LivenessState *
 {
 	mono_reset_state(liveness_state);
 
-	array_push_back(liveness_state->process_array, root);
+	block_array_push_back(liveness_state->process_array, root, liveness_state);
 
 	mono_traverse_objects(liveness_state);
 
@@ -563,7 +524,6 @@ LivenessState * mono_unity_liveness_allocate_struct(MonoClass *filter, guint max
 	// if all_objects run out of space, run through list, add objects that match the filter, clear bit in vtable and then clear the array.
 
 	state = g_new0(LivenessState, 1);
-	max_count = max_count < 1000 ? 1000 : max_count;
 
 	state->filter = filter;
 	state->traverse_depth = 0;
@@ -573,7 +533,7 @@ LivenessState * mono_unity_liveness_allocate_struct(MonoClass *filter, guint max
 	state->reallocateArray = reallocateArray;
 
 	state->all_objects = block_array_create(state);
-	state->process_array = array_create(state, max_count);
+	state->process_array = block_array_create(state);
 
 	return state;
 }
@@ -593,7 +553,7 @@ void mono_unity_liveness_free_struct(LivenessState *state)
 {
 	//cleanup the liveness_state
 	block_array_destroy(state->all_objects, state);
-	array_destroy(state->process_array);
+	block_array_destroy(state->process_array, state);
 	g_free(state);
 }
 
