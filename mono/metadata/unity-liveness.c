@@ -11,7 +11,7 @@
 typedef struct _LivenessState LivenessState;
 
 #define k_block_size (8 * 1024)
-#define k_array_elements_per_block ((k_block_size - 2 * sizeof (guint) - sizeof (gpointer)) / sizeof (gpointer))
+#define k_array_elements_per_block ((k_block_size - 3 * sizeof (void*)) / sizeof (gpointer))
 
 typedef struct _custom_array_block custom_array_block;
 
@@ -145,27 +145,6 @@ void block_array_destroy(custom_growable_block_array *block_array, LivenessState
 	g_free(block_array->iterator);
 	g_free(block_array);
 }
-
-#if defined(HAVE_SGEN_GC)
-void sgen_stop_world(int generation);
-void sgen_restart_world(int generation);
-#elif defined(HAVE_BOEHM_GC)
-#ifdef HAVE_BDWGC_GC
-extern void GC_stop_world_external();
-extern void GC_start_world_external();
-#else
-void GC_stop_world_external()
-{
-	g_assert_not_reached();
-}
-void GC_start_world_external()
-{
-	g_assert_not_reached();
-}
-#endif
-#else
-#error need to implement liveness GC API
-#endif
 
 /* number of sub elements of an array to process before recursing
  * we take a depth first approach to use stack space rather than re-allocating
@@ -555,26 +534,4 @@ void mono_unity_liveness_free_struct(LivenessState *state)
 	block_array_destroy(state->all_objects, state);
 	block_array_destroy(state->process_array, state);
 	g_free(state);
-}
-
-void mono_unity_liveness_stop_gc_world()
-{
-#if defined(HAVE_SGEN_GC)
-	sgen_stop_world(1);
-#elif defined(HAVE_BOEHM_GC)
-	GC_stop_world_external();
-#else
-#error need to implement liveness GC API
-#endif
-}
-
-void mono_unity_liveness_start_gc_world()
-{
-#if defined(HAVE_SGEN_GC)
-	sgen_restart_world(1);
-#elif defined(HAVE_BOEHM_GC)
-	GC_start_world_external();
-#else
-#error need to implement liveness GC API
-#endif
 }
