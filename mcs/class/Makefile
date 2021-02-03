@@ -363,6 +363,7 @@ unityaot_dirs := \
 		System.Runtime.CompilerServices.Unsafe, $(mobile_common_dirs))	\
 	System.Drawing			\
 	System.Data.DataSetExtensions \
+	System.Web \
 	$(pcl_facade_dirs)
 
 xbuild_2_0_dirs := \

@@ -255,6 +255,12 @@ ifneq (plainweb/,$(intermediate))
 LIB_REFS += System.Web.Services plaindesign/System.Design
 LIB_MCS_FLAGS += -define:WEBSERVICES_DEP
 
+# The unityaot profile only compile in 3 classes : strip out references and resources that do not need to be there at this time.
+ifeq (unityaot, $(PROFILE))
+LIB_REFS:=$(filter-out System.EnterpriseServices System.Runtime.Serialization.Formatters.Soap System.Web.ApplicationServices System.Configuration plaindesign/System.Design, $(LIB_REFS))
+OTHER_RES:=$(filter-out $(RESOURCE_FILES_1) $(RESOURCE_FILES_2) $(RESOURCE_FILES_4), $(OTHER_RES))
+endif
+
 all-local: System.Web/UplevelHelper.cs 
 
 endif
