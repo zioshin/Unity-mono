@@ -21,7 +21,7 @@ triggers:
   pull_requests:
     - targets:
         only:
-          - "unity-master"
+          - "unity-2018.4-mbe"
   recurring:
     - branch: unity-master
       frequency: daily # Should run between midnight and 6AM UTC
