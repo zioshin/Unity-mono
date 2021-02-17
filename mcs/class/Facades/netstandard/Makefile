@@ -23,9 +23,7 @@ LIB_MCS_FLAGS = $(SIGN_FLAGS) $(EXTRA_LIB_MCS_FLAGS)
 ifeq ($(PROFILE),xammac_net_4_5)
 LIB_REFS += System.Web.Services
 else ifeq (2.1, $(FRAMEWORK_VERSION))
-ifeq ($(PROFILE),unityaot)
-LIB_REFS += System.Web
-else
+ifneq ($(PROFILE),unityaot)
 LIB_REFS += System.Web.Services
 endif
 else
