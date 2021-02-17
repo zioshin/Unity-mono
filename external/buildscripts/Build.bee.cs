@@ -15,8 +15,7 @@ namespace BuildProgram
 
 			Backend.Current.StevedoreSettings = new StevedoreSettings
             {
-                Manifest = { manifest },
-                //EnforceManifest = true,
+                Manifest = { manifest }
             };
 
 			RegisterCommonArtifacts();
