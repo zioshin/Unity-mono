@@ -48,6 +48,13 @@ namespace Mono.Unity
 			return new UnityTlsStream (innerStream, leaveInnerStreamOpen, sslStream, settings, this);
 		}
 
+		static UnityTls.unitytls_x509verify_result x509verify_callback(void* userData, UnityTls.unitytls_x509_ref cert, UnityTls.unitytls_x509verify_result result, UnityTls.unitytls_errorstate* errorState)
+		{
+			if (userData != null)
+				UnityTls.NativeInterface.unitytls_x509list_append ((UnityTls.unitytls_x509list*)userData, cert, errorState);
+			return result;
+		}
+
 		internal override bool ValidateCertificate (
 			ICertificateValidator2 validator, string targetHost, bool serverMode,
 			X509CertificateCollection certificates, bool wantsChain, ref X509Chain chain,
@@ -62,9 +69,6 @@ namespace Mono.Unity
 					errors |= MonoSslPolicyErrors.RemoteCertificateNotAvailable;
 					return false;
 				}
-
-				if (wantsChain)
-					chain = MNS.SystemCertificateValidator.CreateX509Chain (certificates);
 			}
 			else
 			{
@@ -85,6 +89,7 @@ namespace Mono.Unity
 			// convert cert to native or extract from unityTlsChainImpl.
 			var result = UnityTls.unitytls_x509verify_result.UNITYTLS_X509VERIFY_NOT_DONE;
 			UnityTls.unitytls_x509list* certificatesNative = null;
+			UnityTls.unitytls_x509list* finalCertificateChainNative = UnityTls.NativeInterface.unitytls_x509list_create (&errorState);
 			try
 			{
 				// Things the validator provides that we might want to make use of here:
@@ -114,7 +119,8 @@ namespace Mono.Unity
 						var trustCAnativeRef = UnityTls.NativeInterface.unitytls_x509list_get_ref (trustCAnative, &errorState);
 
 						fixed (byte* targetHostUtf8Ptr = targetHostUtf8) {
-							result = UnityTls.NativeInterface.unitytls_x509verify_explicit_ca (certificatesNativeRef, trustCAnativeRef, targetHostUtf8Ptr, (size_t)targetHostUtf8.Length, null, null, &errorState);
+							result = UnityTls.NativeInterface.unitytls_x509verify_explicit_ca (
+								certificatesNativeRef, trustCAnativeRef, targetHostUtf8Ptr, (size_t)targetHostUtf8.Length, x509verify_callback, finalCertificateChainNative, &errorState);
 						}
 					}
 					finally {
@@ -122,13 +128,25 @@ namespace Mono.Unity
 					}
 				} else {
 					fixed (byte* targetHostUtf8Ptr = targetHostUtf8) {
-						result = UnityTls.NativeInterface.unitytls_x509verify_default_ca (certificatesNativeRef, targetHostUtf8Ptr, (size_t)targetHostUtf8.Length, null, null, &errorState);
+						result = UnityTls.NativeInterface.unitytls_x509verify_default_ca (
+							certificatesNativeRef, targetHostUtf8Ptr, (size_t)targetHostUtf8.Length, x509verify_callback, finalCertificateChainNative, &errorState);
 					}
 				}
+			}
+			catch {
+				UnityTls.NativeInterface.unitytls_x509list_free (finalCertificateChainNative);
+				throw;
 			}
 			finally	{
 				UnityTls.NativeInterface.unitytls_x509list_free (certificatesNative);
 			}
+
+			chain?.Dispose();
+			var chainImpl = new X509ChainImplUnityTls(
+				UnityTls.NativeInterface.unitytls_x509list_get_ref (finalCertificateChainNative, &errorState),
+				reverseOrder: true // the verify callback starts with the root and ends with the leaf. That's the opposite of chain ordering.
+			);
+			chain = new X509Chain(chainImpl);
 
 			errors = UnityTlsConversions.VerifyResultToPolicyErrror(result);
 			// There should be a status per certificate, but once again we're following closely the BTLS implementation
@@ -136,7 +154,7 @@ namespace Mono.Unity
 			// which also provides only a single status for the entire chain.
 			// It is notoriously tricky to implement in OpenSSL to get a status for all invididual certificates without finishing the handshake in the process.
 			// This is partially the reason why unitytls_x509verify_X doesn't expose it (TODO!) and likely the reason Mono's BTLS impl ignores this.
-			unityTlsChainImpl?.AddStatus(UnityTlsConversions.VerifyResultToChainStatus(result));
+			chainImpl.AddStatus(UnityTlsConversions.VerifyResultToChainStatus(result));
 			return result == UnityTls.unitytls_x509verify_result.UNITYTLS_X509VERIFY_SUCCESS && 
 					errorState.code == UnityTls.unitytls_error_code.UNITYTLS_SUCCESS;
 		}
