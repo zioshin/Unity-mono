@@ -2293,8 +2293,11 @@ mono_jit_free_method (MonoDomain *domain, MonoMethod *method)
 	 */
 	mono_jit_info_table_remove (domain, ji->ji);
 
-	if (destroy)
+	if (destroy) {
+		MONO_SCOPE_ENABLE_JIT_WRITE();
 		mono_code_manager_destroy (ji->code_mp);
+	}
+
 	g_free (ji);
 }
 
