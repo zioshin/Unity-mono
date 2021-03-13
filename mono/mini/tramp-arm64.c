@@ -355,8 +355,8 @@ mono_arch_get_unbox_trampoline (MonoMethod *m, gpointer addr)
 	guint32 size = 32;
 	MonoDomain *domain = mono_domain_get ();
 
-	start = code = mono_domain_code_reserve (domain, size);
 	MONO_SCOPE_ENABLE_JIT_WRITE();
+	start = code = mono_domain_code_reserve (domain, size);
 
 	code = mono_arm_emit_imm64 (code, ARMREG_IP0, (guint64)addr);
 	arm_addx_imm (code, ARMREG_R0, ARMREG_R0, sizeof (MonoObject));
@@ -374,8 +374,8 @@ mono_arch_get_static_rgctx_trampoline (gpointer arg, gpointer addr)
 	guint32 buf_len = 32;
 	MonoDomain *domain = mono_domain_get ();
 
-	start = code = mono_domain_code_reserve (domain, buf_len);
 	MONO_SCOPE_ENABLE_JIT_WRITE();
+	start = code = mono_domain_code_reserve (domain, buf_len);
 
 	code = mono_arm_emit_imm64 (code, MONO_ARCH_RGCTX_REG, (guint64)arg);
 	code = mono_arm_emit_imm64 (code, ARMREG_IP0, (guint64)addr);

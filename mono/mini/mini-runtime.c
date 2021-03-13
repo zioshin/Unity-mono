@@ -351,11 +351,18 @@ void *mono_global_codeman_reserve (int size)
 	if (!global_codeman) {
 		/* This can happen during startup */
 		global_codeman = mono_code_manager_new ();
+
+		MONO_SCOPE_ENABLE_JIT_WRITE();
 		return mono_code_manager_reserve (global_codeman, size);
 	}
 	else {
 		mono_jit_lock ();
-		ptr = mono_code_manager_reserve (global_codeman, size);
+
+		{
+			MONO_SCOPE_ENABLE_JIT_WRITE();
+			ptr = mono_code_manager_reserve (global_codeman, size);
+		}
+
 		mono_jit_unlock ();
 		return ptr;
 	}
@@ -1407,6 +1414,7 @@ mono_resolve_patch_target (MonoMethod *method, MonoDomain *domain, guint8 *code,
 		gpointer *jump_table;
 		int i;
 		if (method && method->dynamic) {
+			MONO_SCOPE_ENABLE_JIT_WRITE();
 			jump_table = (void **)mono_code_manager_reserve (mono_dynamic_code_hash_lookup (domain, method)->code_mp, sizeof (gpointer) * patch_info->data.table->table_size);
 		} else {
 			if (mono_aot_only) {
@@ -3666,7 +3674,11 @@ static void
 dynamic_method_info_free (gpointer key, gpointer value, gpointer user_data)
 {
 	MonoJitDynamicMethodInfo *di = (MonoJitDynamicMethodInfo *)value;
-	mono_code_manager_destroy (di->code_mp);
+
+	{
+		MONO_SCOPE_ENABLE_JIT_WRITE();
+		mono_code_manager_destroy (di->code_mp);
+	}
 	g_free (di);
 }
 

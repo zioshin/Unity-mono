@@ -5010,12 +5010,13 @@ mono_arch_build_imt_trampoline (MonoVTable *vtable, MonoDomain *domain, MonoIMTC
 		}
 	}
 
+	MONO_SCOPE_ENABLE_JIT_WRITE();
+
 	if (fail_tramp)
 		buf = mono_method_alloc_generic_virtual_trampoline (domain, buf_len);
 	else
 		buf = mono_domain_code_reserve (domain, buf_len);
 	code = buf;
-	MONO_SCOPE_ENABLE_JIT_WRITE();
 
 	/*
 	 * We are called by JITted code, which passes in the IMT argument in
