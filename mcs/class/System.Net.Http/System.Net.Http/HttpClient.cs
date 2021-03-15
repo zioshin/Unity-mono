@@ -269,6 +269,9 @@ namespace System.Net.Http
 			using (var lcts = CancellationTokenSource.CreateLinkedTokenSource (cts.Token, cancellationToken)) {
 				lcts.CancelAfter (timeout);
 
+				if (handler is HttpClientHandler clientHandler)
+					clientHandler.Timeout = timeout;
+
 				var task = base.SendAsync (request, lcts.Token);
 				if (task == null)
 					throw new InvalidOperationException ("Handler failed to return a value");
