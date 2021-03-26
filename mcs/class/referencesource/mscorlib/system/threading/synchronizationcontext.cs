@@ -256,7 +256,7 @@ namespace System.Threading
             ec.SynchronizationContextNoFlow = syncContext;
         }
 
-#if MOBILE_LEGACY && !UNITY_AOT
+#if MOBILE_LEGACY && !UNITY
         [Obsolete("The method is not supported and will be removed")]
         public static void SetThreadStaticContext(SynchronizationContext syncContext)
         {

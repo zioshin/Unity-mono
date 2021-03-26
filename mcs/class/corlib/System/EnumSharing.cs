@@ -1,6 +1,6 @@
 using System;
 
-#if UNITY_AOT
+#if UNITY
 
 namespace System
 {

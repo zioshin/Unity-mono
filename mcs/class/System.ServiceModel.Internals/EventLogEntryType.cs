@@ -41,7 +41,7 @@ using System;
 using System.Diagnostics;
 
 namespace System.Diagnostics {
-#if UNITY_AOT
+#if UNITY
 	internal
 #else
 	public
