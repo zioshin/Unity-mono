@@ -30,12 +30,13 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Text;
-#if !NO_SYSTEM_WEB_DEPENDENCY && !MOBILE
+#if !NO_SYSTEM_WEB_DEPENDENCY && !MOBILE && !UNITY_JIT
 using System.Web.Configuration;
 #endif
 
@@ -163,7 +164,7 @@ namespace System.Web.Util
 
 		static HttpEncoder GetCustomEncoderFromConfig ()
 		{
-#if MOBILE || NO_SYSTEM_WEB_DEPENDENCY
+#if MOBILE || NO_SYSTEM_WEB_DEPENDENCY || UNITY_JIT
 			return defaultEncoder.Value;
 #else
 			var cfg = HttpRuntime.Section;
