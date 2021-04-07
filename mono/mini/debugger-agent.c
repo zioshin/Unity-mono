@@ -866,6 +866,8 @@ static void process_profiler_event (EventKind event, gpointer arg);
 
 static void invalidate_frames (DebuggerTlsData *tls);
 
+static gboolean valid_memory_address (gpointer addr, gint size);
+
 #ifndef DISABLE_SOCKET_TRANSPORT
 static void
 register_socket_transport (void);
@@ -7384,11 +7386,13 @@ mono_debugger_agent_end_exception_filter (MonoException *exc, MonoContext *ctx, 
  * vtypes.
  */
 #ifdef RUNTIME_IL2CPP
-static void buffer_add_value_full(Buffer *buf, MonoType *t, void *addr, MonoDomain *domain,
+static ErrorCode buffer_add_value_full (Buffer *buf, MonoType *t, void *addr, MonoDomain *domain,
 	gboolean as_vtype, GHashTable *parent_vtypes)
 {
 	MonoObject *obj;
 	gboolean boxed_vtype = FALSE;
+	int align;
+	int size = 0;
 
 	if (il2cpp_type_is_byref(t))
 	{
@@ -7483,6 +7487,10 @@ static void buffer_add_value_full(Buffer *buf, MonoType *t, void *addr, MonoDoma
 			}
 			else
 			{
+				size = mono_type_size (t, &align);
+				if (!valid_memory_address ((gpointer)obj, size))
+					return ERR_INVALID_OBJECT;
+
 				MonoClass *klass = il2cpp_object_get_class(obj);
 				if (il2cpp_class_is_valuetype(klass))
 				{
@@ -7593,20 +7601,25 @@ static void buffer_add_value_full(Buffer *buf, MonoType *t, void *addr, MonoDoma
 		default:
 			NOT_IMPLEMENTED;
 	}
+
+	return ERR_NONE;
 }
 #else
-static void buffer_add_value_full (Buffer *buf, MonoType *t, void *addr, MonoDomain *domain,
+static ErrorCode
+buffer_add_value_full (Buffer *buf, MonoType *t, void *addr, MonoDomain *domain,
 					   gboolean as_vtype, GHashTable *parent_vtypes)
 {
 	MonoObject *obj;
 	gboolean boxed_vtype = FALSE;
+	int align;
+	int size = 0;
 
 	if (t->byref) {
 		if (!(*(void**)addr)) {
 			/* This can happen with compiler generated locals */
 			//printf ("%s\n", mono_type_full_name (t));
 			buffer_add_byte (buf, VALUE_TYPE_ID_NULL);
-			return;
+			return ERR_NONE;
 		}
 		g_assert (*(void**)addr);
 		addr = *(void**)addr;
@@ -7688,7 +7701,10 @@ static void buffer_add_value_full (Buffer *buf, MonoType *t, void *addr, MonoDom
 		if (!obj) {
 			buffer_add_byte (buf, VALUE_TYPE_ID_NULL);
 		} else {
-			if (mono_class_is_valuetype (mono_object_get_class (obj))) {
+			size = mono_type_size (t, &align);
+			if (!valid_memory_address ((gpointer)obj, size))
+				return ERR_INVALID_OBJECT;
+			else if (mono_class_is_valuetype (mono_object_get_class (obj))) {
 				t = &obj->vtable->klass->byval_arg;
 				addr = mono_object_unbox (obj);
 				boxed_vtype = TRUE;
@@ -7776,13 +7792,15 @@ static void buffer_add_value_full (Buffer *buf, MonoType *t, void *addr, MonoDom
 	default:
 		NOT_IMPLEMENTED;
 	}
+
+	return ERR_NONE;
 }
 #endif // RUNTIME_IL2CPP
 
-static void
+static ErrorCode
 buffer_add_value (Buffer *buf, MonoType *t, void *addr, MonoDomain *domain)
 {
-	buffer_add_value_full (buf, t, addr, domain, FALSE, NULL);
+	return buffer_add_value_full (buf, t, addr, domain, FALSE, NULL);
 }
 
 static gboolean
@@ -11906,7 +11924,9 @@ object_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 				} else
 					field_value = (guint8*)(obj) + mono_field_get_offset (f);
 
-				buffer_add_value (buf, mono_field_get_type (f), field_value, VM_OBJECT_GET_DOMAIN(obj));
+				err = buffer_add_value (buf, mono_field_get_type (f), field_value, VM_OBJECT_GET_DOMAIN(obj));
+				if (err != ERR_NONE)
+					return err;
 			}
 		}
 		break;
