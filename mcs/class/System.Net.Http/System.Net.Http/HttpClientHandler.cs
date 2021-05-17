@@ -57,6 +57,7 @@ namespace System.Net.Http
 		bool sentRequest;
 		string connectionGroupName;
 		bool disposed;
+		internal TimeSpan? Timeout;
 
 		public HttpClientHandler ()
 		{
@@ -278,6 +279,9 @@ namespace System.Net.Http
 			}
 
 			wr.ServicePoint.Expect100Continue = request.Headers.ExpectContinue == true;
+
+			if (Timeout != null)
+				wr.Timeout = (int)Timeout.Value.TotalMilliseconds;
 
 			// Add request headers
 			var headers = wr.Headers;
