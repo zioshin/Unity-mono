@@ -2377,6 +2377,10 @@ static gboolean
 request_thread_abort (MonoInternalThread *thread, MonoObject *state, gboolean appdomain_unload)
 {
 	LOCK_THREAD (thread);
+
+	/* With self abort we always throw a new exception */
+	if (thread == mono_thread_internal_current ())
+		thread->abort_exc = NULL;
 	
 	if (thread->state & (ThreadState_AbortRequested | ThreadState_Stopped))
 	{
@@ -2420,10 +2424,13 @@ request_thread_abort (MonoInternalThread *thread, MonoObject *state, gboolean ap
 void
 ves_icall_System_Threading_Thread_Abort (MonoInternalThread *thread, MonoObject *state)
 {
-	if (!request_thread_abort (thread, state, FALSE))
+	gboolean is_self = thread == mono_thread_internal_current ();
+	
+	/* For self aborts we always process the abort */
+	if (!request_thread_abort (thread, &state, FALSE) && !is_self)
 		return;
 
-	if (thread == mono_thread_internal_current ()) {
+	if (is_self) {
 		MonoError error;
 		self_abort_internal (&error);
 		mono_error_set_pending_exception (&error);
