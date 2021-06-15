@@ -6992,6 +6992,12 @@ mono_class_value_size (MonoClass *klass, guint32 *align)
 
 	size = mono_class_instance_size (klass) - sizeof (MonoObject);
 
+	if (mono_class_has_failure (klass)) {
+		if (align)
+			*align = 1;
+		return 0;
+	}
+
 	if (align)
 		*align = klass->min_align;
 
