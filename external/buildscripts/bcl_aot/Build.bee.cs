@@ -16,7 +16,8 @@ class Build
 		NPath classLibDir = $@"{root}/incomingbuilds\classlibs\{unityJitRelative}";
 		NPath outputDir = $@"{root}/incomingbuilds\aot-classlibs-win64\{unityJitRelative}";
 
-		NPath msvcRoot = @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.28.29333";
+		// TODO: this is the version yamato has right now. Do stevedore here.
+		NPath msvcRoot = @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037";
 
 		var paths = new NPath[]
 		{
@@ -36,7 +37,8 @@ class Build
 		var classLibs = classLibDir.Files("*.dll");
 		foreach (var classLib in classLibs)
 		{
-			var nativeTarget = outputDir.Combine(classLib.FileName).ChangeExtension($".{classLib.Extension}.dll");
+			var nativeTarget = classLib.ChangeExtension($".{classLib.Extension}.dll");
+			var outputFile = outputDir.Combine(nativeTarget.FileName);
 
 			Backend.Current.AddAction("MonoAot",
 				new[] {nativeTarget},
@@ -44,6 +46,7 @@ class Build
 				monoDir.Combine("mono.exe").InQuotes(),
 				new[] {$"--aot=keep-temps,ld-flags={libpathstr}", "--llvm", classLib.InQuotesResolved()},
 				environmentVariables: _envVar);
+			Backend.Current.SetupCopyFile(outputFile, nativeTarget);
 		}
 	}
 }
