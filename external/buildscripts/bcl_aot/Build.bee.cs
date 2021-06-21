@@ -29,6 +29,7 @@ class Build
 		var _envVar = new Dictionary<string, string>
 		{
 			{"PATH", paths.Select(p => p.ToString(SlashMode.Native)).Append(Environment.GetEnvironmentVariable("PATH")).SeparateWith(";")},
+			{"MONO_PATH", classLibDir.ToString(SlashMode.Native)}
 		};
 
 		NPath libpath = $@"{msvcRoot}\lib\x64";
