@@ -10,7 +10,7 @@ dependencies:
   - .yamato/Build Windows x64.yml
   
 commands:
-  - cd external/buildscripts/bcl_aot && ../bee.exe
+  - cd external\buildscripts\bcl_aot && ..\bee.exe
 
 artifacts: 
   win64:
