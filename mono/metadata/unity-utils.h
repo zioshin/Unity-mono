@@ -225,4 +225,6 @@ MONO_API gboolean mono_unity_class_is_open_constructed_type (MonoClass *klass);
 
 MONO_API gboolean mono_unity_class_has_failure (const MonoClass* klass);
 
+MONO_API gboolean mono_unity_should_optimize (MonoImage* image, gboolean optimize);
+
 #endif

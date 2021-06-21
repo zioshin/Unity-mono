@@ -1976,3 +1976,10 @@ mono_unity_class_has_failure(const MonoClass* klass)
 {
 	return mono_class_has_failure(klass);
 }
+
+MONO_API gboolean
+mono_unity_should_optimize (MonoImage* image, gboolean optimize)
+{
+	if (image)
+		image->should_optimize = optimize;
+}
