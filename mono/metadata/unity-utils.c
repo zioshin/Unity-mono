@@ -30,6 +30,7 @@
 #include <mono/metadata/threadpool.h>
 #include <mono/metadata/tokentype.h>
 #include <mono/utils/mono-string.h>
+#include <mono/mini/mini-runtime.h>
 
 #if HAVE_BOEHM_GC
 #include <mono/utils/gc_wrapper.h>
@@ -1982,4 +1983,11 @@ mono_unity_should_optimize (MonoImage* image, gboolean optimize)
 {
 	if (image)
 		image->should_optimize = optimize;
+}
+
+// Unity editor is in debug mode so in the case that we are in hybrid we want all assemblies to have sequence points to allow suspending
+MONO_API void
+mono_unity_set_debug (gboolean debugMode)
+{
+	mini_get_debug_options()->gen_sdb_seq_points = debugMode;
 }

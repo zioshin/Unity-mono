@@ -3351,13 +3351,9 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, JitFl
 	gboolean should_optimize = method->klass->image->should_optimize;
 	gboolean optim_disabled_by_debug = mini_debug_options.mdb_optimizations;
 	gboolean optim_disabled_by_profile = MONO_CFG_PROFILE_CALL_CONTEXT(cfg);
-	gboolean force_optim = optim_disabled_by_debug && !optim_disabled_by_profile && should_optimize;
-	if (force_optim)
-		// FIXME: We can't have seq points inside gc critical regions (see above where this is set to false)
-		cfg->gen_sdb_seq_points = TRUE;
 
 	/* The debugger has no liveness information, so avoid sharing registers/stack slots */
-	if (!force_optim && (optim_disabled_by_debug || optim_disabled_by_profile)) {
+	if (optim_disabled_by_debug || optim_disabled_by_profile || !should_optimize) {
 		cfg->disable_reuse_registers = TRUE;
 		cfg->disable_reuse_stack_slots = TRUE;
 		/* 

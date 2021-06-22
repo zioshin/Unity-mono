@@ -874,6 +874,7 @@ mono_image_init (MonoImage *image)
 	image->method_signatures = g_hash_table_new (NULL, NULL);
 
 	image->property_hash = mono_property_hash_new ();
+	image->should_optimize = TRUE;
 }
 
 #if G_BYTE_ORDER != G_LITTLE_ENDIAN
