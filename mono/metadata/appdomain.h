@@ -29,7 +29,8 @@ typedef void (*MonoDomainFunc) (MonoDomain *domain, void* user_data);
 typedef void (*MonoJitInfoFunc)(MonoDomain *domain, MonoMethod* method, MonoJitInfo* jinfo, void* user_data);
 typedef void (*MonoUnityExceptionFunc) (MonoObject* exc);
 typedef void (*MonoDomainAssemblyFunc) (MonoAssembly *assembly, void* user_data);
-typedef void (*MonoImageAOTModuleDestroyFunc) (MonoImage* image);
+typedef void (*MonoDomainAssemblyLoadedFunc) (MonoDomain* domain, MonoAssembly* assembly);
+typedef void (*MonoImageAOTModuleDestroyFunc) (MonoDomain* domain, MonoImage* image);
 typedef void (*MonoAOTResetFunc) ();
 
 MONO_API MonoDomain*
@@ -67,7 +68,7 @@ MONO_API const char*
 mono_check_corlib_version (void);
 
 void
-mono_domain_install_aot_callbacks (MonoAOTResetFunc aot_reset, MonoImageAOTModuleDestroyFunc image_aot_module_destroy);
+mono_domain_install_aot_callbacks (MonoDomainAssemblyLoadedFunc image_loaded, MonoAOTResetFunc aot_reset, MonoImageAOTModuleDestroyFunc image_aot_module_destroy);
 
 MONO_API MonoDomain *
 mono_domain_create         (void);

@@ -454,6 +454,8 @@ mono_domain_create (void)
 	domain->memory_manager = (MonoMemoryManager *)mono_mem_manager_create_singleton (NULL, domain, TRUE);
 #endif
 
+	domain->aot_module_hash = g_hash_table_new (mono_aligned_addr_hash, NULL);
+
 	domain->lock_free_mp = lock_free_mempool_new ();
 	domain->env = mono_g_hash_table_new_type_internal ((GHashFunc)mono_string_hash_internal, (GCompareFunc)mono_string_equal_internal, MONO_HASH_KEY_VALUE_GC, MONO_ROOT_SOURCE_DOMAIN, domain, "Domain Environment Variable Table");
 	domain->domain_assemblies = NULL;
@@ -1166,12 +1168,14 @@ mono_domain_assembly_open_internal (MonoDomain *domain, MonoAssemblyLoadContext 
 	return ass;
 }
 
+MonoDomainAssemblyLoadedFunc domain_image_loaded = NULL;
 static MonoAOTResetFunc domain_unload_aot_reset = NULL;
 static MonoImageAOTModuleDestroyFunc domain_unload_image_aot_module_destroy = NULL;
 
 void
-mono_domain_install_aot_callbacks (MonoAOTResetFunc aot_reset, MonoImageAOTModuleDestroyFunc image_aot_module_destroy)
+mono_domain_install_aot_callbacks (MonoDomainAssemblyLoadedFunc image_loaded, MonoAOTResetFunc aot_reset, MonoImageAOTModuleDestroyFunc image_aot_module_destroy)
 {
+	domain_image_loaded = image_loaded;
 	domain_unload_aot_reset = aot_reset;
 	domain_unload_image_aot_module_destroy = image_aot_module_destroy;
 }
@@ -1259,7 +1263,7 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 			continue;
 		mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_ASSEMBLY, "Unloading domain %s[%p], assembly %s[%p], ref_count=%d", domain->friendly_name, domain, ass->aname.name, ass, ass->ref_count);
 		if (domain_unload_image_aot_module_destroy)
-			domain_unload_image_aot_module_destroy (ass->image);
+			domain_unload_image_aot_module_destroy (domain, ass->image);
 		if (!mono_assembly_close_except_image_pools (ass))
 			tmp->data = NULL;
 	}

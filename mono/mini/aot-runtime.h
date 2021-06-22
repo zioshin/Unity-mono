@@ -242,8 +242,6 @@ typedef struct MonoAotFileInfo
 
 void      mono_aot_init                     (void);
 void      mono_aot_cleanup                  (void);
-void	  mono_aot_reset (void);
-void      mono_aot_image_aot_module_destroy (MonoImage* image);
 gpointer  mono_aot_get_method               (MonoDomain *domain,
 											 MonoMethod *method, MonoError *error);
 gpointer  mono_aot_get_method_from_token    (MonoDomain *domain, MonoImage *image, guint32 token, MonoError *error);
