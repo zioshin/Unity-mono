@@ -54,7 +54,7 @@ class Build
 			Backend.Current.AddAction("MonoAot",
 				new[] {nativeTarget},
 				classLibs.Append(clangExecutableArtifact.Path).ToArray(),
-				monoDir.Combine("mono.exe").InQuotes(),
+				monoDir.Combine("mono-bdwgc.exe").InQuotes(),
 				new[] {$"--aot=keep-temps,ld-flags=\"{libpathstr}\"", "--llvm", classLib.InQuotesResolved()},
 				environmentVariables: _envVar);
 			Backend.Current.SetupCopyFile(outputFile, nativeTarget);
