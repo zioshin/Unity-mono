@@ -4905,7 +4905,7 @@ init_method (MonoAotModule *amodule, gpointer info, guint32 method_index, MonoMe
 		mono_mempool_destroy (mp);
 	}
 
-	if (mini_debug_options.load_aot_jit_info_eagerly || !method->klass->image->should_optimize)
+	if (mini_debug_options.load_aot_jit_info_eagerly)
 		jinfo = mono_aot_find_jit_info (domain, amodule->assembly->image, code);
 
 	gboolean inited_ok;
