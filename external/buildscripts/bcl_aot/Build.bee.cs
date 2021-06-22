@@ -21,7 +21,6 @@ class Build
 
 		var paths = new NPath[]
 		{
-			@"C:\Program Files\LLVM\bin",
 			monoDir,
 			$@"{msvcRoot}\bin\Hostx64\x64",
 		};
