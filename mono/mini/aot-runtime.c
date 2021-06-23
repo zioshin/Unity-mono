@@ -3712,7 +3712,7 @@ mono_aot_get_unwind_info (MonoJitInfo *ji, guint32 *unwind_info_len)
 	if (ji->async)
 		amodule = ji->d.aot_info;
 	else
-		amodule = domain_get_aot_module(mono_domain_get(), m_class_get_image (jinfo_get_method (ji)->klass));
+		amodule = domain_get_aot_module(mono_aot_domain_get(), m_class_get_image (jinfo_get_method (ji)->klass));
 	g_assert (amodule);
 	g_assert (ji->from_aot);
 
