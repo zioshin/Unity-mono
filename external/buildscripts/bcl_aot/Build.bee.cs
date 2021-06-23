@@ -45,15 +45,17 @@ class Build
 		foreach (var classLib in classLibs)
 		{
 			var nativeTarget = classLib.ChangeExtension($".{classLib.Extension}.dll");
+			NPath pdb = $"{nativeTarget}.pdb";
 			var outputFile = outputDir.Combine(nativeTarget.FileName);
 
 			Backend.Current.AddAction("MonoAot",
-				new[] {nativeTarget},
+				new[] {nativeTarget, pdb},
 				classLibs.Append(clangExecutableArtifact.Path).ToArray(),
 				monoDir.Combine("mono-bdwgc.exe").InQuotes(),
 				new[] {$"--aot=keep-temps,ld-flags=\"{libpathstr}\"", "--llvm", classLib.InQuotesResolved()},
 				environmentVariables: _envVar);
 			Backend.Current.SetupCopyFile(outputFile, nativeTarget);
+			Backend.Current.SetupCopyFile(outputDir.Combine(pdb.FileName), pdb);
 		}
 	}
 }
