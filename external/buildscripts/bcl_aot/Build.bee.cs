@@ -44,10 +44,6 @@ class Build
 		var classLibs = classLibDir.Files("*.dll");
 		foreach (var classLib in classLibs)
 		{
-			// TODO: Failed to aot
-			if (classLib.FileNameWithoutExtension == "mscorlib")
-				continue;
-			
 			var nativeTarget = classLib.ChangeExtension($".{classLib.Extension}.dll");
 			var outputFile = outputDir.Combine(nativeTarget.FileName);
 
