@@ -2910,11 +2910,17 @@ mono_aot_get_method_from_vt_slot (MonoDomain *domain, MonoVTable *vtable, int sl
 gboolean
 mono_aot_get_cached_class_info (MonoClass *klass, MonoCachedClassInfo *res)
 {
-	MonoAotModule *amodule = domain_get_aot_module(mono_domain_get(), m_class_get_image (klass));
+	MonoDomain* domain = mono_aot_domain_get ();
+	MonoAotModule* amodule = NULL;
 	guint8 *p;
 	gboolean err;
 
-	if (m_class_get_rank (klass) || !m_class_get_type_token (klass) || !amodule)
+	if (m_class_get_rank (klass) || !m_class_get_type_token (klass) || !domain)
+		return FALSE;
+
+	amodule = domain_get_aot_module (domain, m_class_get_image (klass));
+
+	if (!amodule)
 		return FALSE;
 
 	p = (guint8*)&amodule->blob [mono_aot_get_offset (amodule->class_info_offsets, mono_metadata_token_index (m_class_get_type_token (klass)) - 1)];
