@@ -2744,6 +2744,24 @@ mono_aot_image_aot_module_destroy (MonoDomain* domain, MonoImage* image)
 		return;
 	}
 
+	g_free (aot_module->llvm_got);
+	g_hash_table_destroy (aot_module->method_to_code);
+	g_hash_table_destroy (aot_module->extra_methods);
+	g_free (aot_module->shared_got);
+
+	guint32 i;
+	for (i = 0; i < aot_module->image_table_len; ++i) {
+		g_free (aot_module->image_guids[i]);
+	}
+
+	g_free (aot_module->image_table);
+	g_free (aot_module->image_names);
+	g_free (aot_module->image_guids);
+
+	mono_os_mutex_destroy (&aot_module->mutex);
+
+	g_free (aot_module->methods);
+
 	if (aot_module->sofile)
 		mono_dl_close (aot_module->sofile);
 
