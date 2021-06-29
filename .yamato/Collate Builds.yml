@@ -22,6 +22,9 @@ triggers:
     - targets:
         only:
           - "unity-2020.3-mbe"
+  branches:
+    only:
+      - "unity-2020.3-mbe"
   cancel_old_ci: true
   recurring:
     - branch: unity-2020.3-mbe
