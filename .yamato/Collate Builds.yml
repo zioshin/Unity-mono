@@ -21,14 +21,10 @@ triggers:
   pull_requests:
     - targets:
         only:
-<<<<<<< HEAD
           - "unity-2021.1-mbe"
-=======
-          - "unity-master"
   branches:
     only:
-      - "master"
->>>>>>> ebc5ea79493... PRTools updates for switch over to GitHub
+      - "unity-2021.1-mbe"
   cancel_old_ci: true
   recurring:
     - branch: unity-2021.1-mbe
