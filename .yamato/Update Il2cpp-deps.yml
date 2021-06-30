@@ -3,9 +3,9 @@ agent:
   type: Unity::VM
   image: platform-foundation/windows-vs2019-prtools-bokken:latest
   flavor: b1.xlarge 
-  variables:
-    MONO_REV: "latest"
-    BACKPORT_BRANCH: "unity-2021.1-mbe"
+variables:
+  MONO_REV: "latest"
+  BACKPORT_BRANCH: "unity-2021.1-mbe"
 dependencies:
   - .yamato/Collate Builds.yml
   - .yamato/Publish To Stevedore.yml
