@@ -492,9 +492,10 @@ namespace System.Net
 						remaining -= r;
 						readSize += r;
 					}
+
+					readBuffer = new BufferOffsetSize (b, 0, new_size, false);
 				}
 
-				readBuffer = new BufferOffsetSize (b, 0, new_size, false);
 				totalRead = 0;
 				nextReadCalled = true;
 				completion.TrySetCompleted ();
