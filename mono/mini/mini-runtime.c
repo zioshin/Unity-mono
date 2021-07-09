@@ -849,15 +849,17 @@ mono_jit_thread_attach (MonoDomain *domain)
 	attached = mono_tls_get_jit_tls () != NULL;
 
 	if (!attached) {
-		mono_thread_attach (domain);
+		mono_thread_attach (mono_get_root_domain ());
 
 		// #678164
 		mono_thread_set_state (mono_thread_internal_current (), ThreadState_Background);
 	}
 
 	orig = mono_domain_get ();
-	if (orig != domain)
+	if (orig != domain) {
+		mono_thread_push_appdomain_ref (domain);
 		mono_domain_set (domain, TRUE);
+	}
 
 	return orig != domain ? orig : NULL;
 }
@@ -872,8 +874,10 @@ mono_jit_set_domain (MonoDomain *domain)
 {
 	g_assert (!mono_threads_is_blocking_transition_enabled ());
 
-	if (domain)
+	if (domain) {
 		mono_domain_set (domain, TRUE);
+		mono_thread_pop_appdomain_ref ();
+	}
 }
 
 /**
