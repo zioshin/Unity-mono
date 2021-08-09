@@ -123,10 +123,11 @@ namespace System.IO {
 
 				string managed = Environment.GetEnvironmentVariable ("MONO_MANAGED_WATCHER");
 				int mode = 0;
+				bool ok = false;
+#if !UNITY_AOT
 				if (managed == null)
 					mode = InternalSupportsFSW ();
 				
-				bool ok = false;
 				switch (mode) {
 				case 1: // windows
 					ok = DefaultWatcher.GetInstance (out watcher);
@@ -149,6 +150,7 @@ namespace System.IO {
 					watcher_handle = (watcher as CoreFXFileSystemWatcherProxy).NewWatcher (this);
 					break;
 				}
+#endif
 
 				if (mode == 0 || !ok) {
 					if (String.Compare (managed, "disabled", true) == 0)
