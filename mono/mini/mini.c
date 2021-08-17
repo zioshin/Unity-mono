@@ -2175,8 +2175,10 @@ mono_postprocess_patches (MonoCompile *cfg)
 		case MONO_PATCH_INFO_SWITCH: {
 			gpointer *table;
 			if (cfg->method->dynamic) {
+				MONO_SCOPE_ENABLE_JIT_WRITE();
 				table = (void **)mono_code_manager_reserve (cfg->dynamic_info->code_mp, sizeof (gpointer) * patch_info->data.table->table_size);
 			} else {
+				MONO_SCOPE_ENABLE_JIT_WRITE();
 				table = (void **)mono_domain_code_reserve (cfg->domain, sizeof (gpointer) * patch_info->data.table->table_size);
 			}
 
@@ -2301,17 +2303,24 @@ mono_codegen (MonoCompile *cfg)
 	if (cfg->method->dynamic) {
 		/* Allocate the code into a separate memory pool so it can be freed */
 		cfg->dynamic_info = g_new0 (MonoJitDynamicMethodInfo, 1);
-		cfg->dynamic_info->code_mp = mono_code_manager_new_dynamic ();
+
+		{
+			MONO_SCOPE_ENABLE_JIT_WRITE();
+			cfg->dynamic_info->code_mp = mono_code_manager_new_dynamic ();
+		}
+
 		mono_domain_lock (cfg->domain);
 		mono_dynamic_code_hash_insert (cfg->domain, cfg->method, cfg->dynamic_info);
 		mono_domain_unlock (cfg->domain);
 
+		MONO_SCOPE_ENABLE_JIT_WRITE();
 		if (mono_using_xdebug)
 			/* See the comment for cfg->code_domain */
 			code = (guint8 *)mono_domain_code_reserve (code_domain, cfg->code_size + cfg->thunk_area + unwindlen);
 		else
 			code = (guint8 *)mono_code_manager_reserve (cfg->dynamic_info->code_mp, cfg->code_size + cfg->thunk_area + unwindlen);
 	} else {
+		MONO_SCOPE_ENABLE_JIT_WRITE();
 		code = (guint8 *)mono_domain_code_reserve (code_domain, cfg->code_size + cfg->thunk_area + unwindlen);
 	}
 
@@ -2399,11 +2408,13 @@ mono_codegen (MonoCompile *cfg)
 #endif
 
 	if (cfg->method->dynamic) {
+		MONO_SCOPE_ENABLE_JIT_WRITE();
 		if (mono_using_xdebug)
 			mono_domain_code_commit (code_domain, cfg->native_code, cfg->code_size, cfg->code_len);
 		else
 			mono_code_manager_commit (cfg->dynamic_info->code_mp, cfg->native_code, cfg->code_size, cfg->code_len);
 	} else {
+		MONO_SCOPE_ENABLE_JIT_WRITE();
 		mono_domain_code_commit (code_domain, cfg->native_code, cfg->code_size, cfg->code_len);
 	}
 	MONO_PROFILER_RAISE (jit_code_buffer, (cfg->native_code, cfg->code_len, MONO_PROFILER_CODE_BUFFER_METHOD, cfg->method));
