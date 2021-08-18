@@ -3080,7 +3080,6 @@ ves_icall_RuntimeType_GetInterfaceMapData (MonoReflectionTypeHandle ref_type, Mo
 		if (method->flags & METHOD_ATTRIBUTE_VIRTUAL)
 			i++;
 	}
-	
 	MonoArrayHandle targets_arr = mono_array_new_handle (domain, mono_defaults.method_info_class, i, error);
 	return_if_nok (error);
 	MONO_HANDLE_ASSIGN (targets, targets_arr);

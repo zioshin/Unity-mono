@@ -211,9 +211,23 @@ find_tramp (gpointer key, gpointer value, gpointer user_data)
 		ud->method = (MonoMethod*)key;
 }
 
+static char*
+mono_get_method_from_ip_u (void *ip);
+
 /* debug function */
 char*
 mono_get_method_from_ip (void *ip)
+{
+	char *result;
+	MONO_ENTER_GC_UNSAFE;
+	result = mono_get_method_from_ip_u (ip);
+	MONO_EXIT_GC_UNSAFE;
+	return result;
+}
+
+/* debug function */
+static char*
+mono_get_method_from_ip_u (void *ip)
 {
 	MonoJitInfo *ji;
 	MonoMethod *method;
@@ -281,6 +295,12 @@ G_GNUC_UNUSED char *
 mono_pmip (void *ip)
 {
 	return mono_get_method_from_ip (ip);
+}
+
+G_GNUC_UNUSED char *
+mono_pmip_u (void *ip)
+{
+	return mono_get_method_from_ip_u (ip);
 }
 
 /**
@@ -3599,6 +3619,8 @@ MONO_SIG_HANDLER_FUNC (, mono_sigsegv_signal_handler)
 			mono_chain_signal (MONO_SIG_HANDLER_PARAMS);
 			return;
 		}
+		/* thread not registered with the runtime, make sure we return now. */
+		return;
 	}
 #endif
 
