@@ -2059,11 +2059,9 @@ mono_class_layout_fields (MonoClass *klass, int base_instance_size, int packing_
 
 			instance_size = MAX (real_size, instance_size);
        
-			if (!((layout == TYPE_ATTRIBUTE_EXPLICIT_LAYOUT) && explicit_size)) {
-				if (instance_size & (min_align - 1)) {
-					instance_size += min_align - 1;
-					instance_size &= ~(min_align - 1);
-				}
+			if (instance_size & (min_align - 1)) {
+				instance_size += min_align - 1;
+				instance_size &= ~(min_align - 1);
 			}
 		}
 		break;
@@ -2150,9 +2148,11 @@ mono_class_layout_fields (MonoClass *klass, int base_instance_size, int packing_
 		}
 
 		instance_size = MAX (real_size, instance_size);
-		if (instance_size & (min_align - 1)) {
-			instance_size += min_align - 1;
-			instance_size &= ~(min_align - 1);
+		if (!((layout == TYPE_ATTRIBUTE_EXPLICIT_LAYOUT) && explicit_size)) {
+			if (instance_size & (min_align - 1)) {
+				instance_size += min_align - 1;
+				instance_size &= ~(min_align - 1);
+			}
 		}
 		break;
 	}
