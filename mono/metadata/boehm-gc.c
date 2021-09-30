@@ -947,6 +947,7 @@ mono_gc_free_fixed (void* addr)
 	GC_FREE (addr);
 }
 
+#ifdef HEAP_VALIDATION_FREQUENCY
 static int validate_heap = 0;
 static int counter = 0;
 static int validate_frequency = 100;
@@ -957,6 +958,7 @@ mono_gc_set_heap_verifier (gboolean enabled)
 	g_message("heap verifier is now: %d", enabled);
 	validate_heap = enabled;
 }
+#endif
 
 extern void mono_unity_heap_validation ();
 void *
@@ -964,10 +966,13 @@ mono_gc_alloc_obj (MonoVTable *vtable, size_t size)
 {
 	MonoObject *obj;
 
-	if (validate_heap && (counter++ % validate_frequency) == 0)
+#ifdef HEAP_VALIDATION_FREQUENCY
+	if (validate_heap && (++counter % validate_frequency) == 0)
 	{
 		mono_unity_heap_validation ();
+		counter = 0;
 	}
+#endif
 
 	if (!vtable->klass->has_references) {
 		obj = (MonoObject *)GC_MALLOC_ATOMIC (size);

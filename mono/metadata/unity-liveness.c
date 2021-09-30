@@ -204,9 +204,7 @@ static void mono_traverse_and_validate_generic_object (MonoObject* object, Liven
 	gsize gc_desc = (gsize)(GET_VTABLE (object)->gc_descr);
 #endif
 
-	/*if (gc_desc & (gsize)1)
-		mono_traverse_gc_desc (object, state);
-	else */if (GET_VTABLE (object)->klass->rank)
+	if (GET_VTABLE (object)->klass->rank)
 		mono_validate_array ((MonoArray*)object, state);
 	else
 		mono_validate_object (object, state);
@@ -266,24 +264,15 @@ MONO_API void mono_validate_object_pointer (MonoObject* object)
 {
 	if (object)
 	{
-		void* vtable = NULL;
+		MonoVTable* vtable = NULL;
 		MonoClass* klass = NULL;
 		char* name = NULL;
-		__try {
-			vtable = *(void**)(object);
-			klass = object->vtable->klass;
-			name = klass->name;
-		}
-		__except (1) {
 
-			vtable = NULL;
-			klass = NULL;
-		}
+		vtable = object->vtable;
+		klass = vtable->klass;
+		name = klass->name;
 
-		if (vtable == NULL || klass == NULL || name == NULL)
-		{
-			DebugBreak ();
-		}
+		g_assert(name);
 	}
 }
 
@@ -294,27 +283,17 @@ MONO_API void mono_validate_string_pointer(MonoString* string)
 
 static gboolean mono_add_and_validate_object (MonoObject* object, LivenessState* state)
 {
-	// TODO: validate object is good first...
 	if (object)
 	{
-		void* vtable = NULL;
-		__try {
-			vtable = *(void**)(object);
-		}
-		__except (1) {
+		MonoVTable* vtable = NULL;
+		MonoClass* klass = NULL;
+		char *name = NULL;
 
-			vtable = NULL;
-		}
+		vtable = GET_VTABLE(object);
+		klass = vtable->klass;
+		name = klass->name;
 
-		if (vtable == NULL)
-		{
-			DebugBreak ();
-		}
-
-		//if (!GC_is_marked (object))
-		//{
-		//	DebugBreak ();
-		//}
+		g_assert(name);
 
 		if (!IS_MARKED (object))
 		{
@@ -614,7 +593,7 @@ static void mono_validate_array (MonoArray* array, LivenessState* state)
 	has_references = !mono_class_is_valuetype (element_class);
 	g_assert (element_class->size_inited != 0);
 
-	for (i = 0; i < mono_class_get_field_count (element_class); i++)
+	for (i = 0; i < mono_class_get_field_count (element_class) && !has_references; i++)
 	{
 		has_references |= mono_field_can_contain_references (&element_class->fields[i]);
 	}
@@ -800,8 +779,12 @@ gpointer mono_unity_liveness_calculation_from_statics_managed(gpointer filter_ha
 }
 
 void mono_unity_heap_validation_from_statics (LivenessState* liveness_state);
+#if HAVE_BOEHM_GC
+extern void mono_gc_strong_handle_foreach (GFunc func, gpointer user_data);
 extern void mono_gc_handle_lock ();
 extern void mono_gc_handle_unlock ();
+#endif
+
 MONO_API void mono_unity_heap_validation ()
 {
 
@@ -814,7 +797,11 @@ MONO_API void mono_unity_heap_validation ()
 	objects = g_ptr_array_sized_new (100000);
 	objects->len = 0;
 
+#if HAVE_BOEHM_GC
 	mono_gc_handle_lock ();
+#else
+	g_assert_not_reached();
+#endif
 
 	liveness_state = mono_unity_liveness_calculation_begin (NULL, 100000, mono_unity_liveness_add_object_callback, (void*)objects, NULL, NULL);
 
@@ -822,7 +809,9 @@ MONO_API void mono_unity_heap_validation ()
 
 	mono_unity_liveness_calculation_end (liveness_state);
 
+#if HAVE_BOEHM_GC
 	mono_gc_handle_unlock ();
+#endif // would get caught above by the assert
 
 	g_ptr_array_free (objects, TRUE);
 }
@@ -835,8 +824,6 @@ void gchandle_process (void* data, void* user_data)
 	mono_add_and_validate_object (target, liveness_state);
 }
 
-extern void
-mono_gc_strong_handle_foreach (GFunc func, gpointer user_data);
 
 static void
 foreach_thread_static_field (gpointer key, gpointer value, gpointer user_data)
@@ -875,7 +862,11 @@ void mono_unity_heap_validation_from_statics (LivenessState* liveness_state)
 
 	mono_reset_state (liveness_state);
 
+#if HAVE_BOEHM_GC
 	mono_gc_strong_handle_foreach (gchandle_process, liveness_state);
+#else
+	g_assert_not_reached();
+#endif
 
 	g_hash_table_foreach (domain->special_static_fields, foreach_thread_static_field, liveness_state);
 
@@ -933,8 +924,6 @@ void mono_unity_heap_validation_from_statics (LivenessState* liveness_state)
 		}
 	}
 	mono_traverse_and_validate_objects (liveness_state);
-	//Filter objects and call callback to register found objects
-	//mono_filter_objects (liveness_state);
 }
 
 /**
