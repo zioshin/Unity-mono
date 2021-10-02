@@ -5,7 +5,7 @@ agent:
   flavor: b1.xlarge
 variables:
   MONO_REV: "latest"
-  BACKPORT_BRANCH: "unity-2019.4-mbe"
+  BACKPORT_BRANCH: "2019.4"
 dependencies:
   - .yamato/Publish To Stevedore.yml
 commands:
