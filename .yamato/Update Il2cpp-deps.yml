@@ -7,7 +7,6 @@ variables:
   MONO_REV: "latest"
   BACKPORT_BRANCH: "unity-2021.1-mbe"
 dependencies:
-  - .yamato/Collate Builds.yml
   - .yamato/Publish To Stevedore.yml
 commands:
   - |
