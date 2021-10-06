@@ -429,26 +429,11 @@ static gboolean mono_validate_object_internal (MonoObject* object, gboolean isSt
 				g_assert_not_reached ();
 			}
 			else {
-				MonoObject* val = NULL;
-				MonoVTable* vtable = NULL;
+				MonoObject *val = NULL;
+				MonoVTable *vtable = NULL;
 				mono_field_get_value (object, field, &val);
 				added_objects |= mono_add_and_validate_object (val, state);
-				if (val && field->type->type == MONO_TYPE_CLASS) {
-					MonoClass* fieldClass = field->type->data.klass;
-					MonoClass* valClass = GET_VTABLE (val)->klass;
-					g_assert (valClass->byval_arg.type == MONO_TYPE_CLASS || 
-						valClass->byval_arg.type == MONO_TYPE_GENERICINST ||
-						valClass->byval_arg.type == MONO_TYPE_SZARRAY ||
-						valClass->byval_arg.type == MONO_TYPE_STRING ||
-						valClass->byval_arg.type == MONO_TYPE_OBJECT);
-					if (mono_class_is_interface (fieldClass)) {
-						/* TODO */
-					}
-					else {
-						int res = mono_class_has_parent_fast (valClass, fieldClass);
-						g_assert (res);
-					}
-				}
+				validate_object_value (val, field->type);
 			}
 		}
 	}
