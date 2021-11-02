@@ -377,7 +377,6 @@ static gboolean mono_traverse_object_internal (MonoObject* object, gboolean isSt
 				MonoVTable *vtable = NULL;
 				mono_field_get_value (object, field, &val);
 				added_objects |= mono_add_process_object (val, state);
-				validate_object_value (val, field->type);
 			}
 		}
 	}
