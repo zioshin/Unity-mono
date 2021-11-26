@@ -365,7 +365,7 @@ namespace System.Net.Http
 			Timer ts = (Timer)prop.GetValue (cts);
 			if (ts != null) {
 				prop = typeof(Timer).GetField ("due_time_ms", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-				timeout = TimeSpan.FromMilliseconds ((long)prop.GetValue (ts));
+				Timeout = TimeSpan.FromMilliseconds ((long)prop.GetValue (ts));
 			}
 			
 			Volatile.Write (ref sentRequest, true);
