@@ -359,9 +359,9 @@ namespace System.Net.Http
 				throw new ObjectDisposedException (GetType ().ToString ());
 			
 			// We need to preserve the timeout provided in the cancellationToken if there is one. Unfortunately reflection is the only way to access this (case 1365107)
-			FieldInfo prop = typeof(CancellationToken).GetField ("_source", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+			FieldInfo prop = typeof(CancellationToken).GetField ("m_source", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 			CancellationTokenSource cts = (CancellationTokenSource)prop.GetValue (cancellationToken);
-			prop = typeof(CancellationTokenSource).GetField ("_timer", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+			prop = typeof(CancellationTokenSource).GetField ("m_timer", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 			Timer ts = (Timer)prop.GetValue (cts);
 			if (ts != null) {
 				prop = typeof(Timer).GetField ("due_time_ms", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
