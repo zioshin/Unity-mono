@@ -1,5 +1,5 @@
 @echo off
-git submodule update --init --recursive
+git -c url.https://.insteadof=git:// submodule update --init --recursive
 
 perl external/buildscripts/build_runtime_win64.pl --stevedorebuilddeps=1
 if NOT %errorlevel% == 0 (
