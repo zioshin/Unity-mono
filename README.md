@@ -567,7 +567,7 @@ cloned in a single pass:
 Once cloned, submodules can be updated to pull down the latest changes.
 This can also be done after an initial non-recursive clone:
 
-	$ git submodule update --init --recursive
+	$ git -c url.https://.insteadof=git:// submodule update --init --recursive
 
 To pull external changes into a submodule:
 

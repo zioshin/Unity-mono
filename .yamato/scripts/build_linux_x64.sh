@@ -1,8 +1,8 @@
 sudo apt-get install -y schroot
 sudo apt-get install -y binutils debootstrap
-git submodule update --init --recursive
+git -c url.https://.insteadof=git:// submodule update --init --recursive
 # try again in case previous update failed
-git submodule update --init --recursive
+git -c url.https://.insteadof=git:// submodule update --init --recursive
 export UNITY_THISISABUILDMACHINE=1
 cd external/buildscripts
 ./bee
