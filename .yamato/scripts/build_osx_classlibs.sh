@@ -1,4 +1,4 @@
-git submodule update --init --recursive
+git -c url.https://.insteadof=git:// submodule update --init --recursive
 cp .yamato/config/Stevedore.conf ~/Stevedore.conf
 cd external/buildscripts
 ./bee

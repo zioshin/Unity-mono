@@ -1,7 +1,7 @@
-git submodule update --init --recursive
+git -c url.https://.insteadof=git:// submodule update --init --recursive
 export UNITY_THISISABUILDMACHINE=1
 # try again in case previous update failed
-git submodule update --init --recursive
+git -c url.https://.insteadof=git:// submodule update --init --recursive
 cd external/buildscripts
 ./bee
 cd ../..
