@@ -1976,3 +1976,18 @@ mono_unity_class_has_failure(const MonoClass* klass)
 {
 	return mono_class_has_failure(klass);
 }
+
+MONO_API MonoClass*
+mono_unity_class_from_fullname(MonoImage* image, const char* namespace, const char* name)
+{
+	MonoError error;
+	MonoTypeNameParse info;
+
+	mono_reflection_parse_type_checked(name, &info, &error);
+
+	mono_bool resolvedType;
+	MonoType* type = mono_reflection_get_type(image, &info, TRUE, &resolvedType);
+	MonoClass* klass = mono_class_from_mono_type(type);
+
+	return klass;
+}
