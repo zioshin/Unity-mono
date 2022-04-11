@@ -2,7 +2,7 @@ name: Build Windows x64
 
 agent:
   type: Unity::VM
-  image: platform-foundation/windows-mono-bokken:latest
+  image: platform-foundation/windows-mono-bokken:v1.1.2-583887
   flavor: b1.xlarge
 
 commands:
