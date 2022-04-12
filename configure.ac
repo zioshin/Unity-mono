@@ -1379,6 +1379,7 @@ with_unityaot_default=no
 with_orbis_default=no
 with_unreal_default=no
 with_wasm_default=no
+with_overridable_allocators=yes
 
 with_bitcode_default=no
 enable_cooperative_suspend_default=no

@@ -71,6 +71,9 @@
 #define DISABLE_CFGDIR_CONFIG 1
 #endif
 #endif
+#ifndef ENABLE_OVERRIDABLE_ALLOCATORS
+#define ENABLE_OVERRIDABLE_ALLOCATORS 1
+#endif
 
 /* Disable runtime state dumping */
 #define DISABLE_CRASH_REPORTING 1
