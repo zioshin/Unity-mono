@@ -22,9 +22,6 @@ triggers:
         only:
           - "unity-master-new-unitychanges"
   cancel_old_ci: true
-  recurring:
-    - branch: unity-master-new-unitychanges
-      frequency: daily # Should run between midnight and 6AM UTC
 
 artifacts: 
   builds:
