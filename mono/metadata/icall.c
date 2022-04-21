@@ -6476,9 +6476,13 @@ ves_icall_Remoting_RealProxy_InternalGetProxyType (MonoTransparentProxy *tp)
 MonoStringHandle
 ves_icall_System_Environment_get_UserName (MonoError *error)
 {
-	error_init (error);
+	error_init(error);
 	/* using glib is more portable */
-	return mono_string_new_handle (mono_domain_get (), g_get_user_name (), error);
+	const gchar *user_name = g_get_user_name ();
+	if (user_name != NULL)
+		return mono_string_new_handle (mono_domain_get (), user_name, error);
+	else
+		return NULL_HANDLE_STRING;
 }
 
 #ifndef HOST_WIN32
