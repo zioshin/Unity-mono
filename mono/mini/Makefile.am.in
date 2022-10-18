@@ -401,7 +401,6 @@ sparc_sources = \
 s390x_sources = \
 	mini-s390x.c		\
 	mini-s390x.h		\
-	support-s390x.h		\
 	exceptions-s390x.c	\
 	tramp-s390x.c
 
@@ -459,11 +458,6 @@ llvm_runtime_sources = \
 endif
 endif
 
-if ENABLE_NETCORE
-netcore_sources = \
-	main-core.c
-endif
-
 common_sources = \
 	mini.c			\
 	mini-runtime.c	\
@@ -508,11 +502,9 @@ common_sources = \
 	branch-opts.c		\
 	mini-generic-sharing.c	\
 	simd-methods.h		\
-	simd-methods-netcore.h	\
 	tasklets.c		\
 	tasklets.h		\
 	simd-intrinsics.c	\
-	simd-intrinsics-netcore.c	\
 	mini-native-types.c \
 	mini-unwind.h		\
 	unwind.c		\
@@ -1105,10 +1097,6 @@ EXTRA_DIST = TestDriver.cs \
 	interp/whitebox-snippets.il		\
 	Makefile.am.in
 
-if ENABLE_NETCORE
-version.h: Makefile
-	echo "#define FULL_VERSION \"netcore\"" > version.h
-else
 version.h: Makefile
 	if test -e $(top_srcdir)/.git; then \
 		(cd $(top_srcdir); \
@@ -1128,7 +1116,6 @@ version.h: Makefile
 			echo "#define FULL_VERSION \"$$MONO_BRANCH/$$MONO_BUILD_REVISION\""; \
 		fi \
 	fi > version.h
-endif
 
 # Utility target for patching libtool to speed up linking
 patch-libtool:

@@ -282,17 +282,23 @@ _wapi_open (const gchar *pathname, gint flags, mode_t mode)
 		located_filename = mono_portability_find_file (pathname, FALSE);
 		if (located_filename == NULL) {
 			MONO_ENTER_GC_SAFE;
-			fd = open (pathname, flags, mode);
+			do {
+				fd = open (pathname, flags, mode);
+			} while (fd == -1 && errno == EINTR);
 			MONO_EXIT_GC_SAFE;
 		} else {
 			MONO_ENTER_GC_SAFE;
-			fd = open (located_filename, flags, mode);
+			do {
+				fd = open (located_filename, flags, mode);
+			} while (fd == -1 && errno == EINTR);
 			MONO_EXIT_GC_SAFE;
 			g_free (located_filename);
 		}
 	} else {
 		MONO_ENTER_GC_SAFE;
-		fd = open (pathname, flags, mode);
+		do {
+			fd = open (pathname, flags, mode);
+		} while (fd == -1 && errno == EINTR);
 		MONO_EXIT_GC_SAFE;
 		if (fd == -1 && (errno == ENOENT || errno == ENOTDIR) && IS_PORTABILITY_SET) {
 			gint saved_errno = errno;
@@ -304,7 +310,9 @@ _wapi_open (const gchar *pathname, gint flags, mode_t mode)
 			}
 
 			MONO_ENTER_GC_SAFE;
-			fd = open (located_filename, flags, mode);
+			do {
+				fd = open (located_filename, flags, mode);
+			} while (fd == -1 && errno == EINTR);
 			MONO_EXIT_GC_SAFE;
 			g_free (located_filename);
 		}
@@ -4743,7 +4751,6 @@ GetDriveTypeFromPath (const gchar *utf8_root_path_name)
 }
 #endif
 
-#ifndef ENABLE_NETCORE
 guint32
 mono_w32file_get_drive_type (const gunichar2 *root_path_name, gint32 root_path_name_length, MonoError *error)
 {
@@ -4775,7 +4782,6 @@ mono_w32file_get_drive_type (const gunichar2 *root_path_name, gint32 root_path_n
 
 	return (drive_type);
 }
-#endif
 
 #if defined (HOST_DARWIN) || defined (__linux__) || defined(HOST_BSD) || defined(__FreeBSD_kernel__) || defined(__HAIKU__) || defined(_AIX)
 static gchar*

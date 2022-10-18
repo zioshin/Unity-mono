@@ -16,7 +16,6 @@
 
 #include <config.h>
 
-#if !ENABLE_NETCORE
 
 #include <glib.h>
 #include <string.h>
@@ -870,4 +869,3 @@ ves_icall_System_Text_Normalization_load_normalization_resource (guint8 **argPro
 #endif
 }
 
-#endif /* !ENABLE_NETCORE */

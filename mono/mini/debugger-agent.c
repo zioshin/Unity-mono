@@ -886,6 +886,25 @@ debugger_agent_parse_options (char *options)
 			exit (1);
 		}
 	}
+
+	mini_get_debug_options ()->gen_sdb_seq_points = TRUE;
+	/* 
+	 * This is needed because currently we don't handle liveness info.
+	 */
+	mini_get_debug_options ()->mdb_optimizations = TRUE;
+
+#ifndef MONO_ARCH_HAVE_CONTEXT_SET_INT_REG
+	/* This is needed because we can't set local variables in registers yet */
+	mono_disable_optimizations (MONO_OPT_LINEARS);
+#endif
+
+	/*
+	 * The stack walk done from thread_interrupt () needs to be signal safe, but it
+	 * isn't, since it can call into mono_aot_find_jit_info () which is not signal
+	 * safe (#3411). So load AOT info eagerly when the debugger is running as a
+	 * workaround.
+	 */
+	mini_get_debug_options ()->load_aot_jit_info_eagerly = TRUE;
 }
 
 static gboolean disable_optimizations = TRUE;
@@ -2983,10 +3002,8 @@ suspend_vm (void)
 		tp_suspend = TRUE;
 	mono_loader_unlock ();
 
-#ifndef ENABLE_NETCORE
 	if (tp_suspend)
 		mono_threadpool_suspend ();
-#endif
 }
 
 /*
@@ -3026,10 +3043,8 @@ resume_vm (void)
 		tp_resume = TRUE;
 	mono_loader_unlock ();
 
-#ifndef ENABLE_NETCORE
 	if (tp_resume)
 		mono_threadpool_resume ();
-#endif
 }
 
 /*
@@ -5165,6 +5180,10 @@ ss_clear_for_assembly (SingleStepReq *req, MonoAssembly *assembly)
 static void
 mono_debugger_agent_send_crash (char *json_dump, MonoStackHash *hashes, int pause)
 {
+	/* Did we crash on an unattached thread?  Can't do runtime notifications from there */
+	if (!mono_thread_info_current_unchecked ())
+		return;
+
 	MONO_ENTER_GC_UNSAFE;
 #ifndef DISABLE_CRASH_REPORTING
 	int suspend_policy;
@@ -7258,10 +7277,8 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 			mono_environment_exitcode_set (exit_code);
 
 			/* Suspend all managed threads since the runtime is going away */
-#ifndef ENABLE_NETCORE
 			PRINT_DEBUG_MSG (1, "Suspending all threads...\n");
 			mono_thread_suspend_all_other_threads ();
-#endif
 			PRINT_DEBUG_MSG (1, "Shutting down the runtime...\n");
 			mono_runtime_quit_internal ();
 			transport_close2 ();
@@ -10089,7 +10106,7 @@ static const char* vm_cmds_str [] = {
 	"INVOKE_METHOD",
 	"SET_PROTOCOL_VERSION",
 	"ABORT_INVOKE",
-	"SET_KEEPALIVE"
+	"SET_KEEPALIVE",
 	"GET_TYPES_FOR_SOURCE_FILE",
 	"GET_TYPES",
 	"INVOKE_METHODS"

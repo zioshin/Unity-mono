@@ -80,6 +80,7 @@
 #include "debugger-agent.h"
 #include "mini-runtime.h"
 #include "jit-icalls.h"
+#include <glib.h>
 
 #ifdef HOST_DARWIN
 #include <mach/mach.h>
@@ -149,17 +150,30 @@ mono_runtime_cleanup_handlers (void)
 static GHashTable *mono_saved_signal_handlers = NULL;
 
 static struct sigaction *
-get_saved_signal_handler (int signo, gboolean remove)
+get_saved_signal_handler (int signo)
 {
 	if (mono_saved_signal_handlers) {
 		/* The hash is only modified during startup, so no need for locking */
 		struct sigaction *handler = (struct sigaction*)g_hash_table_lookup (mono_saved_signal_handlers, GINT_TO_POINTER (signo));
-		if (remove && handler)
-			g_hash_table_remove (mono_saved_signal_handlers, GINT_TO_POINTER (signo));
 		return handler;
 	}
 	return NULL;
 }
+
+
+static void
+remove_saved_signal_handler (int signo)
+{
+	if (mono_saved_signal_handlers) {
+		/* The hash is only modified during startup, so no need for locking */
+		struct sigaction *handler = (struct sigaction*)g_hash_table_lookup (mono_saved_signal_handlers, GINT_TO_POINTER (signo));
+		if (handler)
+			g_hash_table_remove (mono_saved_signal_handlers, GINT_TO_POINTER (signo));
+	}
+	return;
+}
+
+
 
 static void
 save_old_signal_handler (int signo, struct sigaction *old_action)
@@ -202,7 +216,7 @@ gboolean
 MONO_SIG_HANDLER_SIGNATURE (mono_chain_signal)
 {
 	int signal = MONO_SIG_HANDLER_GET_SIGNO ();
-	struct sigaction *saved_handler = (struct sigaction *)get_saved_signal_handler (signal, FALSE);
+	struct sigaction *saved_handler = (struct sigaction *)get_saved_signal_handler (signal);
 
 	if (saved_handler && saved_handler->sa_handler) {
 		if (!(saved_handler->sa_flags & SA_SIGINFO)) {
@@ -404,7 +418,7 @@ static void
 remove_signal_handler (int signo)
 {
 	struct sigaction sa;
-	struct sigaction *saved_action = get_saved_signal_handler (signo, TRUE);
+	struct sigaction *saved_action = get_saved_signal_handler (signo);
 
 	if (!saved_action) {
 		sa.sa_handler = SIG_DFL;
@@ -415,6 +429,7 @@ remove_signal_handler (int signo)
 	} else {
 		g_assert (sigaction (signo, saved_action, NULL) != -1);
 	}
+	remove_saved_signal_handler(signo);
 }
 
 void
@@ -564,7 +579,7 @@ clock_init_for_profiler (MonoProfilerSampleMode mode)
 		 * CLOCK_PROCESS_CPUTIME_ID clock but don't actually support it. For
 		 * those systems, we fall back to CLOCK_MONOTONIC if we get EINVAL.
 		 */
-		if (clock_nanosleep (CLOCK_PROCESS_CPUTIME_ID, TIMER_ABSTIME, &ts, NULL) != EINVAL) {
+		if (g_clock_nanosleep (CLOCK_PROCESS_CPUTIME_ID, TIMER_ABSTIME, &ts, NULL) != EINVAL) {
 			sampling_clock = CLOCK_PROCESS_CPUTIME_ID;
 			break;
 		}
@@ -588,7 +603,7 @@ clock_sleep_ns_abs (guint64 ns_abs)
 	then.tv_nsec = ns_abs % 1000000000;
 
 	do {
-		ret = clock_nanosleep (sampling_clock, TIMER_ABSTIME, &then, NULL);
+		ret = g_clock_nanosleep (sampling_clock, TIMER_ABSTIME, &then, NULL);
 
 		if (ret != 0 && ret != EINTR)
 			g_error ("%s: clock_nanosleep () returned %d", __func__, ret);

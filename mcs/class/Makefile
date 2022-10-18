@@ -1,6 +1,6 @@
 thisdir = class
 
-NO_FACADES_PROFILE := $(filter monodroid_tools monotouch_tools wasm_tools binary_reference_assemblies xbuild_12 xbuild_14 netcore, $(PROFILE))
+NO_FACADES_PROFILE := $(filter monodroid_tools monotouch_tools wasm_tools binary_reference_assemblies xbuild_12 xbuild_14, $(PROFILE))
 
 ifndef NO_FACADES_PROFILE
 FACADES_FOLDER := Facades
@@ -460,9 +460,6 @@ wasm_SUBDIRS := $(mobile_common_dirs)
 wasm_PARALLEL_SUBDIRS := $(wasm_dirs_parallel)
 wasm_tools_SUBDIRS :=
 wasm_tools_PARALLEL_SUBDIRS := $(wasm_tools_dirs_parallel)
-
-netcore_SUBDIRS :=
-netcore_PARALLEL_SUBDIRS :=
 
 include ../build/rules.make
 

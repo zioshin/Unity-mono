@@ -57,7 +57,6 @@ jobs:
     displayName: Linux ARM Hard Float
     os: linux
     arch: armhf
-    timeoutInMinutes: 180
 
 #
 # Linux aarch64
@@ -67,6 +66,50 @@ jobs:
     displayName: Linux ARM64
     os: linux
     arch: aarch64
+
+- template: /scripts/ci/mono-ci-job-template.yml
+  parameters:
+    displayName: Linux ARM64 Coop Suspend
+    os: linux
+    arch: aarch64
+    additionalCITags: coop-suspend,checked-coop
+
+- template: /scripts/ci/mono-ci-job-template.yml
+  parameters:
+    displayName: Linux ARM64 FullAOT
+    os: linux
+    arch: aarch64
+    additionalCITags: fullaot
+
+- template: /scripts/ci/mono-ci-job-template.yml
+  parameters:
+    displayName: Linux ARM64 FullAOT+Interpreter
+    os: linux
+    arch: aarch64
+    additionalCITags: fullaotinterp
+
+- template: /scripts/ci/mono-ci-job-template.yml
+  parameters:
+    displayName: Linux ARM64 FullAOT+Interpreter+LLVM
+    os: linux
+    arch: aarch64
+    additionalCITags: fullaotinterp_llvm
+
+#- template: /scripts/ci/mono-ci-job-template.yml
+#  parameters:
+#    displayName: Linux ARM64 FullAOT+LLVM
+#    os: linux
+#    arch: aarch64
+#    additionalCITags: fullaot_llvm
+
+- template: /scripts/ci/mono-ci-job-template.yml
+  parameters:
+    displayName: Linux ARM64 Interpreter
+    os: linux
+    arch: aarch64
+    additionalCITags: interpreter
+    timeoutInMinutes: 180
+
 
 #
 # Linux x64
@@ -92,6 +135,7 @@ jobs:
     arch: amd64
     additionalCITags: acceptance-tests
     publishTestResults: false
+    timeoutInMinutes: 180
 
 - template: /scripts/ci/mono-ci-job-template.yml
   parameters:
@@ -103,6 +147,7 @@ jobs:
       - publish: mcs/apidiff
         artifact: ApiDiff
         displayName: Public API Diff
+        condition: failed()
 
 #- template: /scripts/ci/mono-ci-job-template.yml
 #  parameters:
@@ -118,12 +163,13 @@ jobs:
 #    arch: amd64
 #    additionalCITags: bitcodeinterp
 
-- template: /scripts/ci/mono-ci-job-template.yml
-  parameters:
-    displayName: Linux x64 C++
-    os: linux
-    arch: amd64
-    additionalCITags: cxx
+# disabled as we won't switch to C++ in mono/mono
+#- template: /scripts/ci/mono-ci-job-template.yml
+#  parameters:
+#    displayName: Linux x64 C++
+#    os: linux
+#    arch: amd64
+#    additionalCITags: cxx
 
 - template: /scripts/ci/mono-ci-job-template.yml
   parameters:
@@ -173,7 +219,6 @@ jobs:
     os: linux
     arch: amd64
     additionalCITags: interpreter
-    timeoutInMinutes: 180
 
 - template: /scripts/ci/mono-ci-job-template.yml
   parameters:
@@ -208,9 +253,20 @@ jobs:
     os: osx
     arch: amd64
 
+# disabled as we won't switch to C++ in mono/mono
+#- template: /scripts/ci/mono-ci-job-template.yml
+#  parameters:
+#    displayName: OS X x64 C++
+#    os: osx
+#    arch: amd64
+#    additionalCITags: cxx
+
+#
+# Windows x64
+#
 - template: /scripts/ci/mono-ci-job-template.yml
   parameters:
-    displayName: OS X x64 C++
-    os: osx
+    displayName: Windows x64
+    os: win
     arch: amd64
-    additionalCITags: cxx
+    timeoutInMinutes: 240

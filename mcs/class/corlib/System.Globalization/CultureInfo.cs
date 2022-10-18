@@ -314,9 +314,7 @@ namespace System.Globalization
 			}
 		}
 
-#if !NETCORE
 		[MonoLimitation ("Optional calendars are not supported only default calendar is returned")]
-#endif
 		public virtual Calendar[] OptionalCalendars {
 			get {
 				return new[] { Calendar };
@@ -789,9 +787,7 @@ namespace System.Globalization
 			}
 		}
 
-#if !NETCORE
 		[MonoTODO ("Currently it ignores the altName parameter")]
-#endif
 		public static CultureInfo GetCultureInfo (string name, string altName) {
 			if (name == null)
 				throw new ArgumentNullException ("null");
