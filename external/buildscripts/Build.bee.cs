@@ -54,6 +54,7 @@ namespace BuildProgram
         private static void RegisterWindowsArtifacts()
         {
             StevedoreArtifacts.Add(new StevedoreArtifact("android-ndk-win"));
+            StevedoreArtifacts.Add(new StevedoreArtifact("7za-win-x64"))
         }
 
         private static void RegisterOSXArtifacts()
@@ -61,6 +62,7 @@ namespace BuildProgram
             StevedoreArtifacts.Add(new StevedoreArtifact("android-ndk-mac"));
             StevedoreArtifacts.Add(new StevedoreArtifact("mac-toolchain-11_0"));
             StevedoreArtifacts.Add(new StevedoreArtifact("mono-build-tools-extra"));
+            StevedoreArtifacts.Add(new StevedoreArtifact("7za-mac-x64"))
         }
 
         private static void RegisterLinuxArtifacts()
@@ -69,6 +71,7 @@ namespace BuildProgram
             StevedoreArtifacts.Add(new StevedoreArtifact("sysroot-gcc-glibc-x64"));
             StevedoreArtifacts.Add(new StevedoreArtifact("toolchain-llvm-centos"));
             StevedoreArtifacts.Add(new StevedoreArtifact("cmake-linux-x64"));
+            StevedoreArtifacts.Add(new StevedoreArtifact("7za-linux-x64"))
         }
 
         private static void RegisterCommonNonWindowsArtifacts()
