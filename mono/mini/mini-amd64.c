@@ -78,6 +78,8 @@ static gpointer ss_trampoline;
 /* The breakpoint trampoline */
 static gpointer bp_trampoline;
 
+gboolean mono_amd64_dont_patch_callsites = 1;
+
 /* Offset between fp and the first argument in the callee */
 #define ARGS_OFFSET 16
 #define GP_SCRATCH_REG AMD64_R11
@@ -2838,9 +2840,19 @@ emit_call_body (MonoCompile *cfg, guint8 *code, MonoJumpInfoType patch_type, gco
 				amd64_padding (code, pad_size);
 				g_assert ((guint64)(code + 2 - cfg->native_code) % 8 == 0);
 			}
-			mono_add_patch_info (cfg, code - cfg->native_code, patch_type, data);
-			amd64_set_reg_template (code, GP_SCRATCH_REG);
-			amd64_call_reg (code, GP_SCRATCH_REG);
+			// mono_add_patch_info (cfg, code - cfg->native_code, patch_type, data);
+			// amd64_set_reg_template (code, GP_SCRATCH_REG);
+			// amd64_call_reg (code, GP_SCRATCH_REG);
+
+			mono_add_patch_info_rel (cfg, code - cfg->native_code, patch_type, data, -1);
+			if (mono_amd64_dont_patch_callsites) {
+				amd64_set_reg_template (code, GP_SCRATCH_REG);
+				amd64_mov_reg_membase (code, GP_SCRATCH_REG, GP_SCRATCH_REG, 0, 8);
+				amd64_call_reg (code, GP_SCRATCH_REG);
+			} else {
+				amd64_set_reg_template (code, GP_SCRATCH_REG);
+				amd64_call_reg (code, GP_SCRATCH_REG);
+			}
 		}
 	}
 
@@ -6471,6 +6483,18 @@ mono_arch_patch_code_new (MonoCompile *cfg, MonoDomain *domain, guint8 *code, Mo
 {
 	unsigned char *ip = ji->ip.i + code;
 
+	if (ji->relocation == -1) {
+		/*
+		 * amd64_set_reg_template (code, GP_SCRATCH_REG);
+		 * amd64_mov_reg_membase (code, GP_SCRATCH_REG, GP_SCRATCH_REG, 0, 8);
+		 * amd64_call_reg (code, GP_SCRATCH_REG);
+		*/
+		gpointer addr = g_malloc0 (8);
+		*(gpointer*)addr = target;
+		amd64_mov_reg_imm_size (ip, GP_SCRATCH_REG, addr, 8);
+		return;
+	}
+
 	/*
 	 * Debug code to help track down problems where the target of a near call is
 	 * is not valid.
@@ -7203,7 +7227,7 @@ mono_arch_emit_exceptions (MonoCompile *cfg)
 	/* Compute needed space */
 	for (patch_info = cfg->patch_info; patch_info; patch_info = patch_info->next) {
 		if (patch_info->type == MONO_PATCH_INFO_EXC)
-			code_size += 40;
+			code_size += 45;
 		if (patch_info->type == MONO_PATCH_INFO_R8)
 			code_size += 8 + 15; /* sizeof (double) + alignment */
 		if (patch_info->type == MONO_PATCH_INFO_R4)

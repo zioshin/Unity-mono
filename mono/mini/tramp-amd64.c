@@ -137,6 +137,13 @@ mono_arch_patch_callsite (guint8 *method_start, guint8 *orig_code, guint8 *addr)
 {
 	guint8 *code;
 	guint8 buf [16];
+
+	code = orig_code;
+	if (mono_amd64_dont_patch_callsites && code [-3] == 0x41 && code [-2] == 0xff && code [-1] == 0xd3 && code [-6] == 0x4d && code [-5] == 0x8b && code [-4] == 0x1b && code [-16] == 0x49 && code [-15] == 0xbb) {
+		gpointer *p = *(gpointer**)(code -16 + 2);
+		*p = addr;
+		return;
+	}
 	gboolean can_write = mono_breakpoint_clean_code (method_start, orig_code, 14, buf, sizeof (buf));
 
 	code = buf + 14;
