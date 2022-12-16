@@ -1112,6 +1112,10 @@ mono_debugger_disconnect ()
 	// loop already handles the debugger client disconnection properly,
 	// so calling transport_close2 method is enough since the method
 	// only closes the debugger client socket.
+
+	//restart debugger thread now that we've forcefully disconnected any clients
+	mono_atomic_cas_i32(&agent_inited, 0, 1);
+	finish_agent_init(FALSE);
 	transport_close2();
 }
 
@@ -1886,6 +1890,7 @@ start_debugger_thread (void)
 
 	debugger_thread_handle = mono_threads_open_thread_handle (thread->handle);
 	g_assert (debugger_thread_handle);
+	debugger_thread_exited = FALSE;
 }
 #endif // RUNTIME_IL2CPP
 
