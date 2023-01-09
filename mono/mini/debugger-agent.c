@@ -1114,7 +1114,7 @@ mono_debugger_disconnect ()
 	// only closes the debugger client socket.
 
 	//restart debugger thread now that we've forcefully disconnected any clients
-	mono_atomic_cas_i32(&agent_inited, 0, 1);
+	mono_atomic_cas_i32(&inited, 0, 1);
 	finish_agent_init(FALSE);
 	transport_close2();
 }
