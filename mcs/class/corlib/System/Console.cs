@@ -131,7 +131,7 @@ namespace System
 			SetupStreams (inputEncoding, outputEncoding);
 		}
 
-#if MONODROID || UNITY
+#if MONODROID || UNITY_JIT || UNITY_AOT
 		const string LibLog = "/system/lib/liblog.so";
 		const string LibLog64 = "/system/lib64/liblog.so";
 
@@ -158,7 +158,7 @@ namespace System
 				stderr = TextWriter.Synchronized (new UnexceptionalStreamWriter (OpenStandardError (0), outputEncoding) { AutoFlush = true });
 
 #if MONODROID && !MOBILE_DESKTOP_HOST
-				if (IsRunningOnAndroid ()) {
+				if (IsRunningOnAndroid) {
 					stdout = TextWriter.Synchronized (new LogcatTextWriter ("mono-stdout", stdout));
 					stderr = TextWriter.Synchronized (new LogcatTextWriter ("mono-stderr", stderr));
 				}
