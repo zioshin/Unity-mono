@@ -11,13 +11,14 @@ merge_main:
   - command: git config user.email "dotnet-vm-team-devs@unity3d.com"
   - command: git config user.name "mono bot"
   - command: git fetch --all
+  - command: git checkout --track origin/$GIT_BRANCH
   - command: git merge origin/unity-main
   - command: git push
   variables:
     PATH: /usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin
   triggers:
     recurring:
-    - branch: unity-unity-2023.1-mbe
+    - branch: unity-2023.1-mbe
       frequency: 20 * * ?
   source:
     skip_checkout: false
