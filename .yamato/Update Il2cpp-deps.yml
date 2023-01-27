@@ -9,7 +9,7 @@ commands:
   - |
     git clone git@github.cds.internal.unity3d.com:unity/prtools.git
     cd prtools
-    git checkout main
+    git checkout 2023.1/main
     cmd /c cibuildscript
     cmd /c xcopy build %PRTOOLS_BUILD_DIR% /s /Y /E /I
     cd %UNITY_SOURCE_PRTOOLS_DIR%
